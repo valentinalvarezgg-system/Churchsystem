@@ -182,16 +182,6 @@ export default function Reportes() {
                   </div>
                 )}
 
-                {/* Finanzas */}
-                <div className="card">
-                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}><Icons.Finance /> Finanzas de la semana</h3>
-                  <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--c-success)', marginBottom: 6 }}>
-                    {fmt(r.ofrendas?.total || 0)}
-                  </div>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
-                    {r.ofrendas?.qty || 0} movimientos · {r.mensajes?.qty || 0} mensajes · {r.mensajes?.enviados || 0} enviados
-                  </p>
-                </div>
               </div>
             )}
 
@@ -218,19 +208,6 @@ export default function Reportes() {
                       </div>
                     )
                   })}
-                </div>
-
-                {/* Finanzas del mes */}
-                <div className="card">
-                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}><Icons.Finance /> Finanzas de {mes}</h3>
-                  <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--c-success)', marginBottom: 6 }}>{fmt(r.totalOfrendas || 0)}</div>
-                  {(r.finanzas || []).map((f, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>{f.tipo} ({f.qty})</span>
-                      <strong>{fmt(f.total)}</strong>
-                    </div>
-                  ))}
-                  {(r.finanzas || []).length === 0 && <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sin movimientos este mes</p>}
                 </div>
 
                 {/* Asistencia mensual */}

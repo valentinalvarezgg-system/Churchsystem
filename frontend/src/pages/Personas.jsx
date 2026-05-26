@@ -205,8 +205,8 @@ export default function Personas() {
                     <td><span className={`badge badge-${p.estado.toLowerCase()}`}>{p.estado}</span></td>
                     <td style={{whiteSpace:'nowrap'}}>
                       <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /></button>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Settings /></button>
-                      {canDelete&&<button className="btn btn-ghost btn-sm" onClick={()=>handleDelete(p.id,p.nombre)} style={{color:'var(--c-error)'}}><Icons.Settings /></button>}
+                      <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /></button>
+                      {canDelete&&<button className="btn btn-ghost btn-sm" onClick={()=>handleDelete(p.id,p.nombre)} style={{color:'var(--c-error)'}}><Icons.Delete /></button>}
                     </td>
                   </tr>
                 ))

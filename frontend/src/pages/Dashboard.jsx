@@ -233,26 +233,26 @@ export default function Dashboard() {
             <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>⚡ Acceso rápido</h3>
             <div style={{ display:'grid', gridTemplateColumns:`repeat(${ori.isPhone && ori.portrait ? 2 : ori.cols4},1fr)`, gap: ori.isPhone ? 7 : 7 }}>
               {[
-                { icon:'○', label:'Nueva persona',   path:'/personas',     color:'#2563EB' },
-                { icon:'✓', label:'Registrar culto',  path:'/asistencia',   color:'#16A34A' },
-                { icon:'▢', label:'Check-in QR',      path:'/checkin',      color:'#0891B2' },
-                { icon:'✉', label:'Enviar mensaje',   path:'/mensajes',     color:'#D97706' },
-                { icon:'◆', label:'Asistente IA',     path:'/asistente-ia', color:'#7C3AED' },
-                { icon:'▣', label:'Ver alertas',      path:'/alertas',      color:'#DC2626' },
-                { icon:'$', label:'Finanzas',         path:'/finanzas',     color:'#0D9488' },
-                { icon:'▤', label:'Reportes',         path:'/reportes',     color:'#9333EA' },
+                { icon:'○', label:'Nueva persona',   desc:'Registrar miembro o visitante', path:'/personas',     color:'#2563EB' },
+                { icon:'✓', label:'Registrar culto',  desc:'Tomar asistencia del servicio', path:'/asistencia',   color:'#16A34A' },
+                { icon:'▢', label:'Check-in QR',      desc:'Generar código QR para entrada', path:'/checkin',      color:'#0891B2' },
+                { icon:'✉', label:'Enviar mensaje',   desc:'Contactar persona o grupo', path:'/mensajes',     color:'#D97706' },
+                { icon:'◆', label:'Asistente IA',     desc:'Consultar datos con inteligencia artificial', path:'/asistente-ia', color:'#7C3AED' },
+                { icon:'▣', label:'Ver alertas',      desc:'Seguimientos y avisos pendientes', path:'/alertas',      color:'#DC2626' },
+                { icon:'▤', label:'Reportes',         desc:'Estadísticas y métricas de la iglesia', path:'/reportes',     color:'#9333EA' },
               ].map(a => (
                 <button key={a.path} onClick={() => navigate(a.path)}
                   style={{
-                    display:'flex', alignItems:'center', gap:8,
-                    padding:'9px 11px', borderRadius:8, cursor:'pointer',
+                    display:'flex', flexDirection:'column', alignItems:'flex-start', gap:4,
+                    padding:'12px 14px', borderRadius:10, cursor:'pointer',
                     background:'var(--bg)', border:'1px solid var(--border)',
                     fontSize:12, fontWeight:600, color:'var(--text-2)',
-                    transition:'all .15s',
+                    transition:'all .15s', textAlign:'left',
                   }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = a.color; e.currentTarget.style.color = a.color }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)' }}>
-                  <span style={{ fontSize:15 }}>{a.icon}</span>{a.label}
+                  <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{ fontSize:15 }}>{a.icon}</span>{a.label}</div>
+                  <span style={{fontSize:11,fontWeight:400,color:'var(--text-muted)',lineHeight:1.3}}>{a.desc}</span>
                 </button>
               ))}
             </div>
@@ -326,19 +326,6 @@ export default function Dashboard() {
                   }}>{s.val}</span>
                 </div>
               ))}
-
-              {/* Finanzas del mes */}
-              {(stats?.finanzasMes || []).length > 0 && (
-                <div onClick={() => navigate('/finanzas')}
-                  style={{ marginTop:4, padding:'8px 10px', borderRadius:8, cursor:'pointer', background:'var(--c-success-bg)', border:'1px solid rgba(22,163,74,0.15)', transition:'opacity .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-                  <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:.4, color:'var(--c-success)', marginBottom:2 }}><Icons.Finance /> Ofrendas del mes</div>
-                  <div style={{ fontSize:18, fontWeight:800, color:'var(--c-success)' }}>
-                    ${(t.totalOfrendasMes || 0).toLocaleString('es-AR')}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

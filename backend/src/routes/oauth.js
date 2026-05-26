@@ -72,10 +72,10 @@ router.get('/google/callback', async (req, res) => {
     }
     const token = jwt.sign(payload, SECRET(), { expiresIn: '8h' })
     
-    res.redirect(`/login?token=${token}`)
+    res.redirect(`/app/login?token=${token}`)
   } catch (error) {
     console.error('Error OAuth Google:', error)
-    res.redirect('/login?error=oauth_failed')
+    res.redirect('/app/login?error=oauth_failed')
   }
 })
 

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import Icons from '../components/Icons.jsx'
 import { useParams } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
-import CheckInFacial from '../components/CheckInFacial.jsx'
 import { apiFetch } from '../services/api.js'
 
 // ── Pantalla pública — lo que ve el miembro al escanear el QR ────────────────
@@ -116,8 +115,6 @@ export function CheckInPublico() {
 // ── Panel admin — genera QR ───────────────────────────────────────────────────
 export default function CheckInAdmin() {
   const [cultos, setCultos]   = useState([])
-  const [showFacial, setShowFacial] = useState(false)
-  const [facialRegistros, setFacialRegistros] = useState([])
   const [qrData, setQrData]   = useState(null)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied]   = useState(false)
@@ -197,13 +194,6 @@ export default function CheckInAdmin() {
                       disabled={loading}>
                       {loading ? '…' : 'QR'}
                     </button>
-                    <button className="btn btn-ghost btn-sm"
-                      data-tip="Reconocimiento facial — registrar asistencia por cara"
-                      onClick={() => { setQrData(null); generarQR(c.id).then(() => setShowFacial(true)) }}
-                      disabled={loading}
-                      style={{whiteSpace:'nowrap'}}>
-                      🎭 Facial
-                    </button>
                   </div>
                 </div>
               ))
@@ -276,20 +266,6 @@ export default function CheckInAdmin() {
           )}
         </div>
 
-        {/* Registros por facial en esta sesión */}
-        {facialRegistros.length > 0 && (
-          <div className="card" style={{padding:'12px 16px',background:'var(--c-success-bg)',border:'1px solid rgba(22,163,74,0.2)'}}>
-            <div style={{fontSize:13,fontWeight:700,color:'var(--c-success)',marginBottom:8}}>
-              🎭 Registrados por reconocimiento facial ({facialRegistros.length})
-            </div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-              {facialRegistros.map((r,i) => (
-                <span key={i} style={{fontSize:12,background:'var(--surface)',padding:'3px 10px',borderRadius:20,border:'1px solid var(--border)'}}>{r.nombre}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Instrucciones */}
         <div className="card" style={{marginTop:16}}>
           <h3 style={{fontSize:13, fontWeight:700, marginBottom:14, textTransform:'uppercase', letterSpacing:.4, color:'var(--text-muted)'}}>
@@ -297,10 +273,10 @@ export default function CheckInAdmin() {
           </h3>
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:12}}>
             {[
-              ['1️⃣', 'Creá el culto', 'En la sección Asistencia'],
-              ['2️⃣', 'Generá el QR', 'Aparece aquí en pantalla'],
-              ['3️⃣', 'Mostralo en la entrada', 'Imprimilo o proyectalo'],
-              ['4️⃣', 'Los miembros escanean', 'Con la cámara del celular — sin app'],
+              ['1', 'Creá el culto', 'En la sección Asistencia'],
+              ['2', 'Generá el QR', 'Aparece aquí en pantalla'],
+              ['3', 'Mostralo en la entrada', 'Imprimilo o proyectalo'],
+              ['4', 'Los miembros escanean', 'Con la cámara del celular — sin app'],
             ].map(([num, title, desc]) => (
               <div key={num} style={{textAlign:'center', padding:'14px 10px', background:'var(--bg)', borderRadius:'var(--r)', border:'1px solid var(--border)'}}>
                 <div style={{fontSize:24, marginBottom:6}}>{num}</div>
