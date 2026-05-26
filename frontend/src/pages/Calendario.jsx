@@ -355,11 +355,33 @@ export default function Calendario() {
                 )}
               </div>
               {canEdit && (
-                <div className="modal-footer">
+                <div className="modal-footer" style={{display:'flex',gap:8,justifyContent:'space-between'}}>
                   <button className="btn btn-danger btn-sm" onClick={() => eliminar(selEv.id)}>
-                    🗑 Eliminar
+                    Eliminar
                   </button>
-                  <button className="btn btn-ghost" onClick={() => setSelEv(null)}>Cerrar</button>
+                  <div style={{display:'flex',gap:8}}>
+                    <button className="btn btn-ghost btn-sm" onClick={() => {
+                      const d = selEv.fecha?.replace(/-/g,'')
+                      const h = (selEv.hora||'10:00').replace(':','') + '00'
+                      const ics = [
+                        'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//ChurchSystem//ES',
+                        'BEGIN:VEVENT',
+                        `DTSTART:${d}T${h}`,
+                        `SUMMARY:${selEv.titulo}`,
+                        selEv.lugar ? `LOCATION:${selEv.lugar}` : '',
+                        selEv.descripcion ? `DESCRIPTION:${selEv.descripcion}` : '',
+                        'END:VEVENT','END:VCALENDAR'
+                      ].filter(Boolean).join('\r\n')
+                      const blob = new Blob([ics], {type:'text/calendar'})
+                      const a = document.createElement('a')
+                      a.href = URL.createObjectURL(blob)
+                      a.download = `${selEv.titulo}.ics`
+                      a.click()
+                    }}>
+                      <Icons.Calendar /> Agregar al calendario
+                    </button>
+                    <button className="btn btn-ghost" onClick={() => setSelEv(null)}>Cerrar</button>
+                  </div>
                 </div>
               )}
             </div>
