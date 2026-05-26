@@ -3,15 +3,14 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { getUser, apiFetch } from '../services/api.js'
 import BusquedaGlobal from './BusquedaGlobal.jsx'
 import { useNotificaciones } from '../hooks/useNotificaciones.js'
-import BtnNotificaciones from './BtnNotificaciones.jsx'
+import Icons from './Icons.jsx'
 
-// Páginas del Bottom Nav (las 5 más usadas en mobile)
 const BOTTOM_LINKS = [
-  { to: '/',           icon: '📊', label: 'Inicio',   exact: true  },
-  { to: '/personas',   icon: '👥', label: 'Personas', exact: false },
-  { to: '/asistencia', icon: '📅', label: 'Asistencia',exact:false },
-  { to: '/alertas',    icon: '🔔', label: 'Alertas',  exact: false },
-  { to: '/menu',       icon: '☰',  label: 'Menú',     exact: false, isMenu: true },
+  { to: '/',           icon: 'Dashboard', label: 'Inicio',   exact: true  },
+  { to: '/personas',   icon: 'Users', label: 'Personas', exact: false },
+  { to: '/asistencia', icon: 'Attendance', label: 'Asistencia',exact:false },
+  { to: '/alertas',    icon: 'Comunicados', label: 'Alertas',  exact: false },
+  { to: '/menu',       icon: 'Settings',  label: 'Menú',     exact: false, isMenu: true },
 ]
 
 export default function Menu() {
@@ -65,7 +64,7 @@ export default function Menu() {
   const lnk = (to, icon, label, end=false, badge=0) => (
     <NavLink key={to} to={to} end={end}
       className={({isActive}) => 'nav-item' + (isActive ? ' active' : '')}>
-      <span style={{fontSize:14,lineHeight:1,flexShrink:0,width:18,textAlign:'center'}}>{icon}</span>
+      <span style={{lineHeight:1,flexShrink:0,width:18,display:'flex',alignItems:'center',justifyContent:'center'}}>{icon}</span>
       <span style={{flex:1}}>{label}</span>
       {badge > 0 && <span className="nav-badge">{badge > 99 ? '99+' : badge}</span>}
     </NavLink>
@@ -154,43 +153,43 @@ export default function Menu() {
 
         <nav className="sidebar-nav">
           <div className="nav-section">Principal</div>
-          {lnk('/', '📊', 'Dashboard', true)}
-          {isAdmin && lnk('/premium', '✨', 'Vista Ejecutiva')}
-          {isMid  && lnk('/comunicados', '📢', 'Comunicados')}
-          {lnk('/oracion', '🙏', 'Oración')}
+          {lnk('/', <Icons.Dashboard />, 'Dashboard', true)}
+          {isAdmin && lnk('/premium', <Icons.Premium />, 'Vista Ejecutiva')}
+          {isMid  && lnk('/comunicados', <Icons.Comunicados />, 'Comunicados')}
+          {lnk('/oracion', <Icons.Prayer />, 'Oración')}
 
           {isMid && <>
             <div className="nav-section">Congregación</div>
-            {lnk('/personas',    '👥', 'Personas')}
-            {lnk('/grupos',      '🧩', 'Grupos')}
-            {lnk('/asistencia',  '📅', 'Asistencia')}
-            {lnk('/checkin',     '📱', 'Check-in QR')}
-            {lnk('/calendario',  '📆', 'Calendario')}
-            {lnk('/discipulado', '✝️',  'Discipulado')}
-            {isAudit && lnk('/consolidacion', '🤝', 'Consolidación')}
+            {lnk('/personas',    <Icons.Users />, 'Personas')}
+            {lnk('/grupos',      <Icons.Groups />, 'Grupos')}
+            {lnk('/asistencia',  <Icons.Attendance />, 'Asistencia')}
+            {lnk('/checkin',     <Icons.CheckIn />, 'Check-in QR')}
+            {lnk('/calendario',  <Icons.Calendar />, 'Calendario')}
+            {lnk('/discipulado', <Icons.Discipleship />,  'Discipulado')}
+            {isAudit && lnk('/consolidacion', <Icons.Users />, 'Consolidación')}
           </>}
 
           {(isMid||isAudit) && <>
             <div className="nav-section">Gestión</div>
-            {isMid   && lnk('/mensajes',  '💬', 'Mensajería')}
-            {isAudit && lnk('/alertas',   '🔔', 'Alertas', false, alertCount)}
-            {isAudit && lnk('/finanzas',  '💰', 'Finanzas')}
-            {isAudit && lnk('/reportes',  '📈', 'Reportes')}
+            {isMid   && lnk('/mensajes',  <Icons.Messages />, 'Mensajería')}
+            {isAudit && lnk('/alertas',   <Icons.Comunicados />, 'Alertas', false, alertCount)}
+            {isAudit && lnk('/finanzas',  <Icons.Finance />, 'Finanzas')}
+            {isAudit && lnk('/reportes',  <Icons.Reports />, 'Reportes')}
           </>}
 
           {isMid && <>
             <div className="nav-section">Herramientas</div>
-            {lnk('/excel-ia',    '📊', 'Excel + IA')}
-            {isAudit && lnk('/asistente-ia', '🤖', 'Asistente IA')}
+            {lnk('/excel-ia',    <Icons.Excel />, 'Excel + IA')}
+            {isAudit && lnk('/asistente-ia', <Icons.AI />, 'Asistente IA')}
           </>}
 
           {isAdmin && <>
             <div className="nav-section">Admin</div>
-            {lnk('/users',         '👤', 'Usuarios')}
-            {lnk('/promo-codes',   '🎟️',  'Promo Codes')}
-            {lnk('/permisos',      '🛡️',  'Permisos')}
-            {lnk('/historial',     '🕓', 'Historial')}
-            {lnk('/configuracion', '⚙️',  'Configuración')}
+            {lnk('/users',         <Icons.Profile />, 'Usuarios')}
+            {lnk('/promo-codes',   <Icons.Ticket />,  'Promo Codes')}
+            {lnk('/permisos',      <Icons.Shield />,  'Permisos')}
+            {lnk('/historial',     <Icons.History />, 'Historial')}
+            {lnk('/configuracion', <Icons.Settings />,  'Configuración')}
           </>}
         </nav>
 
@@ -222,11 +221,12 @@ export default function Menu() {
       {/* ── Bottom Navigation (solo mobile < 1024px) ─────────── */}
       <nav className="bottom-nav">
         {BOTTOM_LINKS.map(link => {
+          const IconComponent = Icons[link.icon]
           if (link.isMenu) {
             return (
               <button key="menu" className="bottom-nav-item" onClick={() => setOpen(true)}
                 style={{background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
-                <span className="nav-icon">{link.icon}</span>
+                <span className="nav-icon"><IconComponent /></span>
                 <span>{link.label}</span>
               </button>
             )
@@ -237,7 +237,7 @@ export default function Menu() {
           return (
             <NavLink key={link.to} to={link.to}
               className={`bottom-nav-item${isActive ? ' active' : ''}`}>
-              <span className="nav-icon">{link.icon}</span>
+              <span className="nav-icon"><IconComponent /></span>
               {link.to === '/alertas' && alertCount > 0 && (
                 <span className="bottom-nav-badge">{alertCount > 9 ? '9+' : alertCount}</span>
               )}
