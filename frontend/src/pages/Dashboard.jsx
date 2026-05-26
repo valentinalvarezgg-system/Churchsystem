@@ -88,7 +88,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── Stats principales ──────────────────────────────────── */}
-        <div className="stats-grid" style={{ gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12 }} style={{ marginBottom:20 }}>
+        <div className="stats-grid" style={{ gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12, marginBottom: 20 }}>
           {[
             { val: t.personas || 0,    lbl: 'Total',        icon:'👥', color:'var(--primary)',   path:'/personas' },
             { val: t.activos  || 0,    lbl: 'Activos',      icon:'✅', color:'var(--c-success)', path:'/personas' },

@@ -155,6 +155,7 @@ export default function Menu() {
         <nav className="sidebar-nav">
           <div className="nav-section">Principal</div>
           {lnk('/', '📊', 'Dashboard', true)}
+          {isAdmin && lnk('/premium', '✨', 'Vista Ejecutiva')}
           {isMid  && lnk('/comunicados', '📢', 'Comunicados')}
           {lnk('/oracion', '🙏', 'Oración')}
 
