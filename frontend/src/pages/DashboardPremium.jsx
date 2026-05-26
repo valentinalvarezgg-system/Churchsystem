@@ -1,24 +1,12 @@
-/**
- * Dashboard Premium — executive overview with key metrics
- */
 import { useState, useEffect } from 'react'
+import Layout from '../components/Layout.jsx'
 import { apiFetch } from '../services/api.js'
 import KPICard, { KPISkeleton } from '../components/KPICard.jsx'
+import Icons from '../components/Icons.jsx'
 
-function fmtMes() {
-  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-  return meses[new Date().getMonth()]
-}
-
-function DashPremium() {
-  const [isLoading, setLoading] = useState(true)
-  const [kpis, setKPIs] = useState({
-    personas:      {},
-    asistencias:   {},
-    grupos:        {},
-    seguimientos:  {},
-    consolidacion: {},
-  })
+export default function DashboardPremium() {
+  const [loading, setLoading] = useState(true)
+  const [kpis, setKPIs] = useState({})
   
   useEffect(() => {
     Promise.all([
@@ -31,84 +19,75 @@ function DashPremium() {
       .then(([personas, asistencias, grupos, seguimientos, consolidacion]) => {
         setKPIs({ personas, asistencias, grupos, seguimientos, consolidacion })
       })
-      .catch(e => console.error('KPIs fetch error:', e))
+      .catch(e => console.error('KPIs error:', e))
       .finally(() => setLoading(false))
   }, [])
   
-  const { personas, asistencias, grupos, seguimientos, consolidacion } = kpis
+  const { personas={}, asistencias={}, grupos={}, seguimientos={}, consolidacion={} } = kpis
+  const mesActual = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
   
   return (
-    <div className="dash-premium">
-      <header>
-        <h1>Vista Ejecutiva</h1>
-        <p>{fmtMes()} {new Date().getFullYear()}</p>
-      </header>
-
+    <Layout 
+      title="Vista Ejecutiva" 
+      subtitle={`Métricas clave · ${mesActual}`}
+    >
       <div className="kpi-grid">
-        {isLoading ? (
-          <>
-            <KPISkeleton />
-            <KPISkeleton />
-            <KPISkeleton />
-            <KPISkeleton />
-            <KPISkeleton />
-          </>
+        {loading ? (
+          Array(5).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : (
           <>
             <KPICard
-              icon="👥"
+              icon={<Icons.Users />}
               label="Total de personas"
-              value={personas.total}
-              delta={{
+              value={personas.total || 0}
+              delta={personas.variacion ? {
                 value: personas.variacion,
-                type:  personas.variacion >= 0 ? 'up' : 'down',
-              }}
+                type: personas.variacion >= 0 ? 'up' : 'down',
+              } : null}
             />
             
             <KPICard
-              icon="✅"
+              icon={<Icons.Attendance />}
               label="Asistencia promedio"
-              value={`${asistencias.promedio}%`}
-              delta={{
+              value={`${asistencias.promedio || 0}%`}
+              delta={asistencias.variacion ? {
                 value: asistencias.variacion,
-                type:  asistencias.variacion >= 0 ? 'up' : 'down',
-              }}
+                type: asistencias.variacion >= 0 ? 'up' : 'down',
+              } : null}
             />
             
             <KPICard
-              icon="👨‍👩‍👦"
+              icon={<Icons.Groups />}
               label="Grupos activos"
-              value={grupos.total}
-              delta={{
+              value={grupos.total || 0}
+              delta={grupos.variacion ? {
                 value: grupos.variacion,
-                type:  grupos.variacion >= 0 ? 'up' : 'down',
-              }}
+                type: grupos.variacion >= 0 ? 'up' : 'down',
+              } : null}
             />
             
             <KPICard
-              icon="☎️"
-              label="Seguimientos este mes"
-              value={seguimientos.mes}
-              delta={{
+              icon={<Icons.Messages />}
+              label="Seguimientos (mes)"
+              value={seguimientos.mes || 0}
+              delta={seguimientos.variacion ? {
                 value: seguimientos.variacion,
-                type:  seguimientos.variacion >= 0 ? 'up' : 'down',
-              }}  
+                type: seguimientos.variacion >= 0 ? 'up' : 'down',
+              } : null}
             />
             
             <KPICard
-              icon="🌱"
+              icon={<Icons.CheckIn />}
               label="Consolidados"
-              value={consolidacion.totalConsolidados}
-              delta={{
+              value={consolidacion.totalConsolidados || 0}
+              delta={consolidacion.variacion ? {
                 value: consolidacion.variacion,
-                type:  consolidacion.variacion >= 0 ? 'up' : 'down',
-              }}
+                type: consolidacion.variacion >= 0 ? 'up' : 'down',
+              } : null}
             />
           </>
         )}
       </div>
-    </div>
+    </Layout>
   )
 }
-
-export default DashPremium
