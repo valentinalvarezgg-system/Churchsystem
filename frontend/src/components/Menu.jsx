@@ -140,7 +140,6 @@ export default function Menu() {
             Church System
             <span>Gestión Pastoral Inteligente</span>
           </div>
-          <BtnNotificaciones compact={true} />
           <button className="sidebar-theme-btn" onClick={() => setDark(d => !d)}
             title={dark ? 'Modo claro' : 'Modo oscuro'}>
             {dark ? '☀︎' : '☽'}
