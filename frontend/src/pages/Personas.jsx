@@ -98,12 +98,18 @@ export default function Personas() {
     const file = e.target.files[0]; if (!file) return
     setImportLoading(true)
     const reader = new FileReader()
-    reader.onload = async (ev) => {
-      const base64 = ev.target.result.split(',')[1]
+    reader.onload = async ev => {
+      const b64 = ev.target.result.split(',')[1]
       try {
-        const preview = await apiFetch('/import/preview',{method:'POST',body:JSON.stringify({file:base64})})
-        setImportData({base64, ...preview})
-      } catch (err) { alert(err.message) }
+        const res = await apiFetch('/excel-ia/importar', {
+          method: 'POST',
+          body: JSON.stringify({ file: b64, mapeo: {}, opcionDuplicados: 'saltar' })
+        })
+        setImportData(res)
+        load()
+      } catch (err) { 
+        setMsg({type:'error', text: err.message}) 
+      }
       setImportLoading(false)
     }
     reader.readAsDataURL(file)
