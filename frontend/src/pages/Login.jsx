@@ -1,14 +1,33 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 
 export default function Login() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
+  useEffect(() => {
+    const token = searchParams.get('token')
+    const error = searchParams.get('error')
+    
+    if (token) {
+      localStorage.setItem('token', token)
+      toast.success('Sesión iniciada con Google')
+      navigate('/')
+    } else if (error) {
+      const errors = {
+        no_code: 'No se recibió código de autorización',
+        no_token: 'No se pudo obtener token de acceso',
+        oauth_failed: 'Error en autenticación con Google'
+      }
+      toast.error(errors[error] || 'Error de autenticación')
+    }
+  }, [searchParams, navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -29,7 +48,11 @@ export default function Login() {
   }
 
   async function handleOAuth(provider) {
-    toast.info(`OAuth ${provider} próximamente`)
+    if (provider === 'Google') {
+      window.location.href = 'http://localhost:4000/oauth/google'
+    } else if (provider === 'Apple') {
+      toast.info('OAuth Apple próximamente')
+    }
   }
 
   return (

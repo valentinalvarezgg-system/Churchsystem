@@ -28,6 +28,11 @@ const tablas = [
   cultoTurno INTEGER DEFAULT 0,
   grupoId INTEGER,
   activo INTEGER DEFAULT 1,
+  oauth_provider TEXT DEFAULT NULL,
+  oauth_id TEXT DEFAULT NULL,
+  iglesia TEXT DEFAULT '',
+  telefono TEXT DEFAULT '',
+  expira TEXT DEFAULT NULL,
   createdAt TEXT DEFAULT (datetime('now'))
 )`,
 `CREATE TABLE IF NOT EXISTS personas (

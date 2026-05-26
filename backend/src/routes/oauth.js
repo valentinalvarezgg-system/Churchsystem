@@ -1,7 +1,9 @@
 import { Router } from 'express'
-import { requireAuth } from '../middlewares/auth.js'
+import jwt from 'jsonwebtoken'
+import db from '../lib/db.js'
 
 const router = Router()
+const SECRET = () => process.env.JWT_SECRET || 'fallback_secret_change_in_production'
 
 // OAuth Google
 router.get('/google', (req, res) => {
@@ -17,7 +19,7 @@ router.get('/google', (req, res) => {
 
 router.get('/google/callback', async (req, res) => {
   const { code } = req.query
-  if (!code) return res.status(400).json({ error: 'Código no recibido' })
+  if (!code) return res.redirect('/login?error=no_code')
   
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID
@@ -37,7 +39,7 @@ router.get('/google/callback', async (req, res) => {
     })
     
     const tokens = await tokenResponse.json()
-    if (!tokens.access_token) return res.status(400).json({ error: 'Token no recibido' })
+    if (!tokens.access_token) return res.redirect('/login?error=no_token')
     
     const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` }
@@ -45,23 +47,47 @@ router.get('/google/callback', async (req, res) => {
     
     const userData = await userResponse.json()
     
-    // TODO: Crear/actualizar usuario en DB y generar JWT
-    res.json({ ok: true, user: userData, message: 'OAuth Google pendiente de implementación completa' })
+    // Buscar o crear usuario
+    let user = db.get('SELECT * FROM users WHERE email = ?', [userData.email])
+    
+    if (!user) {
+      const expira = new Date()
+      expira.setDate(expira.getDate() + 14)
+      
+      const result = db.run(`
+        INSERT INTO users (nombre, email, password, iglesia, rol, activo, expira, oauth_provider, oauth_id)
+        VALUES (?, ?, '', '', 'PASTOR_GENERAL', 1, ?, 'google', ?)
+      `, [userData.name, userData.email, expira.toISOString(), userData.id])
+      
+      user = db.get('SELECT * FROM users WHERE id = ?', [result.lastID])
+    }
+    
+    const payload = { 
+      id: user.id, 
+      email: user.email, 
+      rol: user.rol, 
+      nombre: user.nombre,
+      cultoDia: user.cultoDia,
+      cultoTurno: user.cultoTurno
+    }
+    const token = jwt.sign(payload, SECRET(), { expiresIn: '8h' })
+    
+    res.redirect(`/login?token=${token}`)
   } catch (error) {
     console.error('Error OAuth Google:', error)
-    res.status(500).json({ error: 'Error en autenticación' })
+    res.redirect('/login?error=oauth_failed')
   }
 })
 
-// OAuth Apple (Sign in with Apple)
+// OAuth Apple
 router.post('/apple', async (req, res) => {
   const { id_token, code } = req.body
   if (!id_token) return res.status(400).json({ error: 'Token no recibido' })
   
   try {
     // TODO: Validar id_token con clave pública de Apple
-    // TODO: Crear/actualizar usuario en DB y generar JWT
-    res.json({ ok: true, message: 'OAuth Apple pendiente de implementación completa' })
+    // Apple Sign In requiere validación del JWT
+    res.json({ ok: false, message: 'OAuth Apple pendiente de configuración completa' })
   } catch (error) {
     console.error('Error OAuth Apple:', error)
     res.status(500).json({ error: 'Error en autenticación' })
