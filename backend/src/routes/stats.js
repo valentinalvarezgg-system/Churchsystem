@@ -74,4 +74,37 @@ router.get('/consolidacion', requireAuth, (req, res) => {
   res.json({ totalConsolidados, variacion, meta })
 })
 
+// Executive dashboard - tendencia últimas 12 semanas
+router.get('/tendencia', requireAuth, (req, res) => {
+  const semanas = []
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i * 7)
+    const inicio = new Date(d); inicio.setDate(d.getDate() - d.getDay())
+    const fin = new Date(inicio); fin.setDate(inicio.getDate() + 6)
+    const iStr = inicio.toISOString().slice(0,10)
+    const fStr = fin.toISOString().slice(0,10)
+    
+    const asist = db.get('SELECT SUM(total) as t, COUNT(*) as cultos FROM cultos WHERE fecha BETWEEN ? AND ?', [iStr, fStr])
+    const nuevos = db.get('SELECT COUNT(*) as c FROM personas WHERE DATE(createdAt) BETWEEN ? AND ?', [iStr, fStr])?.c || 0
+    
+    semanas.push({
+      semana: `${inicio.getDate()}/${inicio.getMonth()+1}`,
+      asistencia: asist?.t || 0,
+      cultos: asist?.cultos || 0,
+      nuevos
+    })
+  }
+  res.json({ semanas })
+})
+
+// Actividad reciente
+router.get('/actividad', requireAuth, (req, res) => {
+  const personas = db.all('SELECT id, nombre, apellido, estado, createdAt FROM personas ORDER BY createdAt DESC LIMIT 5') || []
+  const seguimientos = db.all('SELECT s.*, p.nombre, p.apellido FROM seguimientos s LEFT JOIN personas p ON s.personaId = p.id ORDER BY s.fecha DESC LIMIT 5') || []
+  const cultos = db.all('SELECT * FROM cultos ORDER BY fecha DESC LIMIT 3') || []
+  const eventos = db.all('SELECT * FROM eventos ORDER BY fecha DESC LIMIT 3') || []
+  
+  res.json({ personas, seguimientos, cultos, eventos })
+})
+
 export default router

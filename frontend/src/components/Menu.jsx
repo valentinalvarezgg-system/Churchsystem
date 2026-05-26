@@ -155,7 +155,6 @@ export default function Menu() {
           {lnk('/', <Icons.Dashboard />, 'Dashboard', true)}
           {isAdmin && lnk('/premium', <Icons.Premium />, 'Vista Ejecutiva')}
           {isMid  && lnk('/comunicados', <Icons.Comunicados />, 'Comunicados')}
-          {lnk('/oracion', <Icons.Prayer />, 'Oración')}
 
           {isMid && <>
             <div className="nav-section">Congregación</div>
