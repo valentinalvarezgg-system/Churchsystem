@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
+import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
 
 const ESTADOS = ['ACTIVA','RESPONDIDA','EN_ESPERA','ARCHIVADA']
 const ECOLOR  = { ACTIVA:'#2563EB', RESPONDIDA:'#16A34A', EN_ESPERA:'#D97706', ARCHIVADA:'#64748B' }
 const EBG     = { ACTIVA:'#DBEAFE', RESPONDIDA:'#DCFCE7', EN_ESPERA:'#FEF3C7', ARCHIVADA:'#F3F4F6' }
-const REACCIONES = ['🙏','❤️','✝️','🕊️','⭐']
+const REACCIONES = ['◇','❤️','▧','🕊️','⭐']
 
 export default function Oracion() {
   const user = getUser()
@@ -68,7 +69,7 @@ export default function Oracion() {
         {/* Header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">🙏 Muro de oración</h1>
+            <h1 className="page-title"><Icons.Prayer /> Muro de oración</h1>
             <p style={{ fontSize:13, color:'var(--text-muted)', marginTop:3 }}>
               {total} peticiones · La comunidad ora junta
             </p>
@@ -89,7 +90,7 @@ export default function Oracion() {
             <button key={e} onClick={() => { setFiltro(e); setPage(1) }}
               className={filtro===e ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}
               style={filtro===e ? { background: ECOLOR[e], borderColor: ECOLOR[e] } : {}}>
-              {e === 'ACTIVA' ? '🔵' : e === 'RESPONDIDA' ? '✅' : e === 'EN_ESPERA' ? '⏳' : '📦'}
+              {e === 'ACTIVA' ? '🔵' : e === 'RESPONDIDA' ? '✓' : e === 'EN_ESPERA' ? '…' : '📦'}
               {' '}{e.replace('_',' ')}
             </button>
           ))}
@@ -97,7 +98,7 @@ export default function Oracion() {
 
         {/* Grid de peticiones */}
         {data.length === 0
-          ? <div className="empty"><div className="empty-icon">🙏</div><p>Sin peticiones en esta categoría</p></div>
+          ? <div className="empty"><div className="empty-icon"><Icons.Prayer /></div><p>Sin peticiones en esta categoría</p></div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:14 }}>
               {data.map(o => {
                 const esPropio = o.userId === user?.id
@@ -153,7 +154,7 @@ export default function Oracion() {
                           transition:'all .2s',
                           transform: apoyando===o.id ? 'scale(1.15)' : 'scale(1)',
                         }}>
-                        🙏 {o.apoyos || 0}
+                        <Icons.Prayer /> {o.apoyos || 0}
                       </button>
                     </div>
 
@@ -192,7 +193,7 @@ export default function Oracion() {
           <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setModal(false)}>
             <div className="modal">
               <div className="modal-header">
-                <h3 className="modal-title">🙏 Nueva petición de oración</h3>
+                <h3 className="modal-title"><Icons.Prayer /> Nueva petición de oración</h3>
                 <button className="btn btn-ghost btn-sm" onClick={() => setModal(false)}>✕</button>
               </div>
               <form onSubmit={handleSave}>
@@ -230,7 +231,7 @@ export default function Oracion() {
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-ghost" onClick={() => setModal(false)}>Cancelar</button>
-                  <button type="submit" className="btn btn-primary">🙏 Publicar petición</button>
+                  <button type="submit" className="btn btn-primary"><Icons.Prayer /> Publicar petición</button>
                 </div>
               </form>
             </div>

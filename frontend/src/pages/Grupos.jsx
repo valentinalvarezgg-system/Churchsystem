@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
@@ -52,12 +53,12 @@ export default function Grupos() {
       <Menu />
       <main className="main">
         <div className="page-header">
-          <h1 className="page-title">🧩 Grupos <span style={{fontSize:15,fontWeight:400,color:'var(--text-muted)'}}>({grupos.length})</span></h1>
+          <h1 className="page-title"><Icons.Groups /> Grupos <span style={{fontSize:15,fontWeight:400,color:'var(--text-muted)'}}>({grupos.length})</span></h1>
           <button className="btn btn-primary" data-tip="Crear un nuevo grupo pastoral" onClick={()=>openModal()}>+ Nuevo grupo</button>
         </div>
         {msg && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}}>
-          {grupos.length===0 && <div className="card empty"><div className="empty-icon">🧩</div><p>No hay grupos</p></div>}
+          {grupos.length===0 && <div className="card empty"><div className="empty-icon"><Icons.Groups /></div><p>No hay grupos</p></div>}
           {grupos.map(g=>(
             <div key={g.id} className="card" style={{cursor:'pointer'}} onClick={()=>openDetalle(g)}>
               <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between'}}>
@@ -67,7 +68,7 @@ export default function Grupos() {
                 </div>
                 <span style={{fontSize:28,fontWeight:700,color:'var(--primary)'}}>{g.totalPersonas||0}</span>
               </div>
-              {g.liderNombre && <p style={{fontSize:12,marginTop:8,color:'var(--text-muted)'}}>👤 {g.liderNombre}</p>}
+              {g.liderNombre && <p style={{fontSize:12,marginTop:8,color:'var(--text-muted)'}}><Icons.Profile /> {g.liderNombre}</p>}
               {g.descripcion && <p style={{fontSize:12,marginTop:6,color:'var(--text-muted)'}}>{g.descripcion}</p>}
               <div style={{marginTop:14,display:'flex',gap:8}} onClick={e=>e.stopPropagation()}>
                 <button className="btn btn-ghost btn-sm" data-tip="Editar nombre, día y líder del grupo" onClick={()=>openModal(g)}>Editar</button>

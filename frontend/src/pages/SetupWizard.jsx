@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
+import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, getUser } from '../services/api.js'
 
 const PASOS = [
-  { id: 'iglesia',      icon: '⛪', titulo: 'Tu iglesia',          sub: 'Nombre, dirección y pastor' },
+  { id: 'iglesia',      icon: '▦', titulo: 'Tu iglesia',          sub: 'Nombre, dirección y pastor' },
   { id: 'apariencia',  icon: '🎨', titulo: 'Apariencia',          sub: 'Color y logo (opcional)' },
   { id: 'integraciones',icon: '🔗', titulo: 'Integraciones',       sub: 'WhatsApp y email' },
   { id: 'listo',        icon: '🚀', titulo: '¡Todo listo!',        sub: 'Empezá a usar Church System' },
@@ -82,7 +83,7 @@ export default function SetupWizard({ onCompleto }) {
 
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>⛪</div>
+          <div style={{ fontSize: 40, marginBottom: 8 }}><Icons.Dashboard /></div>
           <h1 style={{ color: 'white', fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>
             Church System
           </h1>
@@ -200,7 +201,7 @@ export default function SetupWizard({ onCompleto }) {
                       title="Color personalizado" />
                   </div>
                   <div style={{ marginTop: 10, padding: '10px 16px', borderRadius: 10, background: config.color_primario, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 18 }}>⛪</span>
+                    <span style={{ fontSize: 18 }}><Icons.Dashboard /></span>
                     <div>
                       <div style={{ color: 'white', fontWeight: 700, fontSize: 14 }}>
                         {config.nombre_iglesia || 'Tu iglesia'}
@@ -238,7 +239,7 @@ export default function SetupWizard({ onCompleto }) {
                   border: '1px solid rgba(22,163,74,0.2)',
                 }}>
                   <div style={{ color: '#4ADE80', fontWeight: 700, fontSize: 13, marginBottom: 3 }}>
-                    ✅ Email con Resend configurado
+                    <Icons.Attendance /> Email con Resend configurado
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
                     Los emails salen desde noreply@churchsystem.com.ar
@@ -251,7 +252,7 @@ export default function SetupWizard({ onCompleto }) {
                   border: '1px solid rgba(22,163,74,0.2)',
                 }}>
                   <div style={{ color: '#4ADE80', fontWeight: 700, fontSize: 13, marginBottom: 3 }}>
-                    ✅ WhatsApp con Twilio configurado
+                    <Icons.Attendance /> WhatsApp con Twilio configurado
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
                     Mensajes individuales y masivos activos
@@ -264,7 +265,7 @@ export default function SetupWizard({ onCompleto }) {
                   border: '1px solid rgba(37,99,235,0.2)',
                 }}>
                   <div style={{ color: '#60A5FA', fontWeight: 700, fontSize: 13, marginBottom: 3 }}>
-                    🤖 IA pastoral con Groq activa
+                    <Icons.AI /> IA pastoral con Groq activa
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
                     Asistente inteligente con datos de tu congregación
@@ -280,7 +281,7 @@ export default function SetupWizard({ onCompleto }) {
             {/* ── PASO 4: Listo ───────────────────────────────── */}
             {paso === 3 && (
               <div style={{ textAlign: 'center', padding: '8px 0' }}>
-                <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+                <div style={{ fontSize: 64, marginBottom: 16 }}><Icons.Premium /></div>
                 <h3 style={{ color: 'white', fontSize: 20, fontWeight: 800, marginBottom: 10 }}>
                   ¡{config.nombre_iglesia || 'Bienvenido'} está listo!
                 </h3>
@@ -293,10 +294,10 @@ export default function SetupWizard({ onCompleto }) {
                   marginBottom: 8,
                 }}>
                   {[
-                    ['👥', 'Agregar personas', '/personas'],
-                    ['🧩', 'Crear grupos', '/grupos'],
-                    ['📅', 'Registrar un culto', '/asistencia'],
-                    ['⚙️', 'Más configuración', '/configuracion'],
+                    ['⊕', 'Agregar personas', '/personas'],
+                    ['⊞', 'Crear grupos', '/grupos'],
+                    ['✓', 'Registrar un culto', '/asistencia'],
+                    ['⊙', 'Más configuración', '/configuracion'],
                   ].map(([icon, label, path]) => (
                     <button key={path}
                       onClick={() => { onCompleto?.(); navigate(path) }}

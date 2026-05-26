@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
 
@@ -44,7 +45,7 @@ export default function Asistencia() {
     setSaving(true); setMsg(null)
     try {
       const res = await apiFetch(`/cultos/${selected}/asistencia`, { method:'POST', body:JSON.stringify({ presentes:[...presentes] }) })
-      setMsg({ type:'success', text:`✅ ${res.presentes} presentes guardados` })
+      setMsg({ type:'success', text:`<Icons.Attendance /> ${res.presentes} presentes guardados` })
       loadCultos()
     } catch(e) { setMsg({ type:'error', text:e.message }) }
     setSaving(false)
@@ -71,7 +72,7 @@ export default function Asistencia() {
       <Menu />
       <main className="main">
         <div className="page-header">
-          <h1 className="page-title">📅 Asistencia a cultos</h1>
+          <h1 className="page-title"><Icons.Attendance /> Asistencia a cultos</h1>
           {canManage && <button className="btn btn-primary" data-tip="Crear un nuevo registro de culto" onClick={()=>setModal(true)}>+ Nuevo culto</button>}
         </div>
         <div style={{display:'grid', gridTemplateColumns:'280px 1fr', gap:16, alignItems:'start'}}>
@@ -91,7 +92,7 @@ export default function Asistencia() {
             }
           </div>
           <div>
-            {!selected ? <div className="card empty"><div className="empty-icon">📅</div><p>Seleccioná un culto</p></div>
+            {!selected ? <div className="card empty"><div className="empty-icon"><Icons.Attendance /></div><p>Seleccioná un culto</p></div>
               : <div className="card" style={{padding:0, overflowX:'auto'}}>
                   <div style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
                     <div>
@@ -102,7 +103,7 @@ export default function Asistencia() {
                       {detalle && <span style={{fontSize:13,color:'var(--text-muted)'}}>{presentes.size}/{detalle.personas.length}</span>}
                       {canManage && <>
                         <button className="btn btn-primary btn-sm" onClick={guardar} disabled={saving}>{saving?'Guardando...':'💾 Guardar'}</button>
-                        <button className="btn btn-ghost btn-sm" data-tip="Descargar planilla Excel con la asistencia" onClick={()=>window.open(`http://localhost:4000/export/asistencia/${selected}?token=${localStorage.getItem("token")}`,"_blank")}>📤 Exportar</button>
+                        <button className="btn btn-ghost btn-sm" data-tip="Descargar planilla Excel con la asistencia" onClick={()=>window.open(`http://localhost:4000/export/asistencia/${selected}?token=${localStorage.getItem("token")}`,"_blank")}>↑ Exportar</button>
                         <button className="btn btn-danger btn-sm" data-tip="Eliminar este culto y su registro de asistencia" onClick={()=>eliminarCulto(selected)}>Eliminar</button>
                       </>}
                     </div>

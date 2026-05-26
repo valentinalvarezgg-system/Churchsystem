@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Icons from '../components/Icons.jsx'
 import Layout from '../components/Layout.jsx'
 import { apiFetch } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
@@ -56,7 +57,7 @@ export default function PromoCodes() {
         </div>
       ) : codes.length === 0 ? (
         <div className="empty-state">
-          <span style={{ fontSize: 48 }}>🎟️</span>
+          <span style={{ fontSize: 48 }}><Icons.Ticket /></span>
           <p>No hay códigos creados</p>
         </div>
       ) : (

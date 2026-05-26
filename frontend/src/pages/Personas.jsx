@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
@@ -167,16 +168,16 @@ export default function Personas() {
       <Menu />
       <main className="main">
         <div className="page-header">
-          <h1 className="page-title">👥 Personas</h1>
+          <h1 className="page-title"><Icons.Users /> Personas</h1>
           <div style={{display:'flex',gap:8}}>
-            <button className="btn btn-ghost" onClick={()=>setImportModal(true)}>📥 Importar Excel</button>
+            <button className="btn btn-ghost" onClick={()=>setImportModal(true)}>Importar Excel</button>
             <button className="btn btn-primary" onClick={()=>{setModal('new');setForm(EMPTY)}}>+ Nueva persona</button>
           </div>
         </div>
 
         {/* Filtros */}
         <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
-          <input type="text" placeholder="🔍 Buscar..." value={search} onChange={e=>setSearch(e.target.value)} className="form-input" style={{maxWidth:240}} />
+          <input type="text" placeholder="⊙ Buscar..." value={search} onChange={e=>setSearch(e.target.value)} className="form-input" style={{maxWidth:240}} />
           <select value={estadoF} onChange={e=>setEstadoF(e.target.value)} className="form-input" style={{width:140}}>
             <option value="">Todos</option>
             {ESTADOS.map(e=><option key={e} value={e}>{e}</option>)}
@@ -203,9 +204,9 @@ export default function Personas() {
                     <td><small>{p.grupoNombre||'-'}</small></td>
                     <td><span className={`badge badge-${p.estado.toLowerCase()}`}>{p.estado}</span></td>
                     <td style={{whiteSpace:'nowrap'}}>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}>📝</button>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}>✏️</button>
-                      {canDelete&&<button className="btn btn-ghost btn-sm" onClick={()=>handleDelete(p.id,p.nombre)} style={{color:'var(--c-error)'}}>🗑️</button>}
+                      <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /></button>
+                      <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Settings /></button>
+                      {canDelete&&<button className="btn btn-ghost btn-sm" onClick={()=>handleDelete(p.id,p.nombre)} style={{color:'var(--c-error)'}}><Icons.Settings /></button>}
                     </td>
                   </tr>
                 ))
@@ -259,7 +260,7 @@ export default function Personas() {
         </Modal>}
 
         {/* Modal Import Excel IA */}
-        <Modal open={importModal} onClose={()=>{setImportModal(false);resetImport()}} title="📥 Importar Excel" size="xl" hideClose={pasoImport>0&&pasoImport<3}>
+        <Modal open={importModal} onClose={()=>{setImportModal(false);resetImport()}} title="Importar Excel" size="xl" hideClose={pasoImport>0&&pasoImport<3}>
           <div style={{marginBottom:20}}>
             {/* Steps */}
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
@@ -275,7 +276,7 @@ export default function Personas() {
 
           {/* Paso 0: Subir */}
           {pasoImport===0&&<div style={{textAlign:'center',padding:'40px 20px',border:'2px dashed var(--border)',borderRadius:12}}>
-            <div style={{fontSize:48,marginBottom:12}}>📊</div>
+            <div style={{fontSize:48,marginBottom:12}}><Icons.Reports /></div>
             <h3 style={{fontSize:17,fontWeight:700,marginBottom:8}}>Arrastrá tu Excel</h3>
             <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:16}}>Columnas: nombre, apellido, email, telefono, etc.</p>
             <button className="btn btn-primary" onClick={()=>fileRef.current?.click()} disabled={importLoading}>{importLoading?'Analizando...':'Seleccionar archivo'}</button>
@@ -322,7 +323,7 @@ export default function Personas() {
 
           {/* Paso 3: Resultado */}
           {pasoImport===3&&resultado&&<div style={{textAlign:'center',padding:40}}>
-            <div style={{fontSize:56,marginBottom:16}}>✅</div>
+            <div style={{fontSize:56,marginBottom:16}}><Icons.Attendance /></div>
             <h3 style={{fontSize:20,fontWeight:700,marginBottom:8}}>Importación completa</h3>
             <p style={{fontSize:14,color:'var(--text-muted)'}}>
               {resultado.importados} personas importadas · {resultado.actualizados||0} actualizadas · {resultado.duplicados||0} duplicados

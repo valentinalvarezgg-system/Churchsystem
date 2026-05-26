@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from 'react'
+import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
 
 const TIPOS = ['WHATSAPP', 'EMAIL']
 
 const PLANTILLAS_DEFAULT = [
-  { id: 'd1', nombre: 'Bienvenida', tipo: 'WHATSAPP', contenido: 'Hola {nombre}! 👋 Bienvenido/a a nuestra comunidad. Es un placer tenerte con nosotros. ¡Que Dios te bendiga!' },
-  { id: 'd2', nombre: 'Recordatorio culto', tipo: 'WHATSAPP', contenido: 'Hola {nombre}! 🙏 Te recordamos que este domingo tenemos culto. Te esperamos!' },
-  { id: 'd3', nombre: 'Seguimiento', tipo: 'WHATSAPP', contenido: 'Hola {nombre}! ¿Cómo estás? Te contactamos desde la iglesia para saber cómo te encontrás. Estamos orando por vos 🙏' },
+  { id: 'd1', nombre: 'Bienvenida', tipo: 'WHATSAPP', contenido: 'Hola {nombre}! <Icons.Users /> Bienvenido/a a nuestra comunidad. Es un placer tenerte con nosotros. ¡Que Dios te bendiga!' },
+  { id: 'd2', nombre: 'Recordatorio culto', tipo: 'WHATSAPP', contenido: 'Hola {nombre}! <Icons.Prayer /> Te recordamos que este domingo tenemos culto. Te esperamos!' },
+  { id: 'd3', nombre: 'Seguimiento', tipo: 'WHATSAPP', contenido: 'Hola {nombre}! ¿Cómo estás? Te contactamos desde la iglesia para saber cómo te encontrás. Estamos orando por vos <Icons.Prayer />' },
   { id: 'd4', nombre: 'Cumpleaños', tipo: 'WHATSAPP', contenido: '🎂 Feliz cumpleaños {nombre}! Que Dios te colme de bendiciones en este nuevo año de vida. Te queremos mucho! ❤️' },
 ]
 
@@ -76,16 +77,16 @@ export default function Mensajes() {
           method: 'POST',
           body: JSON.stringify({ personaId: Number(form.personaId), tipo: form.tipo, mensaje: form.mensaje, asunto: form.asunto })
         })
-        const txt = res.demo ? '📋 Mensaje guardado (email sin configurar — andá a Configuración → Integraciones → Email)'
-          : res.enviado ? `✅ Mensaje enviado por ${form.tipo}`
-          : `⚠️ No se pudo enviar: ${res.error}`
+        const txt = res.demo ? '≡ Mensaje guardado (email sin configurar — andá a Configuración → Integraciones → Email)'
+          : res.enviado ? `<Icons.Attendance /> Mensaje enviado por ${form.tipo}`
+          : `⚠ No se pudo enviar: ${res.error}`
         setMsg({ type: res.enviado || res.demo ? 'success' : 'warning', text: txt })
       } else {
         res = await apiFetch('/mensajes/masivo', {
           method: 'POST',
           body: JSON.stringify({ grupoId: form.grupoId || null, estado: form.estado || null, tipo: form.tipo, mensaje: form.mensaje, asunto: form.asunto })
         })
-        setMsg({ type: 'success', text: `✅ ${res.enviados}/${res.total} mensajes enviados` + (res.errores > 0 ? ` · ${res.errores} errores` : '') })
+        setMsg({ type: 'success', text: `<Icons.Attendance /> ${res.enviados}/${res.total} mensajes enviados` + (res.errores > 0 ? ` · ${res.errores} errores` : '') })
       }
       loadHistorial()
     } catch (err) {
@@ -128,20 +129,20 @@ export default function Mensajes() {
       <main className="main">
         <div className="page-header">
           <div>
-            <h1 className="page-title">💬 Mensajería</h1>
+            <h1 className="page-title"><Icons.Messages /> Mensajería</h1>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3, display: 'flex', gap: 10 }}>
               <span style={{ ...badgeColor('WHATSAPP'), padding: '2px 9px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
-                WhatsApp {twOk ? '✓' : '⚠️ sin configurar'}
+                WhatsApp {twOk ? '✓' : '⚠ sin configurar'}
               </span>
               <span style={{ ...badgeColor('EMAIL'), padding: '2px 9px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
-                Email {emlOk ? '✓' : '⚠️ sin configurar'}
+                Email {emlOk ? '✓' : '⚠ sin configurar'}
               </span>
             </p>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-          {[['enviar', '✉️ Enviar'], ['plantillas', '📝 Plantillas'], ['historial', '📋 Historial']].map(([k, l]) => (
+          {[['enviar', '✉ Enviar'], ['plantillas', 'Plantillas'], ['historial', '≡ Historial']].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={tab === k ? 'btn btn-primary' : 'btn btn-ghost'}>{l}</button>
           ))}
         </div>
@@ -169,8 +170,8 @@ export default function Mensajes() {
                   <div className="form-group">
                     <label>Canal</label>
                     <select name="tipo" className="form-input" value={form.tipo} onChange={e => f('tipo', e.target.value)}>
-                      <option value="WHATSAPP">📱 WhatsApp{!twOk ? ' (sin config)' : ''}</option>
-                      <option value="EMAIL">✉️ Email{!emlOk ? ' (sin config)' : ''}</option>
+                      <option value="WHATSAPP"><Icons.CheckIn /> WhatsApp{!twOk ? ' (sin config)' : ''}</option>
+                      <option value="EMAIL">✉ Email{!emlOk ? ' (sin config)' : ''}</option>
                     </select>
                   </div>
 
@@ -233,14 +234,14 @@ export default function Mensajes() {
                 )}
 
                 <button type="submit" className="btn btn-primary" disabled={sending}>
-                  {sending ? 'Enviando...' : form.modo === 'individual' ? '📤 Enviar mensaje' : `📤 Enviar a todos (${contarDestinatarios()})`}
+                  {sending ? 'Enviando...' : form.modo === 'individual' ? '↑ Enviar mensaje' : `↑ Enviar a todos (${contarDestinatarios()})`}
                 </button>
               </form>
             </div>
 
             {/* Plantillas lateral */}
             <div className="card">
-              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>📝 Plantillas rápidas</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Plantillas rápidas</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {todasPlantillas.filter(p => p.tipo === form.tipo).map(p => (
                   <div key={p.id} style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', cursor: 'pointer' }}
@@ -271,8 +272,8 @@ export default function Mensajes() {
                   <div className="form-group"><label>Nombre</label><input name="nombre" className="form-input" value={newP.nombre} onChange={e => setNewP(p => ({ ...p, nombre: e.target.value }))} required /></div>
                   <div className="form-group"><label>Tipo</label>
                     <select name="tipo" className="form-input" value={newP.tipo} onChange={e => setNewP(p => ({ ...p, tipo: e.target.value }))}>
-                      <option value="WHATSAPP">📱 WhatsApp</option>
-                      <option value="EMAIL">✉️ Email</option>
+                      <option value="WHATSAPP"><Icons.CheckIn /> WhatsApp</option>
+                      <option value="EMAIL">✉ Email</option>
                     </select>
                   </div>
                   <div className="form-group full">
@@ -318,7 +319,7 @@ export default function Mensajes() {
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Mensajes enviados ({hTotal})</h3>
             </div>
             {historial.length === 0
-              ? <div className="empty"><div className="empty-icon">💬</div><p>Sin mensajes aún</p></div>
+              ? <div className="empty"><div className="empty-icon"><Icons.Messages /></div><p>Sin mensajes aún</p></div>
               : <table style={{minWidth:500}}>
                   <thead><tr><th>Canal</th><th>Persona</th><th>Destino</th><th>Mensaje</th><th>Estado</th><th>Fecha</th></tr></thead>
                   <tbody>

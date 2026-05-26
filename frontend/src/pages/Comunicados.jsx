@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
 
@@ -34,10 +35,10 @@ export default function Comunicados() {
     <div className="layout"><Menu />
       <main className="main">
         <div className="page-header">
-          <div><h1 className="page-title">📢 Comunicados</h1><p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>Novedades internas del equipo</p></div>
+          <div><h1 className="page-title"><Icons.Comunicados /> Comunicados</h1><p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>Novedades internas del equipo</p></div>
           {canCreate&&<button className="btn btn-primary" data-tip="Publicar nuevo comunicado al equipo" onClick={()=>{setModal(true);setMsg(null)}}>+ Nuevo</button>}
         </div>
-        {data.length===0 ? <div className="empty"><div className="empty-icon">📢</div><p>Sin comunicados</p></div>
+        {data.length===0 ? <div className="empty"><div className="empty-icon"><Icons.Comunicados /></div><p>Sin comunicados</p></div>
           : <div style={{display:'flex',flexDirection:'column',gap:10}}>
               {data.map(c=>(
                 <div key={c.id} className="card" style={{padding:'16px 20px',borderLeft:`3px solid ${TCOLOR[c.tipo]||'#2563EB'}`}}>
@@ -62,7 +63,7 @@ export default function Comunicados() {
         {modal&&(
           <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(false)}>
             <div className="modal">
-              <div className="modal-header"><h3 className="modal-title">📢 Nuevo comunicado</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>✕</button></div>
+              <div className="modal-header"><h3 className="modal-title"><Icons.Comunicados /> Nuevo comunicado</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>✕</button></div>
               <form onSubmit={handleSave}>
                 <div className="modal-body">
                   {msg&&<div className={`alert alert-${msg.type}`}>{msg.text}</div>}

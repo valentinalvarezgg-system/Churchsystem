@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Icons from '../components/Icons.jsx'
 import { useParams, useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import CamaraFoto from '../components/CamaraFoto.jsx'
@@ -9,32 +10,32 @@ const ESTADOS      = ['ACTIVO','INACTIVO','VISITANTE','NUEVO']
 const RELACIONES   = [
   { v:'conyuge',  l:'💑 Cónyuge' },
   { v:'pareja',   l:'💑 Pareja' },
-  { v:'hijo',     l:'👦 Hijo' },
-  { v:'hija',     l:'👧 Hija' },
-  { v:'padre',    l:'👨 Padre' },
-  { v:'madre',    l:'👩 Madre' },
-  { v:'hermano',  l:'🧑 Hermano' },
-  { v:'hermana',  l:'🧒 Hermana' },
-  { v:'abuelo',   l:'👴 Abuelo' },
-  { v:'abuela',   l:'👵 Abuela' },
-  { v:'nieto',    l:'👦 Nieto' },
-  { v:'nieta',    l:'👧 Nieta' },
-  { v:'tio',      l:'🧑 Tío' },
-  { v:'tia',      l:'🧑 Tía' },
-  { v:'primo',    l:'🧑 Primo' },
-  { v:'prima',    l:'🧒 Prima' },
-  { v:'cuñado',   l:'🤝 Cuñado' },
-  { v:'cuñada',   l:'🤝 Cuñada' },
-  { v:'otro',     l:'👤 Otro' },
+  { v:'hijo',     l:'• Hijo' },
+  { v:'hija',     l:'• Hija' },
+  { v:'padre',    l:'• Padre' },
+  { v:'madre',    l:'• Madre' },
+  { v:'hermano',  l:'• Hermano' },
+  { v:'hermana',  l:'• Hermana' },
+  { v:'abuelo',   l:'• Abuelo' },
+  { v:'abuela',   l:'• Abuela' },
+  { v:'nieto',    l:'• Nieto' },
+  { v:'nieta',    l:'• Nieta' },
+  { v:'tio',      l:'• Tío' },
+  { v:'tia',      l:'• Tía' },
+  { v:'primo',    l:'• Primo' },
+  { v:'prima',    l:'Prima' },
+  { v:'cuñado',   l:'Cuñado' },
+  { v:'cuñada',   l:'Cuñada' },
+  { v:'otro',     l:'Otro' },
 ]
 const TIPOS_CONTACTO = [
-  { v:'WHATSAPP_ALT', l:'📱 WhatsApp alternativo', ph:'+54 11...' },
-  { v:'INSTAGRAM',    l:'📸 Instagram',             ph:'@usuario' },
-  { v:'FACEBOOK',     l:'👥 Facebook',              ph:'nombre o URL' },
-  { v:'TELEGRAM',     l:'✈️ Telegram',              ph:'@usuario' },
-  { v:'EMAIL_ALT',    l:'📧 Email alternativo',     ph:'otro@mail.com' },
-  { v:'DOMICILIO',    l:'🏠 Domicilio',             ph:'Calle 1234, Localidad' },
-  { v:'OTRO',         l:'🔗 Otro',                  ph:'descripción' },
+  { v:'WHATSAPP_ALT', l:'WhatsApp alternativo', ph:'+54 11...' },
+  { v:'INSTAGRAM',    l:'Instagram',             ph:'@usuario' },
+  { v:'FACEBOOK',     l:'Facebook',              ph:'nombre o URL' },
+  { v:'TELEGRAM',     l:'Telegram',              ph:'@usuario' },
+  { v:'EMAIL_ALT',    l:'• Email alternativo',     ph:'otro@mail.com' },
+  { v:'DOMICILIO',    l:'• Domicilio',             ph:'Calle 1234, Localidad' },
+  { v:'OTRO',         l:'• Otro',                  ph:'descripción' },
 ]
 
 function Avatar({ nombre, apellido, fotoUrl, size = 56 }) {
@@ -185,7 +186,7 @@ export default function Perfil() {
     if (r.ok) {
       setPersona(p => ({ ...p, fotoUrl: r.fotoUrl }))
       setShowCamara(false)
-      setMsg({ type: 'success', text: '✅ Foto guardada — disponible para reconocimiento facial' })
+      setMsg({ type: 'success', text: 'Foto guardada — disponible para reconocimiento facial' })
     }
   }
 
@@ -209,7 +210,7 @@ export default function Perfil() {
     { k:'origen',    l:'Origen' },
     { k:'seguimiento', l:`Seguimiento (${stats.totalSeguimientos})` },
     { k:'asistencia',  l:`Asistencia (${stats.totalCultos})` },
-    { k:'timeline',   l:'📋 Timeline' },
+    { k:'timeline',   l:'≡ Timeline' },
     { k:'mensajes',    l:'Mensajes' },
   ]
 
@@ -256,7 +257,7 @@ export default function Perfil() {
                 {persona.estadoEspiritual && <span className="badge badge-nuevo">{persona.estadoEspiritual?.replace(/_/g,' ')}</span>}
               </div>
               <button className="btn btn-ghost btn-sm" style={{ width:'100%' }} onClick={() => setEditando(!editando)}>
-                {editando ? '✕ Cancelar edición' : '✏️ Editar datos'}
+                {editando ? '✕ Cancelar edición' : 'Editar datos'}
               </button>
             </div>
 
@@ -264,9 +265,9 @@ export default function Perfil() {
             <div className="card" style={{ padding:'14px 16px' }}>
               <p style={{ fontSize:11, fontWeight:600, textTransform:'uppercase', letterSpacing:.4, color:'var(--text-muted)', marginBottom:10 }}>Estadísticas</p>
               {[
-                [stats.totalSeguimientos, '📋', 'Seguimientos'],
-                [stats.totalCultos,       '📅', 'Cultos'],
-                [`${asistPct}%`,          '✅', 'Asistencia'],
+                [stats.totalSeguimientos, '≡', 'Seguimientos'],
+                [stats.totalCultos,       '' , 'Cultos'],
+                [`${asistPct}%`,          '' , 'Asistencia'],
                 [stats.totalFamiliares,   '👨‍👩‍👧', 'Familiares vinc.'],
                 [contactosExtra?.length || 0, '📲', 'Contactos extra'],
               ].map(([v, ic, l]) => (
@@ -278,7 +279,7 @@ export default function Perfil() {
               ))}
               {stats.proximoContacto && (
                 <div style={{ marginTop:10, padding:'8px 10px', background:'var(--c-warning-bg)', borderRadius:'var(--r)', fontSize:12 }}>
-                  📅 Próximo contacto: <strong>{stats.proximoContacto}</strong>
+                  <Icons.Attendance /> Próximo contacto: <strong>{stats.proximoContacto}</strong>
                 </div>
               )}
             </div>
@@ -287,11 +288,11 @@ export default function Perfil() {
             <div className="card" style={{ padding:'14px 16px' }}>
               <p style={{ fontSize:11, fontWeight:600, textTransform:'uppercase', letterSpacing:.4, color:'var(--text-muted)', marginBottom:10 }}>Datos rápidos</p>
               {[
-                ['📱', persona.telefono || 'Sin teléfono'],
-                ['📅', persona.fechaNacimiento ? `Nació: ${persona.fechaNacimiento}` : 'Sin fecha de nacimiento'],
-                ['📆', `Ingresó: ${persona.fechaIngreso || '—'}`],
-                ['🧩', persona.grupoNombre || 'Sin grupo'],
-                ['👤', `Líder: ${persona.liderNombre || 'Sin asignar'}`],
+                ['' , persona.telefono || 'Sin teléfono'],
+                ['' , persona.fechaNacimiento ? `Nació: ${persona.fechaNacimiento}` : 'Sin fecha de nacimiento'],
+                ['' , `Ingresó: ${persona.fechaIngreso || '—'}`],
+                ['' , persona.grupoNombre || 'Sin grupo'],
+                ['' , `Líder: ${persona.liderNombre || 'Sin asignar'}`],
                 ...(persona.ocupacion ? [['💼', persona.ocupacion]] : []),
                 ...(persona.localidad ? [['📍', persona.localidad]] : []),
                 ...(persona.direccion ? [['🏠', persona.direccion]] : []),
@@ -354,8 +355,8 @@ export default function Perfil() {
                         ['Ocupación', persona.ocupacion || '—'],
                         ['Estado', persona.estado],
                         ['Estado espiritual', persona.estadoEspiritual?.replace(/_/g,' ') || '—'],
-                        ['Bautismo agua', persona.bautizadoAgua ? '✅ Sí' : '❌ No'],
-                        ['Bautismo espíritu', persona.bautizadoEspiritu ? '✅ Sí' : '❌ No'],
+                        ['Bautismo agua', persona.bautizadoAgua ? 'Sí' : '✗ No'],
+                        ['Bautismo espíritu', persona.bautizadoEspiritu ? 'Sí' : '✗ No'],
                         ['Dirección', persona.direccion || '—'],
                         ['Localidad', persona.localidad || '—'],
                         ['Grupo', persona.grupoNombre || '—'],
@@ -418,7 +419,7 @@ export default function Perfil() {
                     <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setFamModal(false)}>
                       <div className="modal">
                         <div className="modal-header">
-                          <h3 className="modal-title">👨‍👩‍👧 Vincular familiar</h3>
+                          <h3 className="modal-title">👨‍👩‍• Vincular familiar</h3>
                           <button className="btn btn-ghost btn-sm" onClick={() => setFamModal(false)}>✕</button>
                         </div>
                         <div className="modal-body">
@@ -469,7 +470,7 @@ export default function Perfil() {
 
                   {/* Contacto principal siempre visible */}
                   <div style={{ marginBottom:12, padding:'12px 14px', background:'var(--bg)', borderRadius:'var(--r)', border:'2px solid var(--primary)', display:'flex', gap:10, alignItems:'center', flexWrap:'wrap'}}>
-                    <span style={{ fontSize:20 }}>📱</span>
+                    <span style={{ fontSize:20 }}><Icons.CheckIn /></span>
                     <div>
                       <div style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:.4, color:'var(--primary)' }}>WhatsApp principal</div>
                       <div style={{ fontSize:14, fontWeight:600 }}>{persona.telefono || 'Sin teléfono'}</div>
@@ -546,7 +547,7 @@ export default function Perfil() {
                   <div style={{ display:'flex', justifyContent:'space-between', marginBottom:16 }}>
                     <h3 style={{ fontSize:14, fontWeight:700, margin:0 }}>Primera visita y origen</h3>
                     <button className="btn btn-ghost btn-sm" onClick={() => setOrigenEdit(!origenEdit)}>
-                      {origenEdit ? 'Cancelar' : '✏️ Editar'}
+                      {origenEdit ? 'Cancelar' : 'Editar'}
                     </button>
                   </div>
 
@@ -592,10 +593,10 @@ export default function Perfil() {
                   ) : origen ? (
                     <div style={{ display:'grid', gap:12 }}>
                       {[
-                        ['👤 Traído/a por', origen.traidoPorNombre2 ? `${origen.traidoPorNombre2} ${origen.traidoPorApellido||''}`.trim() : (origen.traidoPorNombre || '—'), origen.traidoPorId],
-                        ['📅 Primera visita', origen.fecha || '—', null],
-                        ['⛪ Culto de llegada', origen.cultoNombre || '—', null],
-                        ['📝 Notas', origen.notas || '—', null],
+                        ['Traído/a por', origen.traidoPorNombre2 ? `${origen.traidoPorNombre2} ${origen.traidoPorApellido||''}`.trim() : (origen.traidoPorNombre || '—'), origen.traidoPorId],
+                        ['Primera visita', origen.fecha || '—', null],
+                        ['Culto de llegada', origen.cultoNombre || '—', null],
+                        ['Notas', origen.notas || '—', null],
                       ].map(([l, v, linkId]) => (
                         <div key={l} style={{ padding:'12px 14px', background:'var(--bg)', borderRadius:'var(--r)', border:'1px solid var(--border)' }}>
                           <div style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:.4, color:'var(--text-muted)', marginBottom:4 }}>{l}</div>
@@ -609,7 +610,7 @@ export default function Perfil() {
                     </div>
                   ) : (
                     <div className="empty" style={{ padding:40 }}>
-                      <div className="empty-icon">🤝</div>
+                      <div className="empty-icon"><Icons.Users /></div>
                       <p>Sin información de origen registrada</p>
                       <p style={{ fontSize:12, marginTop:4 }}>Registrá cómo llegó, quién la trajo y cuándo</p>
                       <button className="btn btn-primary btn-sm" style={{ marginTop:12 }} onClick={() => setOrigenEdit(true)}>Registrar origen</button>
@@ -629,13 +630,13 @@ export default function Perfil() {
                     </div>
                     <div style={{ textAlign:'right', marginTop:8 }}><button type="submit" className="btn btn-primary btn-sm">Agregar</button></div>
                   </form>
-                  {seguimientos.length === 0 ? <div className="empty"><div className="empty-icon">📋</div><p>Sin notas de seguimiento</p></div>
+                  {seguimientos.length === 0 ? <div className="empty"><div className="empty-icon">≡</div><p>Sin notas de seguimiento</p></div>
                     : seguimientos.map(s => (
                       <div key={s.id} style={{ padding:'10px 0', borderBottom:'1px solid var(--border)' }}>
                         <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:4, flexWrap:'wrap' }}>
                           <span className="badge badge-nuevo">{s.tipo}</span>
                           <span style={{ fontSize:12, color:'var(--text-muted)' }}>{s.createdAt?.slice(0,16).replace('T',' ')} · {s.autorNombre}</span>
-                          {s.proximoContacto && <span style={{ fontSize:11, color:'var(--c-purple)', background:'var(--c-purple-bg)', padding:'1px 6px', borderRadius:10 }}>📅 {s.proximoContacto}</span>}
+                          {s.proximoContacto && <span style={{ fontSize:11, color:'var(--c-purple)', background:'var(--c-purple-bg)', padding:'1px 6px', borderRadius:10 }}><Icons.Attendance /> {s.proximoContacto}</span>}
                         </div>
                         {s.nota && <p style={{ fontSize:13, margin:0, lineHeight:1.5 }}>{s.nota}</p>}
                       </div>
@@ -646,7 +647,7 @@ export default function Perfil() {
 
               {/* ── ASISTENCIA ─────────────────────────────────────────── */}
               {tab === 'asistencia' && (
-                asistencias.length === 0 ? <div className="empty"><div className="empty-icon">📅</div><p>Sin registros de asistencia</p></div>
+                asistencias.length === 0 ? <div className="empty"><div className="empty-icon"><Icons.Attendance /></div><p>Sin registros de asistencia</p></div>
                 : <>
                     <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:10, marginBottom:16 }}>
                       {[[stats.presencias,'#DCFCE7','#15803D','Presencias'],[stats.totalCultos-stats.presencias,'#FEE2E2','#DC2626','Ausencias'],[`${asistPct}%`,'#DBEAFE','#1D4ED8','Asistencia']].map(([v,bg,c,l])=>(
@@ -669,7 +670,7 @@ export default function Perfil() {
                 const eventos = [
                   ...(asistencias||[]).map(a => ({
                     tipo: 'asistencia', fecha: a.fecha,
-                    icon: a.presente ? '✅' : '❌',
+                    icon: a.presente ? ''  : '✗',
                     color: a.presente ? 'var(--c-success)' : 'var(--c-danger)',
                     bg: a.presente ? 'var(--c-success-bg)' : 'var(--c-danger-bg)',
                     titulo: a.nombre,
@@ -677,13 +678,13 @@ export default function Perfil() {
                   })),
                   ...(seguimientos||[]).map(s => ({
                     tipo: 'seguimiento', fecha: s.createdAt?.slice(0,10) || s.fecha,
-                    icon: '📋', color: 'var(--c-purple)', bg: 'var(--c-purple-bg)',
+                    icon: '≡', color: 'var(--c-purple)', bg: 'var(--c-purple-bg)',
                     titulo: s.tipo || 'Seguimiento',
                     sub: s.nota?.slice(0,80) || '',
                   })),
                   ...(mensajes||[]).map(m => ({
                     tipo: 'mensaje', fecha: m.createdAt?.slice(0,10),
-                    icon: m.tipo === 'WHATSAPP' ? '💬' : '📧',
+                    icon: m.tipo === 'WHATSAPP' ? ''  : '📧',
                     color: m.tipo === 'WHATSAPP' ? 'var(--c-success)' : 'var(--c-info)',
                     bg: m.tipo === 'WHATSAPP' ? 'var(--c-success-bg)' : 'var(--c-info-bg)',
                     titulo: m.tipo,
@@ -692,7 +693,7 @@ export default function Perfil() {
                   })),
                 ].sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''))
 
-                if (!eventos.length) return <div className="empty"><div className="empty-icon">📋</div><p>Sin actividad registrada</p></div>
+                if (!eventos.length) return <div className="empty"><div className="empty-icon">≡</div><p>Sin actividad registrada</p></div>
 
                 // Barra de calor por mes
                 const porMes = {}
@@ -764,7 +765,7 @@ export default function Perfil() {
 
               {/* ── MENSAJES ───────────────────────────────────────────── */}
               {tab === 'mensajes' && (
-                mensajes.length === 0 ? <div className="empty"><div className="empty-icon">💬</div><p>Sin mensajes enviados</p></div>
+                mensajes.length === 0 ? <div className="empty"><div className="empty-icon"><Icons.Messages /></div><p>Sin mensajes enviados</p></div>
                 : mensajes.map((m,i)=>(
                   <div key={i} style={{ padding:'10px 0', borderBottom:'1px solid var(--border)' }}>
                     <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:4 }}>

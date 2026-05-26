@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
 
@@ -81,14 +82,14 @@ export default function Calendario() {
         {/* Header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">📆 Calendario</h1>
+            <h1 className="page-title"><Icons.Calendar /> Calendario</h1>
             <p style={{ fontSize:13, color:'var(--text-muted)', marginTop:3 }}>
               {eventos.length} eventos este mes
             </p>
           </div>
           <div style={{ display:'flex', gap:8 }}>
             <div style={{ display:'flex', background:'var(--bg)', borderRadius:'var(--r)', border:'1px solid var(--border)', overflowX:'auto' }}>
-              {[['mes','📅'],['lista','☰']].map(([k,ic]) => (
+              {[['mes','▦'],['lista','≡']].map(([k,ic]) => (
                 <button key={k} onClick={() => setView(k)}
                   style={{
                     padding:'7px 14px', border:'none', cursor:'pointer', fontSize:13, fontWeight:600,
@@ -213,7 +214,7 @@ export default function Calendario() {
             {view === 'lista' && (
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 {eventos.length === 0
-                  ? <div className="empty"><div className="empty-icon">📆</div><p>Sin eventos este mes</p></div>
+                  ? <div className="empty"><div className="empty-icon"><Icons.Calendar /></div><p>Sin eventos este mes</p></div>
                   : eventos.sort((a,b) => a.fecha.localeCompare(b.fecha)).map(ev => (
                     <div key={ev.id} className="card"
                       onClick={() => setSelEv(ev)}
@@ -331,7 +332,7 @@ export default function Calendario() {
               <div className="modal-body" style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:13 }}>
-                    <span>📅</span>
+                    <span><Icons.Attendance /></span>
                     <span style={{ fontWeight:600 }}>{selEv.fecha}</span>
                   </div>
                   {selEv.hora && (
@@ -370,7 +371,7 @@ export default function Calendario() {
           <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setModal(false)}>
             <div className="modal">
               <div className="modal-header">
-                <h3 className="modal-title">📆 Nuevo evento</h3>
+                <h3 className="modal-title"><Icons.Calendar /> Nuevo evento</h3>
                 <button className="btn btn-ghost btn-sm" onClick={() => setModal(false)}>✕</button>
               </div>
               <form onSubmit={handleSave}>

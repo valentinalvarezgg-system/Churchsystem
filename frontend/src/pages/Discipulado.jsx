@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
@@ -7,7 +8,7 @@ const ETAPAS = ['NUEVO_CREYENTE','CONSOLIDADO','DISCIPULO','LIDER','MINISTRO']
 const MATERIALES = ['BIBLIA_BASICA','CONSOLIDACION_1','CONSOLIDACION_2','DISCIPULADO_1','DISCIPULADO_2','MINISTERIO']
 const ETAPA_COLOR = { NUEVO_CREYENTE:'var(--c-info)',CONSOLIDADO:'var(--c-warning)',DISCIPULO:'var(--c-success)',LIDER:'var(--c-purple)',MINISTRO:'var(--c-danger)' }
 const ETAPA_BG    = { NUEVO_CREYENTE:'var(--c-info-bg)',CONSOLIDADO:'var(--c-warning-bg)',DISCIPULO:'var(--c-success-bg)',LIDER:'var(--c-purple-bg)',MINISTRO:'var(--c-danger-bg)' }
-const MAT_LABEL   = { BIBLIA_BASICA:'📖 Biblia básica',CONSOLIDACION_1:'🌱 Consolidación 1',CONSOLIDACION_2:'🌿 Consolidación 2',DISCIPULADO_1:'✝️ Discipulado 1',DISCIPULADO_2:'✝️ Discipulado 2',MINISTERIO:'🎖️ Ministerio' }
+const MAT_LABEL   = { BIBLIA_BASICA:'▤ Biblia básica',CONSOLIDACION_1:'Consolidación 1',CONSOLIDACION_2:'◇ Consolidación 2',DISCIPULADO_1:'Discipulado 1',DISCIPULADO_2:'Discipulado 2',MINISTERIO:'★ Ministerio' }
 
 export default function Discipulado() {
   const navigate = useNavigate()
@@ -54,7 +55,7 @@ export default function Discipulado() {
     <div className="layout">
       <Menu />
       <main className="main">
-        <div className="page-header"><h1 className="page-title">✝️ Discipulado</h1></div>
+        <div className="page-header"><h1 className="page-title">Discipulado</h1></div>
         <div style={{display:'flex',overflowX:'auto',gap:10,paddingBottom:4,marginBottom:20}}>
           {ETAPAS.map(e=>(
             <div key={e} onClick={()=>setFiltroEtapa(filtroEtapa===e?'':e)}
@@ -79,12 +80,12 @@ export default function Discipulado() {
           <button className="btn btn-ghost" data-tip="Quitar todos los filtros activos" onClick={()=>{setFiltroEtapa('');setSearch('');setPage(1)}}>Limpiar</button>
         </div>
         <div className="card" style={{padding:0, overflowX:'auto'}}>
-          {data.length===0 ? <div className="empty"><div className="empty-icon">✝️</div><p>Sin resultados</p></div>
+          {data.length===0 ? <div className="empty"><div className="empty-icon"><Icons.Discipleship /></div><p>Sin resultados</p></div>
             : <table style={{minWidth:500}}>
                 <thead><tr><th>Persona</th><th>Etapa</th><th>Bautismos</th><th>Materiales</th><th>Acciones</th></tr></thead>
                 <tbody>{data.map(p=>(
                   <tr key={p.id}>
-                    <td><strong className="persona-link" data-tip="Ver perfil completo" onClick={()=>navigate(`/personas/${p.id}`)}>{p.nombre} {p.apellido}</strong>{p.liderNombre&&<div style={{fontSize:11,color:'var(--text-muted)'}}>👤 {p.liderNombre}</div>}</td>
+                    <td><strong className="persona-link" data-tip="Ver perfil completo" onClick={()=>navigate(`/personas/${p.id}`)}>{p.nombre} {p.apellido}</strong>{p.liderNombre&&<div style={{fontSize:11,color:'var(--text-muted)'}}><Icons.Profile /> {p.liderNombre}</div>}</td>
                     <td>
                       <select name="estadoEspiritual" value={p.estadoEspiritual||'NUEVO_CREYENTE'} onChange={e=>cambiarEtapa(p.id,e.target.value)}
                         style={{padding:'3px 8px',border:`1.5px solid ${ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}`,borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer',outline:'none',background:ETAPA_BG[p.estadoEspiritual]||'var(--c-info-bg)',color:ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}}>
@@ -117,7 +118,7 @@ export default function Discipulado() {
         {modal&&(
           <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
             <div className="modal">
-              <div className="modal-header"><h3 className="modal-title">✝️ {modal.nombre} {modal.apellido}</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(null)}>✕</button></div>
+              <div className="modal-header"><h3 className="modal-title"><Icons.Discipleship /> {modal.nombre} {modal.apellido}</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(null)}>✕</button></div>
               <div className="modal-body">
                 {materiales.map(m=>(
                   <div key={m.material} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
@@ -125,7 +126,7 @@ export default function Discipulado() {
                       <input name="completado" type="checkbox" checked={!!m.completado} onChange={()=>toggleMaterial(m.material,m.completado)} style={{width:18,height:18,accentColor:'var(--c-success)',cursor:'pointer'}}/>
                       <div>
                         <div style={{fontSize:14,fontWeight:m.completado?600:400}}>{MAT_LABEL[m.material]||m.material}</div>
-                        {m.fecha&&<div style={{fontSize:11,color:'var(--c-success)'}}>✅ {m.fecha}</div>}
+                        {m.fecha&&<div style={{fontSize:11,color:'var(--c-success)'}}><Icons.Attendance /> {m.fecha}</div>}
                       </div>
                     </div>
                     {!!m.completado&&<span className="badge badge-activo">Completado</span>}

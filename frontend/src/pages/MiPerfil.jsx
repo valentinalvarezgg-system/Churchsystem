@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getApiUrl } from '../services/api.js'
@@ -21,7 +22,7 @@ export default function MiPerfil() {
     if (form.passwordNuevo && form.passwordNuevo!==form.passwordConf) return setMsg({type:'error',text:'Las contraseñas no coinciden'})
     try {
       await apiFetch('/mi-perfil',{method:'PUT',body:JSON.stringify({nombre:form.nombre,passwordActual:form.passwordActual||undefined,passwordNuevo:form.passwordNuevo||undefined})})
-      setMsg({type:'success',text:'✅ Perfil actualizado'})
+      setMsg({type:'success',text:'Perfil actualizado'})
       setForm(f=>({...f,passwordActual:'',passwordNuevo:'',passwordConf:''}))
       const user = JSON.parse(localStorage.getItem('user')||'{}')
       localStorage.setItem('user', JSON.stringify({...user,nombre:form.nombre}))
@@ -50,7 +51,7 @@ export default function MiPerfil() {
             </div>
             <div className="card">
               <h3 style={{fontSize:12,fontWeight:600,marginBottom:10,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Mi actividad</h3>
-              {[['👥',perfil.stats?.totalPersonas,'Personas a cargo'],['📋',perfil.stats?.totalSeguimientos,'Seguimientos'],['💬',perfil.stats?.totalMensajes,'Mensajes']].map(([ic,v,l])=>(
+              {[['⊕',perfil.stats?.totalPersonas,'Personas a cargo'],['≡',perfil.stats?.totalSeguimientos,'Seguimientos'],['✉',perfil.stats?.totalMensajes,'Mensajes']].map(([ic,v,l])=>(
                 <div key={l} style={{display:'flex',gap:10,alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
                   <span style={{fontSize:20}}>{ic}</span>
                   <div><div style={{fontSize:18,fontWeight:700,color:'var(--primary)'}}>{v||0}</div><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.3}}>{l}</div></div>

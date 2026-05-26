@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react'
+import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
 
@@ -99,9 +100,9 @@ export default function ExcelIA() {
     <div className="layout">
       <Menu />
       <main className="main">
-        <div className="page-header"><h1 className="page-title">📊 Excel con IA</h1></div>
+        <div className="page-header"><h1 className="page-title"><Icons.Reports /> Excel con IA</h1></div>
         <div style={{display:'flex',gap:4,marginBottom:20}}>
-          {[['importar','📥 Importar'],['exportar','📤 Exportar']].map(([k,l])=>(
+          {[['importar','Importar'],['exportar','↑ Exportar']].map(([k,l])=>(
             <button key={k} onClick={()=>{setTab(k);setMsg(null)}} className={tab===k?'btn btn-primary':'btn btn-ghost'}>{l}</button>
           ))}
         </div>
@@ -124,7 +125,7 @@ export default function ExcelIA() {
             {paso===0&&(
               <div className="card">
                 <div style={{textAlign:'center',padding:'40px 20px',border:'2px dashed var(--border)',borderRadius:12,cursor:'pointer'}} onClick={()=>fileRef.current?.click()}>
-                  <div style={{fontSize:56,marginBottom:12}}>📊</div>
+                  <div style={{fontSize:56,marginBottom:12}}><Icons.Reports /></div>
                   <h3 style={{fontSize:17,fontWeight:700,marginBottom:8}}>Arrastrá tu planilla o hacé click</h3>
                   <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:16}}>Acepta .xlsx y .xls — la IA detecta las columnas automáticamente</p>
                   <button className="btn btn-primary" disabled={loading}>{loading?'Analizando...':'Seleccionar archivo'}</button>
@@ -137,7 +138,7 @@ export default function ExcelIA() {
               <div>
                 <div className="card" style={{marginBottom:16}}>
                   <div style={{display:'flex',gap:12,alignItems:'center',marginBottom:12}}>
-                    <span style={{fontSize:22}}>{analisis.metodo==='ia'?'🤖':'🔍'}</span>
+                    <span style={{fontSize:22}}>{analisis.metodo==='ia'?'◆':'⊙'}</span>
                     <div><h3 style={{fontSize:15,fontWeight:700,margin:0}}>Análisis: {analisis.total} filas · {analisis.columnas?.length} columnas</h3><p style={{fontSize:12,color:'var(--text-muted)',margin:0}}>{analisis.metodo==='ia'?`IA · confianza ${Math.round((analisis.confianza||0)*100)}%`:'Mapeo automático'}</p></div>
                   </div>
                   <div style={{display:'flex',gap:16}}>
@@ -235,7 +236,7 @@ export default function ExcelIA() {
 
 {paso===3&&resultado&&(
               <div className="card" style={{textAlign:'center',padding:'40px 20px'}}>
-                <div style={{fontSize:64,marginBottom:12}}>🎉</div>
+                <div style={{fontSize:64,marginBottom:12}}><Icons.Premium /></div>
                 <h2 style={{fontSize:22,fontWeight:800,marginBottom:16}}>¡Importación completada!</h2>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:12,maxWidth:400,margin:'0 auto 20px'}}>
                   {[['var(--c-success-bg)','var(--c-green-dark)',resultado.importados,'Creadas'],['var(--c-info-bg)','var(--c-info)',resultado.actualizados,'Actualizadas'],['#f3f4f6','#374151',resultado.saltados,'Saltadas']].map(([bg,c,v,l])=>(
@@ -279,7 +280,7 @@ export default function ExcelIA() {
                   <input name="o" className="form-input" value={nombreArchivo} onChange={e=>setNombreArchivo(e.target.value)}/>
                 </div>
                 <button className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} onClick={handleExportar} disabled={loading||colsExport.length===0}>
-                  {loading?'Generando...':'📥 Descargar Excel'}
+                  {loading?'Generando...':'Descargar Excel'}
                 </button>
               </div>
             </div>

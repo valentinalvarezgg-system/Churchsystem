@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
@@ -7,13 +8,13 @@ const ESTADOS = ['PRIMER_CONTACTO','EN_PROCESO','COMPLETADA','TRANSFERIDA']
 const ECOLOR  = { PRIMER_CONTACTO:'#D97706', EN_PROCESO:'#2563EB', COMPLETADA:'#16A34A', TRANSFERIDA:'#64748B' }
 const ELABEL  = { PRIMER_CONTACTO:'Primer contacto', EN_PROCESO:'En proceso', COMPLETADA:'Completada', TRANSFERIDA:'Transferida' }
 const PASOS = [
-  { key:'bienvenida',         icon:'👋', label:'Bienvenida personal' },
-  { key:'datos',              icon:'📝', label:'Datos registrados' },
+  { key:'bienvenida',         icon:'⊕', label:'Bienvenida personal' },
+  { key:'datos',              icon:'✉', label:'Datos registrados' },
   { key:'primer_llamada',     icon:'📞', label:'Primera llamada' },
-  { key:'material_entregado', icon:'📖', label:'Material entregado' },
+  { key:'material_entregado', icon:'▤', label:'Material entregado' },
   { key:'segunda_visita',     icon:'🏠', label:'Segunda visita' },
-  { key:'conectado_grupo',    icon:'🧩', label:'Conectado a grupo' },
-  { key:'discipulado',        icon:'✝️',  label:'Inicio de discipulado' },
+  { key:'conectado_grupo',    icon:'⊞', label:'Conectado a grupo' },
+  { key:'discipulado',        icon:'▧',  label:'Inicio de discipulado' },
 ]
 
 export default function Consolidacion() {
@@ -83,14 +84,14 @@ export default function Consolidacion() {
         {/* Header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">🤝 Consolidación</h1>
+            <h1 className="page-title">Consolidación</h1>
             <p style={{ fontSize:13, color:'var(--text-muted)', marginTop:3 }}>
               Proceso de integración de nuevos miembros
             </p>
           </div>
           <div style={{ display:'flex', gap:8 }}>
             <div style={{ display:'flex', background:'var(--bg)', borderRadius:'var(--r)', border:'1px solid var(--border)', overflowX:'auto' }}>
-              {[['lista','☰'],['kanban','⬛']].map(([k,ic]) => (
+              {[['lista','≡'],['kanban','▦']].map(([k,ic]) => (
                 <button key={k} onClick={() => setView(k)}
                   style={{
                     padding:'7px 14px', border:'none', cursor:'pointer', fontSize:13, fontWeight:600,
@@ -149,7 +150,7 @@ export default function Consolidacion() {
         {view === 'lista' && (
           <div className="card" style={{ padding:0, overflowX:'auto' }}>
             {data.length === 0
-              ? <div className="empty"><div className="empty-icon">🤝</div><p>Sin procesos activos</p></div>
+              ? <div className="empty"><div className="empty-icon"><Icons.Users /></div><p>Sin procesos activos</p></div>
               : <table style={{minWidth:500}}>
                   <thead>
                     <tr>
@@ -292,7 +293,7 @@ export default function Consolidacion() {
               <div className="modal" style={{ maxWidth:500 }}>
                 <div className="modal-header">
                   <div>
-                    <h3 className="modal-title">🤝 {modal.personaNombre} {modal.personaApellido}</h3>
+                    <h3 className="modal-title"><Icons.Users /> {modal.personaNombre} {modal.personaApellido}</h3>
                     <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:3 }}>
                       <span style={{ color: ECOLOR[modal.estado], fontWeight:600 }}>{ELABEL[modal.estado]}</span>
                       {' · '}{pct}% completado

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser, getApiUrl } from '../services/api.js'
 
@@ -9,7 +10,7 @@ const TIPO_COLOR = {
 }
 const TIPO_ICON = {
   DIEZMO:'💚', OFRENDA:'💙', ESPECIAL:'💜',
-  PRIMER_FRUTOS:'🌾', MISION:'🌍', OTRO:'📝'
+  PRIMER_FRUTOS:'🌾', MISION:'🌍', OTRO:'✉'
 }
 const EMPTY = {
   monto:'', tipo:'OFRENDA',
@@ -111,14 +112,14 @@ export default function Finanzas() {
         {/* Header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">💰 Finanzas</h1>
+            <h1 className="page-title"><Icons.Finance /> Finanzas</h1>
             <p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>
               Registro de ofrendas, diezmos y movimientos
             </p>
           </div>
           <div style={{display:'flex', gap:8, alignItems:'center', flexWrap:'wrap'}}>
             <div style={{display:'flex',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)',overflow:'hidden'}}>
-              {[['tabla','📋'],['graficos','📊']].map(([k,ic]) => (
+              {[['tabla','≡'],['graficos','▤']].map(([k,ic]) => (
                 <button key={k} onClick={() => setView(k)}
                   style={{padding:'7px 14px',border:'none',cursor:'pointer',fontSize:13,fontWeight:600,
                     background: view===k ? 'var(--primary)' : 'transparent',
@@ -131,7 +132,7 @@ export default function Finanzas() {
             {isAdmin && (
               <button className="btn btn-ghost" data-tip="Exportar finanzas a Excel"
                 onClick={() => window.open(`${getApiUrl()}/finanzas/export?token=${localStorage.getItem('token')}`, '_blank')}>
-                📤 Excel
+                ↑ Excel
               </button>
             )}
             <button className="btn btn-primary" data-tip="Registrar nuevo movimiento"
@@ -144,7 +145,7 @@ export default function Finanzas() {
         {/* Stats cards */}
         <div className="stats-grid" style={{marginBottom:20}}>
           <div className="stat-card" onClick={() => setFiltros({desde:'',hasta:'',tipo:''})} style={{cursor:'pointer'}}>
-            <div style={{fontSize:18,marginBottom:4}}>💰</div>
+            <div style={{fontSize:18,marginBottom:4}}><Icons.Finance /></div>
             <div className="stat-val" style={{fontSize:20,color:'var(--c-green-dark)'}}>{fmt(totalGeneral)}</div>
             <div className="stat-lbl">Total general</div>
           </div>
@@ -162,12 +163,12 @@ export default function Finanzas() {
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16,marginBottom:16}}>
             {/* Por tipo */}
             <div className="card">
-              <h3 style={{fontSize:13,fontWeight:700,marginBottom:16}}>📊 Por tipo</h3>
+              <h3 style={{fontSize:13,fontWeight:700,marginBottom:16}}><Icons.Reports /> Por tipo</h3>
               <BarChart data={porTipo} total={totalGeneral} />
             </div>
             {/* Tendencia mensual */}
             <div className="card">
-              <h3 style={{fontSize:13,fontWeight:700,marginBottom:16}}>📈 Tendencia mensual</h3>
+              <h3 style={{fontSize:13,fontWeight:700,marginBottom:16}}><Icons.Reports /> Tendencia mensual</h3>
               {tendencia.length === 0
                 ? <div className="empty" style={{padding:'20px 0'}}><p>Sin datos suficientes</p></div>
                 : (
@@ -220,7 +221,7 @@ export default function Finanzas() {
         {/* Tabla */}
         <div className="card" style={{padding:0, overflowX:'auto'}}>
           {data.length === 0
-            ? <div className="empty"><div className="empty-icon">💰</div><p>Sin registros para los filtros seleccionados</p></div>
+            ? <div className="empty"><div className="empty-icon"><Icons.Finance /></div><p>Sin registros para los filtros seleccionados</p></div>
             : <table style={{minWidth:500}}>
                 <thead>
                   <tr>
@@ -286,7 +287,7 @@ export default function Finanzas() {
           <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setModal(false)}>
             <div className="modal">
               <div className="modal-header">
-                <h3 className="modal-title">💰 Nuevo registro</h3>
+                <h3 className="modal-title"><Icons.Finance /> Nuevo registro</h3>
                 <button className="btn btn-ghost btn-sm" onClick={() => setModal(false)}>✕</button>
               </div>
               <form onSubmit={handleSave}>

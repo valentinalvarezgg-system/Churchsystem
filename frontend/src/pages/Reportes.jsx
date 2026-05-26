@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getApiUrl } from '../services/api.js'
@@ -71,7 +72,7 @@ export default function Reportes() {
       <main className="main">
         <div className="page-header">
           <div>
-            <h1 className="page-title">📈 Reportes</h1>
+            <h1 className="page-title"><Icons.Reports /> Reportes</h1>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>
               {tipo === 'semanal' ? `Semana ${r?.periodo?.desde || '...'} → ${r?.periodo?.hasta || '...'}` : `Mes ${mes}`}
             </p>
@@ -87,7 +88,7 @@ export default function Reportes() {
             </div>
             {r && <>
               <button className="btn btn-ghost btn-sm" data-tip="Imprimir reporte" onClick={imprimirReporte}>🖨️ Imprimir</button>
-              <button className="btn btn-ghost btn-sm" data-tip="Exportar membresía en Excel" onClick={exportarExcel}>📊 Excel</button>
+              <button className="btn btn-ghost btn-sm" data-tip="Exportar membresía en Excel" onClick={exportarExcel}><Icons.Reports /> Excel</button>
               <button className="btn btn-ghost btn-sm" data-tip="Ver lista de membresía en PDF" onClick={exportarPDF}>📄 PDF</button>
             </>}
           </div>
@@ -102,24 +103,24 @@ export default function Reportes() {
             <div className="stats-grid" style={{ marginBottom: 20 }}>
               <div className="stat-card" onClick={() => navigate('/personas')} style={{ cursor: 'pointer' }}>
                 <div className="stat-val">{r.totales?.personas || totalPersonas}</div>
-                <div className="stat-lbl">👥 Personas</div>
+                <div className="stat-lbl"><Icons.Users /> Personas</div>
               </div>
               <div className="stat-card" onClick={() => navigate('/personas')} style={{ cursor: 'pointer' }}>
                 <div className="stat-val" style={{ color: 'var(--c-success)' }}>{r.totales?.activos || 0}</div>
-                <div className="stat-lbl">✅ Activos</div>
+                <div className="stat-lbl"><Icons.Attendance /> Activos</div>
               </div>
               <div className="stat-card" onClick={() => navigate('/personas')} style={{ cursor: 'pointer' }}>
                 <div className="stat-val" style={{ color: 'var(--c-warning)' }}>{r.totales?.visitantes || 0}</div>
-                <div className="stat-lbl">👋 Visitantes</div>
+                <div className="stat-lbl">Visitantes</div>
               </div>
               <div className="stat-card" onClick={() => navigate('/grupos')}>
                 <div className="stat-val" style={{ color: 'var(--c-info)' }}>{r.totales?.grupos || 0}</div>
-                <div className="stat-lbl">🧩 Grupos</div>
+                <div className="stat-lbl"><Icons.Groups /> Grupos</div>
               </div>
               {tipo === 'semanal' && (
                 <div className="stat-card">
                   <div className="stat-val" style={{ color: 'var(--c-purple)' }}>{r.seguimientos?.reduce((a, b) => a + Number(b.qty), 0) || 0}</div>
-                  <div className="stat-lbl">📋 Seguimientos</div>
+                  <div className="stat-lbl">≡ Seguimientos</div>
                 </div>
               )}
             </div>
@@ -131,7 +132,7 @@ export default function Reportes() {
                 {/* Cultos */}
                 {(r.cultos || []).length > 0 && (
                   <div className="card">
-                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>📅 Cultos de la semana</h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}><Icons.Attendance /> Cultos de la semana</h3>
                     {(r.cultos || []).map((c, i) => {
                       const p = pct(c.presentes, c.total)
                       const color = p >= 70 ? 'var(--c-success)' : p >= 50 ? 'var(--c-warning)' : 'var(--c-danger)'
@@ -155,7 +156,7 @@ export default function Reportes() {
                 {/* Nuevas personas */}
                 <div className="card">
                   <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>
-                    👥 Nuevas personas ({(r.nuevasPersonas || []).length})
+                    <Icons.Users /> Nuevas personas ({(r.nuevasPersonas || []).length})
                   </h3>
                   {(r.nuevasPersonas || []).length === 0
                     ? <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sin nuevas personas esta semana</p>
@@ -172,7 +173,7 @@ export default function Reportes() {
                 {/* Seguimientos */}
                 {(r.seguimientos || []).length > 0 && (
                   <div className="card">
-                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>📋 Seguimientos realizados</h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>≡ Seguimientos realizados</h3>
                     {(r.seguimientos || []).map((s, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
                         <span>{s.tipo}</span><strong>{s.qty}</strong>
@@ -183,7 +184,7 @@ export default function Reportes() {
 
                 {/* Finanzas */}
                 <div className="card">
-                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>💰 Finanzas de la semana</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}><Icons.Finance /> Finanzas de la semana</h3>
                   <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--c-success)', marginBottom: 6 }}>
                     {fmt(r.ofrendas?.total || 0)}
                   </div>
@@ -200,7 +201,7 @@ export default function Reportes() {
 
                 {/* Congregación */}
                 <div className="card">
-                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>👥 Congregación</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}><Icons.Users /> Congregación</h3>
                   {(r.personas || []).map((p, i) => {
                     const total = (r.personas || []).reduce((a, b) => a + Number(b.total), 0)
                     const p2 = total > 0 ? Math.round(Number(p.total) / total * 100) : 0
@@ -221,7 +222,7 @@ export default function Reportes() {
 
                 {/* Finanzas del mes */}
                 <div className="card">
-                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>💰 Finanzas de {mes}</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}><Icons.Finance /> Finanzas de {mes}</h3>
                   <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--c-success)', marginBottom: 6 }}>{fmt(r.totalOfrendas || 0)}</div>
                   {(r.finanzas || []).map((f, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
@@ -235,7 +236,7 @@ export default function Reportes() {
                 {/* Asistencia mensual */}
                 {(r.asistencia || []).length > 0 && (
                   <div className="card" style={{ gridColumn: '1 / -1' }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>📅 Asistencia del mes</h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}><Icons.Attendance /> Asistencia del mes</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
                       {(r.asistencia || []).map((c, i) => {
                         const p = pct(c.presentes, c.total)
@@ -263,7 +264,7 @@ export default function Reportes() {
         )}
 
         {!r && !loading && (
-          <div className="empty"><div className="empty-icon">📈</div><p>Seleccioná un período para generar el reporte</p></div>
+          <div className="empty"><div className="empty-icon"><Icons.Reports /></div><p>Seleccioná un período para generar el reporte</p></div>
         )}
       </main>
     </div>

@@ -1,29 +1,30 @@
 import { useEffect, useState } from 'react'
+import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
 
 const MODULOS = [
-  { key:'personas',      label:'👥 Personas',       desc:'Ver y editar miembros' },
-  { key:'grupos',        label:'🧩 Grupos',          desc:'Gestionar células' },
-  { key:'asistencia',    label:'📅 Asistencia',      desc:'Tomar asistencia' },
-  { key:'calendario',    label:'📆 Calendario',      desc:'Ver y crear eventos' },
-  { key:'mensajes',      label:'💬 Mensajería',      desc:'Enviar mensajes' },
-  { key:'alertas',       label:'🔔 Alertas',         desc:'Ver alertas pastorales' },
-  { key:'finanzas',      label:'💰 Finanzas',        desc:'Registrar ofrendas' },
-  { key:'reportes',      label:'📈 Reportes',        desc:'Generar reportes' },
-  { key:'discipulado',   label:'✝️ Discipulado',     desc:'Seguimiento espiritual' },
-  { key:'seguimiento',   label:'📋 Seguimiento',     desc:'Notas pastorales' },
-  { key:'historial',     label:'🕓 Historial',       desc:'Auditoría' },
-  { key:'consolidacion', label:'🤝 Consolidación',   desc:'Nuevos miembros' },
-  { key:'oracion',       label:'🙏 Oración',         desc:'Peticiones' },
-  { key:'comunicados',   label:'📢 Comunicados',     desc:'Novedades internas' },
+  { key:'personas',      label:'Personas',       desc:'Ver y editar miembros' },
+  { key:'grupos',        label:'Grupos',          desc:'Gestionar células' },
+  { key:'asistencia',    label:'Asistencia',      desc:'Tomar asistencia' },
+  { key:'calendario',    label:'Calendario',      desc:'Ver y crear eventos' },
+  { key:'mensajes',      label:'Mensajería',      desc:'Enviar mensajes' },
+  { key:'alertas',       label:'Alertas',         desc:'Ver alertas pastorales' },
+  { key:'finanzas',      label:'Finanzas',        desc:'Registrar ofrendas' },
+  { key:'reportes',      label:'Reportes',        desc:'Generar reportes' },
+  { key:'discipulado',   label:'Discipulado',     desc:'Seguimiento espiritual' },
+  { key:'seguimiento',   label:'Seguimiento',     desc:'Notas pastorales' },
+  { key:'historial',     label:'Historial',       desc:'Auditoría' },
+  { key:'consolidacion', label:'Consolidación',   desc:'Nuevos miembros' },
+  { key:'oracion',       label:'Oración',         desc:'Peticiones' },
+  { key:'comunicados',   label:'Comunicados',     desc:'Novedades internas' },
 ]
 
 const NIVELES = [
-  { val:0, label:'Sin acceso',  color:'var(--c-danger)', bg:'var(--c-danger-bg)', icon:'🚫' },
-  { val:1, label:'Solo ver',    color:'var(--c-warning)', bg:'var(--c-warning-bg)', icon:'👁️' },
-  { val:2, label:'Ver+editar',  color:'var(--c-info)', bg:'var(--c-info-bg)', icon:'✏️' },
-  { val:3, label:'Total',       color:'var(--c-success)', bg:'var(--c-success-bg)', icon:'✅' },
+  { val:0, label:'Sin acceso',  color:'var(--c-danger)', bg:'var(--c-danger-bg)', icon:'✗' },
+  { val:1, label:'Solo ver',    color:'var(--c-warning)', bg:'var(--c-warning-bg)', icon:'◎' },
+  { val:2, label:'Ver+editar',  color:'var(--c-info)', bg:'var(--c-info-bg)', icon:'✎' },
+  { val:3, label:'Total',       color:'var(--c-success)', bg:'var(--c-success-bg)', icon:'✓' },
 ]
 
 export default function GestionPermisos() {
@@ -51,7 +52,7 @@ export default function GestionPermisos() {
 
   async function guardar() {
     setLoading(true); setMsg(null)
-    try { await apiFetch(`/permisos/${selUser.id}`,{method:'PUT',body:JSON.stringify(permisos)}); setOriginal({...permisos}); setCambios(false); setMsg({type:'success',text:'✅ Permisos guardados'}) }
+    try { await apiFetch(`/permisos/${selUser.id}`,{method:'PUT',body:JSON.stringify(permisos)}); setOriginal({...permisos}); setCambios(false); setMsg({type:'success',text:'Permisos guardados'}) }
     catch(e) { setMsg({type:'error',text:e.message}) }
     setLoading(false)
   }
@@ -59,7 +60,7 @@ export default function GestionPermisos() {
   async function resetear() {
     if (!confirm(`¿Resetear permisos de ${selUser.nombre||selUser.email} a los defaults de su rol?`)) return
     setLoading(true)
-    try { await apiFetch(`/permisos/${selUser.id}/reset`,{method:'POST'}); await seleccionar(selUser); setMsg({type:'success',text:'✅ Reseteado al rol'}) }
+    try { await apiFetch(`/permisos/${selUser.id}/reset`,{method:'POST'}); await seleccionar(selUser); setMsg({type:'success',text:'Reseteado al rol'}) }
     catch(e) { setMsg({type:'error',text:e.message}) }
     setLoading(false)
   }
@@ -72,7 +73,7 @@ export default function GestionPermisos() {
       <Menu />
       <main className="main">
         <div className="page-header">
-          <div><h1 className="page-title">🛡️ Gestión de permisos</h1><p style={{fontSize:13,color:'var(--text-muted)',marginTop:2}}>Asigná qué puede ver y editar cada integrante</p></div>
+          <div><h1 className="page-title"><Icons.Shield /> Gestión de permisos</h1><p style={{fontSize:13,color:'var(--text-muted)',marginTop:2}}>Asigná qué puede ver y editar cada integrante</p></div>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'260px 1fr',gap:16,alignItems:'start'}}>
           <div className="card" style={{padding:0, overflowX:'auto'}}>
@@ -90,7 +91,7 @@ export default function GestionPermisos() {
             }
           </div>
           {!selUser
-            ? <div className="card empty"><div className="empty-icon">🛡️</div><p>Seleccioná un usuario</p></div>
+            ? <div className="card empty"><div className="empty-icon"><Icons.Shield /></div><p>Seleccioná un usuario</p></div>
             : <div className="card">
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:10}}>
                   <div><h2 style={{fontSize:17,fontWeight:700,margin:0}}>{selUser.nombre||selUser.email}</h2><p style={{fontSize:12,color:'var(--text-muted)',margin:'4px 0 0'}}>Rol: <strong style={{color:ROL_COLOR[selUser.rol]||'var(--text-muted)'}}>{selUser.rol}</strong></p></div>

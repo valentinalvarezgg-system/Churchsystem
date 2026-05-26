@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import BtnNotificaciones from '../components/BtnNotificaciones.jsx'
 import { apiFetch } from '../services/api.js'
@@ -6,20 +7,20 @@ import { apiFetch } from '../services/api.js'
 const CATEGORIAS = [
   { key:'iglesia', label:'Iglesia', icon:'🏛️', secciones:[
     { key:'general',    icon:'🏛️', label:'General',    desc:'Nombre, pastor, contacto' },
-    { key:'cultos',     icon:'📅', label:'Cultos',     desc:'Días, turnos y horarios' },
+    { key:'cultos',     icon:'✓', label:'Cultos',     desc:'Días, turnos y horarios' },
     { key:'apariencia', icon:'🎨', label:'Apariencia', desc:'Color y logo' },
   ]},
-  { key:'suscripcion', label:'Suscripción', icon:'💳', secciones:[] },
+  { key:'suscripcion', label:'Suscripción', icon:'▣', secciones:[] },
   { key:'integraciones', label:'Integraciones', icon:'🔌', secciones:[
-    { key:'whatsapp', icon:'📱', label:'WhatsApp',             desc:'Twilio — mensajes reales' },
-    { key:'ia',       icon:'🤖', label:'Inteligencia Artificial', desc:'Groq · Anthropic · OpenAI' },
-    { key:'email',    icon:'✉️', label:'Email',                  desc:'Resend — emails masivos' },
+    { key:'whatsapp', icon:'▢', label:'WhatsApp',             desc:'Twilio — mensajes reales' },
+    { key:'ia',       icon:'◆', label:'Inteligencia Artificial', desc:'Groq · Anthropic · OpenAI' },
+    { key:'email',    icon:'✉', label:'Email',                  desc:'Resend — emails masivos' },
   ]},
-  { key:'pastoral', label:'Pastoral', icon:'📋', secciones:[
-    { key:'alertas',     icon:'🔔', label:'Alertas',     desc:'Umbrales automáticos' },
+  { key:'pastoral', label:'Pastoral', icon:'≡', secciones:[
+    { key:'alertas',     icon:'▣', label:'Alertas',     desc:'Umbrales automáticos' },
     { key:'seguimiento', icon:'👣', label:'Seguimiento', desc:'Frecuencias' },
   ]},
-  { key:'sistema', label:'Sistema', icon:'⚙️', secciones:[
+  { key:'sistema', label:'Sistema', icon:'⊙', secciones:[
     { key:'seguridad', icon:'🔐', label:'Seguridad',     desc:'Sesiones y acceso' },
     { key:'backup',    icon:'💾', label:'Backup y datos', desc:'Base de datos SQLite' },
   ]},
@@ -67,7 +68,7 @@ function SuscripcionTab() {
     setLoading(false)
   }
 
-  if (!estado) return <div className="empty"><div className="empty-icon">💳</div><p>Cargando...</p></div>
+  if (!estado) return <div className="empty"><div className="empty-icon">▣</div><p>Cargando...</p></div>
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
@@ -78,7 +79,7 @@ function SuscripcionTab() {
         <h3 style={{ fontSize:14, fontWeight:700, marginBottom:16 }}>Estado de tu suscripción</h3>
         <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
           <div style={{ flex:1, minWidth:160, padding:'14px 16px', borderRadius:'var(--r-lg)', background: estado.activo ? 'var(--c-success-bg)' : 'var(--c-warning-bg)', border: `1px solid ${estado.activo ? 'var(--c-success-brd)' : 'var(--c-warning-brd)'}` }}>
-            <div style={{ fontSize:22, marginBottom:4 }}>{estado.activo ? '✅' : '⚠️'}</div>
+            <div style={{ fontSize:22, marginBottom:4 }}>{estado.activo ? '✓' : '⚠'}</div>
             <div style={{ fontSize:14, fontWeight:700, color: estado.activo ? 'var(--c-success)' : 'var(--c-warning)' }}>
               {estado.enTrial ? `Trial — ${estado.diasTrial} días restantes` : estado.suscActiva ? 'Suscripción activa' : 'Sin suscripción activa'}
             </div>
@@ -118,7 +119,7 @@ function SuscripcionTab() {
               </div>
               <button className="btn btn-primary btn-sm" style={{ width:'100%' }}
                 onClick={() => pagar(p.id)} disabled={loading}>
-                {loading ? '⏳' : '💳 Suscribirse'}
+                {loading ? '…' : '▣ Suscribirse'}
               </button>
             </div>
           ))}
@@ -202,7 +203,7 @@ export default function Configuracion() {
     }
     try {
       await apiFetch('/config', { method: 'PUT', body: JSON.stringify(payload) })
-      setMsg({ type: 'success', text: '✅ Guardado' })
+      setMsg({ type: 'success', text: 'Guardado' })
       const c = await apiFetch('/config').catch(() => config)
       setConfig(c || config)
     } catch (err) { setMsg({ type: 'error', text: err.message }) }
@@ -219,7 +220,7 @@ export default function Configuracion() {
       <main className="main">
         <div className="page-header">
           <div>
-            <h1 className="page-title">⚙️ Configuración</h1>
+            <h1 className="page-title"><Icons.Settings /> Configuración</h1>
             <p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>{catActiva?.label} · {secActiva?.label}</p>
           </div>
         </div>
@@ -331,7 +332,7 @@ export default function Configuracion() {
                 <div style={{marginTop:16,padding:16,background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
                   <p style={{fontSize:11,fontWeight:600,marginBottom:10,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Vista previa</p>
                   <div style={{display:'flex', gap:10, alignItems:'center', flexWrap:'wrap'}}>
-                    <div style={{width:36,height:36,borderRadius:'50%',background:form.color_primario,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--surface)',fontSize:18,flexShrink:0}}>⛪</div>
+                    <div style={{width:36,height:36,borderRadius:'50%',background:form.color_primario,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--surface)',fontSize:18,flexShrink:0}}><Icons.Dashboard /></div>
                     <div><div style={{fontSize:14,fontWeight:700,color:form.color_primario}}>{form.nombre_iglesia||'Church System'}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{form.pastor_nombre||'Pastor'}</div></div>
                     <button type="button" style={{marginLeft:'auto',padding:'6px 14px',background:form.color_primario,border:'none',borderRadius:'var(--r)',color:'var(--surface)',fontSize:12,fontWeight:600}}>Botón</button>
                   </div>
@@ -341,7 +342,7 @@ export default function Configuracion() {
               {/* WHATSAPP */}
               {sec==='whatsapp' && <>
                 <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',marginBottom:20,borderRadius:'var(--r)',background:config.twilio_configurado?'#F0FDF4':'#FFFBEB',border:`1px solid ${config.twilio_configurado?'#86EFAC':'#FDE68A'}`}}>
-                  <span style={{fontSize:20}}>{config.twilio_configurado?'✅':'⚠️'}</span>
+                  <span style={{fontSize:20}}>{config.twilio_configurado?'✓':'⚠'}</span>
                   <div>
                     <div style={{fontSize:13,fontWeight:600,color:config.twilio_configurado?'#15803D':'#92400E'}}>{config.twilio_configurado?'Twilio activo':'Sin configurar — modo demo'}</div>
                     <div style={{fontSize:11,color:'var(--text-muted)'}}>{config.twilio_configurado?'Los mensajes se envían por WhatsApp real':'Los mensajes se registran pero no se envían'}</div>
@@ -415,7 +416,7 @@ export default function Configuracion() {
               {/* EMAIL */}
               {sec==='email' && <>
                 <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',marginBottom:20,borderRadius:'var(--r)',background:config.email_configurado?'#F0FDF4':'#FFFBEB',border:`1px solid ${config.email_configurado?'#86EFAC':'#FDE68A'}`}}>
-                  <span style={{fontSize:20}}>{config.email_configurado?'✅':'⚠️'}</span>
+                  <span style={{fontSize:20}}>{config.email_configurado?'✓':'⚠'}</span>
                   <div>
                     <div style={{fontSize:13,fontWeight:600,color:config.email_configurado?'#15803D':'#92400E'}}>{config.email_configurado?'Email activo — Resend configurado':'Sin configurar — modo demo'}</div>
                     <div style={{fontSize:11,color:'var(--text-muted)'}}>{config.email_configurado?'Los emails se envían realmente':'Los mensajes se guardan pero no se envían'}</div>
@@ -454,8 +455,8 @@ export default function Configuracion() {
                 <div style={{display:'flex',flexDirection:'column',gap:12}}>
                   {[
                     {k:'alerta_sin_asistir',     label:'🚨 Sin asistir',             unit:'cultos consecutivos',   min:1,max:10},
-                    {k:'alerta_sin_seguimiento',  label:'⚠️ Sin seguimiento',         unit:'días sin contacto',     min:7,max:90},
-                    {k:'alerta_visitante',        label:'👋 Visitante sin consolidar', unit:'días desde el ingreso', min:7,max:60},
+                    {k:'alerta_sin_seguimiento',  label:'⚠ Sin seguimiento',         unit:'días sin contacto',     min:7,max:90},
+                    {k:'alerta_visitante',        label:'Visitante sin consolidar', unit:'días desde el ingreso', min:7,max:60},
                     {k:'alerta_cumple',           label:'🎂 Cumpleaños',              unit:'días de anticipación',  min:1,max:14},
                   ].map(({k,label,unit,min,max})=>(
                     <div key={k} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 16px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
@@ -545,7 +546,7 @@ export default function Configuracion() {
       {/* Notificaciones */}
       <div style={{marginTop:20}}>
         <h2 style={{fontSize:13,fontWeight:700,textTransform:'uppercase',letterSpacing:.5,color:'var(--text-muted)',marginBottom:12}}>
-          🔔 Notificaciones
+          <Icons.Comunicados /> Notificaciones
         </h2>
         <BtnNotificaciones />
       </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Icons from '../components/Icons.jsx'
 import { useParams } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import CheckInFacial from '../components/CheckInFacial.jsx'
@@ -53,7 +54,7 @@ export function CheckInPublico() {
 
   if (err) return (
     <div style={s.page}><div style={{...s.card, textAlign:'center'}}>
-      <div style={{fontSize:48, marginBottom:12}}>⚠️</div>
+      <div style={{fontSize:48, marginBottom:12}}>⚠</div>
       <h2 style={{color:'var(--surface)', fontSize:18, marginBottom:8}}>QR inválido</h2>
       <p style={{color:'rgba(255,255,255,0.4)', fontSize:13}}>{err}</p>
     </div></div>
@@ -61,7 +62,7 @@ export function CheckInPublico() {
 
   if (!culto) return (
     <div style={s.page}><div style={{...s.card, textAlign:'center'}}>
-      <div style={{fontSize:40, marginBottom:12, animation:'pulse 1s infinite'}}>⛪</div>
+      <div style={{fontSize:40, marginBottom:12, animation:'pulse 1s infinite'}}><Icons.Dashboard /></div>
       <p style={{color:'rgba(255,255,255,0.4)'}}>Cargando...</p>
     </div></div>
   )
@@ -70,21 +71,21 @@ export function CheckInPublico() {
     <div style={s.page}>
       <div style={s.card}>
         <div style={{textAlign:'center', marginBottom:28}}>
-          <div style={{fontSize:40, marginBottom:8}}>⛪</div>
+          <div style={{fontSize:40, marginBottom:8}}><Icons.Dashboard /></div>
           <h1 style={{color:'var(--surface)', fontSize:20, fontWeight:800, marginBottom:4, letterSpacing:-.5}}>{culto.culto?.nombre}</h1>
           <p style={{color:'rgba(255,255,255,0.4)', fontSize:13}}>{culto.culto?.fecha} · {culto.totalPresentes} registrados</p>
         </div>
 
         {step === 'ok' ? (
           <div style={{textAlign:'center'}}>
-            <div style={{fontSize:64, marginBottom:16}}>✅</div>
+            <div style={{fontSize:64, marginBottom:16}}><Icons.Attendance /></div>
             <h2 style={{color:'var(--surface)', fontSize:22, fontWeight:800, marginBottom:8}}>
               ¡Bienvenido, {resultado?.persona?.nombre?.split(' ')[0]}!
             </h2>
             <p style={{color:'rgba(255,255,255,0.5)', fontSize:14}}>Tu asistencia fue registrada.</p>
             <div style={{marginTop:20, padding:'10px 16px', background:'rgba(22,163,74,0.15)', borderRadius:8, border:'1px solid rgba(22,163,74,0.3)'}}>
               <p style={{color:'#86EFAC', fontSize:13, margin:0}}>
-                {resultado?.persona?.estado === 'VISITANTE' ? '👋 Registrado como nuevo visitante' : '✓ Asistencia confirmada'}
+                {resultado?.persona?.estado === 'VISITANTE' ? 'Registrado como nuevo visitante' : '✓ Asistencia confirmada'}
               </p>
             </div>
           </div>
@@ -149,8 +150,8 @@ export default function CheckInAdmin() {
       .url { font-size:12px; color:#94A3B8; word-break:break-all; max-width:280px; text-align:center; }
       @media print { button { display:none } }
     </style></head><body>
-    <h1>⛪ ${qrData.culto?.nombre}</h1>
-    <p>📅 ${qrData.culto?.fecha}</p>
+    <h1><Icons.Dashboard /> ${qrData.culto?.nombre}</h1>
+    <p><Icons.Attendance /> ${qrData.culto?.fecha}</p>
     <p style="font-size:14px;color:#2563EB;font-weight:600">Escaneá para registrar tu asistencia</p>
     <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData.url)}" width="300" height="300"/>
     <p class="url">${qrData.url}</p>
@@ -167,7 +168,7 @@ export default function CheckInAdmin() {
       <main className="main">
         <div className="page-header">
           <div>
-            <h1 className="page-title">📱 Check-in QR</h1>
+            <h1 className="page-title"><Icons.CheckIn /> Check-in QR</h1>
             <p style={{fontSize:13, color:'var(--text-muted)', marginTop:3}}>
               Los miembros escanean el QR y se registran solos desde su celular
             </p>
@@ -182,7 +183,7 @@ export default function CheckInAdmin() {
               Seleccioná un culto
             </h3>
             {cultos.length === 0
-              ? <div className="empty"><div className="empty-icon">📅</div><p>Sin cultos.<br/>Creá uno en Asistencia.</p></div>
+              ? <div className="empty"><div className="empty-icon"><Icons.Attendance /></div><p>Sin cultos.<br/>Creá uno en Asistencia.</p></div>
               : cultos.map(c => (
                 <div key={c.id} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'11px 0', borderBottom:'1px solid var(--border)'}}>
                   <div>
@@ -194,7 +195,7 @@ export default function CheckInAdmin() {
                       data-tip="Generar código QR para este culto"
                       onClick={() => generarQR(c.id)}
                       disabled={loading}>
-                      {loading ? '…' : '📱 QR'}
+                      {loading ? '…' : 'QR'}
                     </button>
                     <button className="btn btn-ghost btn-sm"
                       data-tip="Reconocimiento facial — registrar asistencia por cara"
@@ -236,7 +237,7 @@ export default function CheckInAdmin() {
                 border:'1px solid rgba(37,99,235,0.15)', textAlign:'left'
               }}>
                 <p style={{fontSize:11, fontWeight:700, color:'var(--primary)', textTransform:'uppercase', letterSpacing:.4, marginBottom:4}}>
-                  📱 Acceso desde celular
+                  <Icons.CheckIn /> Acceso desde celular
                 </p>
                 <p style={{fontSize:12, color:'var(--text-2)', wordBreak:'break-all', fontFamily:'monospace'}}>
                   {qrData.url}
@@ -250,7 +251,7 @@ export default function CheckInAdmin() {
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8}}>
                 <button className="btn btn-primary btn-sm" onClick={copiar}
                   data-tip="Copiar link para compartir por WhatsApp">
-                  {copied ? '✓ Copiado' : '📋 Copiar link'}
+                  {copied ? '✓ Copiado' : '≡ Copiar link'}
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={imprimir}
                   data-tip="Imprimir el QR en papel para el culto">
@@ -269,7 +270,7 @@ export default function CheckInAdmin() {
             </div>
           ) : (
             <div className="card" style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:320, color:'var(--text-muted)'}}>
-              <div style={{fontSize:64, marginBottom:16, opacity:.2}}>📱</div>
+              <div style={{fontSize:64, marginBottom:16, opacity:.2}}><Icons.CheckIn /></div>
               <p style={{fontSize:14}}>Seleccioná un culto para generar el QR</p>
             </div>
           )}

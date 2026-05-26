@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
@@ -28,11 +29,11 @@ export default function Alertas() {
       const r = await apiFetch('/mensajes/enviar', {
         method:'POST',
         body: JSON.stringify({ personaId, tipo:'WHATSAPP',
-          mensaje: `Hola ${nombre}! 🙏 Estuvimos pensando en vos. ¿Cómo estás? Cuándo podemos conectar?` })
+          mensaje: `Hola ${nombre}! <Icons.Prayer /> Estuvimos pensando en vos. ¿Cómo estás? Cuándo podemos conectar?` })
       })
-      setMsgEnvio(p => ({...p, [personaId]: r.enviado ? '✅' : r.demo ? '📋' : '❌'}))
+      setMsgEnvio(p => ({...p, [personaId]: r.enviado ? '✓' : r.demo ? '≡' : '✗'}))
       setTimeout(() => setMsgEnvio(p => { const n={...p}; delete n[personaId]; return n }), 4000)
-    } catch { setMsgEnvio(p => ({...p, [personaId]: '❌'})) }
+    } catch { setMsgEnvio(p => ({...p, [personaId]: '✗'})) }
     setEnviando(null)
   }
 
@@ -47,13 +48,13 @@ export default function Alertas() {
         const r = await apiFetch('/mensajes/enviar', {
           method:'POST',
           body: JSON.stringify({ personaId: p.personaId||p.id, tipo:'WHATSAPP',
-            mensaje: `Hola ${p.nombre}! 🙏 Te contactamos desde la iglesia. ¡Te esperamos!` })
+            mensaje: `Hola ${p.nombre}! <Icons.Prayer /> Te contactamos desde la iglesia. ¡Te esperamos!` })
         })
         r.enviado || r.demo ? ok++ : err++
       } catch { err++ }
     }
     setEnviandoMasivo(false)
-    setMsgMasivo(`✅ ${ok} enviados${err?` · ❌ ${err} fallaron`:''}`)
+    setMsgMasivo(`<Icons.Attendance /> ${ok} enviados${err?` · ✗ ${err} fallaron`:''}`)
     setSeleccionados([])
   }
 
@@ -68,16 +69,16 @@ export default function Alertas() {
   if (loading) return (
     <div className="layout"><Menu />
       <main className="main">
-        <div className="empty"><div className="empty-icon">🔔</div><p>Analizando la congregación...</p></div>
+        <div className="empty"><div className="empty-icon"><Icons.Comunicados /></div><p>Analizando la congregación...</p></div>
       </main>
     </div>
   )
 
   const TABS = [
     { key:'sinAsistir',             icon:'🚨', label:'Sin asistir',     count:data?.sinAsistir?.total||0,              color:'var(--c-danger)',  bg:'var(--c-danger-bg)' },
-    { key:'sinSeguimiento',         icon:'⚠️', label:'Sin seguimiento', count:data?.sinSeguimiento?.total||0,          color:'var(--c-warning)', bg:'var(--c-warning-bg)' },
-    { key:'visitantesSinConsolidar',icon:'🤝', label:'Visitantes',      count:data?.visitantesSinConsolidar?.total||0, color:'var(--c-info)',    bg:'var(--c-info-bg)' },
-    { key:'contactosVencidos',      icon:'📅', label:'Vencidos',        count:data?.contactosVencidos?.total||0,       color:'var(--c-purple)',  bg:'var(--c-purple-bg)' },
+    { key:'sinSeguimiento',         icon:'⚠', label:'Sin seguimiento', count:data?.sinSeguimiento?.total||0,          color:'var(--c-warning)', bg:'var(--c-warning-bg)' },
+    { key:'visitantesSinConsolidar',icon:'⊕', label:'Visitantes',      count:data?.visitantesSinConsolidar?.total||0, color:'var(--c-info)',    bg:'var(--c-info-bg)' },
+    { key:'contactosVencidos',      icon:'✓', label:'Vencidos',        count:data?.contactosVencidos?.total||0,       color:'var(--c-purple)',  bg:'var(--c-purple-bg)' },
     { key:'cumpleanosSemana',       icon:'🎂', label:'Cumpleaños',      count:data?.cumpleanosSemana?.total||0,        color:'var(--c-pink)',    bg:'var(--c-pink-bg)' },
   ]
   const current  = data?.[tab]?.data || []
@@ -92,7 +93,7 @@ export default function Alertas() {
         {/* Header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">🔔 Alertas pastorales</h1>
+            <h1 className="page-title"><Icons.Comunicados /> Alertas pastorales</h1>
             <p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>
               Personas que necesitan atención
             </p>
@@ -145,7 +146,7 @@ export default function Alertas() {
               <>
                 <button className="btn btn-ghost btn-sm" style={{color:'var(--c-success)',borderColor:'rgba(22,163,74,.3)'}}
                   onClick={enviarMasivo} disabled={enviandoMasivo}>
-                  {enviandoMasivo ? '⏳ Enviando...' : `💬 WA masivo (${seleccionados.length})`}
+                  {enviandoMasivo ? '… Enviando...' : `<Icons.Messages /> WA masivo (${seleccionados.length})`}
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setSeleccionados([])}>
                   ✕ Limpiar
@@ -167,7 +168,7 @@ export default function Alertas() {
           </div>
 
           {current.length === 0
-            ? <div className="empty"><div className="empty-icon">✅</div><p>¡Sin alertas en esta categoría!</p></div>
+            ? <div className="empty"><div className="empty-icon"><Icons.Attendance /></div><p>¡Sin alertas en esta categoría!</p></div>
             : <table style={{minWidth:500}}>
                 <thead>
                   <tr>
@@ -198,7 +199,7 @@ export default function Alertas() {
                             {p.nombre} {p.apellido}
                           </strong>
                           {p.liderNombre && tab!=='sinSeguimiento' && tab!=='sinAsistir' && (
-                            <div style={{fontSize:10,color:'var(--text-muted)'}}>👤 {p.liderNombre}</div>
+                            <div style={{fontSize:10,color:'var(--text-muted)'}}><Icons.Profile /> {p.liderNombre}</div>
                           )}
                         </td>
                         <td style={{fontSize:12,color:'var(--text-muted)'}}>{p.telefono||'—'}</td>
@@ -252,7 +253,7 @@ export default function Alertas() {
                                 data-tip="Enviar WhatsApp rápido"
                                 disabled={enviando===pid}
                                 onClick={() => enviarWA(pid, p.nombre)}>
-                                {enviando===pid ? '⏳' : '💬'}
+                                {enviando===pid ? '…' : '✉'}
                                 {msgEnvio[pid] && <span style={{marginLeft:4}}>{msgEnvio[pid]}</span>}
                               </button>
                             )}

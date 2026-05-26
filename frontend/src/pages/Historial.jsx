@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
 
@@ -31,7 +32,7 @@ export default function Historial() {
       <Menu />
       <main className="main">
         <div className="page-header">
-          <h1 className="page-title">🕓 Historial <span style={{fontSize:15,fontWeight:400,color:'var(--text-muted)'}}>({total})</span></h1>
+          <h1 className="page-title"><Icons.History /> Historial <span style={{fontSize:15,fontWeight:400,color:'var(--text-muted)'}}>({total})</span></h1>
         </div>
         <div className="toolbar">
           <select name="d" className="input" value={entidad} onChange={e=>{setEntidad(e.target.value);setPage(1)}}>
@@ -46,7 +47,7 @@ export default function Historial() {
         </div>
         <div className="card" style={{padding:0, overflowX:'auto'}}>
           {data.length===0
-            ? <div className="empty"><div className="empty-icon">🕓</div><p>Sin registros</p></div>
+            ? <div className="empty"><div className="empty-icon"><Icons.History /></div><p>Sin registros</p></div>
             : <table style={{minWidth:500}}>
                 <thead><tr><th>#</th><th>Acción</th><th>Entidad</th><th>Usuario</th><th>Rol</th><th>Detalle</th><th>Fecha</th></tr></thead>
                 <tbody>{data.map(r=>(
