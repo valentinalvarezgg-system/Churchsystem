@@ -187,6 +187,7 @@ export default function Menu() {
           {isAdmin && <>
             <div className="nav-section">Admin</div>
             {lnk('/users',         '👤', 'Usuarios')}
+            {lnk('/promo-codes',   '🎟️',  'Promo Codes')}
             {lnk('/permisos',      '🛡️',  'Permisos')}
             {lnk('/historial',     '🕓', 'Historial')}
             {lnk('/configuracion', '⚙️',  'Configuración')}

@@ -41,6 +41,9 @@ import checkinRouter       from './routes/checkin.js'
 import oracionRouter       from './routes/oracion.js'
 import comunicadosRouter   from './routes/comunicados.js'
 import consolidacionRouter from './routes/consolidacion.js'
+import bugReportRouter     from './routes/bug-report.js'
+import promoCodesRouter    from './routes/promo-codes.js'
+import oauthRouter         from './routes/oauth.js'
 
 const app  = express()
 const PORT = process.env.PORT || 4000
@@ -106,8 +109,9 @@ app.use('/checkin',       checkinRouter)
 app.use('/oracion',       oracionRouter)
 app.use('/comunicados',   comunicadosRouter)
 app.use('/consolidacion', consolidacionRouter)
-
-
+app.use('/bug-report',    bugReportRouter)
+app.use('/promo-codes',   promoCodesRouter)
+app.use('/oauth',         oauthRouter)
 
 // ── Frontend buildeado ───────────────────────────────────────────────────────
 const _DIST = path.join(process.cwd(), '..', 'frontend', 'dist')
@@ -207,5 +211,7 @@ seedAdmin().then(() => {
 })
 import consolidacionRouter from './routes/consolidacion.js'
 import bugReportRouter     from './routes/bug-report.js'
+import promoCodesRouter    from './routes/promo-codes.js'
+import oauthRouter         from './routes/oauth.js'
 app.use('/consolidacion', consolidacionRouter)
 app.use('/bug-report',    bugReportRouter)

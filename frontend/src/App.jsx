@@ -28,6 +28,7 @@ import ExcelIA          from './pages/ExcelIA.jsx'
 import Users            from './pages/Users.jsx'
 import Historial        from './pages/Historial.jsx'
 import DashboardPremium from './pages/DashboardPremium.jsx'
+import PromoCodes       from './pages/PromoCodes.jsx'
 import Registro         from './pages/Registro.jsx'
 import Terminos         from './pages/Terminos.jsx'
 import Privacidad       from './pages/Privacidad.jsx'
@@ -120,6 +121,7 @@ export default function App() {
         <Route path="/configuracion"   element={<ProtectedRoute roles={ADMIN} element={<Configuracion />} />} />
         <Route path="/permisos"        element={<ProtectedRoute roles={ADMIN} element={<GestionPermisos />} />} />
         <Route path="/users"           element={<ProtectedRoute roles={ADMIN} element={<Users />} />} />
+        <Route path="/promo-codes"     element={<ProtectedRoute roles={ADMIN} element={<PromoCodes />} />} />
         <Route path="/historial"       element={<ProtectedRoute roles={AUDIT} element={<Historial />} />} />
         <Route path="*"                element={<Navigate to="/" replace />} />
       </Routes>
