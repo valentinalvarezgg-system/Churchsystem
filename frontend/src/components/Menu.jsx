@@ -173,7 +173,6 @@ export default function Menu() {
             <div className="nav-section">Gestión</div>
             {isMid   && lnk('/mensajes',  <Icons.Messages />, 'Mensajería')}
             {isAudit && lnk('/alertas',   <Icons.Comunicados />, 'Alertas', false, alertCount)}
-            {isAudit && lnk('/finanzas',  <Icons.Finance />, 'Finanzas')}
             {isAudit && lnk('/reportes',  <Icons.Reports />, 'Reportes')}
           </>}
 
