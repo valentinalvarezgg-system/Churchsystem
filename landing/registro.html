@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro — Church System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #05070F; --bg2: #0A0E1A; --surface: #111827;
+      --border: rgba(255,255,255,0.07); --text: #E2E8F0;
+      --muted: #64748B; --blue: #3B82F6; --green: #4ADE80;
+    }
+    body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; }
+    .wrap { width:100%; max-width:480px; }
+    .logo { display:flex; align-items:center; gap:10px; font-size:18px; font-weight:700; margin-bottom:36px; justify-content:center; }
+    .logo-icon { width:36px; height:36px; border-radius:9px; background:linear-gradient(135deg,#3B82F6,#7C3AED); display:flex; align-items:center; justify-content:center; font-size:18px; }
+    h1 { font-size:28px; font-weight:800; letter-spacing:-1px; margin-bottom:8px; text-align:center; }
+    .sub { color:var(--muted); font-size:14px; text-align:center; margin-bottom:36px; }
+    .plans { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:28px; }
+    .plan { padding:12px 8px; border-radius:10px; border:2px solid var(--border); background:var(--bg2); cursor:pointer; text-align:center; transition:all .15s; }
+    .plan.selected { border-color:var(--blue); background:rgba(59,130,246,0.08); }
+    .plan-name { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+    .plan-price { font-size:18px; font-weight:800; margin:4px 0; }
+    .plan-lim { font-size:10px; color:var(--muted); }
+    .card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:28px; }
+    .form-group { margin-bottom:16px; }
+    label { display:block; font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+    input, select { width:100%; padding:12px 14px; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,0.04); color:var(--text); font-size:15px; font-family:'Sora',sans-serif; outline:none; transition:border-color .15s; }
+    input:focus, select:focus { border-color:var(--blue); }
+    input::placeholder { color:var(--muted); }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .btn { width:100%; padding:14px; border-radius:10px; background:var(--blue); color:white; font-size:15px; font-weight:700; border:none; cursor:pointer; font-family:'Sora',sans-serif; transition:all .2s; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .btn:hover { background:#60A5FA; }
+    .btn:disabled { opacity:.6; cursor:default; }
+    .mp-badge { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:14px; font-size:11px; color:var(--muted); }
+    .mp-logo { font-size:16px; }
+    .divider { border:none; border-top:1px solid var(--border); margin:20px 0; }
+    .terms { font-size:11px; color:var(--muted); text-align:center; line-height:1.6; margin-top:14px; }
+    .terms a { color:var(--blue); text-decoration:none; }
+    .back { display:block; text-align:center; margin-top:20px; color:var(--muted); font-size:13px; text-decoration:none; }
+    .back:hover { color:var(--text); }
+    .msg { padding:12px 14px; border-radius:8px; font-size:13px; margin-bottom:16px; }
+    .msg-error   { background:rgba(220,38,38,.12); color:#F87171; border:1px solid rgba(220,38,38,.2); }
+    .msg-success { background:rgba(74,222,128,.12); color:var(--green); border:1px solid rgba(74,222,128,.2); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">
+    <div class="logo-icon">⛪</div>
+    Church System
+  </div>
+
+  <h1>Empezá hoy</h1>
+  <p class="sub">14 días gratis. Después, elegí tu plan.</p>
+
+  <!-- Selector de plan -->
+  <div class="plans" id="planSelector">
+    <div class="plan" data-plan="basico" data-price="8000" onclick="selectPlan(this)">
+      <div class="plan-name">Básico</div>
+      <div class="plan-price">$8k</div>
+      <div class="plan-lim">hasta 100</div>
+    </div>
+    <div class="plan selected" data-plan="estandar" data-price="15000" onclick="selectPlan(this)">
+      <div class="plan-name">⭐ Estándar</div>
+      <div class="plan-price">$15k</div>
+      <div class="plan-lim">hasta 500</div>
+    </div>
+    <div class="plan" data-plan="pro" data-price="25000" onclick="selectPlan(this)">
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">$25k</div>
+      <div class="plan-lim">ilimitado</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="msg" style="display:none" class="msg"></div>
+
+    <div class="form-group">
+      <label>Nombre de tu iglesia *</label>
+      <input id="nombreIglesia" type="text" placeholder="Ej: Iglesia Evangelica Vida Nueva" required>
+    </div>
+
+    <div class="grid2">
+      <div class="form-group">
+        <label>Tu nombre *</label>
+        <input id="nombre" type="text" placeholder="Pastor Juan">
+      </div>
+      <div class="form-group">
+        <label>Teléfono</label>
+        <input id="telefono" type="tel" placeholder="11 1234-5678">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Email *</label>
+      <input id="email" type="email" placeholder="pastor@iglesia.com">
+    </div>
+
+    <div class="form-group">
+      <label>Contraseña *</label>
+      <input id="password" type="password" placeholder="Mínimo 8 caracteres">
+    </div>
+
+    <div class="form-group">
+      <label>Ciudad / Provincia</label>
+      <input id="ciudad" type="text" placeholder="Córdoba, Argentina">
+    </div>
+
+    <hr class="divider">
+
+    <button class="btn" id="btnRegistrar" onclick="registrar()">
+      <span>🚀</span>
+      Crear mi cuenta gratis
+    </button>
+
+    <div class="mp-badge">
+      <span class="mp-logo">💳</span>
+      Después del período de prueba, pagás con MercadoPago
+    </div>
+
+    <p class="terms">
+      Al registrarte aceptás los <a href="#">Términos de uso</a> y la
+      <a href="#">Política de privacidad</a>. 14 días gratis, sin tarjeta.
+    </p>
+  </div>
+
+  <a href="/" class="back">← Volver al inicio</a>
+</div>
+
+<script>
+let planSeleccionado = { plan: 'estandar', price: 15000 }
+
+function selectPlan(el) {
+  document.querySelectorAll('.plan').forEach(p => p.classList.remove('selected'))
+  el.classList.add('selected')
+  planSeleccionado = { plan: el.dataset.plan, price: parseInt(el.dataset.price) }
+}
+
+function showMsg(text, type='error') {
+  const el = document.getElementById('msg')
+  el.textContent = text
+  el.className = 'msg msg-' + type
+  el.style.display = 'block'
+}
+
+async function registrar() {
+  const btn = document.getElementById('btnRegistrar')
+  const nombreIglesia = document.getElementById('nombreIglesia').value.trim()
+  const nombre        = document.getElementById('nombre').value.trim()
+  const email         = document.getElementById('email').value.trim()
+  const password      = document.getElementById('password').value
+  const telefono      = document.getElementById('telefono').value.trim()
+  const ciudad        = document.getElementById('ciudad').value.trim()
+
+  if (!nombreIglesia) return showMsg('El nombre de la iglesia es obligatorio')
+  if (!email)         return showMsg('El email es obligatorio')
+  if (!password || password.length < 8) return showMsg('La contraseña debe tener al menos 8 caracteres')
+
+  btn.disabled = true
+  btn.innerHTML = '<span>⏳</span> Creando cuenta...'
+
+  try {
+    const res = await fetch('/registro/crear', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombreIglesia, nombre, email, password,
+        telefono, ciudad, plan: planSeleccionado.plan
+      })
+    })
+
+    const data = await res.json()
+
+    if (data.ok) {
+      showMsg('✅ ¡Cuenta creada! Redirigiendo a tu panel...', 'success')
+      // Guardar token y redirigir a la app
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      setTimeout(() => { window.location.href = data.appUrl || '/app' }, 1500)
+    } else {
+      showMsg(data.error || 'Error al crear la cuenta')
+      btn.disabled = false
+      btn.innerHTML = '<span>🚀</span> Crear mi cuenta gratis'
+    }
+  } catch (err) {
+    showMsg('Error de conexión. Intentá de nuevo.')
+    btn.disabled = false
+    btn.innerHTML = '<span>🚀</span> Crear mi cuenta gratis'
+  }
+}
+
+// Leer plan desde URL ?plan=estandar
+const urlPlan = new URLSearchParams(location.search).get('plan')
+if (urlPlan) {
+  const el = document.querySelector(`[data-plan="${urlPlan}"]`)
+  if (el) selectPlan(el)
+}
+</script>
+</body>
+</html>

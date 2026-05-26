@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="102.4" fill="#0A0E1A"/>
+  <!-- Cruz -->
+  <rect x="225.28" y="61.44" width="61.44" height="179.2" rx="10.24" fill="white"/>
+  <rect x="163.84" y="102.4" width="184.32" height="51.2" rx="10.24" fill="white"/>
+  <!-- Edificio iglesia -->
+  <rect x="102.4" y="245.76" width="307.2" height="194.56" rx="15.36" fill="#2563EB"/>
+  <!-- Puerta -->
+  <rect x="215.04" y="317.44" width="81.92" height="122.88" rx="15.36" fill="#0A0E1A"/>
+  <!-- Ventana izq -->
+  <rect x="133.12" y="281.6" width="61.44" height="61.44" rx="10.24" fill="white" opacity="0.6"/>
+  <!-- Ventana der -->
+  <rect x="317.44" y="281.6" width="61.44" height="61.44" rx="10.24" fill="white" opacity="0.6"/>
+</svg>

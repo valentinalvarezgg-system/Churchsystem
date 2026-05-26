@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables (sensibles)
+.env
+**/.env
+*.env.local
+*.env.production
+
+# Databases (contienen datos de la iglesia)
+*.db
+*.sqlite
+*.sqlite3
+backend/church*.db
+backend/dbs/*.db
+backend/backups/*.db
+
+# Uploads (pueden tener docs privados)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Certificates (sensibles)
+*.pem
+*.key
+*.cert
+backend/system_certs.pem
+
+# Build outputs
+dist/
+build/
+frontend/dist/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Mac app bundle
+*.app/
+
+# Temporary files
+*.tmp
+tmp/
+temp/

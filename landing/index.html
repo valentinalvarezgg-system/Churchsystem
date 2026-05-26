@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Church System — Software de gestión pastoral para iglesias evangélicas. Administrá tu congregación, seguimientos, finanzas y comunicaciones desde un solo lugar.">
+  <title>Church System — Gestión Pastoral Inteligente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #05070F;
+      --bg2:     #0A0E1A;
+      --surface: #111827;
+      --border:  rgba(255,255,255,0.07);
+      --text:    #E2E8F0;
+      --muted:   #64748B;
+      --faint:   #1E293B;
+      --blue:    #3B82F6;
+      --blue2:   #60A5FA;
+      --green:   #4ADE80;
+      --purple:  #A78BFA;
+      --gold:    #F59E0B;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ── NOISE TEXTURE ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: 0.4;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 40px;
+      background: rgba(5,7,15,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 17px; font-weight: 700; letter-spacing: -0.5px;
+      text-decoration: none; color: var(--text);
+    }
+    .nav-logo-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a {
+      color: var(--muted); text-decoration: none; font-size: 14px;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      padding: 9px 22px; border-radius: 8px;
+      background: var(--blue); color: white;
+      font-size: 13px; font-weight: 600; text-decoration: none;
+      transition: all .2s;
+    }
+    .nav-cta:hover { background: var(--blue2); transform: translateY(-1px); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative; min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 120px 24px 80px; text-align: center;
+      overflow: hidden;
+    }
+
+    /* Orbs de fondo */
+    .orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(80px); opacity: 0.15; pointer-events: none;
+    }
+    .orb-1 { width: 600px; height: 600px; background: var(--blue);   top: -200px; left: -100px; animation: float1 8s ease-in-out infinite; }
+    .orb-2 { width: 400px; height: 400px; background: var(--purple); bottom: -100px; right: -50px; animation: float2 10s ease-in-out infinite; }
+    .orb-3 { width: 300px; height: 300px; background: var(--green);  top: 40%; left: 60%; animation: float3 12s ease-in-out infinite; }
+
+    @keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-40px)} }
+    @keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-20px,30px)} }
+    @keyframes float3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,-20px)} }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 100px;
+      border: 1px solid rgba(59,130,246,0.3);
+      background: rgba(59,130,246,0.08);
+      font-size: 12px; color: var(--blue2); font-weight: 500;
+      margin-bottom: 28px;
+      animation: fadeUp .6s ease both;
+    }
+    .hero-badge::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--blue2); animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .hero-title {
+      font-size: clamp(40px, 7vw, 80px);
+      font-weight: 800; line-height: 1.05;
+      letter-spacing: -2px; margin-bottom: 24px;
+      animation: fadeUp .6s ease .1s both;
+    }
+    .hero-title span {
+      background: linear-gradient(135deg, var(--blue2), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 20px); color: var(--muted);
+      max-width: 560px; margin: 0 auto 44px;
+      line-height: 1.7; font-weight: 300;
+      animation: fadeUp .6s ease .2s both;
+    }
+
+    .hero-ctas {
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+      animation: fadeUp .6s ease .3s both;
+    }
+    .btn-primary {
+      padding: 14px 32px; border-radius: 10px;
+      background: var(--blue); color: white;
+      font-size: 15px; font-weight: 600; text-decoration: none;
+      border: none; cursor: pointer;
+      transition: all .2s; display: inline-flex; align-items: center; gap: 8px;
+      font-family: 'Sora', sans-serif;
+    }
+    .btn-primary:hover { background: var(--blue2); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(59,130,246,0.3); }
+    .btn-ghost {
+      padding: 14px 32px; border-radius: 10px;
+      background: transparent; color: var(--text);
+      font-size: 15px; font-weight: 500; text-decoration: none;
+      border: 1px solid var(--border); cursor: pointer;
+      transition: all .2s; display: inline-flex; align-items: center; gap: 8px;
+      font-family: 'Sora', sans-serif;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); }
+
+    .hero-stats {
+      display: flex; gap: 40px; justify-content: center; flex-wrap: wrap;
+      margin-top: 64px; padding-top: 40px;
+      border-top: 1px solid var(--border);
+      animation: fadeUp .6s ease .4s both;
+    }
+    .hero-stat { text-align: center; }
+    .hero-stat-val { font-size: 32px; font-weight: 800; color: var(--text); letter-spacing: -1px; }
+    .hero-stat-lbl { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── SCREENSHOT MOCKUP ── */
+    .mockup-wrap {
+      max-width: 900px; margin: 0 auto;
+      padding: 0 24px 100px;
+      animation: fadeUp .8s ease .5s both;
+    }
+    .mockup {
+      border-radius: 16px; overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+      background: var(--surface);
+    }
+    .mockup-bar {
+      background: var(--bg2); padding: 12px 16px;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .mockup-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .mockup-url {
+      flex: 1; height: 24px; border-radius: 6px;
+      background: rgba(255,255,255,0.04);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--muted);
+    }
+    .mockup-screen {
+      display: grid; grid-template-columns: 200px 1fr; min-height: 360px;
+    }
+    .mockup-sidebar {
+      background: #0A0E1A; padding: 20px 12px;
+      border-right: 1px solid var(--border);
+    }
+    .mockup-logo {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px; border-radius: 8px; margin-bottom: 20px;
+    }
+    .mockup-logo-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: linear-gradient(135deg, #3B82F6, #7C3AED);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .mockup-logo-text { font-size: 12px; font-weight: 700; color: white; }
+    .mockup-nav-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; border-radius: 7px; margin-bottom: 2px;
+      font-size: 11px; color: rgba(255,255,255,0.4);
+    }
+    .mockup-nav-item.active {
+      background: rgba(59,130,246,0.15); color: #93C5FD;
+    }
+    .mockup-main { padding: 20px; }
+    .mockup-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .mockup-title { font-size: 16px; font-weight: 700; color: white; }
+    .mockup-btn {
+      padding: 5px 12px; border-radius: 6px;
+      background: #3B82F6; color: white; font-size: 10px; font-weight: 600;
+    }
+    .mockup-stats {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 8px;
+      margin-bottom: 14px;
+    }
+    .mockup-stat {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px; padding: 10px;
+    }
+    .mockup-stat-val { font-size: 18px; font-weight: 800; color: white; }
+    .mockup-stat-lbl { font-size: 9px; color: rgba(255,255,255,0.3); text-transform: uppercase; }
+    .mockup-card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px; padding: 14px; margin-bottom: 8px;
+    }
+    .mockup-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .mockup-avatar {
+      width: 24px; height: 24px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: white; flex-shrink: 0;
+    }
+    .mockup-name { font-size: 11px; color: rgba(255,255,255,0.8); font-weight: 600; }
+    .mockup-sub  { font-size: 10px; color: rgba(255,255,255,0.3); }
+    .mockup-badge {
+      padding: 2px 7px; border-radius: 12px; font-size: 9px; font-weight: 700;
+      margin-left: auto;
+    }
+
+    /* ── FEATURES ── */
+    .section { padding: 100px 24px; max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--blue); margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: clamp(28px, 4vw, 46px); font-weight: 800;
+      letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 16px;
+    }
+    .section-sub { font-size: 18px; color: var(--muted); max-width: 540px; line-height: 1.7; }
+
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1px; background: var(--border); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; margin-top: 60px;
+    }
+    .feature {
+      background: var(--bg2); padding: 36px 32px;
+      transition: background .2s;
+    }
+    .feature:hover { background: var(--surface); }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 18px;
+    }
+    .feature-title { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+    .feature-desc  { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+    /* ── PRICING ── */
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px; margin-top: 56px;
+    }
+    .plan {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 36px 28px; position: relative;
+      transition: transform .2s, border-color .2s;
+    }
+    .plan:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.15); }
+    .plan.featured {
+      border-color: var(--blue); background: rgba(59,130,246,0.06);
+    }
+    .plan.featured::before {
+      content: 'MÁS POPULAR';
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      padding: 4px 14px; border-radius: 100px;
+      background: var(--blue); color: white;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    }
+    .plan-name  { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .plan-price { font-size: 42px; font-weight: 800; letter-spacing: -2px; margin-bottom: 4px; }
+    .plan-price span { font-size: 16px; font-weight: 400; color: var(--muted); }
+    .plan-desc  { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+    .plan-features { list-style: none; margin-bottom: 32px; }
+    .plan-features li {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 14px; padding: 7px 0;
+      border-bottom: 1px solid var(--faint);
+    }
+    .plan-features li:last-child { border-bottom: none; }
+    .plan-features li::before {
+      content: '✓'; color: var(--green);
+      font-size: 13px; font-weight: 700; flex-shrink: 0;
+    }
+    .plan-btn {
+      display: block; width: 100%; padding: 12px;
+      border-radius: 10px; text-align: center;
+      font-size: 14px; font-weight: 600; text-decoration: none;
+      cursor: pointer; border: none; font-family: 'Sora', sans-serif;
+      transition: all .2s;
+    }
+    .plan-btn-primary { background: var(--blue); color: white; }
+    .plan-btn-primary:hover { background: var(--blue2); }
+    .plan-btn-ghost {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .plan-btn-ghost:hover { background: rgba(255,255,255,0.05); }
+
+    /* ── TESTIMONIAL / CTA ── */
+    .cta-section {
+      margin: 0 24px 100px;
+      background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(124,58,237,0.12));
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 24px; padding: 80px 40px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta-section::before {
+      content: ''; position: absolute; top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: radial-gradient(circle at 50% 50%, rgba(59,130,246,0.06), transparent 60%);
+      pointer-events: none;
+    }
+    .cta-title {
+      font-size: clamp(28px, 4vw, 48px); font-weight: 800;
+      letter-spacing: -1.5px; margin-bottom: 16px;
+    }
+    .cta-sub {
+      font-size: 18px; color: var(--muted); margin-bottom: 36px; max-width: 480px;
+      margin-left: auto; margin-right: auto; line-height: 1.7;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px 40px;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 20px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
+    .footer-links { display: flex; gap: 28px; }
+    .footer-links a { color: var(--muted); text-decoration: none; font-size: 13px; transition: color .2s; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { color: var(--muted); font-size: 12px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: 16px 20px; }
+      .nav-links { display: none; }
+      .hero { padding: 100px 20px 60px; }
+      .hero-stats { gap: 24px; }
+      .mockup-screen { grid-template-columns: 1fr; }
+      .mockup-sidebar { display: none; }
+      .section { padding: 60px 20px; }
+      .cta-section { padding: 48px 24px; margin: 0 16px 60px; }
+      footer { flex-direction: column; align-items: flex-start; padding: 32px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-icon">⛪</div>
+    Church System
+  </a>
+  <div class="nav-links">
+    <a href="#features">Funciones</a>
+    <a href="#precios">Precios</a>
+    <a href="#contacto">Contacto</a>
+  </div>
+  <a href="/app" class="nav-cta">Ingresar →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="hero-badge">✦ Software pastoral para iglesias evangélicas</div>
+
+  <h1 class="hero-title">
+    Tu iglesia,<br>
+    <span>organizada e inteligente</span>
+  </h1>
+
+  <p class="hero-sub">
+    Church System reúne personas, seguimientos, asistencia, finanzas y comunicaciones en una sola plataforma. Diseñado para pastores, pensado para crecer.
+  </p>
+
+  <div class="hero-ctas">
+    <a href="/registro" class="btn-primary">
+      Empezar gratis →
+    </a>
+    <a href="/app" class="btn-ghost">
+      Ver demo
+    </a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-val">23</div>
+      <div class="hero-stat-lbl">Módulos activos</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-val">100%</div>
+      <div class="hero-stat-lbl">Basado en Argentina</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-val">PWA</div>
+      <div class="hero-stat-lbl">Funciona en celular</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-val">IA</div>
+      <div class="hero-stat-lbl">Asistente pastoral</div>
+    </div>
+  </div>
+</section>
+
+<!-- MOCKUP -->
+<div class="mockup-wrap">
+  <div class="mockup">
+    <div class="mockup-bar">
+      <div class="mockup-dot" style="background:#FF5F57"></div>
+      <div class="mockup-dot" style="background:#FEBC2E"></div>
+      <div class="mockup-dot" style="background:#28C840"></div>
+      <div class="mockup-url">🔒 churchsystem.com.ar</div>
+    </div>
+    <div class="mockup-screen">
+      <div class="mockup-sidebar">
+        <div class="mockup-logo">
+          <div class="mockup-logo-icon">⛪</div>
+          <div class="mockup-logo-text">Church System</div>
+        </div>
+        <div class="mockup-nav-item active">📊 Dashboard</div>
+        <div class="mockup-nav-item">👥 Personas</div>
+        <div class="mockup-nav-item">📅 Asistencia</div>
+        <div class="mockup-nav-item">💬 Mensajería</div>
+        <div class="mockup-nav-item">🔔 Alertas</div>
+        <div class="mockup-nav-item">💰 Finanzas</div>
+        <div class="mockup-nav-item">🤖 Asistente IA</div>
+      </div>
+      <div class="mockup-main">
+        <div class="mockup-header">
+          <div class="mockup-title">Buenos días, Pastor ✨</div>
+          <div class="mockup-btn">+ Nueva persona</div>
+        </div>
+        <div class="mockup-stats">
+          <div class="mockup-stat">
+            <div class="mockup-stat-val" style="color:#60A5FA">247</div>
+            <div class="mockup-stat-lbl">Personas</div>
+          </div>
+          <div class="mockup-stat">
+            <div class="mockup-stat-val" style="color:#4ADE80">92%</div>
+            <div class="mockup-stat-lbl">Asistencia</div>
+          </div>
+          <div class="mockup-stat">
+            <div class="mockup-stat-val" style="color:#F59E0B">8</div>
+            <div class="mockup-stat-lbl">Alertas</div>
+          </div>
+          <div class="mockup-stat">
+            <div class="mockup-stat-val" style="color:#A78BFA">12</div>
+            <div class="mockup-stat-lbl">Grupos</div>
+          </div>
+        </div>
+        <div class="mockup-card">
+          <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Seguimientos pendientes</div>
+          <div class="mockup-row">
+            <div class="mockup-avatar" style="background:#3B82F6">M</div>
+            <div><div class="mockup-name">María González</div><div class="mockup-sub">Visitante · 3 semanas</div></div>
+            <div class="mockup-badge" style="background:rgba(245,158,11,.15);color:#F59E0B">Pendiente</div>
+          </div>
+          <div class="mockup-row">
+            <div class="mockup-avatar" style="background:#7C3AED">C</div>
+            <div><div class="mockup-name">Carlos Pérez</div><div class="mockup-sub">Activo · Sin contacto</div></div>
+            <div class="mockup-badge" style="background:rgba(220,38,38,.15);color:#F87171">Vencido</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div id="features">
+  <div class="section">
+    <div class="section-label">Funcionalidades</div>
+    <h2 class="section-title">Todo lo que necesita<br>un pastor moderno</h2>
+    <p class="section-sub">Una plataforma completa, sin complicaciones, que crece con tu iglesia.</p>
+
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon" style="background:rgba(59,130,246,0.12)">👥</div>
+        <div class="feature-title">Gestión de personas</div>
+        <div class="feature-desc">Registro completo con foto, familia, historial espiritual, estado de bautismo y seguimientos personalizados.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:rgba(74,222,128,0.12)">📱</div>
+        <div class="feature-title">Check-in QR</div>
+        <div class="feature-desc">Los miembros escanean un QR con el celular y se registran solos al culto. Sin papeles, sin filas.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:rgba(167,139,250,0.12)">🤖</div>
+        <div class="feature-title">Asistente IA Pastoral</div>
+        <div class="feature-desc">Hacé preguntas sobre tu congregación y recibí insights pastorales. "¿Quiénes faltan hace más de 3 semanas?"</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.12)">🔔</div>
+        <div class="feature-title">Alertas inteligentes</div>
+        <div class="feature-desc">El sistema detecta visitas sin consolidar, seguimientos vencidos, cumpleaños y ausencias prolongadas.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:rgba(244,114,182,0.12)">💬</div>
+        <div class="feature-title">WhatsApp masivo</div>
+        <div class="feature-desc">Enviá mensajes a toda la congregación o a grupos específicos. Twilio integrado, con plantillas personalizadas.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:rgba(45,212,191,0.12)">📊</div>
+        <div class="feature-title">Reportes y finanzas</div>
+        <div class="feature-desc">Registro de diezmos y ofrendas, reportes de crecimiento, tendencias de asistencia y exportación a Excel.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<div id="precios">
+  <div class="section">
+    <div class="section-label">Precios</div>
+    <h2 class="section-title">Simple. Transparente.<br>Sin sorpresas.</h2>
+    <p class="section-sub">Planes para iglesias de todos los tamaños. Cancelás cuando querés.</p>
+
+    <div class="pricing-grid">
+      <div class="plan">
+        <div class="plan-name">Básico</div>
+        <div class="plan-price">$8.000 <span>/ mes</span></div>
+        <div class="plan-desc">Para iglesias chicas que están empezando.</div>
+        <ul class="plan-features">
+          <li>Hasta 100 personas</li>
+          <li>Check-in QR</li>
+          <li>Seguimientos</li>
+          <li>Asistencia y cultos</li>
+          <li>Soporte por email</li>
+        </ul>
+        <a href="/registro?plan=basico" class="plan-btn plan-btn-ghost">Empezar gratis</a>
+      </div>
+
+      <div class="plan featured">
+        <div class="plan-name">Estándar</div>
+        <div class="plan-price">$15.000 <span>/ mes</span></div>
+        <div class="plan-desc">Para iglesias en crecimiento activo.</div>
+        <ul class="plan-features">
+          <li>Hasta 500 personas</li>
+          <li>Todo lo del plan Básico</li>
+          <li>WhatsApp masivo</li>
+          <li>Asistente IA pastoral</li>
+          <li>Finanzas y reportes</li>
+          <li>Notificaciones push</li>
+          <li>Soporte prioritario</li>
+        </ul>
+        <a href="/registro?plan=estandar" class="plan-btn plan-btn-primary">Comenzar ahora</a>
+      </div>
+
+      <div class="plan">
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$25.000 <span>/ mes</span></div>
+        <div class="plan-desc">Sin límites, para megaiglesias.</div>
+        <ul class="plan-features">
+          <li>Personas ilimitadas</li>
+          <li>Todo lo del plan Estándar</li>
+          <li>Reconocimiento facial</li>
+          <li>API personalizada</li>
+          <li>Onboarding dedicado</li>
+          <li>SLA garantizado</li>
+        </ul>
+        <a href="/registro?plan=pro" class="plan-btn plan-btn-ghost">Hablar con ventas</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA FINAL -->
+<div class="cta-section" id="contacto">
+  <h2 class="cta-title">¿Tu iglesia está lista<br>para dar el salto?</h2>
+  <p class="cta-sub">Empezá gratis hoy. Sin tarjeta de crédito. Sin contratos. Configuración en 5 minutos.</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a href="/registro" class="btn-primary">Crear cuenta gratis →</a>
+    <a href="https://wa.me/543517736190?text=Hola!%20Quiero%20info%20sobre%20Church%20System" target="_blank" class="btn-ghost">💬 Escribinos por WhatsApp</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <div class="nav-logo-icon">⛪</div>
+    Church System
+  </div>
+  <div class="footer-links">
+    <a href="#features">Funciones</a>
+    <a href="#precios">Precios</a>
+    <a href="/app">Ingresar</a>
+    <a href="mailto:contacto@churchsystem.com.ar">Contacto</a>
+  </div>
+  <div class="footer-copy">© 2026 Church System. Hecho con ❤️ en Argentina.</div>
+</footer>
+
+</body>
+</html>
