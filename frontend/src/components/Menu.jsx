@@ -124,11 +124,11 @@ export default function Menu() {
       {/* ── Sidebar ───────────────────────────────────────────── */}
       <aside className={`sidebar${open ? ' open' : ''}`}>
         <div className="sidebar-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-          <svg className="sidebar-logo-icon" width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M35 15C30 15 25 18 25 25V75C25 82 30 85 35 85H45C50 85 55 82 55 75V25C55 18 50 15 45 15H35Z" fill="url(#cs_grad)"/>
-            <path d="M65 15C60 15 55 18 55 25V45C55 52 60 55 65 55H75C80 55 85 52 85 45V25C85 18 80 15 75 15H65Z" fill="url(#cs_grad)"/>
+          <svg className="sidebar-logo-icon" width="40" height="40" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M60 40 Q40 40 40 60 L40 140 Q40 160 60 160 L80 160 Q100 160 100 140 L100 60 Q100 40 80 40 Z" fill="url(#cs_grad)" stroke="none"/>
+            <path d="M120 40 Q100 40 100 60 L100 100 Q100 120 120 120 L140 120 Q160 120 160 100 L160 60 Q160 40 140 40 Z" fill="url(#cs_grad)" stroke="none"/>
             <defs>
-              <linearGradient id="cs_grad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+              <linearGradient id="cs_grad" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stopColor="#6B5CFF"/>
                 <stop offset="100%" stopColor="#4845D2"/>
               </linearGradient>
