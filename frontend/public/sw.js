@@ -1,5 +1,5 @@
 // Church System Service Worker v2 — Cache + Push Notifications
-const VERSION    = 'church-v2'
+const VERSION    = 'church-v3'
 const CACHE_NAME = `church-system-${VERSION}`
 
 const PRECACHE = ['/', '/login', '/manifest.json']
