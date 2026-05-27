@@ -33,6 +33,11 @@ const tablas = [
   iglesia TEXT DEFAULT '',
   telefono TEXT DEFAULT '',
   expira TEXT DEFAULT NULL,
+  plan TEXT DEFAULT 'GENERAL',
+  iglesiaId INTEGER DEFAULT NULL,
+  emailVerificado INTEGER DEFAULT 0,
+  codigoVerif TEXT DEFAULT NULL,
+  codigoExpira TEXT DEFAULT NULL,
   createdAt TEXT DEFAULT (datetime('now'))
 )`,
 `CREATE TABLE IF NOT EXISTS personas (

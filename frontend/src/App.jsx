@@ -34,6 +34,7 @@ import Terminos         from './pages/Terminos.jsx'
 import Privacidad       from './pages/Privacidad.jsx'
 import FAQ              from './pages/FAQ.jsx'
 import { ToastContainer } from './components/Toast.jsx'
+import UpgradeGate from './components/UpgradeGate.jsx'
 import BugReporter      from './components/BugReporter.jsx'
 
 const ALL   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF','LIDER']
@@ -104,14 +105,14 @@ export default function App() {
         <Route path="/personas"        element={<ProtectedRoute roles={MID}   element={<Personas />} />} />
         <Route path="/personas/:id"    element={<ProtectedRoute roles={MID}   element={<Perfil />} />} />
         <Route path="/grupos"          element={<ProtectedRoute roles={MID}   element={<Grupos />} />} />
-        <Route path="/asistencia"      element={<ProtectedRoute roles={MID}   element={<Asistencia />} />} />
-        <Route path="/calendario"      element={<ProtectedRoute roles={MID}   element={<Calendario />} />} />
-        <Route path="/mensajes"        element={<ProtectedRoute roles={MID}   element={<Mensajes />} />} />
-        <Route path="/alertas"         element={<ProtectedRoute roles={AUDIT} element={<Alertas />} />} />
+        <Route path="/asistencia"      element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="asistencia"><Asistencia /></UpgradeGate>} />} />
+        <Route path="/calendario"      element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="calendario"><Calendario /></UpgradeGate>} />} />
+        <Route path="/mensajes"        element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="mensajes"><Mensajes /></UpgradeGate>} />} />
+        <Route path="/alertas"         element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="alertas"><Alertas /></UpgradeGate>} />} />
         <Route path="/finanzas"        element={<ProtectedRoute roles={AUDIT} element={<Finanzas />} />} />
-        <Route path="/reportes"        element={<ProtectedRoute roles={AUDIT} element={<Reportes />} />} />
-        <Route path="/discipulado"     element={<ProtectedRoute roles={MID}   element={<Discipulado />} />} />
-        <Route path="/consolidacion"   element={<ProtectedRoute roles={AUDIT} element={<Consolidacion />} />} />
+        <Route path="/reportes"        element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="reportes"><Reportes /></UpgradeGate>} />} />
+        <Route path="/discipulado"     element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="discipulado"><Discipulado /></UpgradeGate>} />} />
+        <Route path="/consolidacion"   element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="consolidacion"><Consolidacion /></UpgradeGate>} />} />
         <Route path="/oracion"         element={<ProtectedRoute roles={ALL}   element={<Oracion />} />} />
         <Route path="/comunicados"     element={<ProtectedRoute roles={MID}   element={<Comunicados />} />} />
         <Route path="/checkin"         element={<ProtectedRoute roles={MID}   element={<CheckInAdmin />} />} />
@@ -122,7 +123,7 @@ export default function App() {
         <Route path="/permisos"        element={<ProtectedRoute roles={ADMIN} element={<GestionPermisos />} />} />
         <Route path="/users"           element={<ProtectedRoute roles={ADMIN} element={<Users />} />} />
         <Route path="/promo-codes"     element={<ProtectedRoute roles={ADMIN} element={<PromoCodes />} />} />
-        <Route path="/historial"       element={<ProtectedRoute roles={AUDIT} element={<Historial />} />} />
+        <Route path="/historial"       element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="historial"><Historial /></UpgradeGate>} />} />
         <Route path="*"                element={<Navigate to="/" replace />} />
       </Routes>
       

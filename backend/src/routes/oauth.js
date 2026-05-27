@@ -68,6 +68,8 @@ router.get('/google/callback', async (req, res) => {
       rol: user.rol, 
       nombre: user.nombre,
       cultoDia: user.cultoDia,
+      plan: user.plan || 'GENERAL',
+      iglesiaId: user.iglesiaId || null,
       cultoTurno: user.cultoTurno
     }
     const token = jwt.sign(payload, SECRET(), { expiresIn: '8h' })

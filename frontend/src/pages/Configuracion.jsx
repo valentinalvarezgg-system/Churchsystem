@@ -1,3 +1,4 @@
+import { TokenIglesiaAdmin } from '../components/TokenIglesia.jsx'
 import React, { useEffect, useState } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
@@ -218,7 +219,8 @@ export default function Configuracion() {
   return (
     <div className="layout"><Menu />
       <main className="main">
-        <div className="page-header">
+        <TokenIglesiaAdmin />
+      <div className="page-header">
           <div>
             <h1 className="page-title"><Icons.Settings /> Configuración</h1>
             <p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>{catActiva?.label} · {secActiva?.label}</p>

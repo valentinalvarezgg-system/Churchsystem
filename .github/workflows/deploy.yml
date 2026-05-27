@@ -1,0 +1,34 @@
+name: Church System Deploy
+on:
+  push:
+    branches: [master]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm install -g pnpm
+      - run: cd frontend && pnpm install --frozen-lockfile && pnpm build
+      - uses: actions/upload-artifact@v4
+        with: { name: dist, path: frontend/dist/, retention-days: 7 }
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: dist, path: frontend/dist/ }
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/church-system
+            git pull origin master
+            cd frontend && pnpm install && pnpm build
+            cd ../backend && pnpm install
+            pm2 restart church-system || pm2 start src/server.js --name church-system
