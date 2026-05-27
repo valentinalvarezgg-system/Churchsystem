@@ -212,9 +212,3 @@ seedAdmin().then(() => {
     }, ms)
   })
 })
-import consolidacionRouter from './routes/consolidacion.js'
-import bugReportRouter     from './routes/bug-report.js'
-import promoCodesRouter    from './routes/promo-codes.js'
-import oauthRouter         from './routes/oauth.js'
-app.use('/consolidacion', consolidacionRouter)
-app.use('/bug-report',    bugReportRouter)

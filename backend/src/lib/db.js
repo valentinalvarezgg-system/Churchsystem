@@ -208,6 +208,14 @@ const tablas = [
   dias_extra INTEGER NOT NULL DEFAULT 0,
   usado INTEGER NOT NULL DEFAULT 0,
   createdAt TEXT DEFAULT (datetime('now'))
+)`,
+`CREATE TABLE IF NOT EXISTS iglesias (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre TEXT NOT NULL DEFAULT 'Mi Iglesia',
+  token TEXT NOT NULL UNIQUE,
+  adminId INTEGER NOT NULL,
+  plan TEXT NOT NULL DEFAULT 'GENERAL',
+  createdAt TEXT DEFAULT (datetime('now'))
 )`
 ]
 

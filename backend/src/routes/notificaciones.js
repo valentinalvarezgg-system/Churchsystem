@@ -116,7 +116,7 @@ export async function enviarAlertas() {
   if (!alertas.length) return
 
   const admins = db.all(
-    `SELECT id FROM usuarios WHERE rol IN ('PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION')`
+    `SELECT id FROM users WHERE rol IN ('PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION')`
   ).map(r => r.id)
   if (!admins.length) return
 

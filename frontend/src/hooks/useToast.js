@@ -23,22 +23,46 @@ function createToast(type, title, message, duration = 4000) {
   el.className = `toast toast-${type}`
   el.id = `toast-${id}`
   el.style.position = 'relative'
-  el.innerHTML = `
-    <span class="toast-icon">${icons[type] || 'ℹ'}</span>
-    <div class="toast-body">
-      <div class="toast-title">${title}</div>
-      ${message ? `<div class="toast-msg">${message}</div>` : ''}
-    </div>
-    <button class="toast-close" aria-label="Cerrar">×</button>
-    <div class="toast-progress" style="animation-duration:${duration}ms"></div>
-  `
+
+  const iconSpan = document.createElement('span')
+  iconSpan.className = 'toast-icon'
+  iconSpan.textContent = icons[type] || 'ℹ'
+
+  const body = document.createElement('div')
+  body.className = 'toast-body'
+
+  const titleDiv = document.createElement('div')
+  titleDiv.className = 'toast-title'
+  titleDiv.textContent = title
+  body.appendChild(titleDiv)
+
+  if (message) {
+    const msgDiv = document.createElement('div')
+    msgDiv.className = 'toast-msg'
+    msgDiv.textContent = message
+    body.appendChild(msgDiv)
+  }
+
+  const closeBtn = document.createElement('button')
+  closeBtn.className = 'toast-close'
+  closeBtn.setAttribute('aria-label', 'Cerrar')
+  closeBtn.textContent = '×'
+
+  const progress = document.createElement('div')
+  progress.className = 'toast-progress'
+  progress.style.animationDuration = `${duration}ms`
+
+  el.appendChild(iconSpan)
+  el.appendChild(body)
+  el.appendChild(closeBtn)
+  el.appendChild(progress)
 
   const remove = () => {
     el.classList.add('removing')
     setTimeout(() => el.remove(), 220)
   }
 
-  el.querySelector('.toast-close').addEventListener('click', remove)
+  closeBtn.addEventListener('click', remove)
   const timer = setTimeout(remove, duration)
   el.addEventListener('mouseenter', () => clearTimeout(timer))
   el.addEventListener('mouseleave', () => setTimeout(remove, 1500))

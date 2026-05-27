@@ -55,14 +55,6 @@ function getIAConfig() {
   }
 }
 
-// Solución SSL para macOS — Node 20 con undici
-if (process.env.NODE_EXTRA_CA_CERTS) {
-  // ya configurado en .env
-} else {
-  // Fallback: deshabilitar verificación SSL solo para APIs de IA
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-}
-
 // ── Llamar al proveedor correcto ──────────────────────────────────────────────
 async function llamarIA(proveedor, config, system, messages) {
 

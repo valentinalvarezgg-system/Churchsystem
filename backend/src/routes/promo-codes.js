@@ -1,15 +1,15 @@
 import { Router } from 'express'
-import { requireAuth, requireRole } from '../middlewares/auth.js'
+import { requireAuth, requireRol } from '../middlewares/auth.js'
 import db from '../lib/db.js'
 
 const router = Router()
 
-router.get('/promo-codes', requireAuth, requireRole(['PASTOR_GENERAL']), (req, res) => {
+router.get('/promo-codes', requireAuth, requireRol('PASTOR_GENERAL'), (req, res) => {
   const codes = db.all('SELECT * FROM promo_codes ORDER BY createdAt DESC')
   res.json(codes)
 })
 
-router.post('/promo-codes', requireAuth, requireRole(['PASTOR_GENERAL']), (req, res) => {
+router.post('/promo-codes', requireAuth, requireRol('PASTOR_GENERAL'), (req, res) => {
   const { code, dias_extra } = req.body
   if (!code || !dias_extra) return res.status(400).json({ error: 'Faltan campos' })
   
