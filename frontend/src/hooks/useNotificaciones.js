@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../services/api.js'
 
 export function useNotificaciones() {
-  const [permiso, setPermiso]       = useState(Notification?.permission || 'default')
+  const [permiso, setPermiso]       = useState(window.Notification?.permission || 'default')
   const [suscrito, setSuscrito]     = useState(false)
   const [cargando, setCargando]     = useState(false)
   const [error, setError]           = useState(null)
@@ -24,12 +24,12 @@ export function useNotificaciones() {
         setSuscrito(!!sub)
       })
     })
-    setPermiso(Notification.permission)
+    if (window.Notification) setPermiso(window.Notification.permission)
   }, [])
 
   async function suscribir() {
     setError(null)
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !window.Notification) {
       setError('Tu browser no soporta notificaciones push')
       return false
     }
@@ -38,7 +38,7 @@ export function useNotificaciones() {
       setCargando(true)
 
       // Pedir permiso
-      const perm = await Notification.requestPermission()
+      const perm = await window.Notification.requestPermission()
       setPermiso(perm)
       if (perm !== 'granted') {
         setError('Permiso denegado')
