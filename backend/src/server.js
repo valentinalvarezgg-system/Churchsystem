@@ -115,6 +115,9 @@ app.use('/consolidacion', consolidacionRouter)
 app.use('/bug-report',    bugReportRouter)
 app.use('/promo-codes',   promoCodesRouter)
 app.use('/oauth',         oauthRouter)
+app.use('/verificacion',  verificacionRouter)
+app.use('/plan',          planRouter)
+app.use('/iglesia',       iglesiaRouter)
 
 // ── Frontend buildeado ───────────────────────────────────────────────────────
 const _DIST = path.join(process.cwd(), '..', 'frontend', 'dist')
