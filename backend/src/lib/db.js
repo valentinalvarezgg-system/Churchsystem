@@ -23,6 +23,7 @@ const tablas = [
   email TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
   nombre TEXT DEFAULT '',
+  apellido TEXT DEFAULT '',
   rol TEXT NOT NULL DEFAULT 'LIDER',
   cultoDia TEXT DEFAULT '',
   cultoTurno INTEGER DEFAULT 0,
@@ -35,9 +36,18 @@ const tablas = [
   expira TEXT DEFAULT NULL,
   plan TEXT DEFAULT 'GENERAL',
   iglesiaId INTEGER DEFAULT NULL,
+  pais TEXT DEFAULT 'AR',
+  divisa TEXT DEFAULT 'ARS',
+  idioma TEXT DEFAULT 'es',
+  promoCode TEXT DEFAULT '',
+  promoDescuento INTEGER DEFAULT 0,
+  promoMeses INTEGER DEFAULT 0,
+  promoUsadoAt TEXT DEFAULT NULL,
   emailVerificado INTEGER DEFAULT 0,
   codigoVerif TEXT DEFAULT NULL,
   codigoExpira TEXT DEFAULT NULL,
+  codigoContexto TEXT DEFAULT NULL,
+  pendingPassword TEXT DEFAULT NULL,
   createdAt TEXT DEFAULT (datetime('now'))
 )`,
 `CREATE TABLE IF NOT EXISTS personas (
@@ -206,6 +216,13 @@ const tablas = [
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   code TEXT NOT NULL UNIQUE,
   dias_extra INTEGER NOT NULL DEFAULT 0,
+  tipo TEXT NOT NULL DEFAULT 'TRIAL_DAYS',
+  descuento_porcentaje INTEGER NOT NULL DEFAULT 0,
+  duracion_meses INTEGER NOT NULL DEFAULT 0,
+  max_usos INTEGER NOT NULL DEFAULT 1,
+  usos INTEGER NOT NULL DEFAULT 0,
+  activo INTEGER NOT NULL DEFAULT 1,
+  expiresAt TEXT DEFAULT NULL,
   usado INTEGER NOT NULL DEFAULT 0,
   createdAt TEXT DEFAULT (datetime('now'))
 )`,
@@ -223,6 +240,23 @@ for (const t of tablas) _db.run(t)
 
 // Migraciones seguras para bases existentes
 const migraciones = [
+  "ALTER TABLE users ADD COLUMN apellido TEXT DEFAULT ''",
+  "ALTER TABLE users ADD COLUMN pais TEXT DEFAULT 'AR'",
+  "ALTER TABLE users ADD COLUMN divisa TEXT DEFAULT 'ARS'",
+  "ALTER TABLE users ADD COLUMN idioma TEXT DEFAULT 'es'",
+  "ALTER TABLE users ADD COLUMN promoCode TEXT DEFAULT ''",
+  "ALTER TABLE users ADD COLUMN promoDescuento INTEGER DEFAULT 0",
+  "ALTER TABLE users ADD COLUMN promoMeses INTEGER DEFAULT 0",
+  "ALTER TABLE users ADD COLUMN promoUsadoAt TEXT DEFAULT NULL",
+  "ALTER TABLE users ADD COLUMN codigoContexto TEXT DEFAULT NULL",
+  "ALTER TABLE users ADD COLUMN pendingPassword TEXT DEFAULT NULL",
+  "ALTER TABLE promo_codes ADD COLUMN tipo TEXT NOT NULL DEFAULT 'TRIAL_DAYS'",
+  "ALTER TABLE promo_codes ADD COLUMN descuento_porcentaje INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE promo_codes ADD COLUMN duracion_meses INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE promo_codes ADD COLUMN max_usos INTEGER NOT NULL DEFAULT 1",
+  "ALTER TABLE promo_codes ADD COLUMN usos INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE promo_codes ADD COLUMN activo INTEGER NOT NULL DEFAULT 1",
+  "ALTER TABLE promo_codes ADD COLUMN expiresAt TEXT DEFAULT NULL",
   "ALTER TABLE personas ADD COLUMN fechaNacimiento TEXT DEFAULT NULL",
   "ALTER TABLE personas ADD COLUMN estadoEspiritual TEXT DEFAULT 'NUEVO_CREYENTE'",
   "ALTER TABLE personas ADD COLUMN bautizadoAgua INTEGER DEFAULT 0",
@@ -235,6 +269,15 @@ const migraciones = [
   "ALTER TABLE personas ADD COLUMN comoLlego TEXT DEFAULT ''",
 ]
 for (const m of migraciones) { try { _db.run(m) } catch (_) {} }
+
+const promo15 = _db.exec("SELECT id FROM promo_codes WHERE code='15OFF' LIMIT 1")
+if (!promo15.length || !promo15[0].values.length) {
+  _db.run(`
+    INSERT INTO promo_codes
+      (code, dias_extra, tipo, descuento_porcentaje, duracion_meses, max_usos, usos, activo, usado)
+    VALUES ('15OFF', 0, 'DISCOUNT', 15, 3, 0, 0, 1, 0)
+  `)
+}
 
 persist()
 

@@ -1,12 +1,105 @@
 import { TEXTOS, EMAILS } from '../utils/legal.js'
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { apiFetch } from '../services/api.js'
+import { apiFetch, decodeJwt, getApiUrl, getStoredContext } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 import EmailVerificacion from '../components/EmailVerificacion.jsx'
 import { TokenIglesiaInput } from '../components/TokenIglesia.jsx'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+const API_BASE = getApiUrl()
+const COUNTRIES = [
+  { code:'AR', label:'Argentina', currency:'ARS', lang:'es' },
+  { code:'BR', label:'Brasil', currency:'BRL', lang:'pt' },
+  { code:'CL', label:'Chile', currency:'CLP', lang:'es' },
+  { code:'CO', label:'Colombia', currency:'COP', lang:'es' },
+  { code:'MX', label:'Mexico', currency:'MXN', lang:'es' },
+  { code:'PE', label:'Peru', currency:'PEN', lang:'es' },
+  { code:'UY', label:'Uruguay', currency:'UYU', lang:'es' },
+  { code:'US', label:'United States', currency:'USD', lang:'en' },
+]
+const LANGS = [
+  { code:'es', label:'Español' },
+  { code:'pt', label:'Português' },
+  { code:'en', label:'English' },
+]
+
+const REG_I18N = {
+  es: {
+    steps:['Plan', 'Cuenta', 'Verificar', 'Listo'],
+    oauthGoogleOk:'Cuenta creada con Google', oauthMissing:'OAuth no configurado aún',
+    passwordMismatch:'Las contraseñas no coinciden', passwordMin:'Mínimo 8 caracteres',
+    createError:'Error al crear la cuenta', choosePlanToast:'Elegí un plan para continuar',
+    stepCounter:'Paso 1 de 3', choosePlan:'Elegí tu plan',
+    chooseSub:'Podés cambiarlo cuando quieras · Todos incluyen 14 días de prueba gratis',
+    country:'País', currency:'Divisa', language:'Idioma', invitation:'Invitación',
+    popular:'Más popular', selected:'✓ Seleccionado', perMonth:'/mes',
+    free14:'14 días gratis', free14Copy:'No se cobra nada hasta que termine el período de prueba. Cancelá cuando quieras.',
+    continueWith:'Continuar con', aPlan:'un plan', already:'¿Ya tenés cuenta?', signIn:'Ingresar',
+    selectedPlan:'Plan seleccionado', change:'Cambiar', quickSignup:'Registrate rápido con', emailOption:'o con email',
+    firstName:'Nombre *', lastName:'Apellido', email:'Email *', password:'Contraseña * (mín. 8)',
+    confirmPassword:'Confirmar contraseña *', churchCode:'Código de iglesia (opcional)',
+    churchHelp:'Pedíselo al pastor. Lo podés agregar después desde Mi Perfil.',
+    noCharge:'Sin cobro durante 14 días', afterTrial:'Después del período de prueba se cobra',
+    invitationApplied:'Invitación aplicada', cancelBefore:'Cancelá antes si no querés continuar.',
+    paymentBy:'El pago se gestiona por MercadoPago.', back:'← Volver', creating:'Creando...',
+    createFree:'Crear cuenta gratis →', acceptA:'Acepto los', terms:'Términos y Condiciones', privacyJoin:'la',
+    privacy:'Política de Privacidad', cookies:'y la Política de Cookies de Church System.',
+    orgNotice:'Church System es una herramienta tecnológica de gestión. La organización es responsable por los datos que carga, los permisos que asigna y las comunicaciones que envía.',
+    accountCreated:'¡Cuenta creada!', verificationOk:'Verificación exitosa para', planActivated:'Plan {plan} activado',
+    trialActivated:'14 días de prueba gratis', connected:'Conectado a {church}', yourChurch:'tu iglesia', enter:'Ingresar a Church System →',
+    footerTerms:'Términos', footerPrivacy:'Privacidad',
+  },
+  pt: {
+    steps:['Plano', 'Conta', 'Verificar', 'Pronto'],
+    oauthGoogleOk:'Conta criada com Google', oauthMissing:'OAuth ainda não configurado',
+    passwordMismatch:'As senhas não coincidem', passwordMin:'Mínimo de 8 caracteres',
+    createError:'Erro ao criar a conta', choosePlanToast:'Escolha um plano para continuar',
+    stepCounter:'Passo 1 de 3', choosePlan:'Escolha seu plano',
+    chooseSub:'Você pode mudar quando quiser · Todos incluem 14 dias de teste grátis',
+    country:'País', currency:'Moeda', language:'Idioma', invitation:'Convite',
+    popular:'Mais popular', selected:'✓ Selecionado', perMonth:'/mês',
+    free14:'14 dias grátis', free14Copy:'Nada será cobrado até o fim do período de teste. Cancele quando quiser.',
+    continueWith:'Continuar com', aPlan:'um plano', already:'Já tem conta?', signIn:'Entrar',
+    selectedPlan:'Plano selecionado', change:'Alterar', quickSignup:'Cadastre-se rápido com', emailOption:'ou com email',
+    firstName:'Nome *', lastName:'Sobrenome', email:'Email *', password:'Senha * (mín. 8)',
+    confirmPassword:'Confirmar senha *', churchCode:'Código da igreja (opcional)',
+    churchHelp:'Peça ao pastor. Você também pode adicionar depois em Meu Perfil.',
+    noCharge:'Sem cobrança por 14 dias', afterTrial:'Depois do período de teste será cobrado',
+    invitationApplied:'Convite aplicado', cancelBefore:'Cancele antes se não quiser continuar.',
+    paymentBy:'O pagamento é gerenciado pelo MercadoPago.', back:'← Voltar', creating:'Criando...',
+    createFree:'Criar conta grátis →', acceptA:'Aceito os', terms:'Termos e Condições', privacyJoin:'a',
+    privacy:'Política de Privacidade', cookies:'e a Política de Cookies do Church System.',
+    orgNotice:'Church System é uma ferramenta tecnológica de gestão. A organização é responsável pelos dados que carrega, pelas permissões que atribui e pelas comunicações que envia.',
+    accountCreated:'Conta criada!', verificationOk:'Verificação bem-sucedida para', planActivated:'Plano {plan} ativado',
+    trialActivated:'14 dias de teste grátis', connected:'Conectado a {church}', yourChurch:'sua igreja', enter:'Entrar no Church System →',
+    footerTerms:'Termos', footerPrivacy:'Privacidade',
+  },
+  en: {
+    steps:['Plan', 'Account', 'Verify', 'Done'],
+    oauthGoogleOk:'Account created with Google', oauthMissing:'OAuth is not configured yet',
+    passwordMismatch:'Passwords do not match', passwordMin:'Minimum 8 characters',
+    createError:'Error creating account', choosePlanToast:'Choose a plan to continue',
+    stepCounter:'Step 1 of 3', choosePlan:'Choose your plan',
+    chooseSub:'You can change it anytime · All plans include a 14-day free trial',
+    country:'Country', currency:'Currency', language:'Language', invitation:'Invitation',
+    popular:'Most popular', selected:'✓ Selected', perMonth:'/mo',
+    free14:'14 days free', free14Copy:'Nothing is charged until the trial period ends. Cancel anytime.',
+    continueWith:'Continue with', aPlan:'a plan', already:'Already have an account?', signIn:'Sign in',
+    selectedPlan:'Selected plan', change:'Change', quickSignup:'Sign up quickly with', emailOption:'or with email',
+    firstName:'First name *', lastName:'Last name', email:'Email *', password:'Password * (min. 8)',
+    confirmPassword:'Confirm password *', churchCode:'Church code (optional)',
+    churchHelp:'Ask your pastor. You can also add it later from My Profile.',
+    noCharge:'No charge for 14 days', afterTrial:'After the trial period you will be charged',
+    invitationApplied:'Invitation applied', cancelBefore:'Cancel before then if you do not want to continue.',
+    paymentBy:'Payment is handled by MercadoPago.', back:'← Back', creating:'Creating...',
+    createFree:'Create free account →', acceptA:'I accept the', terms:'Terms and Conditions', privacyJoin:'the',
+    privacy:'Privacy Policy', cookies:'and Church System Cookie Policy.',
+    orgNotice:'Church System is a technology management tool. The organization is responsible for the data it uploads, the permissions it assigns, and the communications it sends.',
+    accountCreated:'Account created!', verificationOk:'Successful verification for', planActivated:'Plan {plan} activated',
+    trialActivated:'14-day free trial', connected:'Connected to {church}', yourChurch:'your church', enter:'Enter Church System →',
+    footerTerms:'Terms', footerPrivacy:'Privacy',
+  },
+}
 
 // ── Planes ────────────────────────────────────────────────────────────────────
 const PLANES = [
@@ -36,6 +129,30 @@ const PLANES = [
     features: ['Acceso completo', 'Vista ejecutiva IA', 'Asistente IA', 'Multi-iglesia', 'Soporte prioritario'],
   },
 ]
+
+const PLAN_COPY = {
+  es: {
+    LIDER:{ nombre:'Líder', desc:'Para líderes de célula', features:['Dashboard', 'Personas', 'Grupos', 'Check-in QR', 'Mi perfil'] },
+    CULTO:{ nombre:'Culto', desc:'Para equipos de culto', features:['Todo lo de Líder', 'Asistencia', 'Calendario', 'Comunicados'] },
+    CONSOLIDACION:{ nombre:'Consolidación', desc:'Para equipos pastorales', features:['Todo lo de Culto', 'Seguimiento pastoral', 'Consolidación', 'Alertas', 'Mensajería'] },
+    ADMINISTRACION:{ nombre:'Administración', desc:'Para secretaría', features:['Todo lo anterior', 'Reportes completos', 'Gestión usuarios', 'Permisos', 'Excel + IA'] },
+    GENERAL:{ nombre:'General', desc:'Para pastor general', features:['Acceso completo', 'Vista ejecutiva IA', 'Asistente IA', 'Multi-iglesia', 'Soporte prioritario'] },
+  },
+  pt: {
+    LIDER:{ nombre:'Líder', desc:'Para líderes de célula', features:['Dashboard', 'Pessoas', 'Grupos', 'Check-in QR', 'Meu perfil'] },
+    CULTO:{ nombre:'Culto', desc:'Para equipes de culto', features:['Tudo do Líder', 'Presença', 'Calendário', 'Comunicados'] },
+    CONSOLIDACION:{ nombre:'Consolidação', desc:'Para equipes pastorais', features:['Tudo do Culto', 'Acompanhamento pastoral', 'Consolidação', 'Alertas', 'Mensagens'] },
+    ADMINISTRACION:{ nombre:'Administração', desc:'Para secretaria', features:['Tudo anterior', 'Relatórios completos', 'Gestão de usuários', 'Permissões', 'Excel + IA'] },
+    GENERAL:{ nombre:'Geral', desc:'Para pastor geral', features:['Acesso completo', 'Visão executiva IA', 'Assistente IA', 'Multi-igreja', 'Suporte prioritário'] },
+  },
+  en: {
+    LIDER:{ nombre:'Leader', desc:'For cell leaders', features:['Dashboard', 'People', 'Groups', 'QR check-in', 'My profile'] },
+    CULTO:{ nombre:'Worship', desc:'For worship teams', features:['Everything in Leader', 'Attendance', 'Calendar', 'Announcements'] },
+    CONSOLIDACION:{ nombre:'Follow-up', desc:'For pastoral teams', features:['Everything in Worship', 'Pastoral follow-up', 'Consolidation', 'Alerts', 'Messaging'] },
+    ADMINISTRACION:{ nombre:'Administration', desc:'For admin teams', features:['Everything above', 'Full reports', 'User management', 'Permissions', 'Excel + AI'] },
+    GENERAL:{ nombre:'General', desc:'For senior pastors', features:['Full access', 'Executive AI view', 'AI assistant', 'Multi-church', 'Priority support'] },
+  },
+}
 
 // ── Estilos base ──────────────────────────────────────────────────────────────
 const c = {
@@ -72,10 +189,10 @@ const label = {
 
 // ── Stepper ───────────────────────────────────────────────────────────────────
 const STEPS = ['Plan', 'Cuenta', 'Verificar', 'Listo']
-function Stepper({ paso }) {
+function Stepper({ paso, labels=STEPS }) {
   return (
     <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:32}}>
-      {STEPS.map((l, i) => {
+      {labels.map((l, i) => {
         const done = paso > i, active = paso === i
         return (
           <div key={i} style={{display:'flex', alignItems:'center', flex: i<3?1:0, gap:6}}>
@@ -149,7 +266,7 @@ function OAuthButtons({ label='Registrate' }) {
         </svg>
         Google
       </button>
-      <button onClick={()=>toast.info('Apple Sign-In próximamente')}
+      <button onClick={()=>{ window.location.href=`${API_BASE}/oauth/apple` }}
         style={{
           padding:'12px 10px', background:'rgba(255,255,255,.05)',
           border:`1.5px solid ${c.border}`, borderRadius:12,
@@ -175,6 +292,14 @@ export default function Registro() {
 
   const [paso, setPaso]           = useState(0)
   const [planSel, setPlanSel]     = useState(searchParams.get('plan')?.toUpperCase() || '')
+  const storedContext = getStoredContext()
+  const initialCountry = (searchParams.get('country') || storedContext.country || 'AR').toUpperCase()
+  const initialCountryInfo = COUNTRIES.find(c => c.code === initialCountry) || COUNTRIES[0]
+  const [country, setCountry]     = useState(initialCountryInfo.code)
+  const [currency, setCurrency]   = useState((searchParams.get('currency') || storedContext.currency || initialCountryInfo.currency).toUpperCase())
+  const [lang, setLang]           = useState((searchParams.get('lang') || storedContext.lang || initialCountryInfo.lang).slice(0,2))
+  const [promo, setPromo]         = useState((searchParams.get('promo') || storedContext.promo || '').toUpperCase())
+  const [planPrices, setPlanPrices] = useState({})
   const [loading, setLoading]     = useState(false)
   const [emailReg, setEmailReg]   = useState('')
   const [nombreReg, setNombreReg] = useState('')
@@ -187,37 +312,79 @@ export default function Registro() {
 
   // Si viene con token OAuth (redirect de vuelta)
   useEffect(() => {
-    const token = searchParams.get('token')
-    const error = searchParams.get('error')
-    if (token) {
-      localStorage.setItem('token', token)
-      toast.success('Cuenta creada con Google')
-      navigate('/')
-    } else if (error === 'oauth_not_configured') {
-      toast.error('OAuth no configurado aún')
+    async function handleOAuthReturn() {
+      const token = searchParams.get('token')
+      const error = searchParams.get('error')
+      if (token) {
+        localStorage.setItem('token', token)
+        try {
+          const user = await apiFetch('/auth/me')
+          localStorage.setItem('user', JSON.stringify(user))
+        } catch {
+          const decoded = decodeJwt(token)
+          if (decoded) localStorage.setItem('user', JSON.stringify(decoded))
+        }
+        toast.success((REG_I18N[lang] || REG_I18N.es).oauthGoogleOk)
+        navigate('/')
+      } else if (error === 'oauth_not_configured') {
+        toast.error((REG_I18N[lang] || REG_I18N.es).oauthMissing)
+      }
     }
-  }, [searchParams, navigate])
+    handleOAuthReturn()
+  }, [searchParams, navigate, lang])
+
+  useEffect(() => {
+    const selected = COUNTRIES.find(c => c.code === country) || COUNTRIES[0]
+    if (selected.currency !== currency) setCurrency(selected.currency)
+    if (!searchParams.get('lang')) setLang(selected.lang)
+    localStorage.setItem('church_country', selected.code)
+    localStorage.setItem('church_currency', selected.currency)
+    localStorage.setItem('church_lang', searchParams.get('lang') || selected.lang)
+  }, [country])
+
+  useEffect(() => {
+    localStorage.setItem('church_lang', lang)
+    localStorage.setItem('church_currency', currency)
+    if (promo) localStorage.setItem('church_promo', promo)
+    apiFetch(`/mp/planes?country=${country}&lang=${lang}`)
+      .then(plans => {
+        const prices = Object.fromEntries((plans || []).map(p => [p.id, p]))
+        setPlanPrices(prices)
+      })
+      .catch(() => {})
+  }, [country, currency, lang, promo])
 
   async function handleRegistro(e) {
     e.preventDefault()
-    if (form.password !== form.confirmar) { toast.error('Las contraseñas no coinciden'); return }
-    if (form.password.length < 8) { toast.error('Mínimo 8 caracteres'); return }
+    const msg = REG_I18N[lang] || REG_I18N.es
+    if (form.password !== form.confirmar) { toast.error(msg.passwordMismatch); return }
+    if (form.password.length < 8) { toast.error(msg.passwordMin); return }
     setLoading(true)
     try {
       await apiFetch('/auth/registro', { method:'POST', body:JSON.stringify({
         nombre:form.nombre, apellido:form.apellido,
         email:form.email.toLowerCase(), password:form.password,
         plan: planSel || 'CONSOLIDACION',
+        pais: country,
+        divisa: currency,
+        idioma: lang,
+        promo: promo || undefined,
         iglesiaToken: form.iglesiaToken || undefined,
       })})
       setEmailReg(form.email.toLowerCase())
       setNombreReg(form.nombre)
       setPaso(2)
-    } catch(e) { toast.error(e.message || 'Error al crear la cuenta') }
+    } catch(e) { toast.error(e.message || msg.createError) }
     finally { setLoading(false) }
   }
 
   const planActual = PLANES.find(p=>p.key === planSel) || PLANES[2]
+  const priceFor = plan => planPrices[plan.key]?.precio ?? plan.precio
+  const currencyFor = plan => planPrices[plan.key]?.currency || currency
+  const messages = REG_I18N[lang] || REG_I18N.es
+  const t = key => messages[key] || REG_I18N.es[key] || key
+  const planCopy = plan => PLAN_COPY[lang]?.[plan.key] || PLAN_COPY.es[plan.key] || plan
+  const planName = plan => planCopy(plan).nombre || plan.nombre
 
   // ── Card wrapper ──────────────────────────────────────────────────────────
   const cardW = paso===0 ? 920 : paso===1 ? 500 : 440
@@ -247,19 +414,55 @@ export default function Registro() {
       }}>
 
         {/* Stepper (pasos 1-3) */}
-        {paso > 0 && <Stepper paso={paso}/>}
+        {paso > 0 && <Stepper paso={paso} labels={t('steps')}/>}
 
         {/* ══ PASO 0: ELEGIR PLAN ══════════════════════════════════════════════ */}
         {paso === 0 && (
           <>
             <div style={{textAlign:'center', marginBottom:32}}>
               <div style={{fontSize:12, fontWeight:700, textTransform:'uppercase',
-                letterSpacing:2, color:c.pri, marginBottom:8}}>Paso 1 de 3</div>
+                letterSpacing:2, color:c.pri, marginBottom:8}}>{t('stepCounter')}</div>
               <h2 style={{fontFamily:"'Sora',sans-serif", fontSize:26, fontWeight:800,
-                color:c.text, margin:'0 0 6px'}}>Elegí tu plan</h2>
+                color:c.text, margin:'0 0 6px'}}>{t('choosePlan')}</h2>
               <p style={{fontSize:14, color:c.muted}}>
-                Podés cambiarlo cuando quieras · Todos incluyen 14 días de prueba gratis
+                {t('chooseSub')}
               </p>
+            </div>
+
+            <div style={{
+              display:'grid',
+              gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))',
+              gap:12,
+              marginBottom:22,
+              background:'rgba(15,23,42,.55)',
+              border:`1px solid ${c.border}`,
+              borderRadius:14,
+              padding:14,
+            }}>
+              <div>
+                <label style={label}>{t('country')}</label>
+                <select value={country} onChange={e=>setCountry(e.target.value)} style={inp}>
+                  {COUNTRIES.map(item => (
+                    <option key={item.code} value={item.code}>{item.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={label}>{t('currency')}</label>
+                <input value={currency} readOnly style={{...inp, opacity:.8}} />
+              </div>
+              <div>
+                <label style={label}>{t('language')}</label>
+                <select value={lang} onChange={e=>setLang(e.target.value)} style={inp}>
+                  {LANGS.map(item => (
+                    <option key={item.code} value={item.code}>{item.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={label}>{t('invitation')}</label>
+                <input value={promo} onChange={e=>setPromo(e.target.value.toUpperCase())} placeholder="15OFF" style={{...inp, textTransform:'uppercase'}} />
+              </div>
             </div>
 
             {/* Grid de planes */}
@@ -270,6 +473,7 @@ export default function Registro() {
             }}>
               {PLANES.map(plan => {
                 const sel = planSel === plan.key
+                const copy = planCopy(plan)
                 return (
                   <div key={plan.key}
                     onClick={()=>setPlanSel(plan.key)}
@@ -285,7 +489,7 @@ export default function Registro() {
                         background:`linear-gradient(135deg,${c.pri},${c.priD})`,
                         color:'white', fontSize:10, fontWeight:700,
                         padding:'2px 10px', borderRadius:100, whiteSpace:'nowrap',
-                      }}>Más popular</div>
+                      }}>{t('popular')}</div>
                     )}
                     {sel && (
                       <div style={{
@@ -293,19 +497,19 @@ export default function Registro() {
                         background:`linear-gradient(135deg,${c.pri},${c.priD})`,
                         color:'white', fontSize:10, fontWeight:700,
                         padding:'2px 10px', borderRadius:100,
-                      }}>✓ Seleccionado</div>
+                      }}>{t('selected')}</div>
                     )}
                     <div style={{fontFamily:"'Sora',sans-serif", fontSize:15, fontWeight:800,
-                      color: sel ? c.priL : c.text, marginBottom:4}}>{plan.nombre}</div>
+                      color: sel ? c.priL : c.text, marginBottom:4}}>{copy.nombre}</div>
                     <div style={{
                       fontFamily:"'Sora',sans-serif", fontSize:26, fontWeight:800,
                       color: sel ? c.pri : c.text2, marginBottom:4,
                     }}>
-                      ${plan.precio}<span style={{fontSize:12, fontWeight:400, color:c.muted}}>/mes</span>
+                      {currencyFor(plan)} {priceFor(plan)}<span style={{fontSize:12, fontWeight:400, color:c.muted}}>{t('perMonth')}</span>
                     </div>
-                    <div style={{fontSize:11, color:c.muted, marginBottom:12}}>{plan.desc}</div>
+                    <div style={{fontSize:11, color:c.muted, marginBottom:12}}>{copy.desc}</div>
                     <ul style={{listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:5}}>
-                      {plan.features.map(f => (
+                      {copy.features.map(f => (
                         <li key={f} style={{fontSize:12, color: sel ? c.text2 : c.muted,
                           display:'flex', alignItems:'flex-start', gap:6}}>
                           <span style={{color: sel ? c.ok : '#374151', flexShrink:0, fontSize:11, marginTop:1}}>✓</span>
@@ -326,20 +530,20 @@ export default function Registro() {
             }}>
               <span style={{fontSize:20}}>🎁</span>
               <div>
-                <strong style={{color:c.ok}}>14 días gratis</strong>
-                <span style={{color:c.muted}}> — No se cobra nada hasta que termine el período de prueba. Cancelá cuando quieras.</span>
+                <strong style={{color:c.ok}}>{t('free14')}</strong>
+                <span style={{color:c.muted}}> — {t('free14Copy')}</span>
               </div>
             </div>
 
             <button
-              onClick={()=>{ if(!planSel) { toast.error('Elegí un plan para continuar'); return } setPaso(1) }}
+              onClick={()=>{ if(!planSel) { toast.error(t('choosePlanToast')); return } setPaso(1) }}
               style={{...btnPri, opacity: planSel ? 1 : .5}}>
-              Continuar con {planSel ? planActual.nombre : 'un plan'} →
+              {t('continueWith')} {planSel ? planName(planActual) : t('aPlan')} →
             </button>
 
             <p style={{textAlign:'center', fontSize:13, color:c.muted, marginTop:16}}>
-              ¿Ya tenés cuenta?{' '}
-              <a href="/app/login" style={{color:c.pri, fontWeight:600, textDecoration:'none'}}>Ingresar</a>
+              {t('already')}{' '}
+              <a href="/app/login" style={{color:c.pri, fontWeight:600, textDecoration:'none'}}>{t('signIn')}</a>
             </p>
           </>
         )}
@@ -354,21 +558,21 @@ export default function Registro() {
               borderRadius:12, padding:'10px 14px', marginBottom:24,
             }}>
               <div>
-                <span style={{fontSize:12, color:c.muted}}>Plan seleccionado · </span>
-                <strong style={{fontSize:13, color:c.priL}}>{planActual.nombre}</strong>
-                <span style={{fontSize:12, color:c.muted}}> · ${planActual.precio}/mes</span>
+                <span style={{fontSize:12, color:c.muted}}>{t('selectedPlan')} · </span>
+                <strong style={{fontSize:13, color:c.priL}}>{planName(planActual)}</strong>
+                <span style={{fontSize:12, color:c.muted}}> · {currencyFor(planActual)} {priceFor(planActual)}{t('perMonth')}</span>
               </div>
               <button onClick={()=>setPaso(0)}
                 style={{background:'none', border:'none', cursor:'pointer',
                   fontSize:12, color:c.pri, fontWeight:600, padding:0}}>
-                Cambiar
+                {t('change')}
               </button>
             </div>
 
             {/* OAuth */}
             <div style={{marginBottom:20}}>
               <p style={{fontSize:13, color:c.muted, marginBottom:12, textAlign:'center'}}>
-                Registrate rápido con
+                {t('quickSignup')}
               </p>
               <OAuthButtons label="Registrate"/>
             </div>
@@ -376,7 +580,7 @@ export default function Registro() {
             {/* Divider */}
             <div style={{display:'flex', alignItems:'center', gap:12, margin:'20px 0'}}>
               <div style={{flex:1, height:1, background:'rgba(255,255,255,.07)'}}/>
-              <span style={{fontSize:12, color:'#475569'}}>o con email</span>
+              <span style={{fontSize:12, color:'#475569'}}>{t('emailOption')}</span>
               <div style={{flex:1, height:1, background:'rgba(255,255,255,.07)'}}/>
             </div>
 
@@ -384,14 +588,14 @@ export default function Registro() {
             <form onSubmit={handleRegistro} style={{display:'flex', flexDirection:'column', gap:13}}>
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
                 <div>
-                  <label style={label}>Nombre *</label>
+                  <label style={label}>{t('firstName')}</label>
                   <input type="text" required value={form.nombre} placeholder="Juan"
                     style={inp} onChange={e=>f('nombre',e.target.value)}
                     onFocus={e=>e.target.style.borderColor=c.pri}
                     onBlur={e=>e.target.style.borderColor=c.border}/>
                 </div>
                 <div>
-                  <label style={label}>Apellido</label>
+                  <label style={label}>{t('lastName')}</label>
                   <input type="text" value={form.apellido} placeholder="Pérez"
                     style={inp} onChange={e=>f('apellido',e.target.value)}
                     onFocus={e=>e.target.style.borderColor=c.pri}
@@ -399,14 +603,14 @@ export default function Registro() {
                 </div>
               </div>
               <div>
-                <label style={label}>Email *</label>
+                <label style={label}>{t('email')}</label>
                 <input type="email" required value={form.email} placeholder="vos@iglesia.com"
                   style={inp} onChange={e=>f('email',e.target.value)}
                   onFocus={e=>e.target.style.borderColor=c.pri}
                   onBlur={e=>e.target.style.borderColor=c.border}/>
               </div>
               <div>
-                <label style={label}>Contraseña * (mín. 8)</label>
+                <label style={label}>{t('password')}</label>
                 <div style={{position:'relative'}}>
                   <input type={showPass?'text':'password'} required minLength={8}
                     value={form.password} placeholder="••••••••"
@@ -423,7 +627,7 @@ export default function Registro() {
                 </div>
               </div>
               <div>
-                <label style={label}>Confirmar contraseña *</label>
+                <label style={label}>{t('confirmPassword')}</label>
                 <div style={{position:'relative'}}>
                   <input type={showPass2?'text':'password'} required
                     value={form.confirmar} placeholder="••••••••"
@@ -441,7 +645,7 @@ export default function Registro() {
                   </button>
                 </div>
                 {form.confirmar && form.confirmar!==form.password &&
-                  <p style={{fontSize:11,color:'#ef4444',marginTop:4}}>Las contraseñas no coinciden</p>}
+                  <p style={{fontSize:11,color:'#ef4444',marginTop:4}}>{t('passwordMismatch')}</p>}
               </div>
 
               {/* Token iglesia */}
@@ -451,11 +655,11 @@ export default function Registro() {
                 borderRadius:12, padding:'14px 16px',
               }}>
                 <TokenIglesiaInput
-                  label="Código de iglesia (opcional)"
+                  label={t('churchCode')}
                   onSuccess={res=>{ setIglesiaJoin(res); f('iglesiaToken', res?.token||'') }}
                 />
                 <p style={{fontSize:11,color:c.muted,marginTop:6}}>
-                  Pedíselo al pastor. Lo podés agregar después desde Mi Perfil.
+                  {t('churchHelp')}
                 </p>
               </div>
 
@@ -472,12 +676,13 @@ export default function Registro() {
                 </svg>
                 <div>
                   <p style={{fontSize:13, color:c.text2, margin:'0 0 4px', fontWeight:600}}>
-                    Sin cobro durante 14 días
+                    {t('noCharge')}
                   </p>
                   <p style={{fontSize:12, color:c.muted, margin:0, lineHeight:1.5}}>
-                    Después del período de prueba se cobra <strong style={{color:c.text2}}>${planActual.precio}/mes</strong>.
-                    Cancelá antes si no querés continuar.
-                    El pago se gestiona por MercadoPago.
+                    {t('afterTrial')} <strong style={{color:c.text2}}>{currencyFor(planActual)} {priceFor(planActual)}{t('perMonth')}</strong>.
+                    {promo ? <span> {t('invitationApplied')}: <strong style={{color:c.text2}}>{promo}</strong>.</span> : null}
+                    {' '}{t('cancelBefore')}
+                    {' '}{t('paymentBy')}
                   </p>
                 </div>
               </div>
@@ -487,11 +692,11 @@ export default function Registro() {
                   style={{flex:1, padding:'13px', fontSize:14, fontWeight:600,
                     background:'rgba(255,255,255,.06)', color:c.text2,
                     border:`1px solid ${c.border}`, borderRadius:12, cursor:'pointer'}}>
-                  ← Volver
+                  {t('back')}
                 </button>
                 <button type="submit" disabled={loading||(form.confirmar&&form.confirmar!==form.password)||!aceptoTerminos}
                   style={{...btnPri, flex:2, opacity:(loading||!aceptoTerminos)?0.5:1}}>
-                  {loading ? 'Creando...' : 'Crear cuenta gratis →'}
+                  {loading ? t('creating') : t('createFree')}
                 </button>
               </div>
 
@@ -500,19 +705,18 @@ export default function Registro() {
                 <input type="checkbox" checked={aceptoTerminos} onChange={e=>setAceptoTerminos(e.target.checked)}
                   style={{marginTop:2, accentColor:c.pri, flexShrink:0, width:16, height:16}}/>
                 <span style={{fontSize:12, color:c.muted, lineHeight:1.5}}>
-                  Acepto los{' '}
-                  <a href="/app/terminos" style={{color:c.pri, textDecoration:'none'}} target="_blank">Términos y Condiciones</a>,
-                  {' '}la{' '}
-                  <a href="/app/privacidad" style={{color:c.pri, textDecoration:'none'}} target="_blank">Política de Privacidad</a>
-                  {' '}y la Política de Cookies de Church System.
+                  {t('acceptA')}{' '}
+                  <a href="/app/terminos" style={{color:c.pri, textDecoration:'none'}} target="_blank">{t('terms')}</a>,
+                  {' '}{t('privacyJoin')}{' '}
+                  <a href="/app/privacidad" style={{color:c.pri, textDecoration:'none'}} target="_blank">{t('privacy')}</a>
+                  {' '}{t('cookies')}
                 </span>
               </label>
 
               {/* Aviso organización */}
               <div style={{fontSize:11, color:c.muted, lineHeight:1.6, padding:'10px 12px',
                 background:'rgba(255,255,255,0.03)', borderRadius:10, border:`1px solid ${c.border}`}}>
-                Church System es una herramienta tecnológica de gestión. La organización es responsable
-                por los datos que carga, los permisos que asigna y las comunicaciones que envía.
+                {t('orgNotice')}
               </div>
             </form>
           </>
@@ -538,10 +742,10 @@ export default function Registro() {
             }}>✓</div>
             <h2 style={{fontFamily:"'Sora',sans-serif", fontSize:24, fontWeight:800,
               color:c.text, margin:'0 0 8px'}}>
-              ¡Cuenta creada!
+              {t('accountCreated')}
             </h2>
             <p style={{fontSize:14, color:c.muted, margin:'0 0 6px', lineHeight:1.6}}>
-              Verificación exitosa para<br/>
+              {t('verificationOk')}<br/>
               <strong style={{color:c.text2}}>{emailReg}</strong>
             </p>
             <div style={{
@@ -549,9 +753,9 @@ export default function Registro() {
               background:'rgba(255,255,255,.03)', borderRadius:14, padding:'16px',
             }}>
               {[
-                { icon:'✓', text:`Plan ${planActual.nombre} activado`, color:c.ok },
-                { icon:'🎁', text:'14 días de prueba gratis', color:'#f59e0b' },
-                iglesiaJoin && { icon:'✓', text:`Conectado a ${iglesiaJoin.iglesia?.nombre||iglesiaJoin.nombre||'tu iglesia'}`, color:c.ok },
+                { icon:'✓', text:t('planActivated').replace('{plan}', planName(planActual)), color:c.ok },
+                { icon:'🎁', text:t('trialActivated'), color:'#f59e0b' },
+                iglesiaJoin && { icon:'✓', text:t('connected').replace('{church}', iglesiaJoin.iglesia?.nombre||iglesiaJoin.nombre||t('yourChurch')), color:c.ok },
               ].filter(Boolean).map((item,i) => (
                 <div key={i} style={{display:'flex', alignItems:'center', gap:10,
                   fontSize:13, color:item.color, fontWeight:600}}>
@@ -561,7 +765,7 @@ export default function Registro() {
               ))}
             </div>
             <button onClick={()=>navigate('/login')} style={btnPri}>
-              Ingresar a Church System →
+              {t('enter')}
             </button>
           </div>
         )}
@@ -570,7 +774,7 @@ export default function Registro() {
 
       {/* Footer links */}
       <div style={{display:'flex', gap:16, marginTop:20}}>
-        {['FAQ:/app/faq','Términos:/app/terminos','Privacidad:/app/privacidad'].map(x => {
+        {[`FAQ:/app/faq`,`${t('footerTerms')}:/app/terminos`,`${t('footerPrivacy')}:/app/privacidad`].map(x => {
           const [label, href] = x.split(':')
           return <a key={label} href={href}
             style={{fontSize:12, color:c.muted, textDecoration:'none'}}>{label}</a>

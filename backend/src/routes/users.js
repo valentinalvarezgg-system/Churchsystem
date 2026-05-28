@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import db from '../lib/db.js'
 import { requireAuth, requireRol } from '../middlewares/auth.js'
 import { registrar } from '../utils/auditoria.js'
+import { sendNotificationEmail } from '../lib/email.js'
 const router = Router()
 const ADMIN = requireRol('PASTOR_GENERAL')
 router.get('/', requireAuth, ADMIN, (_req, res) => {
@@ -15,6 +16,13 @@ router.post('/', requireAuth, ADMIN, async (req, res) => {
   const hash = await bcrypt.hash(password,10)
   const { lastID } = db.run('INSERT INTO users (email,password,nombre,rol,cultoDia,cultoTurno) VALUES (?,?,?,?,?,?)',[email.toLowerCase(),hash,nombre,rol,cultoDia,Number(cultoTurno)])
   registrar({ userId:req.user.id,email:req.user.email,rol:req.user.rol,accion:'CREAR',entidad:'USER',entidadId:lastID,detalle:email })
+  await sendNotificationEmail({
+    to:email.toLowerCase(),
+    subject:'Usuario creado - Church System',
+    title:'Tu usuario fue creado',
+    intro:`${req.user.email} creo un usuario para vos en Church System.`,
+    lines:[`Rol: ${rol}`],
+  }).catch(() => {})
   res.status(201).json({ ok:true, id:lastID })
 })
 router.put('/:id', requireAuth, ADMIN, async (req, res) => {
@@ -23,6 +31,15 @@ router.put('/:id', requireAuth, ADMIN, async (req, res) => {
   const { nombre,rol,cultoDia,cultoTurno,activo,password } = req.body||{}
   const hash = password ? await bcrypt.hash(password,10) : u.password
   db.run('UPDATE users SET nombre=?,rol=?,cultoDia=?,cultoTurno=?,activo=?,password=? WHERE id=?',[nombre??u.nombre,rol??u.rol,cultoDia??u.cultoDia,Number(cultoTurno??u.cultoTurno),activo!=null?Number(activo):u.activo,hash,req.params.id])
+  if (password) {
+    await sendNotificationEmail({
+      to:u.email,
+      subject:'Password actualizado por administrador - Church System',
+      title:'Tu password fue actualizado',
+      intro:`${req.user.email} actualizo tu password desde Gestion de usuarios.`,
+      lines:['Si no reconoces esta accion, contacta a seguridad@churchsystem.com.ar.'],
+    }).catch(() => {})
+  }
   res.json({ ok:true })
 })
 router.delete('/:id', requireAuth, ADMIN, (req, res) => {

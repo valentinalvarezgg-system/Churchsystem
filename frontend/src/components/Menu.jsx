@@ -6,12 +6,51 @@ import { useNotificaciones } from '../hooks/useNotificaciones.js'
 import Icons from './Icons.jsx'
 
 const BOTTOM_LINKS = [
-  { to: '/',           icon: 'Dashboard', label: 'Inicio',   exact: true  },
-  { to: '/personas',   icon: 'Users', label: 'Personas', exact: false },
-  { to: '/asistencia', icon: 'Attendance', label: 'Asistencia',exact:false },
-  { to: '/alertas',    icon: 'Comunicados', label: 'Alertas',  exact: false },
-  { to: '/menu',       icon: 'Settings',  label: 'Menú',     exact: false, isMenu: true },
+  { to: '/',           icon: 'Dashboard', key: 'home',   exact: true  },
+  { to: '/personas',   icon: 'Users', key: 'people', exact: false },
+  { to: '/asistencia', icon: 'Attendance', key: 'attendance',exact:false },
+  { to: '/alertas',    icon: 'Comunicados', key: 'alerts',  exact: false },
+  { to: '/menu',       icon: 'Settings',  key: 'menu',     exact: false, isMenu: true },
 ]
+
+const I18N = {
+  es: {
+    smart:'Gestión Pastoral Inteligente', openMenu:'Abrir menú', search:'Buscar', notifications:'Notificaciones',
+    activeNotifications:'Notificaciones activas', enableNotifications:'Activar notificaciones',
+    lightMode:'Modo claro', darkMode:'Modo oscuro', searchPlaceholder:'Buscar...', logout:'Cerrar sesión',
+    principal:'Principal', congregation:'Congregación', management:'Gestión', tools:'Herramientas', admin:'Admin',
+    home:'Inicio', dashboard:'Dashboard', executive:'Vista Ejecutiva', communications:'Comunicados',
+    people:'Personas', groups:'Grupos', attendance:'Asistencia', checkin:'Check-in QR', calendar:'Calendario',
+    discipleship:'Discipulado', consolidation:'Consolidación', messages:'Mensajería', alerts:'Alertas',
+    reports:'Reportes', finances:'Finanzas', excel:'Excel + IA', assistant:'Asistente IA', users:'Usuarios',
+    promo:'Promo Codes', permissions:'Permisos', history:'Historial', settings:'Configuración',
+    prayer:'Oración', profile:'Mi perfil', pageProfile:'Perfil', menu:'Menú',
+  },
+  pt: {
+    smart:'Gestão Pastoral Inteligente', openMenu:'Abrir menu', search:'Buscar', notifications:'Notificações',
+    activeNotifications:'Notificações ativas', enableNotifications:'Ativar notificações',
+    lightMode:'Modo claro', darkMode:'Modo escuro', searchPlaceholder:'Buscar...', logout:'Sair',
+    principal:'Principal', congregation:'Congregação', management:'Gestão', tools:'Ferramentas', admin:'Admin',
+    home:'Início', dashboard:'Dashboard', executive:'Visão Executiva', communications:'Comunicados',
+    people:'Pessoas', groups:'Grupos', attendance:'Presença', checkin:'Check-in QR', calendar:'Calendário',
+    discipleship:'Discipulado', consolidation:'Consolidação', messages:'Mensagens', alerts:'Alertas',
+    reports:'Relatórios', finances:'Finanças', excel:'Excel + IA', assistant:'Assistente IA', users:'Usuários',
+    promo:'Promo Codes', permissions:'Permissões', history:'Histórico', settings:'Configuração',
+    prayer:'Oração', profile:'Meu perfil', pageProfile:'Perfil', menu:'Menu',
+  },
+  en: {
+    smart:'Smart Pastoral Management', openMenu:'Open menu', search:'Search', notifications:'Notifications',
+    activeNotifications:'Notifications active', enableNotifications:'Enable notifications',
+    lightMode:'Light mode', darkMode:'Dark mode', searchPlaceholder:'Search...', logout:'Sign out',
+    principal:'Main', congregation:'Congregation', management:'Management', tools:'Tools', admin:'Admin',
+    home:'Home', dashboard:'Dashboard', executive:'Executive View', communications:'Announcements',
+    people:'People', groups:'Groups', attendance:'Attendance', checkin:'QR Check-in', calendar:'Calendar',
+    discipleship:'Discipleship', consolidation:'Follow-up', messages:'Messaging', alerts:'Alerts',
+    reports:'Reports', finances:'Finances', excel:'Excel + AI', assistant:'AI Assistant', users:'Users',
+    promo:'Promo Codes', permissions:'Permissions', history:'History', settings:'Settings',
+    prayer:'Prayer', profile:'My profile', pageProfile:'Profile', menu:'Menu',
+  },
+}
 
 export default function Menu() {
   const navigate   = useNavigate()
@@ -23,6 +62,8 @@ export default function Menu() {
   const { suscrito, suscribir, permiso, soportado } = useNotificaciones()
   const [alertCount, setAlertCount] = useState(0)
   const [dark, setDark]           = useState(() => localStorage.getItem('theme') === 'dark')
+  const lang = (localStorage.getItem('church_lang') || user?.idioma || 'es').slice(0, 2)
+  const tt = key => I18N[lang]?.[key] || I18N.es[key] || key
 
   // Cerrar sidebar al cambiar de ruta
   useEffect(() => { setOpen(false) }, [location.pathname])
@@ -77,39 +118,39 @@ export default function Menu() {
 
   // Nombre de la página actual para el header mobile
   const PAGE_NAMES = {
-    '/': 'Dashboard', '/personas': 'Personas', '/grupos': 'Grupos',
-    '/asistencia': 'Asistencia', '/checkin': 'Check-in QR',
-    '/calendario': 'Calendario', '/discipulado': 'Discipulado',
-    '/consolidacion': 'Consolidación', '/mensajes': 'Mensajería',
-    '/alertas': 'Alertas', '/finanzas': 'Finanzas',
-    '/reportes': 'Reportes', '/excel-ia': 'Excel + IA',
-    '/asistente-ia': 'Asistente IA', '/configuracion': 'Configuración',
-    '/users': 'Usuarios', '/permisos': 'Permisos',
-    '/historial': 'Historial', '/oracion': 'Oración',
-    '/comunicados': 'Comunicados', '/mi-perfil': 'Mi perfil',
+    '/': tt('dashboard'), '/personas': tt('people'), '/grupos': tt('groups'),
+    '/asistencia': tt('attendance'), '/checkin': tt('checkin'),
+    '/calendario': tt('calendar'), '/discipulado': tt('discipleship'),
+    '/consolidacion': tt('consolidation'), '/mensajes': tt('messages'),
+    '/alertas': tt('alerts'), '/finanzas': tt('finances'),
+    '/reportes': tt('reports'), '/excel-ia': tt('excel'),
+    '/asistente-ia': tt('assistant'), '/configuracion': tt('settings'),
+    '/users': tt('users'), '/permisos': tt('permissions'),
+    '/historial': tt('history'), '/oracion': tt('prayer'),
+    '/comunicados': tt('communications'), '/mi-perfil': tt('profile'),
   }
   const currentPage = PAGE_NAMES[location.pathname] ||
-    (location.pathname.startsWith('/personas/') ? 'Perfil' : 'Church System')
+    (location.pathname.startsWith('/personas/') ? tt('pageProfile') : 'Church System')
 
   return (
     <>
       {/* ── Header mobile (solo visible en < 1024px) ─────────── */}
       <header className="mobile-header">
-        <button className="mobile-menu-btn" onClick={() => setOpen(true)} aria-label="Abrir menú">
+        <button className="mobile-menu-btn" onClick={() => setOpen(true)} aria-label={tt('openMenu')}>
           ☰
         </button>
         <div className="mobile-header-title">
           {currentPage}
-          <span>Gestión Pastoral Inteligente</span>
+          <span>{tt('smart')}</span>
         </div>
-        <button className="mobile-menu-btn" onClick={() => setBusqueda(true)} aria-label="Buscar">
+        <button className="mobile-menu-btn" onClick={() => setBusqueda(true)} aria-label={tt('search')}>
           ⌕
         </button>
         {soportado && permiso !== 'denied' && (
-          <button className="mobile-menu-btn" aria-label="Notificaciones"
+          <button className="mobile-menu-btn" aria-label={tt('notifications')}
             onClick={async () => { if(!suscrito){ const ok = await suscribir(); if(ok){ /* ya suscrito, el botón se oculta */ } } }}
             style={{ position:'relative' }}
-            title={suscrito ? 'Notificaciones activas' : 'Activar notificaciones'}>
+            title={suscrito ? tt('activeNotifications') : tt('enableNotifications')}>
             {suscrito ? '🔔' : '🔕'}
           </button>
         )}
@@ -136,57 +177,57 @@ export default function Menu() {
           </svg>
           <div className="sidebar-logo-text">
             Church System
-            <span>Gestión Pastoral Inteligente</span>
+            <span>{tt('smart')}</span>
           </div>
           <button className="sidebar-theme-btn" onClick={() => setDark(d => !d)}
-            title={dark ? 'Modo claro' : 'Modo oscuro'}>
+            title={dark ? tt('lightMode') : tt('darkMode')}>
             {dark ? '☀︎' : '☽'}
           </button>
         </div>
 
         <button className="search-trigger" onClick={() => setBusqueda(true)}>
           <span style={{fontSize:13}}>⌕</span>
-          <span style={{flex:1}}>Buscar...</span>
+          <span style={{flex:1}}>{tt('searchPlaceholder')}</span>
           <span className="search-kbd">⌘K</span>
         </button>
 
         <nav className="sidebar-nav">
-          <div className="nav-section">Principal</div>
-          {lnk('/', <Icons.Dashboard />, 'Dashboard', true)}
-          {isAdmin && lnk('/premium', <Icons.Premium />, 'Vista Ejecutiva')}
-          {isMid  && lnk('/comunicados', <Icons.Comunicados />, 'Comunicados')}
+          <div className="nav-section">{tt('principal')}</div>
+          {lnk('/', <Icons.Dashboard />, tt('dashboard'), true)}
+          {isAdmin && lnk('/premium', <Icons.Premium />, tt('executive'))}
+          {isMid  && lnk('/comunicados', <Icons.Comunicados />, tt('communications'))}
 
           {isMid && <>
-            <div className="nav-section">Congregación</div>
-            {lnk('/personas',    <Icons.Users />, 'Personas')}
-            {lnk('/grupos',      <Icons.Groups />, 'Grupos')}
-            {lnk('/asistencia',  <Icons.Attendance />, 'Asistencia')}
-            {lnk('/checkin',     <Icons.CheckIn />, 'Check-in QR')}
-            {lnk('/calendario',  <Icons.Calendar />, 'Calendario')}
-            {lnk('/discipulado', <Icons.Discipleship />,  'Discipulado')}
-            {isAudit && lnk('/consolidacion', <Icons.Users />, 'Consolidación')}
+            <div className="nav-section">{tt('congregation')}</div>
+            {lnk('/personas',    <Icons.Users />, tt('people'))}
+            {lnk('/grupos',      <Icons.Groups />, tt('groups'))}
+            {lnk('/asistencia',  <Icons.Attendance />, tt('attendance'))}
+            {lnk('/checkin',     <Icons.CheckIn />, tt('checkin'))}
+            {lnk('/calendario',  <Icons.Calendar />, tt('calendar'))}
+            {lnk('/discipulado', <Icons.Discipleship />,  tt('discipleship'))}
+            {isAudit && lnk('/consolidacion', <Icons.Users />, tt('consolidation'))}
           </>}
 
           {(isMid||isAudit) && <>
-            <div className="nav-section">Gestión</div>
-            {isMid   && lnk('/mensajes',  <Icons.Messages />, 'Mensajería')}
-            {isAudit && lnk('/alertas',   <Icons.Comunicados />, 'Alertas', false, alertCount)}
-            {isAudit && lnk('/reportes',  <Icons.Reports />, 'Reportes')}
+            <div className="nav-section">{tt('management')}</div>
+            {isMid   && lnk('/mensajes',  <Icons.Messages />, tt('messages'))}
+            {isAudit && lnk('/alertas',   <Icons.Comunicados />, tt('alerts'), false, alertCount)}
+            {isAudit && lnk('/reportes',  <Icons.Reports />, tt('reports'))}
           </>}
 
           {isMid && <>
-            <div className="nav-section">Herramientas</div>
-            {lnk('/excel-ia',    <Icons.Excel />, 'Excel + IA')}
-            {isAudit && lnk('/asistente-ia', <Icons.AI />, 'Asistente IA')}
+            <div className="nav-section">{tt('tools')}</div>
+            {lnk('/excel-ia',    <Icons.Excel />, tt('excel'))}
+            {isAudit && lnk('/asistente-ia', <Icons.AI />, tt('assistant'))}
           </>}
 
           {isAdmin && <>
-            <div className="nav-section">Admin</div>
-            {lnk('/users',         <Icons.Profile />, 'Usuarios')}
-            {lnk('/promo-codes',   <Icons.Ticket />,  'Promo Codes')}
-            {lnk('/permisos',      <Icons.Shield />,  'Permisos')}
-            {lnk('/historial',     <Icons.History />, 'Historial')}
-            {lnk('/configuracion', <Icons.Settings />,  'Configuración')}
+            <div className="nav-section">{tt('admin')}</div>
+            {lnk('/users',         <Icons.Profile />, tt('users'))}
+            {lnk('/promo-codes',   <Icons.Ticket />,  tt('promo'))}
+            {lnk('/permisos',      <Icons.Shield />,  tt('permissions'))}
+            {lnk('/historial',     <Icons.History />, tt('history'))}
+            {lnk('/configuracion', <Icons.Settings />,  tt('settings'))}
           </>}
         </nav>
 
@@ -208,10 +249,10 @@ export default function Menu() {
                 fontSize:12, cursor:'pointer', width:'100%', marginBottom:6,
               }}>
               <span>{suscrito ? '🔔' : '🔕'}</span>
-              <span>{suscrito ? 'Notificaciones activas' : 'Activar notificaciones'}</span>
+              <span>{suscrito ? tt('activeNotifications') : tt('enableNotifications')}</span>
             </button>
           )}
-          <button className="btn-logout" onClick={logout}>Cerrar sesión</button>
+          <button className="btn-logout" onClick={logout}>{tt('logout')}</button>
         </div>
       </aside>
 
@@ -224,7 +265,7 @@ export default function Menu() {
               <button key="menu" className="bottom-nav-item" onClick={() => setOpen(true)}
                 style={{background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
                 <span className="nav-icon"><IconComponent /></span>
-                <span>{link.label}</span>
+                <span>{tt(link.key)}</span>
               </button>
             )
           }
@@ -238,7 +279,7 @@ export default function Menu() {
               {link.to === '/alertas' && alertCount > 0 && (
                 <span className="bottom-nav-badge">{alertCount > 9 ? '9+' : alertCount}</span>
               )}
-              <span>{link.label}</span>
+              <span>{tt(link.key)}</span>
             </NavLink>
           )
         })}

@@ -6,20 +6,19 @@ import { Router }  from 'express'
 import bcrypt      from 'bcryptjs'
 import jwt         from 'jsonwebtoken'
 import { getTenantDb, getTenantId } from '../middlewares/tenant.js'
+import mainDb      from '../lib/db.js'
+import { getPlanPrice, normalizeCountry, normalizeLanguage, normalizePlan, PLANES } from '../lib/billing.js'
+import { sendNotificationEmail } from '../lib/email.js'
 
 const router = Router()
-
-const PLANES = {
-  basico:   { label: 'Básico',   personas: 100,  precio: 8000  },
-  estandar: { label: 'Estándar', personas: 500,  precio: 15000 },
-  pro:      { label: 'Pro',      personas: 99999, precio: 25000 },
-}
 
 // POST /registro/crear
 router.post('/crear', async (req, res) => {
   const {
     nombreIglesia, nombre, email, password,
-    telefono = '', ciudad = '', plan = 'estandar'
+    telefono = '', ciudad = '', plan = 'CONSOLIDACION',
+    country = 'AR', pais = country, currency = '', divisa = currency,
+    lang = '', idioma = lang, promo = '',
   } = req.body || {}
 
   // Validaciones
@@ -44,22 +43,49 @@ router.post('/crear', async (req, res) => {
     const existe = db.get('SELECT id FROM users WHERE email=?', [email.trim().toLowerCase()])
     if (existe) return res.status(409).json({ error: 'Ya existe una cuenta con ese email' })
 
+    const countryInfo = normalizeCountry(pais)
+    const selectedIdioma = normalizeLanguage(idioma, countryInfo)
+    const selectedPlanKey = normalizePlan(plan)
+    const selectedDivisa = String(divisa || countryInfo.currency || 'USD').toUpperCase()
+    const price = getPlanPrice(selectedPlanKey, selectedDivisa)
+    const planInfo = PLANES[selectedPlanKey]
+    const promoCode = promo
+      ? mainDb.get('SELECT * FROM promo_codes WHERE code=?', [String(promo).toUpperCase()])
+      : null
+
     // Crear el usuario admin
     const hash = await bcrypt.hash(password, 10)
     db.run(
-      `INSERT INTO users (nombre, email, password, rol, activo)
-       VALUES (?, ?, ?, 'PASTOR_GENERAL', 1)`,
-      [nombre?.trim() || 'Pastor', email.trim().toLowerCase(), hash]
+      `INSERT INTO users (nombre, email, password, rol, activo, plan, pais, divisa, idioma, promoCode, promoDescuento, promoMeses)
+       VALUES (?, ?, ?, 'PASTOR_GENERAL', 1, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        nombre?.trim() || 'Pastor',
+        email.trim().toLowerCase(),
+        hash,
+        selectedPlanKey,
+        countryInfo.code,
+        price.currency,
+        selectedIdioma,
+        promoCode?.code || '',
+        Number(promoCode?.descuento_porcentaje || 0),
+        Number(promoCode?.duracion_meses || 0),
+      ]
     )
     const userId = db.get('SELECT last_insert_rowid() as id')?.id
 
     // Configurar la iglesia
-    const planInfo = PLANES[plan] || PLANES.estandar
     const config = {
       nombre_iglesia:   nombreIglesia.trim(),
-      plan:             plan,
-      plan_label:       planInfo.label,
+      plan:             selectedPlanKey,
+      plan_label:       planInfo.label[selectedIdioma] || planInfo.label.es,
       plan_personas_max: String(planInfo.personas),
+      pais:             countryInfo.code,
+      divisa:           price.currency,
+      idioma:           selectedIdioma,
+      precio_mensual:   String(price.amount),
+      promoCode:        promoCode?.code || '',
+      promoDescuento:   String(Number(promoCode?.descuento_porcentaje || 0)),
+      promoMeses:       String(Number(promoCode?.duracion_meses || 0)),
       email_iglesia:    email.trim().toLowerCase(),
       telefono_iglesia: telefono.trim(),
       ciudad:           ciudad.trim(),
@@ -77,6 +103,11 @@ router.post('/crear', async (req, res) => {
     }
 
     db.save()
+    if (promoCode?.id) {
+      const usos = Number(promoCode.usos || 0) + 1
+      const maxUsos = Number(promoCode.max_usos ?? 1)
+      mainDb.run('UPDATE promo_codes SET usos=?, usado=? WHERE id=?', [usos, maxUsos > 0 && usos >= maxUsos ? 1 : 0, promoCode.id])
+    }
 
     // Generar JWT
     const token = jwt.sign(
@@ -87,7 +118,21 @@ router.post('/crear', async (req, res) => {
 
     const appUrl = `https://${tenantId}.churchsystem.com.ar/app`
 
-    console.log(`🏢  Nueva iglesia registrada: ${nombreIglesia} (${tenantId}) — plan: ${plan}`)
+    console.log(`🏢  Nueva iglesia registrada: ${nombreIglesia} (${tenantId}) — plan: ${selectedPlanKey}`)
+
+    await sendNotificationEmail({
+      to: email.trim().toLowerCase(),
+      subject: 'Registro exitoso - Church System',
+      title: 'Tu iglesia fue creada',
+      intro: `Hola ${nombre?.trim() || 'Pastor'}, ${nombreIglesia.trim()} ya tiene su espacio en Church System.`,
+      lines: [
+        `Plan: ${planInfo.label[selectedIdioma] || planInfo.label.es}`,
+        `Pais y divisa: ${countryInfo.code} / ${price.currency}`,
+        promoCode ? `Invitacion aplicada: ${promoCode.code} (${promoCode.descuento_porcentaje}% OFF por ${promoCode.duracion_meses} meses)` : '',
+      ],
+      actionUrl: appUrl,
+      actionLabel: 'Abrir panel',
+    }).catch(() => {})
 
     res.json({
       ok: true,
@@ -96,6 +141,7 @@ router.post('/crear', async (req, res) => {
       user: { id: userId, nombre: nombre?.trim() || 'Pastor', email, rol: 'PASTOR_GENERAL' },
       appUrl,
       trial: { inicio: config.trial_inicio, fin: config.trial_fin, dias: 14 },
+      billing: { country: countryInfo.code, currency: price.currency, price: price.amount, promo: promoCode?.code || null },
     })
 
   } catch (err) {

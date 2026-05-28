@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
 import Layout from '../components/Layout.jsx'
 import { apiFetch, getUser } from '../services/api.js'
 import Icons from '../components/Icons.jsx'
+import { useRealtimeQuery } from '../hooks/useRealtimeQuery.js'
 
 const COLORS = {
   primary: '#6B5CFF',
@@ -102,12 +102,7 @@ function Card({ title, children, style: s }) {
 
 export default function DashboardPremium() {
   const user = getUser()
-  const [loading, setLoading] = useState(true)
-  const [kpis, setKPIs] = useState({})
-  const [tendencia, setTendencia] = useState([])
-  const [actividad, setActividad] = useState({})
-
-  useEffect(() => {
+  const { data, loading } = useRealtimeQuery('stats', () =>
     Promise.all([
       apiFetch('/stats/personas'),
       apiFetch('/stats/asistencias'),
@@ -116,17 +111,18 @@ export default function DashboardPremium() {
       apiFetch('/stats/consolidacion'),
       apiFetch('/stats/tendencia').catch(() => ({ semanas: [] })),
       apiFetch('/stats/actividad').catch(() => ({})),
-    ])
-      .then(([personas, asist, grupos, seg, consol, tend, act]) => {
-        setKPIs({ personas, asist, grupos, seg, consol })
-        setTendencia(tend.semanas || [])
-        setActividad(act)
-      })
-      .catch(e => console.error(e))
-      .finally(() => setLoading(false))
-  }, [])
+    ]).then(([personas, asist, grupos, seg, consol, tend, act]) => ({
+      kpis: { personas, asist, grupos, seg, consol },
+      tendencia: tend.semanas || [],
+      actividad: act || {},
+    })),
+    [],
+    { intervalMs: 10000 }
+  )
 
-  const { personas = {}, asist = {}, grupos = {}, seg = {}, consol = {} } = kpis
+  const { personas = {}, asist = {}, grupos = {}, seg = {}, consol = {} } = data?.kpis || {}
+  const tendencia = data?.tendencia || []
+  const actividad = data?.actividad || {}
   const hoy = new Date()
   const saludo = hoy.getHours() < 12 ? 'Buenos días' : hoy.getHours() < 18 ? 'Buenas tardes' : 'Buenas noches'
   const mesLabel = hoy.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })

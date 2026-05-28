@@ -17,7 +17,7 @@ router.get('/semanal', requireAuth, (_req, res) => {
   res.json({
     periodo:       { desde, hasta },
     nuevasPersonas: db.all(
-      `SELECT nombre, apellido, estado, cultoDia, createdAt
+      `SELECT id, nombre, apellido, estado, cultoDia, createdAt
        FROM personas WHERE DATE(createdAt) BETWEEN ? AND ?
        ORDER BY createdAt DESC`, [desde, hasta]
     ),

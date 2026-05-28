@@ -9,20 +9,59 @@ const getApiBase = () => {
   // Cloudflare Tunnel o cualquier HTTPS sin puerto → mismo origen
   if (protocol === 'https:') return ''
 
-  // Red local o localhost → backend en :4000
+  // Si el backend ya está sirviendo la SPA, usar el mismo origen.
+  if (port && port !== '5173') return ''
+
+  // Vite dev → backend en :4000
   return `http://${hostname}:4000`
 }
 
 const API = getApiBase()
+const DATA_EVENT = 'church:data-changed'
+const channel = typeof BroadcastChannel !== 'undefined'
+  ? new BroadcastChannel('church-system-sync')
+  : null
+
+function normalizeAppContext() {
+  const params = new URLSearchParams(window.location.search)
+  const mappings = [
+    ['lang', 'church_lang'],
+    ['country', 'church_country'],
+    ['currency', 'church_currency'],
+    ['promo', 'church_promo'],
+  ]
+  for (const [param, key] of mappings) {
+    const value = params.get(param)
+    if (value) localStorage.setItem(key, value)
+  }
+  document.documentElement.lang = localStorage.getItem('church_lang') || 'es'
+}
+
+normalizeAppContext()
+
+export function emitDataChanged(detail = {}) {
+  const payload = { ...detail, at: Date.now() }
+  window.dispatchEvent(new CustomEvent(DATA_EVENT, { detail: payload }))
+  channel?.postMessage(payload)
+}
+
+if (channel) {
+  channel.onmessage = event => {
+    window.dispatchEvent(new CustomEvent(DATA_EVENT, { detail: event.data || {} }))
+  }
+}
 
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('token')
   const url   = `${API}${path}`
+  const method = (options.method || 'GET').toUpperCase()
+  const lang = localStorage.getItem('church_lang')
 
   const res = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(lang ? { 'Accept-Language': lang } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {})
     }
@@ -31,12 +70,15 @@ export async function apiFetch(path, options = {}) {
   if (res.status === 401) {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    window.location.href = '/login'
+    window.location.href = '/app/login'
     return
   }
 
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    emitDataChanged({ path, method })
+  }
   return data
 }
 
@@ -51,4 +93,23 @@ export function hasRol(...roles) {
 
 export function getApiUrl() {
   return API || window.location.origin
+}
+
+export function getStoredContext() {
+  return {
+    lang: localStorage.getItem('church_lang') || 'es',
+    country: localStorage.getItem('church_country') || 'AR',
+    currency: localStorage.getItem('church_currency') || 'ARS',
+    promo: localStorage.getItem('church_promo') || '',
+  }
+}
+
+export function decodeJwt(token) {
+  try {
+    const part = token.split('.')[1]
+    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'))
+    return JSON.parse(decodeURIComponent(Array.from(json).map(c => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`).join('')))
+  } catch {
+    return null
+  }
 }

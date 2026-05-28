@@ -31,6 +31,7 @@
     input:focus, select:focus { border-color:var(--blue); }
     input::placeholder { color:var(--muted); }
     .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
     .btn { width:100%; padding:14px; border-radius:10px; background:var(--blue); color:white; font-size:15px; font-weight:700; border:none; cursor:pointer; font-family:'Sora',sans-serif; transition:all .2s; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:8px; }
     .btn:hover { background:#60A5FA; }
     .btn:disabled { opacity:.6; cursor:default; }
@@ -109,6 +110,34 @@
       <input id="ciudad" type="text" placeholder="Córdoba, Argentina">
     </div>
 
+    <div class="grid3">
+      <div class="form-group">
+        <label>País *</label>
+        <select id="country" onchange="applyLocale()">
+          <option value="AR">Argentina</option>
+          <option value="BR">Brasil</option>
+          <option value="CL">Chile</option>
+          <option value="CO">Colombia</option>
+          <option value="MX">Mexico</option>
+          <option value="PE">Peru</option>
+          <option value="UY">Uruguay</option>
+          <option value="US">United States</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Divisa</label>
+        <input id="currency" type="text" value="ARS" readonly>
+      </div>
+      <div class="form-group">
+        <label>Idioma</label>
+        <select id="lang">
+          <option value="es">ES</option>
+          <option value="pt">PT</option>
+          <option value="en">EN</option>
+        </select>
+      </div>
+    </div>
+
     <hr class="divider">
 
     <button class="btn" id="btnRegistrar" onclick="registrar()">
@@ -132,6 +161,11 @@
 
 <script>
 let planSeleccionado = { plan: 'estandar', price: 15000 }
+const COUNTRIES = {
+  AR:{currency:'ARS',lang:'es'}, BR:{currency:'BRL',lang:'pt'}, CL:{currency:'CLP',lang:'es'},
+  CO:{currency:'COP',lang:'es'}, MX:{currency:'MXN',lang:'es'}, PE:{currency:'PEN',lang:'es'},
+  UY:{currency:'UYU',lang:'es'}, US:{currency:'USD',lang:'en'}
+}
 
 function selectPlan(el) {
   document.querySelectorAll('.plan').forEach(p => p.classList.remove('selected'))
@@ -146,6 +180,16 @@ function showMsg(text, type='error') {
   el.style.display = 'block'
 }
 
+function applyLocale() {
+  const country = document.getElementById('country').value
+  const cfg = COUNTRIES[country] || COUNTRIES.AR
+  document.getElementById('currency').value = cfg.currency
+  document.getElementById('lang').value = cfg.lang
+  localStorage.setItem('church_country', country)
+  localStorage.setItem('church_currency', cfg.currency)
+  localStorage.setItem('church_lang', cfg.lang)
+}
+
 async function registrar() {
   const btn = document.getElementById('btnRegistrar')
   const nombreIglesia = document.getElementById('nombreIglesia').value.trim()
@@ -154,6 +198,10 @@ async function registrar() {
   const password      = document.getElementById('password').value
   const telefono      = document.getElementById('telefono').value.trim()
   const ciudad        = document.getElementById('ciudad').value.trim()
+  const country       = document.getElementById('country').value
+  const currency      = document.getElementById('currency').value
+  const lang          = document.getElementById('lang').value
+  const promo         = new URLSearchParams(location.search).get('promo') || localStorage.getItem('church_promo') || ''
 
   if (!nombreIglesia) return showMsg('El nombre de la iglesia es obligatorio')
   if (!email)         return showMsg('El email es obligatorio')
@@ -168,7 +216,8 @@ async function registrar() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nombreIglesia, nombre, email, password,
-        telefono, ciudad, plan: planSeleccionado.plan
+        telefono, ciudad, plan: planSeleccionado.plan,
+        country, currency, lang, promo
       })
     })
 
@@ -198,6 +247,9 @@ if (urlPlan) {
   const el = document.querySelector(`[data-plan="${urlPlan}"]`)
   if (el) selectPlan(el)
 }
+const urlCountry = new URLSearchParams(location.search).get('country') || localStorage.getItem('church_country')
+if (urlCountry && COUNTRIES[urlCountry.toUpperCase()]) document.getElementById('country').value = urlCountry.toUpperCase()
+applyLocale()
 </script>
 </body>
 </html>

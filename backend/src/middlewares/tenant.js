@@ -18,6 +18,19 @@ const DB_DIR   = path.resolve(__dir, '../../dbs')
 const MAIN_DB  = path.resolve(__dir, '../../church.db')
 const dbCache  = new Map()
 
+const TENANT_MIGRATIONS = [
+  "ALTER TABLE users ADD COLUMN apellido TEXT DEFAULT ''",
+  "ALTER TABLE users ADD COLUMN pais TEXT DEFAULT 'AR'",
+  "ALTER TABLE users ADD COLUMN divisa TEXT DEFAULT 'ARS'",
+  "ALTER TABLE users ADD COLUMN idioma TEXT DEFAULT 'es'",
+  "ALTER TABLE users ADD COLUMN promoCode TEXT DEFAULT ''",
+  "ALTER TABLE users ADD COLUMN promoDescuento INTEGER DEFAULT 0",
+  "ALTER TABLE users ADD COLUMN promoMeses INTEGER DEFAULT 0",
+  "ALTER TABLE users ADD COLUMN promoUsadoAt TEXT DEFAULT NULL",
+  "ALTER TABLE users ADD COLUMN codigoContexto TEXT DEFAULT NULL",
+  "ALTER TABLE users ADD COLUMN pendingPassword TEXT DEFAULT NULL",
+]
+
 // Inicializar SQL.js una sola vez
 let SQL = null
 async function getSql() {
@@ -70,6 +83,9 @@ export async function getTenantDb(tenantId) {
   }
 
   const db   = new Sql.Database(buffer)
+  for (const sql of TENANT_MIGRATIONS) {
+    try { db.run(sql) } catch {}
+  }
   const wrap = {
     run: (sql, params=[]) => { db.run(sql, params); return wrap },
     get: (sql, params=[]) => {

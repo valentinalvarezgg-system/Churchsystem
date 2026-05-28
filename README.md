@@ -59,7 +59,7 @@ church-system-alpha/
 - **Bug Reporter** — Botón flotante "?" con envío email
 - **Dashboard Premium** — Vista ejecutiva para pastor general
 - **Promo Codes** — Admin panel para códigos promocionales
-- **OAuth Skeleton** — Google/Apple (pendiente keys)
+- **OAuth Google/Apple** — requiere keys de proveedor en Render
 
 ## 🔧 Configuración
 
@@ -68,11 +68,20 @@ Crear `.env` en `/backend`:
 ```env
 JWT_SECRET=tu_secret_aqui
 PORT=4000
-RESEND_API_KEY=re_xxxxx              # Para bug reporter
+RESEND_API_KEY=re_xxxxx              # Emails transaccionales, soporte y verificacion
+EMAIL_FROM=Church System <no-reply@churchsystem.com.ar>
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-xxxxx
+APPLE_CLIENT_ID=com.churchsystem.web
+APPLE_TEAM_ID=XXXXXXXXXX
+APPLE_KEY_ID=XXXXXXXXXX
+APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
 BASE_URL=http://localhost:4000
+FRONTEND_URL=http://localhost:4000
+MP_ACCESS_TOKEN=APP_USR-xxxxx
 ```
+
+En Render deben existir esas mismas variables. Para que funcionen los correos `@churchsystem.com.ar`, el dominio remitente configurado en Resend tiene que estar verificado con SPF/DKIM y `EMAIL_FROM` debe usar ese dominio verificado.
 
 ## 🛠️ Scripts
 
@@ -127,8 +136,7 @@ SQLite en `/backend/church.db`. Tablas principales:
 
 ## 📝 Pendientes
 
-- [ ] OAuth Google/Apple completo (DB + JWT)
-- [ ] Email templates (Resend)
+- [ ] Completar traducciones de todas las pantallas internas
 - [ ] Testing mobile iOS/Android
 - [ ] Reemplazar window.alert legacy
 - [ ] Changelog formal

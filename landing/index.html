@@ -22,6 +22,10 @@
     .nav-links{display:flex;gap:32px}
     .nav-links a{color:var(--text-2);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
     .nav-links a:hover{color:var(--text)}
+    .nav-controls{display:flex;align-items:center;gap:8px}
+    .nav-select{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 10px;font:600 12px 'Inter',sans-serif;outline:none}
+    .nav-select:disabled{opacity:1;cursor:not-allowed}
+    .nav-select option{background:#111827;color:#F1F5F9}
     .nav-cta{background:var(--primary);color:white;text-decoration:none;padding:9px 20px;border-radius:10px;font-size:14px;font-weight:600;transition:opacity .2s}
     .nav-cta:hover{opacity:.85}
     .hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:120px 24px 80px;text-align:center}
@@ -65,7 +69,7 @@
     .plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-top:56px}
     .plan-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px 22px;position:relative;transition:all .2s}
     .plan-card.featured{border-color:var(--primary);background:linear-gradient(135deg,rgba(107,92,255,.1),rgba(72,69,210,.05))}
-    .plan-card.featured::before{content:'Más popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--primary);color:white;font-size:11px;font-weight:700;padding:3px 12px;border-radius:100px}
+    .plan-card.featured::before{content:attr(data-popular);position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--primary);color:white;font-size:11px;font-weight:700;padding:3px 12px;border-radius:100px;white-space:nowrap}
     .plan-name{font-family:'Sora',sans-serif;font-size:15px;font-weight:700;margin-bottom:6px}
     .plan-price{font-family:'Sora',sans-serif;font-size:30px;font-weight:800;color:var(--primary);margin-bottom:4px}
     .plan-price span{font-size:14px;font-weight:500;color:var(--muted)}
@@ -83,7 +87,7 @@
     .footer-links a{color:var(--muted);text-decoration:none;font-size:13px;transition:color .2s}
     .footer-links a:hover{color:var(--text)}
     @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-    @media(max-width:768px){nav{padding:14px 20px}.nav-links{display:none}.hero{padding:100px 20px 60px}.hero-stats{gap:24px}section{padding:60px 20px}.cta-section{padding:48px 24px;margin:0 16px 60px}footer{flex-direction:column;align-items:flex-start;padding:32px 20px}}
+    @media(max-width:768px){nav{padding:14px 20px}.nav-links{display:none}.nav-controls{display:none}.hero{padding:100px 20px 60px}.hero-stats{gap:24px}section{padding:60px 20px}.cta-section{padding:48px 24px;margin:0 16px 60px}footer{flex-direction:column;align-items:flex-start;padding:32px 20px}}
   </style>
 </head>
 <body>
@@ -101,21 +105,48 @@
     Church System
   </a>
   <div class="nav-links">
-    <a href="#funciones">Funciones</a>
-    <a href="#modulos">Módulos</a>
-    <a href="#precios">Precios</a>
-    <a href="#como-funciona">¿Cómo funciona?</a>
+    <a href="#funciones" data-i18n="navFeatures">Funciones</a>
+    <a href="#modulos" data-i18n="navModules">Módulos</a>
+    <a href="#precios" data-i18n="navPricing">Precios</a>
+    <a href="#como-funciona" data-i18n="navHow">¿Cómo funciona?</a>
   </div>
-  <a href="/app" class="nav-cta">Ingresar →</a>
+  <div class="nav-controls">
+    <select id="countrySelect" class="nav-select" aria-label="Pais">
+      <option value="AR">Argentina · ARS</option>
+      <option value="BR">Brasil · BRL</option>
+      <option value="CL">Chile · CLP</option>
+      <option value="CO">Colombia · COP</option>
+      <option value="MX">Mexico · MXN</option>
+      <option value="PE">Peru · PEN</option>
+      <option value="UY">Uruguay · UYU</option>
+      <option value="US">United States · USD</option>
+    </select>
+    <select id="currencySelect" class="nav-select" aria-label="Divisa" disabled>
+      <option value="ARS">ARS</option>
+      <option value="BRL">BRL</option>
+      <option value="CLP">CLP</option>
+      <option value="COP">COP</option>
+      <option value="MXN">MXN</option>
+      <option value="PEN">PEN</option>
+      <option value="UYU">UYU</option>
+      <option value="USD">USD</option>
+    </select>
+    <select id="langSelect" class="nav-select" aria-label="Idioma">
+      <option value="es">ES</option>
+      <option value="pt">PT</option>
+      <option value="en">EN</option>
+    </select>
+  </div>
+  <a href="/app" class="nav-cta" data-i18n="login">Ingresar →</a>
 </nav>
 
 <section class="hero">
-  <div class="hero-badge"><span></span> v2.6.0 · Pre-Release disponible</div>
-  <h1 class="hero-title">Gestioná tu iglesia<br><em>de forma inteligente</em></h1>
-  <p class="hero-sub">Una plataforma integral para iglesias evangélicas. Personas, asistencia, seguimientos, grupos, reportes y más — en un solo lugar.</p>
+  <div class="hero-badge"><span></span> <span data-i18n="badge">v2.6.0 · Pre-Release disponible</span></div>
+  <h1 class="hero-title"><span data-i18n="heroTitleA">Gestioná tu iglesia</span><br><em data-i18n="heroTitleB">de forma inteligente</em></h1>
+  <p class="hero-sub" data-i18n="heroSub">Una plataforma integral para iglesias evangélicas. Personas, asistencia, seguimientos, grupos, reportes y más — en un solo lugar.</p>
   <div class="hero-ctas">
-    <a href="/app/registro" class="btn-primary">Empezar gratis →</a>
-    <a href="/app" class="btn-ghost">Ingresar a la plataforma</a>
+    <a href="/app/registro" class="btn-primary js-register-link" data-i18n="startFree">Empezar gratis →</a>
+    <a href="/app" class="btn-ghost" data-i18n="enterPlatform">Ingresar a la plataforma</a>
   </div>
   <div class="hero-stats">
     <div class="hero-stat"><div class="hero-stat-val">20+</div><div class="hero-stat-lbl">Módulos activos</div></div>
@@ -243,40 +274,40 @@
       <h2 class="section-title" style="text-align:center">Un plan para cada<br>tamaño de iglesia</h2>
     </div>
     <div class="plans-grid">
-      <div class="plan-card">
+      <div class="plan-card" data-plan="LIDER">
         <div class="plan-name">Líder</div>
-        <div class="plan-price">$15<span>/mes</span></div>
+        <div class="plan-price"><span class="js-price"></span><span data-i18n="perMonth">/mes</span></div>
         <div class="plan-desc">Para líderes de célula</div>
         <ul class="plan-features"><li>Dashboard</li><li>Personas</li><li>Grupos</li><li>Check-in QR</li><li>Mi perfil</li></ul>
-        <a href="/app/registro?plan=lider" class="plan-btn plan-btn-ghost">Empezar gratis</a>
+        <a href="/app/registro?plan=lider" class="plan-btn plan-btn-ghost js-register-link" data-plan-link="lider" data-i18n="planStartFree">Empezar gratis</a>
       </div>
-      <div class="plan-card">
+      <div class="plan-card" data-plan="CULTO">
         <div class="plan-name">Culto</div>
-        <div class="plan-price">$30<span>/mes</span></div>
+        <div class="plan-price"><span class="js-price"></span><span data-i18n="perMonth">/mes</span></div>
         <div class="plan-desc">Para equipos de culto</div>
         <ul class="plan-features"><li>Todo lo de Líder</li><li>Asistencia</li><li>Calendario</li><li>Comunicados</li></ul>
-        <a href="/app/registro?plan=culto" class="plan-btn plan-btn-ghost">Empezar gratis</a>
+        <a href="/app/registro?plan=culto" class="plan-btn plan-btn-ghost js-register-link" data-plan-link="culto" data-i18n="planStartFree">Empezar gratis</a>
       </div>
-      <div class="plan-card featured">
+      <div class="plan-card featured" data-plan="CONSOLIDACION" data-popular="Más popular">
         <div class="plan-name">Consolidación</div>
-        <div class="plan-price">$50<span>/mes</span></div>
+        <div class="plan-price"><span class="js-price"></span><span data-i18n="perMonth">/mes</span></div>
         <div class="plan-desc">Para equipos pastorales</div>
         <ul class="plan-features"><li>Todo lo de Culto</li><li>Seguimiento pastoral</li><li>Consolidación</li><li>Alertas</li><li>Mensajería</li></ul>
-        <a href="/app/registro?plan=consolidacion" class="plan-btn plan-btn-primary">Comenzar ahora</a>
+        <a href="/app/registro?plan=consolidacion" class="plan-btn plan-btn-primary js-register-link" data-plan-link="consolidacion" data-i18n="planStartNow">Comenzar ahora</a>
       </div>
-      <div class="plan-card">
+      <div class="plan-card" data-plan="ADMINISTRACION">
         <div class="plan-name">Administración</div>
-        <div class="plan-price">$80<span>/mes</span></div>
+        <div class="plan-price"><span class="js-price"></span><span data-i18n="perMonth">/mes</span></div>
         <div class="plan-desc">Para secretaría y admin</div>
         <ul class="plan-features"><li>Todo lo anterior</li><li>Reportes completos</li><li>Gestión de usuarios</li><li>Permisos y roles</li><li>Excel + IA</li></ul>
-        <a href="/app/registro?plan=administracion" class="plan-btn plan-btn-ghost">Comenzar ahora</a>
+        <a href="/app/registro?plan=administracion" class="plan-btn plan-btn-ghost js-register-link" data-plan-link="administracion" data-i18n="planStartNow">Comenzar ahora</a>
       </div>
-      <div class="plan-card">
+      <div class="plan-card" data-plan="GENERAL">
         <div class="plan-name">General</div>
-        <div class="plan-price">$120<span>/mes</span></div>
+        <div class="plan-price"><span class="js-price"></span><span data-i18n="perMonth">/mes</span></div>
         <div class="plan-desc">Para pastor general</div>
         <ul class="plan-features"><li>Acceso completo</li><li>Vista ejecutiva IA</li><li>Asistente IA</li><li>Multi-iglesia</li><li>Soporte prioritario</li></ul>
-        <a href="/app/registro?plan=general" class="plan-btn plan-btn-ghost">Hablar con ventas</a>
+        <a href="/app/registro?plan=general" class="plan-btn plan-btn-ghost js-register-link" data-plan-link="general" data-i18n="talkSales">Hablar con ventas</a>
       </div>
     </div>
   </div>
@@ -287,7 +318,7 @@
   <h2 class="section-title" style="text-align:center">Tu iglesia merece<br>la mejor herramienta</h2>
   <p style="color:var(--text-2);font-size:16px;max-width:480px;margin:0 auto 32px;line-height:1.7">Registrate en menos de 2 minutos y empezá a usar Church System hoy.</p>
   <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
-    <a href="/app/registro" class="btn-primary">Crear cuenta gratis →</a>
+    <a href="/app/registro" class="btn-primary js-register-link" data-i18n="createFree">Crear cuenta gratis →</a>
     <a href="/app" class="btn-ghost">Ya tengo cuenta</a>
   </div>
 </div>
@@ -310,5 +341,73 @@
   </div>
   <div style="font-size:13px;color:var(--muted)">© 2026 Church System · v2.6.0</div>
 </footer>
+<script>
+const COUNTRIES = {
+  AR:{currency:'ARS',locale:'es-AR',lang:'es'}, BR:{currency:'BRL',locale:'pt-BR',lang:'pt'},
+  CL:{currency:'CLP',locale:'es-CL',lang:'es'}, CO:{currency:'COP',locale:'es-CO',lang:'es'},
+  MX:{currency:'MXN',locale:'es-MX',lang:'es'}, PE:{currency:'PEN',locale:'es-PE',lang:'es'},
+  UY:{currency:'UYU',locale:'es-UY',lang:'es'}, US:{currency:'USD',locale:'en-US',lang:'en'}
+}
+const PRICES = {
+  LIDER:{USD:15,ARS:15000,BRL:75,CLP:14000,COP:60000,MXN:280,PEN:55,UYU:600},
+  CULTO:{USD:30,ARS:30000,BRL:150,CLP:28000,COP:120000,MXN:560,PEN:110,UYU:1200},
+  CONSOLIDACION:{USD:50,ARS:50000,BRL:250,CLP:47000,COP:200000,MXN:950,PEN:185,UYU:2000},
+  ADMINISTRACION:{USD:80,ARS:80000,BRL:400,CLP:75000,COP:320000,MXN:1500,PEN:295,UYU:3200},
+  GENERAL:{USD:120,ARS:120000,BRL:600,CLP:112000,COP:480000,MXN:2250,PEN:440,UYU:4800}
+}
+const TEXT = {
+  es:{navFeatures:'Funciones',navModules:'Módulos',navPricing:'Precios',navHow:'¿Cómo funciona?',login:'Ingresar →',badge:'v2.6.0 · Pre-Release disponible',heroTitleA:'Gestioná tu iglesia',heroTitleB:'de forma inteligente',heroSub:'Una plataforma integral para iglesias evangélicas. Personas, asistencia, seguimientos, grupos, reportes y más — en un solo lugar.',startFree:'Empezar gratis →',enterPlatform:'Ingresar a la plataforma',createFree:'Crear cuenta gratis →',perMonth:'/mes',planStartFree:'Empezar gratis',planStartNow:'Comenzar ahora',talkSales:'Hablar con ventas',popular:'Más popular'},
+  pt:{navFeatures:'Recursos',navModules:'Módulos',navPricing:'Preços',navHow:'Como funciona?',login:'Entrar →',badge:'v2.6.0 · Pre-Release disponível',heroTitleA:'Gerencie sua igreja',heroTitleB:'de forma inteligente',heroSub:'Uma plataforma completa para igrejas evangélicas. Pessoas, presença, acompanhamento, grupos, relatórios e mais em um só lugar.',startFree:'Começar grátis →',enterPlatform:'Entrar na plataforma',createFree:'Criar conta grátis →',perMonth:'/mês',planStartFree:'Começar grátis',planStartNow:'Começar agora',talkSales:'Falar com vendas',popular:'Mais popular'},
+  en:{navFeatures:'Features',navModules:'Modules',navPricing:'Pricing',navHow:'How it works',login:'Sign in →',badge:'v2.6.0 · Pre-release available',heroTitleA:'Manage your church',heroTitleB:'intelligently',heroSub:'An all-in-one platform for churches: people, attendance, follow-up, groups, reports, and more in one place.',startFree:'Start free →',enterPlatform:'Enter platform',createFree:'Create free account →',perMonth:'/mo',planStartFree:'Start free',planStartNow:'Start now',talkSales:'Talk to sales',popular:'Most popular'}
+}
+const params = new URLSearchParams(location.search)
+const countrySelect = document.getElementById('countrySelect')
+const currencySelect = document.getElementById('currencySelect')
+const langSelect = document.getElementById('langSelect')
+function money(amount, currency, locale) {
+  return new Intl.NumberFormat(locale,{style:'currency',currency,maximumFractionDigits:['ARS','CLP','COP','UYU'].includes(currency)?0:2}).format(amount)
+}
+function context() {
+  const country = countrySelect.value
+  const cfg = COUNTRIES[country] || COUNTRIES.AR
+  currencySelect.value = cfg.currency || 'USD'
+  return { country, currency:currencySelect.value || 'USD', locale:cfg.locale, lang:langSelect.value || cfg.lang }
+}
+function applyContext() {
+  const ctx = context()
+  document.documentElement.lang = ctx.lang
+  localStorage.setItem('church_country', ctx.country)
+  localStorage.setItem('church_currency', ctx.currency)
+  localStorage.setItem('church_lang', ctx.lang)
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n
+    if (TEXT[ctx.lang]?.[key]) el.textContent = TEXT[ctx.lang][key]
+  })
+  document.querySelectorAll('.plan-card.featured').forEach(card => {
+    card.dataset.popular = TEXT[ctx.lang]?.popular || TEXT.es.popular
+  })
+  document.querySelectorAll('.plan-card').forEach(card => {
+    const plan = card.dataset.plan
+    const value = PRICES[plan]?.[ctx.currency] || PRICES[plan]?.USD
+    const price = card.querySelector('.js-price')
+    if (price) price.textContent = money(value, ctx.currency, ctx.locale)
+  })
+  document.querySelectorAll('.js-register-link').forEach(link => {
+    const plan = link.dataset.planLink
+    const qp = new URLSearchParams({country:ctx.country,currency:ctx.currency,lang:ctx.lang})
+    if (plan) qp.set('plan', plan)
+    const promo = params.get('promo') || localStorage.getItem('church_promo')
+    if (promo) qp.set('promo', promo)
+    link.href = `/app/registro?${qp.toString()}`
+  })
+}
+const initialCountry = (params.get('country') || localStorage.getItem('church_country') || 'AR').toUpperCase()
+countrySelect.value = COUNTRIES[initialCountry] ? initialCountry : 'AR'
+langSelect.value = (params.get('lang') || localStorage.getItem('church_lang') || COUNTRIES[countrySelect.value].lang).slice(0,2)
+countrySelect.addEventListener('change', () => { langSelect.value = COUNTRIES[countrySelect.value].lang; applyContext() })
+currencySelect.addEventListener('change', applyContext)
+langSelect.addEventListener('change', applyContext)
+applyContext()
+</script>
 </body>
 </html>

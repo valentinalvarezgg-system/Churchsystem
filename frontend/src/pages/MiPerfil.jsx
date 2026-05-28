@@ -7,10 +7,11 @@ import { apiFetch, getApiUrl } from '../services/api.js'
 export default function MiPerfil() {
   const navigate = useNavigate()
   const [perfil, setPerfil]   = useState(null)
-  const [form, setForm]       = useState({nombre:'',passwordActual:'',passwordNuevo:'',passwordConf:''})
+  const [form, setForm]       = useState({nombre:'',passwordActual:'',passwordNuevo:'',passwordConf:'',codigo:''})
   const [msg, setMsg]         = useState(null)
   const [tab, setTab]         = useState('datos')
   const [backupInfo, setBackupInfo] = useState(null)
+  const [awaitingCode, setAwaitingCode] = useState(false)
 
   useEffect(()=>{
     apiFetch('/mi-perfil').then(p=>{ setPerfil(p); setForm(f=>({...f,nombre:p.nombre||''})) }).catch(()=>{})
@@ -21,9 +22,20 @@ export default function MiPerfil() {
     e.preventDefault(); setMsg(null)
     if (form.passwordNuevo && form.passwordNuevo!==form.passwordConf) return setMsg({type:'error',text:'Las contraseñas no coinciden'})
     try {
-      await apiFetch('/mi-perfil',{method:'PUT',body:JSON.stringify({nombre:form.nombre,passwordActual:form.passwordActual||undefined,passwordNuevo:form.passwordNuevo||undefined})})
+      const result = await apiFetch('/mi-perfil',{method:'PUT',body:JSON.stringify({
+        nombre:form.nombre,
+        passwordActual:form.passwordActual||undefined,
+        passwordNuevo:form.passwordNuevo||undefined,
+        codigo:form.codigo||undefined,
+      })})
+      if (result.requiresCode) {
+        setAwaitingCode(true)
+        setMsg({type:'success',text:'Te enviamos un código de 6 dígitos para confirmar el cambio.'})
+        return
+      }
       setMsg({type:'success',text:'Perfil actualizado'})
-      setForm(f=>({...f,passwordActual:'',passwordNuevo:'',passwordConf:''}))
+      setAwaitingCode(false)
+      setForm(f=>({...f,passwordActual:'',passwordNuevo:'',passwordConf:'',codigo:''}))
       const user = JSON.parse(localStorage.getItem('user')||'{}')
       localStorage.setItem('user', JSON.stringify({...user,nombre:form.nombre}))
     } catch(err) { setMsg({type:'error',text:err.message}) }
@@ -91,6 +103,12 @@ export default function MiPerfil() {
                   <div className="form-group full"><label>Contraseña actual *</label><input name="passwordActual" className="form-input" type="password" value={form.passwordActual} onChange={e=>setForm(f=>({...f,passwordActual:e.target.value}))} required/></div>
                   <div className="form-group"><label>Nueva *</label><input name="passwordNuevo" className="form-input" type="password" value={form.passwordNuevo} onChange={e=>setForm(f=>({...f,passwordNuevo:e.target.value}))} required minLength={6}/></div>
                   <div className="form-group"><label>Confirmar *</label><input name="passwordConf" className="form-input" type="password" value={form.passwordConf} onChange={e=>setForm(f=>({...f,passwordConf:e.target.value}))} required/></div>
+                  {awaitingCode&&(
+                    <div className="form-group full">
+                      <label>Código de 6 dígitos *</label>
+                      <input name="codigo" className="form-input" inputMode="numeric" maxLength={6} value={form.codigo} onChange={e=>setForm(f=>({...f,codigo:e.target.value.replace(/\D/g,'').slice(0,6)}))} required/>
+                    </div>
+                  )}
                 </div>
               )}
               <div style={{marginTop:16}}><button type="submit" className="btn btn-primary" data-tip="Guardar la configuración">Guardar cambios</button></div>

@@ -1,22 +1,15 @@
 import { Router } from 'express'
 import { requireAuth } from '../middlewares/auth.js'
-import { Resend } from 'resend'
+import { sendSystemEmail } from '../lib/email.js'
 
 const router = Router()
-let resend = null
-try { resend = new Resend(process.env.RESEND_API_KEY) } catch(_) {}
 
-router.post('/bug-report', requireAuth, async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   const { descripcion, url, userAgent } = req.body
   const { email, nombre, iglesia } = req.user
 
-  if (!process.env.RESEND_API_KEY) {
-    return res.json({ ok: true, warning: 'Email no configurado' })
-  }
-
   try {
-    await resend.emails.send({
-      from: 'Church System <bugs@churchsystem.com.ar>',
+    const result = await sendSystemEmail({
       to: ['soporte@churchsystem.com.ar'],
       subject: `🐛 Bug Report - ${iglesia || 'Usuario'}`,
       html: `
@@ -37,7 +30,7 @@ router.post('/bug-report', requireAuth, async (req, res) => {
       `
     })
 
-    res.json({ ok: true })
+    res.json({ ok: true, demo: result.demo, warning: result.skipped ? 'Email no configurado' : undefined })
   } catch (error) {
     console.error('Error enviando email:', error)
     res.json({ ok: true, warning: 'Error al enviar email' })

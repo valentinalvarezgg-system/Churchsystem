@@ -1,9 +1,75 @@
-import { useEffect, useState } from 'react'
 import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
-import { apiFetch, getUser } from '../services/api.js'
+import { apiFetch, getStoredContext, getUser } from '../services/api.js'
 import { useOrientation } from '../hooks/useOrientation.js'
+import { useRealtimeQuery } from '../hooks/useRealtimeQuery.js'
+
+const DASH_I18N = {
+  es: {
+    locale:'es-AR', morning:'Buenos días', afternoon:'Buenas tardes', night:'Buenas noches', pastor:'Pastor',
+    newThisMonth:'este mes', newPeople:'nuevas personas',
+    total:'Total', active:'Activos', visitors:'Visitantes', groups:'Grupos', services:'Cultos reg.', attendance:'Asistencia',
+    overdueFollowUps:'seguimientos vencidos', unconsolidatedVisitors:'visitantes sin consolidar', viewAlerts:'Ver alertas →',
+    recentServices:'Últimos cultos', seeAll:'Ver todos →', noServices:'Sin cultos aún.', createFirstService:'Creá el primero en Asistencia.',
+    followUps:'Seguimientos', noFollowUps:'Sin seguimientos pendientes', overdue:'¡Vencido!', today:'Hoy',
+    birthdays:'Cumpleaños', next30:'próximos 30 días', noBirthdays:'Sin cumpleaños próximos', inDays:'en {days}d', todayBang:'Hoy!',
+    quick:'Acceso rápido', growth:'Crecimiento mensual', last12:'últimos 12 meses', noGrowth:'Sin datos de crecimiento aún',
+    status:'Estado', consolidation:'Consolidación', activePrayer:'Oración activa', noTracking:'Sin seguimiento',
+    recentActivity:'Actividad reciente',
+    actions:[
+      ['Nueva persona', 'Registrar miembro o visitante'],
+      ['Registrar culto', 'Tomar asistencia del servicio'],
+      ['Check-in QR', 'Generar código QR para entrada'],
+      ['Enviar mensaje', 'Contactar persona o grupo'],
+      ['Asistente IA', 'Consultar datos con inteligencia artificial'],
+      ['Ver alertas', 'Seguimientos y avisos pendientes'],
+      ['Reportes', 'Estadísticas y métricas de la iglesia'],
+    ],
+  },
+  pt: {
+    locale:'pt-BR', morning:'Bom dia', afternoon:'Boa tarde', night:'Boa noite', pastor:'Pastor',
+    newThisMonth:'este mês', newPeople:'novas pessoas',
+    total:'Total', active:'Ativos', visitors:'Visitantes', groups:'Grupos', services:'Cultos reg.', attendance:'Presença',
+    overdueFollowUps:'acompanhamentos vencidos', unconsolidatedVisitors:'visitantes sem consolidação', viewAlerts:'Ver alertas →',
+    recentServices:'Últimos cultos', seeAll:'Ver todos →', noServices:'Sem cultos ainda.', createFirstService:'Crie o primeiro em Presença.',
+    followUps:'Acompanhamentos', noFollowUps:'Sem acompanhamentos pendentes', overdue:'Vencido!', today:'Hoje',
+    birthdays:'Aniversários', next30:'próximos 30 dias', noBirthdays:'Sem aniversários próximos', inDays:'em {days}d', todayBang:'Hoje!',
+    quick:'Acesso rápido', growth:'Crescimento mensal', last12:'últimos 12 meses', noGrowth:'Sem dados de crescimento ainda',
+    status:'Estado', consolidation:'Consolidação', activePrayer:'Oração ativa', noTracking:'Sem acompanhamento',
+    recentActivity:'Atividade recente',
+    actions:[
+      ['Nova pessoa', 'Registrar membro ou visitante'],
+      ['Registrar culto', 'Registrar presença do culto'],
+      ['Check-in QR', 'Gerar código QR para entrada'],
+      ['Enviar mensagem', 'Contatar pessoa ou grupo'],
+      ['Assistente IA', 'Consultar dados com inteligência artificial'],
+      ['Ver alertas', 'Acompanhamentos e avisos pendentes'],
+      ['Relatórios', 'Estatísticas e métricas da igreja'],
+    ],
+  },
+  en: {
+    locale:'en-US', morning:'Good morning', afternoon:'Good afternoon', night:'Good evening', pastor:'Pastor',
+    newThisMonth:'this month', newPeople:'new people',
+    total:'Total', active:'Active', visitors:'Visitors', groups:'Groups', services:'Services', attendance:'Attendance',
+    overdueFollowUps:'overdue follow-ups', unconsolidatedVisitors:'visitors not consolidated', viewAlerts:'View alerts →',
+    recentServices:'Recent services', seeAll:'See all →', noServices:'No services yet.', createFirstService:'Create the first one in Attendance.',
+    followUps:'Follow-ups', noFollowUps:'No pending follow-ups', overdue:'Overdue!', today:'Today',
+    birthdays:'Birthdays', next30:'next 30 days', noBirthdays:'No upcoming birthdays', inDays:'in {days}d', todayBang:'Today!',
+    quick:'Quick access', growth:'Monthly growth', last12:'last 12 months', noGrowth:'No growth data yet',
+    status:'Status', consolidation:'Consolidation', activePrayer:'Active prayer', noTracking:'No follow-up',
+    recentActivity:'Recent activity',
+    actions:[
+      ['New person', 'Register member or visitor'],
+      ['Register service', 'Take service attendance'],
+      ['QR check-in', 'Generate entry QR code'],
+      ['Send message', 'Contact person or group'],
+      ['AI assistant', 'Ask questions about church data'],
+      ['View alerts', 'Pending follow-ups and notices'],
+      ['Reports', 'Church statistics and metrics'],
+    ],
+  },
+}
 
 // Mini barra de progreso inline
 function Bar({ pct, color = 'var(--primary)' }) {
@@ -32,18 +98,14 @@ export default function Dashboard() {
   const navigate   = useNavigate()
   const user       = getUser()
   const ori = useOrientation()
-  const [stats, setStats]     = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    apiFetch('/stats')
-      .then(s => { setStats(s); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [])
+  const { data: stats, loading } = useRealtimeQuery('stats', () => apiFetch('/stats'), [], { intervalMs: 10000 })
+  const lang = (localStorage.getItem('church_lang') || user?.idioma || getStoredContext().lang || 'es').slice(0, 2)
+  const copy = DASH_I18N[lang] || DASH_I18N.es
+  const txt = key => copy[key] || DASH_I18N.es[key] || key
 
   const hora    = new Date().getHours()
-  const saludo  = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches'
-  const hoyStr  = new Date().toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' })
+  const saludo  = hora < 12 ? txt('morning') : hora < 19 ? txt('afternoon') : txt('night')
+  const hoyStr  = new Date().toLocaleDateString(txt('locale'), { weekday:'long', day:'numeric', month:'long' })
 
   if (loading) return (
     <div className="layout"><Menu />
@@ -69,7 +131,7 @@ export default function Dashboard() {
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:24, flexWrap:'wrap', gap:12 }}>
           <div>
             <h1 style={{ fontSize:23, fontWeight:800, letterSpacing:'-0.6px', margin:'0 0 3px' }}>
-              {saludo}, {user?.nombre?.split(' ')[0] || 'Pastor'} <Icons.Users />
+              {saludo}, {user?.nombre?.split(' ')[0] || txt('pastor')} <Icons.Users />
             </h1>
             <p style={{ fontSize:13, color:'var(--text-muted)', margin:0, textTransform:'capitalize' }}>{hoyStr}</p>
           </div>
@@ -81,8 +143,8 @@ export default function Dashboard() {
             }}>
               <span style={{ fontSize:18 }}><Icons.Users /></span>
               <div>
-                <div style={{ fontSize:13, fontWeight:700, color:'var(--c-success)' }}>+{t.nuevosMes} este mes</div>
-                <div style={{ fontSize:11, color:'var(--text-muted)' }}>nuevas personas</div>
+                <div style={{ fontSize:13, fontWeight:700, color:'var(--c-success)' }}>+{t.nuevosMes} {txt('newThisMonth')}</div>
+                <div style={{ fontSize:11, color:'var(--text-muted)' }}>{txt('newPeople')}</div>
               </div>
             </div>
           )}
@@ -91,12 +153,12 @@ export default function Dashboard() {
         {/* ── Stats principales ──────────────────────────────────── */}
         <div className="stats-grid" style={{ gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12, marginBottom: 20 }}>
           {[
-            { val: t.personas || 0,    lbl: 'Total',        icon:'⊕', color:'var(--primary)',   path:'/personas' },
-            { val: t.activos  || 0,    lbl: 'Activos',      icon:'✓', color:'var(--c-success)', path:'/personas' },
-            { val: t.visitantes|| 0,   lbl: 'Visitantes',   icon:'⊕', color:'var(--c-warning)', path:'/personas' },
-            { val: t.grupos   || 0,    lbl: 'Grupos',       icon:'⊞', color:'var(--c-info)',    path:'/grupos' },
-            { val: t.cultos   || 0,    lbl: 'Cultos reg.',  icon:'✓', color:'var(--c-purple)',  path:'/asistencia' },
-            { val: pct+'%',            lbl: 'Asistencia',   icon:'▤', color: pctColor,          path:'/asistencia' },
+            { val: t.personas || 0,    lbl: txt('total'),      icon:'⊕', color:'var(--primary)',   path:'/personas' },
+            { val: t.activos  || 0,    lbl: txt('active'),     icon:'✓', color:'var(--c-success)', path:'/personas' },
+            { val: t.visitantes|| 0,   lbl: txt('visitors'),   icon:'⊕', color:'var(--c-warning)', path:'/personas' },
+            { val: t.grupos   || 0,    lbl: txt('groups'),     icon:'⊞', color:'var(--c-info)',    path:'/grupos' },
+            { val: t.cultos   || 0,    lbl: txt('services'),   icon:'✓', color:'var(--c-purple)',  path:'/asistencia' },
+            { val: pct+'%',            lbl: txt('attendance'), icon:'▤', color: pctColor,          path:'/asistencia' },
           ].map(s => (
             <div key={s.lbl} className="stat-card" onClick={() => navigate(s.path)}>
               <div style={{ fontSize:18, marginBottom:6 }}>{s.icon}</div>
@@ -118,12 +180,12 @@ export default function Dashboard() {
             <div style={{ flex:1 }}>
               <span style={{ fontSize:13, fontWeight:700, color:'var(--c-danger)' }}>
                 {[
-                  t.seguimientosVencidos   > 0 && `${t.seguimientosVencidos} seguimientos vencidos`,
-                  t.visitantesSinConsolidar> 0 && `${t.visitantesSinConsolidar} visitantes sin consolidar`,
+                  t.seguimientosVencidos   > 0 && `${t.seguimientosVencidos} ${txt('overdueFollowUps')}`,
+                  t.visitantesSinConsolidar> 0 && `${t.visitantesSinConsolidar} ${txt('unconsolidatedVisitors')}`,
                 ].filter(Boolean).join(' · ')}
               </span>
             </div>
-            <span style={{ fontSize:12, color:'var(--c-danger)', fontWeight:600 }}>Ver alertas →</span>
+            <span style={{ fontSize:12, color:'var(--c-danger)', fontWeight:600 }}>{txt('viewAlerts')}</span>
           </div>
         )}
 
@@ -133,11 +195,11 @@ export default function Dashboard() {
           {/* Últimos cultos */}
           <div className="card">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}><Icons.Attendance /> Últimos cultos</h3>
-              <button className="btn btn-ghost btn-xs" onClick={() => navigate('/asistencia')}>Ver todos →</button>
+              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}><Icons.Attendance /> {txt('recentServices')}</h3>
+              <button className="btn btn-ghost btn-xs" onClick={() => navigate('/asistencia')}>{txt('seeAll')}</button>
             </div>
             {(stats?.asistenciaReciente || []).length === 0
-              ? <div className="empty" style={{ padding:'20px 0' }}><p>Sin cultos aún.<br/>Creá el primero en Asistencia.</p></div>
+              ? <div className="empty" style={{ padding:'20px 0' }}><p>{txt('noServices')}<br/>{txt('createFirstService')}</p></div>
               : (stats?.asistenciaReciente || []).slice(0, 5).map((c, i) => {
                   const p = c.total > 0 ? Math.round(c.presentes / c.total * 100) : 0
                   const col = p >= 70 ? 'var(--c-success)' : p >= 45 ? 'var(--c-warning)' : 'var(--c-danger)'
@@ -157,13 +219,13 @@ export default function Dashboard() {
           {/* Próximos seguimientos */}
           <div className="card">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}>≡ Seguimientos</h3>
-              <button className="btn btn-ghost btn-xs" onClick={() => navigate('/alertas')}>Ver todos →</button>
+              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}>≡ {txt('followUps')}</h3>
+              <button className="btn btn-ghost btn-xs" onClick={() => navigate('/alertas')}>{txt('seeAll')}</button>
             </div>
             {(stats?.proximosContactos || []).length === 0
               ? <div className="empty" style={{ padding:'20px 0' }}>
                   <div className="empty-icon" style={{ fontSize:24 }}><Icons.Attendance /></div>
-                  <p>Sin seguimientos pendientes</p>
+                  <p>{txt('noFollowUps')}</p>
                 </div>
               : (stats?.proximosContactos || []).slice(0, 6).map((s, i) => {
                   const dias    = Math.round((new Date(s.proximoContacto) - new Date()) / 86400000)
@@ -183,7 +245,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, background:bg, color:col, whiteSpace:'nowrap' }}>
-                        {urgente ? '¡Vencido!' : dias === 0 ? 'Hoy' : `${dias}d`}
+                        {urgente ? txt('overdue') : dias === 0 ? txt('today') : `${dias}d`}
                       </span>
                     </div>
                   )
@@ -194,11 +256,11 @@ export default function Dashboard() {
           {/* Cumpleaños */}
           <div className="card">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}>🎂 Cumpleaños</h3>
-              <span style={{ fontSize:11, color:'var(--text-muted)' }}>próximos 30 días</span>
+              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}>🎂 {txt('birthdays')}</h3>
+              <span style={{ fontSize:11, color:'var(--text-muted)' }}>{txt('next30')}</span>
             </div>
             {(stats?.cumpleanos || []).length === 0
-              ? <div className="empty" style={{ padding:'20px 0' }}><p>Sin cumpleaños próximos</p></div>
+              ? <div className="empty" style={{ padding:'20px 0' }}><p>{txt('noBirthdays')}</p></div>
               : (stats?.cumpleanos || []).slice(0, 5).map((p, i) => {
                   const [m, d] = (p.cumDia || '').split('-').map(Number)
                   const f = new Date(new Date().getFullYear(), m - 1, d)
@@ -212,7 +274,7 @@ export default function Dashboard() {
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:12, fontWeight:600 }}>{p.nombre} {p.apellido}</div>
                         <div style={{ fontSize:11, color:'var(--text-muted)' }}>
-                          {new Date(p.fechaNacimiento+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'long'})}
+                          {new Date(p.fechaNacimiento+'T12:00:00').toLocaleDateString(txt('locale'),{day:'numeric',month:'long'})}
                         </div>
                       </div>
                       <span style={{
@@ -220,7 +282,7 @@ export default function Dashboard() {
                         background: dias === 0 ? 'var(--c-success-bg)' : 'var(--bg)',
                         color: dias === 0 ? 'var(--c-success)' : 'var(--text-muted)',
                       }}>
-                        {dias === 0 ? 'Hoy!' : `en ${dias}d`}
+                        {dias === 0 ? txt('todayBang') : txt('inDays').replace('{days}', dias)}
                       </span>
                     </div>
                   )
@@ -230,16 +292,16 @@ export default function Dashboard() {
 
           {/* Acceso rápido */}
           <div className="card">
-            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>⚡ Acceso rápido</h3>
+            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>⚡ {txt('quick')}</h3>
             <div style={{ display:'grid', gridTemplateColumns:`repeat(${ori.isPhone && ori.portrait ? 2 : ori.cols4},1fr)`, gap: ori.isPhone ? 7 : 7 }}>
               {[
-                { icon:'○', label:'Nueva persona',   desc:'Registrar miembro o visitante', path:'/personas',     color:'#2563EB' },
-                { icon:'✓', label:'Registrar culto',  desc:'Tomar asistencia del servicio', path:'/asistencia',   color:'#16A34A' },
-                { icon:'▢', label:'Check-in QR',      desc:'Generar código QR para entrada', path:'/checkin',      color:'#0891B2' },
-                { icon:'✉', label:'Enviar mensaje',   desc:'Contactar persona o grupo', path:'/mensajes',     color:'#D97706' },
-                { icon:'◆', label:'Asistente IA',     desc:'Consultar datos con inteligencia artificial', path:'/asistente-ia', color:'#7C3AED' },
-                { icon:'▣', label:'Ver alertas',      desc:'Seguimientos y avisos pendientes', path:'/alertas',      color:'#DC2626' },
-                { icon:'▤', label:'Reportes',         desc:'Estadísticas y métricas de la iglesia', path:'/reportes',     color:'#9333EA' },
+                { icon:'○', label:copy.actions[0][0], desc:copy.actions[0][1], path:'/personas',     color:'#2563EB' },
+                { icon:'✓', label:copy.actions[1][0], desc:copy.actions[1][1], path:'/asistencia',   color:'#16A34A' },
+                { icon:'▢', label:copy.actions[2][0], desc:copy.actions[2][1], path:'/checkin',      color:'#0891B2' },
+                { icon:'✉', label:copy.actions[3][0], desc:copy.actions[3][1], path:'/mensajes',     color:'#D97706' },
+                { icon:'◆', label:copy.actions[4][0], desc:copy.actions[4][1], path:'/asistente-ia', color:'#7C3AED' },
+                { icon:'▣', label:copy.actions[5][0], desc:copy.actions[5][1], path:'/alertas',      color:'#DC2626' },
+                { icon:'▤', label:copy.actions[6][0], desc:copy.actions[6][1], path:'/reportes',     color:'#9333EA' },
               ].map(a => (
                 <button key={a.path} onClick={() => navigate(a.path)}
                   style={{
@@ -265,11 +327,11 @@ export default function Dashboard() {
           {/* Crecimiento mensual (barras) */}
           <div className="card">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}><Icons.Reports /> Crecimiento mensual</h3>
-              <span style={{ fontSize:11, color:'var(--text-muted)' }}>últimos 12 meses</span>
+              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}><Icons.Reports /> {txt('growth')}</h3>
+              <span style={{ fontSize:11, color:'var(--text-muted)' }}>{txt('last12')}</span>
             </div>
             {(stats?.crecimientoMensual || []).length === 0
-              ? <div className="empty" style={{ padding:'16px 0' }}><p>Sin datos de crecimiento aún</p></div>
+              ? <div className="empty" style={{ padding:'16px 0' }}><p>{txt('noGrowth')}</p></div>
               : (() => {
                   const data = (stats?.crecimientoMensual || []).slice(-12)
                   const max  = Math.max(...data.map(m => m.nuevos || 0), 1)
@@ -305,12 +367,12 @@ export default function Dashboard() {
 
           {/* Panel de estado */}
           <div className="card">
-            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>💡 Estado</h3>
+            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>💡 {txt('status')}</h3>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {[
-                { lbl:'Consolidación', val: t.consolidacionActiva || 0, icon:'⊕', path:'/consolidacion', warn: t.consolidacionActiva > 0 },
-                { lbl:'Oración activa', val: t.oracionesActivas  || 0, icon:'◇', path:'/oracion',       ok:   t.oracionesActivas > 0 },
-                { lbl:'Sin seguimiento',val: t.sinSeguimiento    || 0, icon:'≡', path:'/alertas',       danger: t.sinSeguimiento > 0 },
+                { lbl:txt('consolidation'), val: t.consolidacionActiva || 0, icon:'⊕', path:'/consolidacion', warn: t.consolidacionActiva > 0 },
+                { lbl:txt('activePrayer'), val: t.oracionesActivas  || 0, icon:'◇', path:'/oracion',       ok:   t.oracionesActivas > 0 },
+                { lbl:txt('noTracking'), val: t.sinSeguimiento    || 0, icon:'≡', path:'/alertas',       danger: t.sinSeguimiento > 0 },
               ].map(s => (
                 <div key={s.lbl} onClick={() => navigate(s.path)}
                   style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 10px', borderRadius:8, cursor:'pointer', background:'var(--bg)', border:'1px solid var(--border)', transition:'background .15s' }}
@@ -333,12 +395,12 @@ export default function Dashboard() {
         {/* ── Actividad reciente ─────────────────────────────────────── */}
         {(stats?.actividadReciente || []).length > 0 && (
           <div className="card">
-            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}><Icons.History /> Actividad reciente</h3>
+            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}><Icons.History /> {txt('recentActivity')}</h3>
             <div style={{ display:'grid', gridTemplateColumns:`repeat(${ori.cols2},1fr)`, gap:0 }}>
               {(stats?.actividadReciente || []).slice(0, 8).map((a, i) => {
                 const iconMap = { CREAR:'➕', ACTUALIZAR:'⊙', ELIMINAR:'⊙', MENSAJE:'✉', MASIVO:'▣', IMPORTAR_EXCEL:'▤', BACKUP:'💾', LOGIN:'🔐' }
                 const ico = iconMap[a.accion] || '✉'
-                const time = a.createdAt ? new Date(a.createdAt).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : ''
+                const time = a.createdAt ? new Date(a.createdAt).toLocaleTimeString(txt('locale'),{hour:'2-digit',minute:'2-digit'}) : ''
                 return (
                   <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 0', borderBottom: i < 6 ? '1px solid var(--border)' : 'none' }}>
                     <span style={{ fontSize:13, flexShrink:0 }}>{ico}</span>

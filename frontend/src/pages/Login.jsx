@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { apiFetch } from '../services/api.js'
+import { apiFetch, getApiUrl, getStoredContext, decodeJwt } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 
 const S = {
@@ -50,30 +50,78 @@ const S = {
   footerLink: { fontSize:12, color:'#475569', textDecoration:'none' },
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+const API_BASE = getApiUrl()
+const I18N = {
+  es: {
+    subtitle:'Gestión Pastoral Inteligente', divider:'o ingresá con email', password:'Contraseña',
+    submit:'Ingresar →', submitting:'Ingresando...', noAccount:'¿No tenés cuenta?', signup:'Registrate',
+    terms:'Términos', privacy:'Privacidad', ok:'Sesión iniciada correctamente',
+    invalid:'Email o contraseña incorrectos', authError:'Error de autenticación',
+    errors:{ no_code:'No se recibió autorización', no_token:'No se pudo obtener token', oauth_failed:'Error en autenticación', oauth_not_configured:'OAuth no configurado', apple_not_configured:'Apple Sign-In no configurado', account_disabled:'Cuenta desactivada' },
+  },
+  pt: {
+    subtitle:'Gestão Pastoral Inteligente', divider:'ou entre com email', password:'Senha',
+    submit:'Entrar →', submitting:'Entrando...', noAccount:'Ainda não tem conta?', signup:'Cadastre-se',
+    terms:'Termos', privacy:'Privacidade', ok:'Sessão iniciada com sucesso',
+    invalid:'Email ou senha incorretos', authError:'Erro de autenticação',
+    errors:{ no_code:'Autorização não recebida', no_token:'Não foi possível obter o token', oauth_failed:'Erro na autenticação', oauth_not_configured:'OAuth não configurado', apple_not_configured:'Apple Sign-In não configurado', account_disabled:'Conta desativada' },
+  },
+  en: {
+    subtitle:'Smart Pastoral Management', divider:'or sign in with email', password:'Password',
+    submit:'Sign in →', submitting:'Signing in...', noAccount:'No account yet?', signup:'Sign up',
+    terms:'Terms', privacy:'Privacy', ok:'Session started successfully',
+    invalid:'Email or password is incorrect', authError:'Authentication error',
+    errors:{ no_code:'Authorization was not received', no_token:'Could not obtain token', oauth_failed:'Authentication failed', oauth_not_configured:'OAuth is not configured', apple_not_configured:'Apple Sign-In is not configured', account_disabled:'Account disabled' },
+  },
+}
 
 export default function Login() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const storedContext = getStoredContext()
+  const [lang, setLang] = useState((searchParams.get('lang') || storedContext.lang || 'es').slice(0, 2))
   const [email, setEmail]         = useState('')
   const [password, setPassword]   = useState('')
   const [loading, setLoading]     = useState(false)
   const [showPass, setShowPass]   = useState(false)
   const [hoverGoogle, setHG]      = useState(false)
   const [hoverApple, setHA]       = useState(false)
+  const t = key => I18N[lang]?.[key] || I18N.es[key] || key
+  const ctxQuery = new URLSearchParams({
+    country: searchParams.get('country') || storedContext.country || 'AR',
+    currency: searchParams.get('currency') || storedContext.currency || 'ARS',
+    lang,
+  }).toString()
+  const registroHref = `/app/registro?${ctxQuery}`
 
   useEffect(() => {
-    const token = searchParams.get('token')
-    const error = searchParams.get('error')
-    if (token) {
-      localStorage.setItem('token', token)
-      toast.success('Sesión iniciada correctamente')
-      navigate('/')
-    } else if (error) {
-      const msgs = { no_code:'No se recibió autorización', no_token:'No se pudo obtener token', oauth_failed:'Error en autenticación' }
-      toast.error(msgs[error] || 'Error de autenticación')
+    const next = (searchParams.get('lang') || getStoredContext().lang || 'es').slice(0, 2)
+    setLang(next)
+    localStorage.setItem('church_lang', next)
+  }, [searchParams])
+
+  useEffect(() => {
+    async function handleOAuthReturn() {
+      const token = searchParams.get('token')
+      const error = searchParams.get('error')
+      if (token) {
+        localStorage.setItem('token', token)
+        try {
+          const user = await apiFetch('/auth/me')
+          localStorage.setItem('user', JSON.stringify(user))
+        } catch {
+          const decoded = decodeJwt(token)
+          if (decoded) localStorage.setItem('user', JSON.stringify(decoded))
+        }
+        toast.success((I18N[lang] || I18N.es).ok)
+        navigate('/')
+      } else if (error) {
+        const msgs = (I18N[lang] || I18N.es).errors
+        toast.error(msgs[error] || (I18N[lang] || I18N.es).authError)
+      }
     }
-  }, [searchParams, navigate])
+    handleOAuthReturn()
+  }, [searchParams, navigate, lang])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -83,12 +131,12 @@ export default function Login() {
       localStorage.setItem('token', res.token)
       localStorage.setItem('user', JSON.stringify(res.user))
       navigate('/')
-    } catch(err) { toast.error(err.message || 'Email o contraseña incorrectos') }
+    } catch(err) { toast.error(err.message || t('invalid')) }
     finally { setLoading(false) }
   }
 
   function handleGoogle() { window.location.href = `${API_BASE}/oauth/google` }
-  function handleApple()  { toast.info('OAuth Apple próximamente') }
+  function handleApple()  { window.location.href = `${API_BASE}/oauth/apple` }
 
   return (
     <div style={S.bg}>
@@ -105,7 +153,7 @@ export default function Login() {
             </svg>
           </div>
           <h1 style={S.h1}>Church System</h1>
-          <p style={S.sub}>v2.6.0 · Gestión Pastoral Inteligente</p>
+          <p style={S.sub}>v2.6.0 · {t('subtitle')}</p>
         </div>
 
         {/* OAuth primero — más prominente */}
@@ -133,7 +181,7 @@ export default function Login() {
 
         {/* Divider */}
         <div style={S.divider}>
-          <div style={S.divLine}/><span style={S.divText}>o ingresá con email</span><div style={S.divLine}/>
+          <div style={S.divLine}/><span style={S.divText}>{t('divider')}</span><div style={S.divLine}/>
         </div>
 
         {/* Form */}
@@ -147,7 +195,7 @@ export default function Login() {
               onBlur={e=>e.target.style.borderColor='rgba(255,255,255,0.08)'}/>
           </div>
           <div style={{marginBottom:22, position:'relative'}}>
-            <label style={S.label}>Contraseña</label>
+            <label style={S.label}>{t('password')}</label>
             <div style={{position:'relative'}}>
               <input type={showPass?'text':'password'} required disabled={loading} value={password}
                 onChange={e=>setPassword(e.target.value)} placeholder="••••••••"
@@ -166,21 +214,21 @@ export default function Login() {
           </div>
           <button type="submit" disabled={loading}
             style={{...S.btnPrimary, opacity: loading ? .7 : 1}}>
-            {loading ? 'Ingresando...' : 'Ingresar →'}
+            {loading ? t('submitting') : t('submit')}
           </button>
         </form>
 
         <p style={{textAlign:'center',fontSize:14,color:'#64748B',margin:'20px 0 0'}}>
-          ¿No tenés cuenta?{' '}
-          <a href="/registro" style={S.link}>Registrate</a>
+          {t('noAccount')}{' '}
+          <a href={registroHref} style={S.link}>{t('signup')}</a>
         </p>
 
         <div style={S.footerLinks}>
-          <a href="/faq" style={S.footerLink}>FAQ</a>
+          <a href="/app/faq" style={S.footerLink}>FAQ</a>
           <span style={{color:'#1E293B'}}>·</span>
-          <a href="/terminos" style={S.footerLink}>Términos</a>
+          <a href="/app/terminos" style={S.footerLink}>{t('terms')}</a>
           <span style={{color:'#1E293B'}}>·</span>
-          <a href="/privacidad" style={S.footerLink}>Privacidad</a>
+          <a href="/app/privacidad" style={S.footerLink}>{t('privacy')}</a>
         </div>
       </div>
     </div>

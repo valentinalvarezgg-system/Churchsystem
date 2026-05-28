@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import BtnNotificaciones from '../components/BtnNotificaciones.jsx'
-import { apiFetch } from '../services/api.js'
+import { apiFetch, getApiUrl, getStoredContext } from '../services/api.js'
 
 const CATEGORIAS = [
   { key:'iglesia', label:'Iglesia', icon:'🏛️', secciones:[
@@ -53,16 +53,29 @@ function SuscripcionTab() {
   const [planes, setPlanes]     = React.useState([])
   const [loading, setLoading]   = React.useState(false)
   const [msg, setMsg]           = React.useState(null)
+  const [billingCtx, setBillingCtx] = React.useState(getStoredContext())
 
   React.useEffect(() => {
-    apiFetch('/mp/estado').then(setEstado).catch(() => {})
-    apiFetch('/mp/planes').then(setPlanes).catch(() => {})
+    Promise.all([
+      apiFetch('/mp/estado').catch(() => null),
+      apiFetch('/config').catch(() => ({})),
+    ]).then(([estadoRes, cfg]) => {
+      if (estadoRes) setEstado(estadoRes)
+      const ctx = {
+        country: cfg.pais || cfg.country || billingCtx.country || 'AR',
+        currency: cfg.divisa || cfg.currency || billingCtx.currency || 'ARS',
+        lang: cfg.idioma || cfg.lang || billingCtx.lang || 'es',
+        promo: cfg.promoCode || billingCtx.promo || '',
+      }
+      setBillingCtx(ctx)
+      apiFetch(`/mp/planes?country=${ctx.country}&lang=${ctx.lang}`).then(setPlanes).catch(() => {})
+    })
   }, [])
 
   async function pagar(planId) {
     setLoading(true); setMsg(null)
     try {
-      const r = await apiFetch('/mp/crear-preferencia', { method:'POST', body: JSON.stringify({ plan: planId }) })
+      const r = await apiFetch('/mp/crear-preferencia', { method:'POST', body: JSON.stringify({ plan: planId, country: billingCtx.country, currency: billingCtx.currency, promo: billingCtx.promo }) })
       if (r.initPoint) window.open(r.initPoint, '_blank')
       else setMsg({ type:'error', text: r.error || 'Error al crear el link de pago' })
     } catch(e) { setMsg({ type:'error', text: e.message }) }
@@ -112,7 +125,7 @@ function SuscripcionTab() {
                 {p.label} {p.id === estado.plan && '✓ Actual'}
               </div>
               <div style={{ fontSize:26, fontWeight:800, marginBottom:4 }}>
-                ${p.precio.toLocaleString('es-AR')}
+                {p.currency || 'ARS'} {Number(p.precio || 0).toLocaleString('es-AR')}
                 <span style={{ fontSize:13, fontWeight:400, color:'var(--text-muted)' }}>/mes</span>
               </div>
               <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:12 }}>
@@ -125,11 +138,6 @@ function SuscripcionTab() {
             </div>
           ))}
         </div>
-        {!process.env.MP_ACCESS_TOKEN && (
-          <div className="alert alert-warning" style={{ marginTop:14 }}>
-            Para activar el cobro real, agregá tu Access Token de MercadoPago en el .env como <code>MP_ACCESS_TOKEN</code>.
-          </div>
-        )}
       </div>
     </div>
   )
@@ -144,12 +152,15 @@ export default function Configuracion() {
   const [loading, setLoading] = useState(true)
   const [backupInfo, setBackupInfo] = useState(null)
   const [collapsed, setCollapsed]   = useState({})
+  const [emailDiag, setEmailDiag]   = useState(null)
+  const [testingEmail, setTestingEmail] = useState(false)
 
   useEffect(() => {
     Promise.all([
       apiFetch('/config').catch(() => ({})),
       apiFetch('/backup/info').catch(() => null),
-    ]).then(([c, b]) => {
+      apiFetch('/config/email-diagnostics').catch(() => null),
+    ]).then(([c, b, diag]) => {
       const cfg = c || {}
       setConfig(cfg)
       setForm({
@@ -185,6 +196,7 @@ export default function Configuracion() {
         max_intentos:      cfg.max_intentos      || '10',
       })
       setBackupInfo(b)
+      setEmailDiag(diag)
       setLoading(false)
     })
   }, [])
@@ -207,8 +219,24 @@ export default function Configuracion() {
       setMsg({ type: 'success', text: 'Guardado' })
       const c = await apiFetch('/config').catch(() => config)
       setConfig(c || config)
+      if (sec === 'email') {
+        apiFetch('/config/email-diagnostics').then(setEmailDiag).catch(() => {})
+      }
     } catch (err) { setMsg({ type: 'error', text: err.message }) }
     setSaving(false)
+  }
+
+  async function testEmail() {
+    setTestingEmail(true); setMsg(null)
+    try {
+      const res = await apiFetch('/config/email-test', { method:'POST' })
+      setEmailDiag(res.diagnostics || emailDiag)
+      setMsg({ type:'success', text: res.result?.demo ? 'Prueba simulada: falta RESEND_API_KEY en producción.' : 'Email de prueba enviado.' })
+    } catch (err) {
+      setMsg({ type:'error', text: err.message })
+    } finally {
+      setTestingEmail(false)
+    }
   }
 
   const catActiva = CATEGORIAS.find(c => c.secciones.some(s => s.key === sec))
@@ -440,6 +468,39 @@ export default function Configuracion() {
                     <input className="form-input" value={form.email_nombre} onChange={e=>f('email_nombre',e.target.value)} placeholder="Iglesia Evangelica"/>
                   </div>
                 </div>
+                {emailDiag && (
+                  <div style={{marginTop:16,padding:'14px 16px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:10}}>
+                      <div>
+                        <p style={{fontSize:11,fontWeight:600,marginBottom:4,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Diagnóstico Render / Email</p>
+                        <div style={{fontSize:13,color:emailDiag.ok?'var(--c-success)':'var(--c-warning)',fontWeight:700}}>
+                          {emailDiag.ok?'Configuración completa':'Revisar configuración'}
+                        </div>
+                      </div>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={testEmail} disabled={testingEmail}>
+                        {testingEmail ? 'Enviando...' : 'Enviar prueba'}
+                      </button>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:8,marginBottom:10}}>
+                      {[
+                        ['Resend', emailDiag.resendConfigured ? 'OK' : 'Falta API key'],
+                        ['Remitente', emailDiag.fromEmail || 'Sin detectar'],
+                        ['Dominio', emailDiag.domainLooksValid ? emailDiag.domain : `${emailDiag.domain || 'N/A'} (verificar)`],
+                        ['Variables faltantes', emailDiag.render?.missing?.length ? emailDiag.render.missing.join(', ') : 'Ninguna'],
+                      ].map(([l,v])=>(
+                        <div key={l} style={{padding:'9px 10px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)'}}>
+                          <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.4,marginBottom:3}}>{l}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:'var(--text)'}}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {emailDiag.warnings?.length > 0 && (
+                      <ul style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.7,paddingLeft:18,margin:0}}>
+                        {emailDiag.warnings.map(w => <li key={w}>{w}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                )}
                 <div style={{marginTop:16,padding:'14px 16px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
                   <p style={{fontSize:11,fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Para activar Resend</p>
                   <ol style={{paddingLeft:16,fontSize:13,color:'var(--text-2)',lineHeight:2}}>
@@ -532,7 +593,7 @@ export default function Configuracion() {
                     )}
                   </>
                 )}
-                <a href={`http://localhost:4000/backup/download?token=${localStorage.getItem("token")}`} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:12,background:'var(--primary)',color:'var(--surface)',borderRadius:'var(--r)',fontSize:14,fontWeight:600,textDecoration:'none'}}>⬇️ Descargar backup (church.db)</a>
+                <a href={`${getApiUrl()}/backup/download?token=${localStorage.getItem("token")}`} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:12,background:'var(--primary)',color:'var(--surface)',borderRadius:'var(--r)',fontSize:14,fontWeight:600,textDecoration:'none'}}>⬇️ Descargar backup (church.db)</a>
                 <p style={{fontSize:11,color:'var(--text-muted)',marginTop:8,textAlign:'center'}}>Para restaurar: reemplazá <code>church.db</code> en <code>backend/</code></p>
               </>}
 

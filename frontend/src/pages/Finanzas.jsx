@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
-import { apiFetch, getUser, getApiUrl } from '../services/api.js'
+import { apiFetch, getUser, getApiUrl, getStoredContext } from '../services/api.js'
 
 const TIPOS = ['DIEZMO','OFRENDA','ESPECIAL','PRIMER_FRUTOS','MISION','OTRO']
 const TIPO_COLOR = {
@@ -17,10 +17,10 @@ const EMPTY = {
   fecha: new Date().toISOString().slice(0,10),
   cultoId:'', descripcion:''
 }
-const fmt = n => Number(n||0).toLocaleString('es-AR',{style:'currency',currency:'ARS',minimumFractionDigits:0})
+const fmtMoney = (n, currency = 'ARS') => Number(n||0).toLocaleString('es-AR',{style:'currency',currency,minimumFractionDigits:0})
 
 // Mini gráfico de barras horizontales
-function BarChart({ data, total }) {
+function BarChart({ data, total, currency }) {
   if (!data?.length) return null
   return (
     <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -33,7 +33,7 @@ function BarChart({ data, total }) {
                 <span>{TIPO_ICON[t.tipo]}</span> {t.tipo}
                 <span style={{fontSize:10,color:'var(--text-muted)'}}>({t.qty})</span>
               </span>
-              <span style={{fontSize:12,fontWeight:700,color:TIPO_COLOR[t.tipo]}}>{fmt(t.subtotal)}</span>
+              <span style={{fontSize:12,fontWeight:700,color:TIPO_COLOR[t.tipo]}}>{fmtMoney(t.subtotal, currency)}</span>
             </div>
             <div style={{height:6,background:'var(--bg-2)',borderRadius:3,overflow:'hidden'}}>
               <div style={{
@@ -65,6 +65,7 @@ export default function Finanzas() {
   const [form, setForm]       = useState(EMPTY)
   const [msg, setMsg]         = useState(null)
   const [view, setView]       = useState('tabla')  // tabla | graficos
+  const [currency, setCurrency] = useState(getStoredContext().currency || 'ARS')
 
   const load = useCallback(async () => {
     const p = new URLSearchParams({page, limit:30})
@@ -76,10 +77,23 @@ export default function Finanzas() {
       setData(res.data||[]); setTotal(res.total||0)
       setPages(res.pages||1); setPorTipo(res.porTipo||[])
       setTendencia(res.tendencia||[])
+      if (res.currency) setCurrency(res.currency)
     } catch {}
   }, [page, filtros])
 
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    const onChange = event => {
+      const path = event.detail?.path || ''
+      if (!path || path.startsWith('/finanzas') || path.startsWith('/config')) load()
+    }
+    window.addEventListener('church:data-changed', onChange)
+    const timer = window.setInterval(load, 10000)
+    return () => {
+      window.removeEventListener('church:data-changed', onChange)
+      window.clearInterval(timer)
+    }
+  }, [load])
   useEffect(() => { apiFetch('/cultos').then(c => setCultos(c||[])).catch(()=>{}) }, [])
 
   async function handleSave(e) {
@@ -146,13 +160,13 @@ export default function Finanzas() {
         <div className="stats-grid" style={{marginBottom:20}}>
           <div className="stat-card" onClick={() => setFiltros({desde:'',hasta:'',tipo:''})} style={{cursor:'pointer'}}>
             <div style={{fontSize:18,marginBottom:4}}><Icons.Finance /></div>
-            <div className="stat-val" style={{fontSize:20,color:'var(--c-green-dark)'}}>{fmt(totalGeneral)}</div>
+            <div className="stat-val" style={{fontSize:20,color:'var(--c-green-dark)'}}>{fmtMoney(totalGeneral, currency)}</div>
             <div className="stat-lbl">Total general</div>
           </div>
           {porTipo.slice(0,4).map(t => (
             <div key={t.tipo} className="stat-card" onClick={() => setFiltros(f => ({...f, tipo: t.tipo}))} style={{cursor:'pointer'}}>
               <div style={{fontSize:18,marginBottom:4}}>{TIPO_ICON[t.tipo]}</div>
-              <div className="stat-val" style={{fontSize:18, color: TIPO_COLOR[t.tipo]}}>{fmt(t.subtotal)}</div>
+              <div className="stat-val" style={{fontSize:18, color: TIPO_COLOR[t.tipo]}}>{fmtMoney(t.subtotal, currency)}</div>
               <div className="stat-lbl">{t.tipo} · {t.qty}</div>
             </div>
           ))}
@@ -164,7 +178,7 @@ export default function Finanzas() {
             {/* Por tipo */}
             <div className="card">
               <h3 style={{fontSize:13,fontWeight:700,marginBottom:16}}><Icons.Reports /> Por tipo</h3>
-              <BarChart data={porTipo} total={totalGeneral} />
+              <BarChart data={porTipo} total={totalGeneral} currency={currency} />
             </div>
             {/* Tendencia mensual */}
             <div className="card">
@@ -248,7 +262,7 @@ export default function Finanzas() {
                         </span>
                       </td>
                       <td style={{fontWeight:800, color:'var(--c-green-dark)', fontSize:14}}>
-                        {fmt(r.monto)}
+                        {fmtMoney(r.monto, currency)}
                       </td>
                       <td style={{fontSize:12,color:'var(--text-muted)'}}>{r.cultoNombre||'—'}</td>
                       <td style={{fontSize:12,maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>

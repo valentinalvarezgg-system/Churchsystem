@@ -20,7 +20,8 @@ router.get('/', requireAuth, (req, res) => {
     `SELECT strftime('%Y-%m', fecha) as mes, SUM(monto) as total, COUNT(*) as qty
      FROM finanzas WHERE fecha >= date('now','-8 months')
      GROUP BY mes ORDER BY mes ASC`)
-  res.json({ data, total, pages: Math.ceil(total/Number(limit)), totales, porTipo, tendencia })
+  const cfg = Object.fromEntries(db.all("SELECT clave, valor FROM configuracion WHERE clave IN ('divisa','pais','idioma')").map(r => [r.clave, r.valor]))
+  res.json({ data, total, pages: Math.ceil(total/Number(limit)), totales, porTipo, tendencia, currency: cfg.divisa || 'ARS', country: cfg.pais || 'AR', lang: cfg.idioma || 'es' })
 })
 router.get('/resumen-mensual', requireAuth, (_req, res) => {
   res.json(db.all(`SELECT strftime('%Y-%m',fecha) as mes,tipo,SUM(monto) as total,COUNT(*) as qty FROM finanzas WHERE fecha>=date('now','-6 months') GROUP BY mes,tipo ORDER BY mes ASC`))

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getApiUrl } from '../services/api.js'
+import { useRealtimeQuery } from '../hooks/useRealtimeQuery.js'
 
 const fmt = n => Number(n || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 })
 const pct  = (a, b) => b > 0 ? Math.round(a / b * 100) : 0
@@ -10,19 +11,13 @@ const pct  = (a, b) => b > 0 ? Math.round(a / b * 100) : 0
 export default function Reportes() {
   const navigate  = useNavigate()
   const [tipo, setTipo]     = useState('semanal')
-  const [data, setData]     = useState(null)
   const [mes, setMes]       = useState(new Date().toISOString().slice(0, 7))
-  const [loading, setLoading] = useState(false)
-
-  async function cargar() {
-    setLoading(true); setData(null)
-    try {
-      setData(await apiFetch(tipo === 'semanal' ? '/reportes/semanal' : `/reportes/mensual?mes=${mes}`))
-    } catch (e) { alert(e.message) }
-    setLoading(false)
-  }
-
-  useEffect(() => { cargar() }, [tipo, mes])
+  const { data, loading, error } = useRealtimeQuery(
+    'stats',
+    () => apiFetch(tipo === 'semanal' ? '/reportes/semanal' : `/reportes/mensual?mes=${mes}`),
+    [tipo, mes],
+    { intervalMs: 10000 }
+  )
 
   function exportarPDF() {
     const token = localStorage.getItem('token')
@@ -96,6 +91,7 @@ export default function Reportes() {
         </div>
 
         {loading && <div className="empty"><p>Generando reporte...</p></div>}
+        {error && <div className="alert alert-error" style={{marginBottom:16}}>{error.message}</div>}
 
         {r && (
           <div id="reporte-contenido">

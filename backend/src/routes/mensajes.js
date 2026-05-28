@@ -35,7 +35,7 @@ async function enviarWhatsApp(cfg, destino, texto) {
 
 async function enviarEmail(cfg, destinatario, asunto, html, texto) {
   const KEY  = cfg.resend_key || process.env.RESEND_API_KEY
-  const FROM = cfg.email_from || process.env.EMAIL_FROM || 'noreply@iglesia.com'
+  const FROM = cfg.email_from || process.env.EMAIL_FROM || 'no-reply@churchsystem.com.ar'
   const iglesia = cfg.nombre_iglesia || 'Church System'
 
   if (!KEY) {
