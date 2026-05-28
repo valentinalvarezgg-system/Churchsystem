@@ -284,8 +284,6 @@ router.get('/excel/personas', requireAuth, (_req, res) => {
   res.send(buf)
 })
 
-export default router
-
 // ── GET /export/reporte/semanal  y  /export/reporte/mensual?mes=YYYY-MM ──────
 router.get('/reporte/:tipo', requireAuth, (req, res) => {
   const { tipo }  = req.params
@@ -454,3 +452,5 @@ td{padding:7px 10px;border-bottom:1px solid #F8FAFC;color:#334155}
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
   res.send(html)
 })
+
+export default router

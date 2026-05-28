@@ -44,6 +44,7 @@ export default function Reportes() {
     const c = document.getElementById('reporte-contenido')
     if (!c) return
     const w = window.open('', '_blank')
+    if (!w) return
     w.document.write(`<!DOCTYPE html><html><head><title>Reporte</title>
     <style>body{font-family:-apple-system,sans-serif;padding:24px;color:#0f172a}
     h1{font-size:22px;font-weight:800;margin-bottom:4px}

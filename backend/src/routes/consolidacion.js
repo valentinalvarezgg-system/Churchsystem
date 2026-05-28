@@ -33,7 +33,7 @@ router.put('/:id', requireAuth, (req, res) => {
   const c=db.get('SELECT * FROM consolidaciones WHERE id=?',[req.params.id])
   if (!c) return res.status(404).json({ error:'No encontrado' })
   const { estado,notas,pasos,consolidadorId } = req.body||{}
-  const pasosActuales=JSON.parse(c.pasos||'{}')
+  let pasosActuales={}; try { pasosActuales=JSON.parse(c.pasos||'{}') } catch(_) {}
   const pasosNuevos=pasos?{...pasosActuales,...pasos}:pasosActuales
   const completados=Object.values(pasosNuevos).filter(Boolean).length
   const estadoFinal=estado||(completados===PASOS.length?'COMPLETADA':c.estado)

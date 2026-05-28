@@ -52,10 +52,10 @@ router.get('/grupos', requireAuth, (req, res) => {
 
 router.get('/seguimientos', requireAuth, (req, res) => {
   const mesActual = new Date().toISOString().slice(0, 7)
-  const mes = db.get('SELECT COUNT(*) as c FROM seguimientos WHERE substr(fecha,1,7) = ?', [mesActual])?.c || 0
-  
+  const mes = db.get('SELECT COUNT(*) as c FROM seguimientos WHERE substr(createdAt,1,7) = ?', [mesActual])?.c || 0
+
   const mesPasado = new Date(Date.now() - 30*24*60*60*1000).toISOString().slice(0, 7)
-  const mesPasadoCount = db.get('SELECT COUNT(*) as c FROM seguimientos WHERE substr(fecha,1,7) = ?', [mesPasado])?.c || 0
+  const mesPasadoCount = db.get('SELECT COUNT(*) as c FROM seguimientos WHERE substr(createdAt,1,7) = ?', [mesPasado])?.c || 0
   
   const variacion = mesPasadoCount > 0 ? Math.round(((mes - mesPasadoCount) / mesPasadoCount) * 100) : 0
 
@@ -100,7 +100,7 @@ router.get('/tendencia', requireAuth, (req, res) => {
 // Actividad reciente
 router.get('/actividad', requireAuth, (req, res) => {
   const personas = db.all('SELECT id, nombre, apellido, estado, createdAt FROM personas ORDER BY createdAt DESC LIMIT 5') || []
-  const seguimientos = db.all('SELECT s.*, p.nombre, p.apellido FROM seguimientos s LEFT JOIN personas p ON s.personaId = p.id ORDER BY s.fecha DESC LIMIT 5') || []
+  const seguimientos = db.all('SELECT s.*, p.nombre, p.apellido FROM seguimientos s LEFT JOIN personas p ON s.personaId = p.id ORDER BY s.createdAt DESC LIMIT 5') || []
   const cultos = db.all('SELECT * FROM cultos ORDER BY fecha DESC LIMIT 3') || []
   const eventos = db.all('SELECT * FROM eventos ORDER BY fecha DESC LIMIT 3') || []
   

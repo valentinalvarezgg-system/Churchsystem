@@ -100,12 +100,12 @@ export async function enviarAlertas() {
 
   const vencidos = db.get(
     `SELECT COUNT(*) as n FROM seguimientos
-     WHERE proximo_contacto <= ? AND estado = 'PENDIENTE'`, [hoy]
+     WHERE proximoContacto <= ? AND proximoContacto IS NOT NULL`, [hoy]
   )?.n || 0
 
   const visitantes = db.get(
     `SELECT COUNT(*) as n FROM personas
-     WHERE estado = 'VISITANTE' AND fecha_ingreso <= date('now', '-30 days')`
+     WHERE estado = 'VISITANTE' AND fechaIngreso <= date('now', '-30 days')`
   )?.n || 0
 
   const alertas = [

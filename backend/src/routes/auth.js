@@ -33,8 +33,6 @@ router.get('/me', (req, res) => {
   try { res.json(jwt.verify(token, SECRET())) } catch { res.status(401).json({ error:'Token inválido' }) }
 })
 
-export default router
-
 router.post('/registro', async (req, res) => {
   try {
     const { nombre, email, telefono, password, iglesia, promo } = req.body
@@ -80,3 +78,5 @@ router.post('/registro', async (req, res) => {
     res.status(500).json({ error: 'Error al crear la cuenta' })
   }
 })
+
+export default router

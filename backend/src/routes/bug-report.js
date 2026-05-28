@@ -10,16 +10,7 @@ router.post('/bug-report', requireAuth, async (req, res) => {
   const { descripcion, url, userAgent } = req.body
   const { email, nombre, iglesia } = req.user
 
-  console.log('━━━ BUG REPORT ━━━')
-  console.log('Usuario:', nombre, '(', email, ')')
-  console.log('Iglesia:', iglesia || 'N/A')
-  console.log('URL:', url)
-  console.log('User Agent:', userAgent)
-  console.log('Descripción:', descripcion)
-  console.log('━━━━━━━━━━━━━━━━━━')
-
   if (!process.env.RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY no configurado - email no enviado')
     return res.json({ ok: true, warning: 'Email no configurado' })
   }
 
