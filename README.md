@@ -120,10 +120,10 @@ SQLite en `/backend/church.db`. Tablas principales:
 
 ## 🚦 Estado
 
-**Versión:** Pre-Release Beta 2.5  
+**Versión:** 2.6.0  
 **Branch:** master  
-**Último commit:** Sprint 3 completo  
-**Status:** ✅ Listo para testing producción
+**Último commit:** Sistema de planes, tokens, verificación email, fixes iOS  
+**Status:** ✅ Pre-Release estable
 
 ## 📝 Pendientes
 

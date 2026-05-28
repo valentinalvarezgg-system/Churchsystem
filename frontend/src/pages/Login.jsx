@@ -105,7 +105,7 @@ export default function Login() {
             </svg>
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: '#F1F5F9', marginBottom: 4 }}>Church System</h1>
-          <p style={{ fontSize: 14, color: '#94A3B8' }}>Beta 2.4.1 · Gestión pastoral integral</p>
+          <p style={{ fontSize: 14, color: '#94A3B8' }}>Beta 2.6.0 · Gestión pastoral integral</p>
         </div>
 
         {/* Form */}

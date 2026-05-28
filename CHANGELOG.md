@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.6.0] - 2026-05-28
+
+### ✨ Added
+- **Sistema de Planes** — LIDER / CULTO / CONSOLIDACION / ADMINISTRACION / GENERAL
+- **UpgradeGate** — pantalla de upgrade cuando el módulo no está en el plan
+- **usePlan hook** — detecta módulos disponibles desde el backend
+- **Tokens de Iglesia** — formato `IGL-XXXX-XXXX`, compartible por el pastor
+- **TokenIglesiaAdmin** — panel en Configuración para ver/copiar/regenerar token
+- **TokenIglesiaInput** — campo en Registro y Mi Perfil para unirse/cambiar iglesia
+- **Verificación de email** — código 6 dígitos con inputs individuales y auto-submit
+- **Email código** — template HTML oscuro con dígitos grandes (Resend)
+- **Email bienvenida** — template con botón de ingreso tras verificación
+- **6 perfiles de prueba** — 2 iglesias con tokens fijos para testing
+- **GitHub Actions CI/CD** — deploy automático en cada push a master
+
+### 🎨 Improved
+- **Bottom nav mobile** — íconos 24px, texto 14px, centrado, altura 68px
+- **Safari iOS** — fix crash por `Notification` API no disponible
+- **Vista Ejecutiva** — gráficos de barras, feed de actividad reciente, saludo personalizado
+
+### 🐛 Fixed
+- `Can't find variable: Notification` en Safari iOS
+- Bottom nav descentrado en mobile
+- Íconos pequeños en menú mobile
+
 ## [Pre-Release Beta 2.5] - 2026-05-26
 
 ### ✨ Added
