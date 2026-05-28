@@ -3,7 +3,8 @@ import { Resend } from 'resend'
 import db from '../lib/db.js'
 
 const router = Router()
-const resend = new Resend(process.env.RESEND_API_KEY)
+let resend = null
+try { resend = new Resend(process.env.RESEND_API_KEY) } catch(_) {}
 const FROM = process.env.EMAIL_FROM || 'Church System <no-reply@churchsystem.com.ar>'
 
 function genCodigo() { return Math.floor(100000 + Math.random() * 900000).toString() }
