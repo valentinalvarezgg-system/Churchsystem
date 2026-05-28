@@ -289,14 +289,6 @@ export default function CheckInAdmin() {
 
       </main>
 
-      {showFacial && qrData && (
-        <CheckInFacial
-          cultoId={qrData.culto?.id}
-          cultoNombre={qrData.culto?.nombre}
-          onRegistrado={(info) => setFacialRegistros(prev => [...prev, info])}
-          onCerrar={() => setShowFacial(false)}
-        />
-      )}
     </div>
   )
 }
