@@ -8,12 +8,12 @@
 /* ══ TOKENS LIGHT (default) ══════════════════════════════════ */
 :root {
   /* ── Primario — Violeta marca ──────────────────────────── */
-  --primary:        #6D5DFB;
-  --primary-hover:  #5A4BE7;
-  --primary-soft:   #EEEAFE;
-  --primary-dark:   #8B7CFF;
-  --primary-glow:   rgba(109,93,251,0.2);
-  --gradient:       linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+  --primary:        #6D4AFF;
+  --primary-hover:  #5A3AEF;
+  --primary-soft:   #EDEBFF;
+  --primary-dark:   #8B5CFF;
+  --primary-glow:   rgba(109,74,255,0.2);
+  --gradient:       linear-gradient(135deg, #6D4AFF 0%, #8B5CFF 100%);
 
   /* ── Sidebar ───────────────────────────────────────────── */
   --sidebar-bg:     #FFFFFF;
@@ -21,8 +21,8 @@
   --sidebar-border: #E5E7EB;
 
   /* ── Fondos ────────────────────────────────────────────── */
-  --bg:             #F7F8FA;
-  --bg-2:           #F0F2F5;
+  --bg:             #F8F8FB;
+  --bg-2:           #F0F1F7;
   --surface:        #FFFFFF;
   --surface-raised: #FFFFFF;
 
@@ -42,16 +42,18 @@
   --shadow-sm:  0 2px 8px rgba(15,23,42,0.06);
   --shadow-md:  0 8px 24px rgba(15,23,42,0.08);
   --shadow-lg:  0 16px 48px rgba(15,23,42,0.10);
-  --shadow-card: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
-  --shadow-card-hover: 0 8px 24px rgba(15,23,42,0.10);
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+  --shadow-card-hover: 0 8px 24px rgba(0,0,0,0.08);
   --shadow-glow: 0 0 0 3px var(--primary-glow);
+  --shadow-btn: 0 6px 20px rgba(109,74,255,0.25);
 
   /* ── Forma y transición ────────────────────────────────── */
-  --r:    12px;
-  --r-sm: 8px;
-  --r-lg: 16px;
-  --r-xl: 20px;
-  --r-2xl:24px;
+  --r:       12px;
+  --r-sm:    8px;
+  --r-input: 14px;
+  --r-lg:    16px;
+  --r-xl:    20px;
+  --r-2xl:   24px;
   --t:    all 0.15s cubic-bezier(.4,0,.2,1);
 
   /* ── Tipografía ────────────────────────────────────────── */
@@ -71,15 +73,15 @@
   --c-info:        #1D4ED8;
   --c-info-bg:     #EAF2FF;
   --c-info-brd:    rgba(59,130,246,0.25);
-  --c-purple:      #6D5DFB;
-  --c-purple-bg:   #EEEAFE;
-  --c-purple-brd:  rgba(109,93,251,0.25);
+  --c-purple:      #6D4AFF;
+  --c-purple-bg:   #EDEBFF;
+  --c-purple-brd:  rgba(109,74,255,0.25);
   --c-muted:       #6B7280;
 
   /* ── Nav active (light) ────────────────────────────────── */
-  --nav-active-bg:   #F0EDFF;
-  --nav-active-text: #6D5DFB;
-  --nav-active-icon: #6D5DFB;
+  --nav-active-bg:   #EDEBFF;
+  --nav-active-text: #6D4AFF;
+  --nav-active-icon: #6D4AFF;
   --nav-hover-bg:    #F3F4F6;
 }
 
@@ -238,7 +240,9 @@ body {
 /* ── Sidebar ────────────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-w);
-  background: var(--sidebar-bg);
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   position: fixed;
   top: 0; left: 0; bottom: 0;
   display: flex;
@@ -414,10 +418,10 @@ body {
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-2xl);
   padding: 24px;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--t);
+  transition: box-shadow var(--t), transform var(--t);
 }
 .card:hover { box-shadow: var(--shadow-card-hover); }
 
@@ -432,7 +436,7 @@ body {
 .stat-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-2xl);
   padding: 20px;
   box-shadow: var(--shadow-card);
   transition: var(--t);
@@ -500,15 +504,15 @@ body {
   line-height: 1;
 }
 .btn-primary {
-  background: var(--primary);
+  background: var(--gradient);
   color: white;
-  border-color: var(--primary-hover);
-  box-shadow: 0 1px 3px rgba(109,93,251,0.25);
+  border-color: transparent;
+  box-shadow: var(--shadow-btn);
 }
 .btn-primary:hover {
-  background: var(--primary-hover);
+  opacity: 0.92;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(109,93,251,0.3);
+  box-shadow: 0 8px 28px rgba(109,74,255,0.35);
 }
 .btn-ghost {
   background: transparent;
@@ -536,7 +540,7 @@ body {
 .input, .form-input {
   padding: 9px 13px;
   border: 1.5px solid var(--border-med);
-  border-radius: var(--r);
+  border-radius: var(--r-input);
   font-size: 13.5px; font-family: var(--font);
   color: var(--text);
   background: var(--surface);
