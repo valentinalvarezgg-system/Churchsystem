@@ -553,6 +553,59 @@ export default function Configuracion() {
         <BtnNotificaciones />
       </div>
 
+      {/* Contacto y soporte */}
+      <div style={{marginTop:32}}>
+        <h2 style={{fontSize:13,fontWeight:700,textTransform:'uppercase',letterSpacing:.5,color:'var(--text-muted)',marginBottom:16}}>Contacto y soporte</h2>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:10}}>
+          {[
+            {label:'Soporte general',email:'soporte@churchsystem.com.ar',desc:'Problemas y consultas técnicas'},
+            {label:'Ventas',email:'ventas@churchsystem.com.ar',desc:'Planes, precios y demos'},
+            {label:'Contacto',email:'contacto@churchsystem.com.ar',desc:'Consultas generales'},
+            {label:'Legal / Privacidad',email:'legal@churchsystem.com.ar',desc:'Contratos, datos y baja'},
+            {label:'Seguridad',email:'seguridad@churchsystem.com.ar',desc:'Vulnerabilidades e incidentes'},
+          ].map(item=>(
+            <a key={item.label} href={`mailto:${item.email}`}
+              style={{padding:'14px 16px',background:'var(--surface)',border:'1px solid var(--border)',
+                borderRadius:12,textDecoration:'none',display:'block',transition:'border-color .15s'}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor='var(--primary)'}
+              onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+              <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:2}}>{item.label}</div>
+              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>{item.desc}</div>
+              <div style={{fontSize:12,color:'var(--primary)'}}>{item.email}</div>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {/* Documentos legales */}
+      <div style={{marginTop:32}}>
+        <h2 style={{fontSize:13,fontWeight:700,textTransform:'uppercase',letterSpacing:.5,color:'var(--text-muted)',marginBottom:16}}>Documentos legales</h2>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:10}}>
+          {[
+            {label:'Términos y Condiciones',href:'/app/terminos'},
+            {label:'Política de Privacidad',href:'/app/privacidad'},
+            {label:'Preguntas frecuentes',href:'/app/faq'},
+          ].map(item=>(
+            <a key={item.label} href={item.href}
+              style={{padding:'14px 16px',background:'var(--surface)',border:'1px solid var(--border)',
+                borderRadius:12,textDecoration:'none',display:'flex',alignItems:'center',
+                gap:8,fontSize:13,fontWeight:600,color:'var(--text)',transition:'border-color .15s'}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor='var(--primary)'}
+              onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+              <span style={{color:'var(--primary)'}}>▤</span>{item.label}
+            </a>
+          ))}
+        </div>
+        <div style={{marginTop:12,padding:'12px 16px',background:'rgba(245,158,11,0.08)',
+          border:'1px solid rgba(245,158,11,0.2)',borderRadius:12,fontSize:12,
+          color:'var(--text-muted)',lineHeight:1.6}}>
+          <strong style={{color:'#f59e0b'}}>⚠ Beta v2.6.0:</strong>{' '}
+          Plataforma en etapa beta. Algunas funciones pueden cambiar o fallar.
+          Para baja o exportación de datos:{' '}
+          <a href="mailto:legal@churchsystem.com.ar" style={{color:'var(--primary)'}}>legal@churchsystem.com.ar</a>
+        </div>
+      </div>
+
       </main>
     </div>
   )

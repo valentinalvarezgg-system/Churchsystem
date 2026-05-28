@@ -1,3 +1,4 @@
+import { TEXTOS, EMAILS } from '../utils/legal.js'
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../services/api.js'
@@ -180,6 +181,7 @@ export default function Registro() {
   const [iglesiaJoin, setIglesiaJoin] = useState(null)
   const [showPass, setShowPass]   = useState(false)
   const [showPass2, setShowPass2] = useState(false)
+  const [aceptoTerminos, setAceptoTerminos] = useState(false)
   const [form, setForm]           = useState({ nombre:'', apellido:'', email:'', password:'', confirmar:'', iglesiaToken:'' })
   const f = (k,v) => setForm(p=>({...p,[k]:v}))
 
@@ -487,18 +489,31 @@ export default function Registro() {
                     border:`1px solid ${c.border}`, borderRadius:12, cursor:'pointer'}}>
                   ← Volver
                 </button>
-                <button type="submit" disabled={loading||(form.confirmar&&form.confirmar!==form.password)}
-                  style={{...btnPri, flex:2, opacity:loading?.7:1}}>
+                <button type="submit" disabled={loading||(form.confirmar&&form.confirmar!==form.password)||!aceptoTerminos}
+                  style={{...btnPri, flex:2, opacity:(loading||!aceptoTerminos)?0.5:1}}>
                   {loading ? 'Creando...' : 'Crear cuenta gratis →'}
                 </button>
               </div>
 
-              <p style={{fontSize:11, color:c.muted, textAlign:'center', lineHeight:1.5}}>
-                Al registrarte aceptás los{' '}
-                <a href="/app/terminos" style={{color:c.pri, textDecoration:'none'}}>Términos de servicio</a>
-                {' '}y la{' '}
-                <a href="/app/privacidad" style={{color:c.pri, textDecoration:'none'}}>Política de privacidad</a>.
-              </p>
+              {/* Checkbox legal */}
+              <label style={{display:'flex', alignItems:'flex-start', gap:10, cursor:'pointer', marginTop:4}}>
+                <input type="checkbox" checked={aceptoTerminos} onChange={e=>setAceptoTerminos(e.target.checked)}
+                  style={{marginTop:2, accentColor:c.pri, flexShrink:0, width:16, height:16}}/>
+                <span style={{fontSize:12, color:c.muted, lineHeight:1.5}}>
+                  Acepto los{' '}
+                  <a href="/app/terminos" style={{color:c.pri, textDecoration:'none'}} target="_blank">Términos y Condiciones</a>,
+                  {' '}la{' '}
+                  <a href="/app/privacidad" style={{color:c.pri, textDecoration:'none'}} target="_blank">Política de Privacidad</a>
+                  {' '}y la Política de Cookies de Church System.
+                </span>
+              </label>
+
+              {/* Aviso organización */}
+              <div style={{fontSize:11, color:c.muted, lineHeight:1.6, padding:'10px 12px',
+                background:'rgba(255,255,255,0.03)', borderRadius:10, border:`1px solid ${c.border}`}}>
+                Church System es una herramienta tecnológica de gestión. La organización es responsable
+                por los datos que carga, los permisos que asigna y las comunicaciones que envía.
+              </div>
             </form>
           </>
         )}
