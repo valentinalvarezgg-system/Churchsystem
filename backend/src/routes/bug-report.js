@@ -3,7 +3,8 @@ import { requireAuth } from '../middlewares/auth.js'
 import { Resend } from 'resend'
 
 const router = Router()
-const resend = new Resend(process.env.RESEND_API_KEY)
+let resend = null
+try { resend = new Resend(process.env.RESEND_API_KEY) } catch(_) {}
 
 router.post('/bug-report', requireAuth, async (req, res) => {
   const { descripcion, url, userAgent } = req.body
