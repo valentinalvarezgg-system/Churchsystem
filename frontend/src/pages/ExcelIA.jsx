@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
-import { apiFetch } from '../services/api.js'
+import { apiFetch, getApiUrl } from '../services/api.js'
 
 const CAMPOS_SISTEMA = [
   { key:'nombre',            label:'Nombre *',            req:true },
@@ -86,7 +86,7 @@ export default function ExcelIA() {
   async function handleExportar() {
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:4000/excel-ia/exportar',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('token')}`},body:JSON.stringify({columnas:colsExport,filtros:filtroExport,nombreArchivo})})
+      const res = await fetch(`${getApiUrl()}/excel-ia/exportar`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('token')}`},body:JSON.stringify({columnas:colsExport,filtros:filtroExport,nombreArchivo})})
       if (!res.ok) throw new Error('Error exportando')
       const blob = await res.blob(); const url = URL.createObjectURL(blob)
       const a = document.createElement('a'); a.href=url; a.download=`${nombreArchivo}-${new Date().toISOString().slice(0,10)}.xlsx`; a.click(); URL.revokeObjectURL(url)

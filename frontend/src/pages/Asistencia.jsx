@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
-import { apiFetch, getUser } from '../services/api.js'
+import { apiFetch, getUser, getApiUrl } from '../services/api.js'
 
 const DIAS_REGULARES = ['LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO']
 const CULTOS_ESPECIALES = ['Oración','Mujeres','Sanos por la Palabra','Pre-Adolescentes','Adolescentes','Jóvenes','Jóvenes Adultos','Escuelita']
@@ -103,7 +103,7 @@ export default function Asistencia() {
                       {detalle && <span style={{fontSize:13,color:'var(--text-muted)'}}>{presentes.size}/{detalle.personas.length}</span>}
                       {canManage && <>
                         <button className="btn btn-primary btn-sm" onClick={guardar} disabled={saving}>{saving?'Guardando...':'💾 Guardar'}</button>
-                        <button className="btn btn-ghost btn-sm" data-tip="Descargar planilla Excel con la asistencia" onClick={()=>window.open(`http://localhost:4000/export/asistencia/${selected}?token=${localStorage.getItem("token")}`,"_blank")}>↑ Exportar</button>
+                        <button className="btn btn-ghost btn-sm" data-tip="Descargar planilla Excel con la asistencia" onClick={()=>window.open(`${getApiUrl()}/export/asistencia/${selected}?token=${localStorage.getItem("token")}`,"_blank")}>↑ Exportar</button>
                         <button className="btn btn-danger btn-sm" data-tip="Eliminar este culto y su registro de asistencia" onClick={()=>eliminarCulto(selected)}>Eliminar</button>
                       </>}
                     </div>
