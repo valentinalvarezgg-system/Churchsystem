@@ -1,5 +1,40 @@
-node_modules
-# Keep environment variables out of version control
-.env
+node_modules/
+**/node_modules/
 
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.env.production
+.env.development
+prisma/.env
+
+# Backups and local databases
+backup/
+backups/
+dbs/
+*.db
+*.sqlite
+*.sqlite3
+church*.db
+
+# Generated files
 /src/generated/prisma
+dist/
+build/
+*.log
+tmp/
+temp/
+
+# Uploads and local files
+uploads/*
+!uploads/.gitkeep
+system_certs.pem
+*.pem
+*.key
+*.cert
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/

@@ -1,14 +1,14 @@
 export function getTenantId(hostname = '') {
   const host = String(hostname || '').split(':')[0].toLowerCase()
 
-  const MAIN_HOSTS = [
+  const mainHosts = [
     'churchsystem.com.ar',
     'www.churchsystem.com.ar',
     'localhost',
     '127.0.0.1',
     '192.168.1.2',
   ]
-  if (MAIN_HOSTS.includes(host)) return 'main'
+  if (mainHosts.includes(host)) return 'main'
 
   const match = host.match(/^(?:app\.)?([^.]+)\.churchsystem\.com\.ar$/)
   if (match) return match[1]
@@ -21,3 +21,7 @@ export function tenantMiddleware(req, _res, next) {
   next()
 }
 
+export function tenantFilter(tableAlias = '') {
+  const prefix = tableAlias ? `${tableAlias}.` : ''
+  return `WHERE ${prefix}"iglesiaId" = $1`
+}
