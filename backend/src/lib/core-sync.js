@@ -1,10 +1,18 @@
 import pino from 'pino'
-import legacyDb from './db.js'
 import { pgExec, pgMany, pgOne } from './pg.js'
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
 const syncedCore = new Set()
 const syncedOps = new Set()
+
+let legacyDb = null
+let _legacyDbLoaded = false
+async function getLegacyDb() {
+  if (_legacyDbLoaded) return legacyDb
+  _legacyDbLoaded = true
+  try { const mod = await import('./db.js'); legacyDb = mod.default } catch { legacyDb = null }
+  return legacyDb
+}
 
 function clean(v = '') {
   return String(v || '').trim().toLowerCase()
@@ -149,6 +157,8 @@ async function syncCore(iglesiaId) {
     return
   }
 
+  await getLegacyDb()
+
   const legacyGrupos = safeAll(
     'SELECT * FROM grupos WHERE iglesiaId=? ORDER BY id ASC',
     [iglesiaId],
@@ -239,6 +249,8 @@ async function syncOps(iglesiaId) {
     syncedOps.add(iglesiaId)
     return
   }
+
+  await getLegacyDb()
 
   const legacyCultos = safeAll(
     'SELECT * FROM cultos WHERE iglesiaId=? ORDER BY id ASC',

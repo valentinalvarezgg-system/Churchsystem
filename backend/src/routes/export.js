@@ -1,33 +1,31 @@
-/**
- * EXPORT — Excel y PDF con formato exacto de la planilla Culto 8:45
- * N° | APELLIDO (✓ si asistió) | NOMBRE | Contacto | | | LIDER | ÁREA | COMENTARIO
- */
 import { Router } from 'express'
-import db         from '../lib/db.js'
+import { pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 import * as XLSX from 'xlsx'
 
 const router = Router()
 
 function cleanTel(v) { return String(v || '').replace(/\.0$/, '').trim() }
-function getConfig() {
+
+async function getConfig(iglesiaId) {
+  const rows = await pgMany(
+    'SELECT "clave","valor" FROM "Configuracion" WHERE "iglesiaId"=$1 OR "iglesiaId" IS NULL ORDER BY "iglesiaId" NULLS FIRST',
+    [iglesiaId]
+  ).catch(() => [])
   const c = {}
-  try { db.all('SELECT clave,valor FROM configuracion').forEach(r => { c[r.clave] = r.valor }) } catch {}
+  for (const r of rows) c[r.clave] = r.valor
   return c
 }
 
-// ── Formato exacto de la planilla ─────────────────────────────────────────────
 function buildPlanilla(personas, cfg, cultoNombre = '', fecha = '', asistenciaMap = null) {
   const nombreIglesia = cfg.nombre_iglesia || 'CULTO'
-  const fechaStr      = fecha || new Date().toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit' })
-
+  const fechaStr = fecha || new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
   const rows = [
     [cultoNombre || nombreIglesia, '', '', '', `Fecha: ${fechaStr}`, '', '', '', ''],
     ['AVISO: SIEMPRE QUE LLEGUE ALGUIEN QUE NO ESTÉ EN LA LISTA, PEDIR NOMBRE, APELLIDO Y TELÉFONO.', '', '', '', '', '', '', '', ''],
     ['', '', '', '', '', '', '', '', ''],
     ['N°', 'APELLIDO', 'NOMBRE', 'Contacto', 'P', '', 'LIDER', 'ÁREA', 'COMENTARIO'],
   ]
-
   personas.forEach((p, i) => {
     const presente = asistenciaMap ? (asistenciaMap[p.id] ? 1 : 0) : null
     const apellido = presente === 1 ? `✓${p.apellido || ''}` : (p.apellido || '')
@@ -46,43 +44,41 @@ function buildPlanilla(personas, cfg, cultoNombre = '', fecha = '', asistenciaMa
   return rows
 }
 
-const COLS = [
-  { wch: 4 },   // N°
-  { wch: 22 },  // APELLIDO
-  { wch: 16 },  // NOMBRE
-  { wch: 14 },  // Contacto
-  { wch: 5 },   // P (presente)
-  { wch: 3 },   // vacía
-  { wch: 22 },  // LIDER
-  { wch: 10 },  // ÁREA
-  { wch: 28 },  // COMENTARIO
-]
+const COLS = [{ wch: 4 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 5 }, { wch: 3 }, { wch: 22 }, { wch: 10 }, { wch: 28 }]
 
-// ── GET /export/personas ───────────────────────────────────────────────────────
-router.get('/personas', requireAuth, (req, res) => {
+router.get('/personas', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+
   const { estado, grupoId, cultoDia } = req.query
-  const where = []; const params = []
-  if (estado)   { where.push('p.estado=?');   params.push(estado) }
-  if (grupoId)  { where.push('p.grupoId=?');  params.push(grupoId) }
-  if (cultoDia) { where.push('p.cultoDia=?'); params.push(cultoDia) }
-  const wStr = where.length ? 'WHERE ' + where.join(' AND ') : ''
+  const where = [`p."iglesiaId"=$1`, `p."deletedAt" IS NULL`]
+  const params = [iglesiaId]
+  let idx = 2
+  if (estado)   { where.push(`p."estado"=$${idx++}`);   params.push(estado) }
+  if (grupoId)  { where.push(`p."grupoId"=$${idx++}`);  params.push(Number(grupoId)) }
+  if (cultoDia) { where.push(`p."cultoDia"=$${idx++}`); params.push(cultoDia) }
 
-  const cfg      = getConfig()
-  const personas = db.all(
-    `SELECT p.*, g.nombre as grupoNombre, u.nombre as liderNombre
-     FROM personas p
-     LEFT JOIN grupos g ON p.grupoId=g.id
-     LEFT JOIN users u ON p.asignadoA=u.id
-     ${wStr} ORDER BY p.apellido, p.nombre`, params
-  )
+  const [cfg, personas, stats] = await Promise.all([
+    getConfig(iglesiaId),
+    pgMany(
+      `SELECT p.*, g."nombre" as "grupoNombre", u."nombre" as "liderNombre"
+       FROM "Persona" p
+       LEFT JOIN "Grupo" g ON p."grupoId"=g."id" AND g."deletedAt" IS NULL
+       LEFT JOIN "User" u ON p."asignadoAUserId"=u."id"
+       WHERE ${where.join(' AND ')}
+       ORDER BY p."apellido", p."nombre"`,
+      params
+    ),
+    pgMany(
+      `SELECT "estado", COUNT(*)::int as "total" FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL GROUP BY "estado"`,
+      [iglesiaId]
+    ),
+  ])
 
-  const wb  = XLSX.utils.book_new()
-  const ws  = XLSX.utils.aoa_to_sheet(buildPlanilla(personas, cfg))
+  const wb = XLSX.utils.book_new()
+  const ws = XLSX.utils.aoa_to_sheet(buildPlanilla(personas, cfg))
   ws['!cols'] = COLS
   XLSX.utils.book_append_sheet(wb, ws, 'MEMBRESÍA')
-
-  // Hoja resumen
-  const stats = db.all('SELECT estado, COUNT(*) as total FROM personas GROUP BY estado')
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
     ['RESUMEN', ''], ['Generado:', new Date().toLocaleString('es-AR')],
     ['Total:', personas.length], [''],
@@ -95,31 +91,38 @@ router.get('/personas', requireAuth, (req, res) => {
   res.send(buf)
 })
 
-// ── GET /export/asistencia/:cultoId ───────────────────────────────────────────
-router.get('/asistencia/:cultoId', requireAuth, (req, res) => {
-  const culto = db.get('SELECT * FROM cultos WHERE id=?', [req.params.cultoId])
+router.get('/asistencia/:cultoId', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+
+  const culto = await pgOne(
+    'SELECT * FROM "Culto" WHERE "id"=$1 AND "iglesiaId"=$2 AND "deletedAt" IS NULL',
+    [Number(req.params.cultoId), iglesiaId]
+  )
   if (!culto) return res.status(404).json({ error: 'Culto no encontrado' })
 
-  const cfg      = getConfig()
-  const personas = db.all(
-    `SELECT p.*, g.nombre as grupoNombre, u.nombre as liderNombre
-     FROM personas p
-     LEFT JOIN grupos g ON p.grupoId=g.id
-     LEFT JOIN users u ON p.asignadoA=u.id
-     ORDER BY p.apellido, p.nombre`
-  )
+  const [cfg, personas, asistRows] = await Promise.all([
+    getConfig(iglesiaId),
+    pgMany(
+      `SELECT p.*, g."nombre" as "grupoNombre", u."nombre" as "liderNombre"
+       FROM "Persona" p
+       LEFT JOIN "Grupo" g ON p."grupoId"=g."id" AND g."deletedAt" IS NULL
+       LEFT JOIN "User" u ON p."asignadoAUserId"=u."id"
+       WHERE p."iglesiaId"=$1 AND p."deletedAt" IS NULL
+       ORDER BY p."apellido", p."nombre"`,
+      [iglesiaId]
+    ),
+    pgMany('SELECT "personaId","presente" FROM "Asistencia" WHERE "cultoId"=$1', [culto.id]),
+  ])
 
-  // Mapa de asistencia
   const asistMap = {}
-  db.all('SELECT personaId, presente FROM asistencias WHERE cultoId=?', [culto.id])
-    .forEach(a => { asistMap[a.personaId] = a.presente })
+  asistRows.forEach(a => { asistMap[a.personaId] = a.presente })
 
   const presentes = Object.values(asistMap).filter(Boolean).length
-  const pct       = personas.length > 0 ? Math.round(presentes / personas.length * 100) : 0
+  const pct = personas.length > 0 ? Math.round(presentes / personas.length * 100) : 0
 
   const wb = XLSX.utils.book_new()
   const data = buildPlanilla(personas, cfg, culto.nombre, culto.fecha, asistMap)
-  // Agregar stat de asistencia en la fila 1
   data[0][6] = `Presentes: ${presentes}/${personas.length} (${pct}%)`
   const ws = XLSX.utils.aoa_to_sheet(data)
   ws['!cols'] = COLS
@@ -131,42 +134,56 @@ router.get('/asistencia/:cultoId', requireAuth, (req, res) => {
   res.send(buf)
 })
 
-// ── GET /export/pdf/:tipo ─────────────────────────────────────────────────────
-// HTML imprimible con mismo estilo que la planilla
-router.get('/pdf/:tipo', requireAuth, (req, res) => {
-  const { tipo }   = req.params
+router.get('/pdf/:tipo', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+
+  const { tipo } = req.params
   const { cultoId, estado } = req.query
-  const cfg        = getConfig()
-  const iglesia    = cfg.nombre_iglesia || 'CULTO'
-  const color      = cfg.color_primario || '#2563EB'
-  const fechaHoy   = new Date().toLocaleDateString('es-AR')
+  const cfg = await getConfig(iglesiaId)
+  const iglesia = cfg.nombre_iglesia || 'CULTO'
+  const color = cfg.color_primario || '#2563EB'
+  const fechaHoy = new Date().toLocaleDateString('es-AR')
 
   let titulo = '', personas = [], asistMap = null
 
   if (tipo === 'membresia') {
-    titulo   = 'Membresía'
-    const where = estado ? 'WHERE p.estado=?' : ''
-    personas = db.all(
-      `SELECT p.*, g.nombre as grupoNombre, u.nombre as liderNombre
-       FROM personas p LEFT JOIN grupos g ON p.grupoId=g.id LEFT JOIN users u ON p.asignadoA=u.id
-       ${where} ORDER BY p.apellido, p.nombre`, estado ? [estado] : []
+    titulo = 'Membresía'
+    const where = [`p."iglesiaId"=$1`, `p."deletedAt" IS NULL`]
+    const params = [iglesiaId]
+    if (estado) { where.push(`p."estado"=$2`); params.push(estado) }
+    personas = await pgMany(
+      `SELECT p.*, g."nombre" as "grupoNombre", u."nombre" as "liderNombre"
+       FROM "Persona" p
+       LEFT JOIN "Grupo" g ON p."grupoId"=g."id" AND g."deletedAt" IS NULL
+       LEFT JOIN "User" u ON p."asignadoAUserId"=u."id"
+       WHERE ${where.join(' AND ')}
+       ORDER BY p."apellido", p."nombre"`,
+      params
     )
   } else if (tipo === 'asistencia' && cultoId) {
-    const culto = db.get('SELECT * FROM cultos WHERE id=?', [cultoId])
+    const culto = await pgOne('SELECT * FROM "Culto" WHERE "id"=$1 AND "iglesiaId"=$2 AND "deletedAt" IS NULL', [Number(cultoId), iglesiaId])
     if (!culto) return res.status(404).send('Culto no encontrado')
-    titulo   = culto.nombre
-    personas = db.all(
-      `SELECT p.*, g.nombre as grupoNombre, u.nombre as liderNombre
-       FROM personas p LEFT JOIN grupos g ON p.grupoId=g.id LEFT JOIN users u ON p.asignadoA=u.id
-       ORDER BY p.apellido, p.nombre`
-    )
+    titulo = culto.nombre
+    const [ps, ar] = await Promise.all([
+      pgMany(
+        `SELECT p.*, g."nombre" as "grupoNombre", u."nombre" as "liderNombre"
+         FROM "Persona" p
+         LEFT JOIN "Grupo" g ON p."grupoId"=g."id" AND g."deletedAt" IS NULL
+         LEFT JOIN "User" u ON p."asignadoAUserId"=u."id"
+         WHERE p."iglesiaId"=$1 AND p."deletedAt" IS NULL
+         ORDER BY p."apellido", p."nombre"`,
+        [iglesiaId]
+      ),
+      pgMany('SELECT "personaId","presente" FROM "Asistencia" WHERE "cultoId"=$1', [culto.id]),
+    ])
+    personas = ps
     asistMap = {}
-    db.all('SELECT personaId, presente FROM asistencias WHERE cultoId=?', [cultoId])
-      .forEach(a => { asistMap[a.personaId] = a.presente })
+    ar.forEach(a => { asistMap[a.personaId] = a.presente })
   }
 
   const presentes = asistMap ? Object.values(asistMap).filter(Boolean).length : 0
-  const pct       = personas.length > 0 ? Math.round(presentes / personas.length * 100) : 0
+  const pct = personas.length > 0 ? Math.round(presentes / personas.length * 100) : 0
 
   const filas = personas.map((p, i) => {
     const presente = asistMap ? (asistMap[p.id] ? 1 : 0) : null
@@ -214,19 +231,18 @@ router.get('/pdf/:tipo', requireAuth, (req, res) => {
 <button class="print-btn" onclick="window.print()">🖨 Imprimir / PDF</button>
 <div class="header">
   <div><h1>${iglesia}</h1><h2>${titulo}</h2></div>
-  <div class="header-r">${fechaHoy}<br>${personas.length} miembros${tipo==='asistencia'?`<br><strong>${presentes} presentes (${pct}%)</strong>`:''}
-  </div>
+  <div class="header-r">${fechaHoy}<br>${personas.length} miembros${tipo === 'asistencia' ? `<br><strong>${presentes} presentes (${pct}%)</strong>` : ''}</div>
 </div>
-${tipo==='asistencia'?`<div class="stats">
+${tipo === 'asistencia' ? `<div class="stats">
   <div class="stat"><span class="sv" style="color:#16A34A">${presentes}</span><span class="sl">Presentes</span></div>
-  <div class="stat"><span class="sv" style="color:#DC2626">${personas.length-presentes}</span><span class="sl">Ausentes</span></div>
+  <div class="stat"><span class="sv" style="color:#DC2626">${personas.length - presentes}</span><span class="sl">Ausentes</span></div>
   <div class="stat"><span class="sv">${pct}%</span><span class="sl">Asistencia</span></div>
-</div>`:''}
+</div>` : ''}
 <table>
   <thead><tr><th>N°</th><th>Apellido</th><th>Nombre</th><th>Contacto</th><th>Área</th><th>Líder</th><th>Comentario</th></tr></thead>
   <tbody>${filas}</tbody>
 </table>
-<div class="footer"><span>Church System 2.4</span><span>Generado: ${new Date().toLocaleString('es-AR')}</span></div>
+<div class="footer"><span>Church System</span><span>Generado: ${new Date().toLocaleString('es-AR')}</span></div>
 <script>if(new URLSearchParams(location.search).get('print')==='1')window.onload=()=>setTimeout(()=>window.print(),400)</script>
 </body></html>`
 
@@ -234,18 +250,22 @@ ${tipo==='asistencia'?`<div class="stats">
   res.send(html)
 })
 
-// ── GET /export/seguimientos ──────────────────────────────────────────────────
-router.get('/seguimientos', requireAuth, (_req, res) => {
-  const rows = db.all(
-    `SELECT p.apellido, p.nombre, s.tipo, s.nota, s.proximoContacto, s.createdAt, u.nombre as autor
-     FROM seguimientos s
-     JOIN personas p ON s.personaId = p.id
-     LEFT JOIN users u ON s.userId = u.id
-     ORDER BY s.createdAt DESC`
+router.get('/seguimientos', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+
+  const rows = await pgMany(
+    `SELECT p."apellido", p."nombre", s."tipo", s."nota", s."proximoContacto", s."createdAt", u."nombre" as "autor"
+     FROM "Seguimiento" s
+     JOIN "Persona" p ON s."personaId"=p."id" AND p."deletedAt" IS NULL
+     LEFT JOIN "User" u ON s."userId"=u."id"
+     WHERE s."iglesiaId"=$1 AND s."deletedAt" IS NULL
+     ORDER BY s."createdAt" DESC`,
+    [iglesiaId]
   )
-  const wb  = XLSX.utils.book_new()
-  const ws  = XLSX.utils.json_to_sheet(rows)
-  ws['!cols'] = [{wch:16},{wch:14},{wch:12},{wch:50},{wch:14},{wch:18},{wch:20}]
+  const wb = XLSX.utils.book_new()
+  const ws = XLSX.utils.json_to_sheet(rows)
+  ws['!cols'] = [{ wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 50 }, { wch: 14 }, { wch: 18 }, { wch: 20 }]
   XLSX.utils.book_append_sheet(wb, ws, 'Seguimientos')
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -253,93 +273,110 @@ router.get('/seguimientos', requireAuth, (_req, res) => {
   res.send(buf)
 })
 
-// ── GET /export/excel/personas ─────────────────────────────────────────────────
-router.get('/excel/personas', requireAuth, (_req, res) => {
-  const cfg     = getConfig()
-  const nombre  = cfg.nombre_iglesia || 'Iglesia'
-  const personas = db.all(
-    `SELECT p.*, g.nombre as grupoNombre, u.nombre as liderNombre
-     FROM personas p
-     LEFT JOIN grupos g ON p.grupoId = g.id
-     LEFT JOIN users u ON p.asignadoA = u.id
-     ORDER BY p.apellido, p.nombre`
-  )
-  const wb    = XLSX.utils.book_new()
+router.get('/excel/personas', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+
+  const [cfg, personas] = await Promise.all([
+    getConfig(iglesiaId),
+    pgMany(
+      `SELECT p.*, g."nombre" as "grupoNombre", u."nombre" as "liderNombre"
+       FROM "Persona" p
+       LEFT JOIN "Grupo" g ON p."grupoId"=g."id" AND g."deletedAt" IS NULL
+       LEFT JOIN "User" u ON p."asignadoAUserId"=u."id"
+       WHERE p."iglesiaId"=$1 AND p."deletedAt" IS NULL
+       ORDER BY p."apellido", p."nombre"`,
+      [iglesiaId]
+    ),
+  ])
+
+  const nombre = cfg.nombre_iglesia || 'Iglesia'
+  const wb = XLSX.utils.book_new()
   const sheetData = [
     [nombre, '', '', '', `Fecha: ${new Date().toLocaleDateString('es-AR')}`, '', '', '', ''],
     ['AVISO: SIEMPRE QUE LLEGUE ALGUIEN QUE NO ESTÉ EN LA LISTA, PEDIR NOMBRE, APELLIDO Y TELÉFONO.', '', '', '', '', '', '', '', ''],
     ['', '', '', '', '', '', '', '', ''],
     ['N°', 'APELLIDO', 'NOMBRE', 'Contacto', 'P', '', 'LIDER', 'ÁREA', 'COMENTARIO'],
-    ...personas.map((p, i) => [
-      i + 1, p.apellido || '', p.nombre || '', cleanTel(p.telefono),
-      '', '', p.liderNombre || '', p.grupoNombre || '', p.notas || ''
-    ])
+    ...personas.map((p, i) => [i + 1, p.apellido || '', p.nombre || '', cleanTel(p.telefono), '', '', p.liderNombre || '', p.grupoNombre || '', p.notas || ''])
   ]
   const ws = XLSX.utils.aoa_to_sheet(sheetData)
-  ws['!cols'] = [{wch:4},{wch:22},{wch:16},{wch:14},{wch:5},{wch:3},{wch:22},{wch:10},{wch:28}]
+  ws['!cols'] = [{ wch: 4 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 5 }, { wch: 3 }, { wch: 22 }, { wch: 10 }, { wch: 28 }]
   XLSX.utils.book_append_sheet(wb, ws, 'MEMBRESÍA')
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-  res.setHeader('Content-Disposition', `attachment; filename="membresia-${new Date().toISOString().slice(0,10)}.xlsx"`)
+  res.setHeader('Content-Disposition', `attachment; filename="membresia-${new Date().toISOString().slice(0, 10)}.xlsx"`)
   res.send(buf)
 })
 
-// ── GET /export/reporte/semanal  y  /export/reporte/mensual?mes=YYYY-MM ──────
-router.get('/reporte/:tipo', requireAuth, (req, res) => {
-  const { tipo }  = req.params
-  const { mes }   = req.query
-  const cfg       = getConfig()
-  const iglesia   = cfg.nombre_iglesia || 'Church System'
-  const color     = cfg.color_primario || '#2563EB'
-  const fechaHoy  = new Date().toLocaleDateString('es-AR')
+router.get('/reporte/:tipo', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+
+  const { tipo } = req.params
+  const { mes } = req.query
+  const cfg = await getConfig(iglesiaId)
+  const iglesia = cfg.nombre_iglesia || 'Church System'
+  const color = cfg.color_primario || '#2563EB'
+  const fechaHoy = new Date().toLocaleDateString('es-AR')
 
   let desde, hasta, titulo
 
   if (tipo === 'semanal') {
-    const hoy   = new Date()
+    const hoy = new Date()
     const lunes = new Date(hoy); lunes.setDate(hoy.getDate() - hoy.getDay() + 1)
-    const dom   = new Date(lunes); dom.setDate(lunes.getDate() + 6)
-    desde  = lunes.toISOString().slice(0, 10)
-    hasta  = dom.toISOString().slice(0, 10)
+    const dom = new Date(lunes); dom.setDate(lunes.getDate() + 6)
+    desde = lunes.toISOString().slice(0, 10)
+    hasta = dom.toISOString().slice(0, 10)
     titulo = `Reporte semanal — ${desde} al ${hasta}`
   } else {
-    const m  = mes || new Date().toISOString().slice(0, 7)
+    const m = mes || new Date().toISOString().slice(0, 7)
     const [y, mo] = m.split('-').map(Number)
-    desde  = `${m}-01`
-    hasta  = new Date(y, mo, 0).toISOString().slice(0, 10)
+    desde = `${m}-01`
+    hasta = new Date(y, mo, 0).toISOString().slice(0, 10)
     titulo = `Reporte mensual — ${m}`
   }
 
-  const nuevasPersonas = db.all(
-    `SELECT nombre, apellido, estado, telefono, createdAt FROM personas WHERE DATE(createdAt) BETWEEN ? AND ? ORDER BY createdAt DESC`,
-    [desde, hasta]
-  )
+  const [nuevasPersonas, cultos, seguimientos, finanzas, totalPersonasRow] = await Promise.all([
+    pgMany(
+      `SELECT "nombre","apellido","estado","telefono","createdAt"
+       FROM "Persona"
+       WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "createdAt"::date BETWEEN $2::date AND $3::date
+       ORDER BY "createdAt" DESC`,
+      [iglesiaId, desde, hasta]
+    ),
+    pgMany(
+      `SELECT c."nombre", c."fecha",
+              COUNT(CASE WHEN a."presente"=true THEN 1 END)::int as "presentes",
+              COUNT(a."id")::int as "total"
+       FROM "Culto" c
+       LEFT JOIN "Asistencia" a ON a."cultoId"=c."id"
+       WHERE c."iglesiaId"=$1 AND c."fecha" BETWEEN $2 AND $3 AND c."deletedAt" IS NULL
+       GROUP BY c."id", c."nombre", c."fecha"
+       ORDER BY c."fecha"`,
+      [iglesiaId, desde, hasta]
+    ),
+    pgMany(
+      `SELECT "tipo", COUNT(*)::int as "qty"
+       FROM "Seguimiento"
+       WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "createdAt"::date BETWEEN $2::date AND $3::date
+       GROUP BY "tipo"`,
+      [iglesiaId, desde, hasta]
+    ),
+    pgMany(
+      `SELECT "tipo", SUM("monto") as "total", COUNT(*)::int as "qty"
+       FROM "Finanza"
+       WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "fecha" BETWEEN $2 AND $3
+       GROUP BY "tipo"`,
+      [iglesiaId, desde, hasta]
+    ),
+    pgOne('SELECT COUNT(*)::int AS c FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId]),
+  ])
 
-  const cultos = db.all(
-    `SELECT c.nombre, c.fecha,
-       COUNT(CASE WHEN a.presente=1 THEN 1 END) as presentes,
-       COUNT(a.id) as total
-     FROM cultos c LEFT JOIN asistencias a ON a.cultoId=c.id
-     WHERE c.fecha BETWEEN ? AND ?
-     GROUP BY c.id ORDER BY c.fecha`, [desde, hasta]
-  )
-
-  const seguimientos = db.all(
-    `SELECT tipo, COUNT(*) as qty FROM seguimientos WHERE DATE(createdAt) BETWEEN ? AND ? GROUP BY tipo`,
-    [desde, hasta]
-  )
-
-  const finanzas = db.all(
-    `SELECT tipo, SUM(monto) as total, COUNT(*) as qty FROM finanzas WHERE fecha BETWEEN ? AND ? GROUP BY tipo`,
-    [desde, hasta]
-  )
-
+  const totalPersonas = Number(totalPersonasRow?.c ?? 0)
   const totalOfrendas = finanzas.reduce((a, b) => a + Number(b.total || 0), 0)
-  const totalPersonas = Number(db.get('SELECT COUNT(*) as c FROM personas')?.c ?? 0)
-
   const totalPresentes = cultos.reduce((a, c) => a + Number(c.presentes), 0)
-  const totalCultoAsist= cultos.reduce((a, c) => a + Number(c.total), 0)
-  const pctAsist       = totalCultoAsist > 0 ? Math.round(totalPresentes / totalCultoAsist * 100) : 0
+  const totalCultoAsist = cultos.reduce((a, c) => a + Number(c.total), 0)
+  const pctAsist = totalCultoAsist > 0 ? Math.round(totalPresentes / totalCultoAsist * 100) : 0
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -380,71 +417,17 @@ td{padding:7px 10px;border-bottom:1px solid #F8FAFC;color:#334155}
     <div><h1>⛪ ${iglesia}</h1><h2>${titulo}</h2></div>
     <div class="header-r">Generado: ${fechaHoy}<br>${totalPersonas} miembros en total</div>
   </div>
-
   <div class="cards">
     <div class="card"><div class="v">${nuevasPersonas.length}</div><div class="l">Nuevas personas</div></div>
     <div class="card"><div class="v">${cultos.length}</div><div class="l">Cultos realizados</div></div>
     <div class="card"><div class="v" style="color:${pctAsist>=70?'#16A34A':pctAsist>=45?'#D97706':'#DC2626'}">${pctAsist}%</div><div class="l">Asistencia prom.</div></div>
     <div class="card"><div class="v">${totalOfrendas > 0 ? '$'+totalOfrendas.toLocaleString('es-AR') : '—'}</div><div class="l">Ofrendas</div></div>
   </div>
-
-  ${nuevasPersonas.length > 0 ? `
-  <div class="sect">
-    <h3>👥 Nuevas personas (${nuevasPersonas.length})</h3>
-    <table>
-      <thead><tr><th>Nombre</th><th>Estado</th><th>Teléfono</th><th>Fecha ingreso</th></tr></thead>
-      <tbody>${nuevasPersonas.map(p => `
-        <tr>
-          <td><strong>${p.apellido || ''} ${p.nombre || ''}</strong></td>
-          <td><span class="badge badge-${p.estado}">${p.estado}</span></td>
-          <td>${p.telefono || '—'}</td>
-          <td>${new Date(p.createdAt).toLocaleDateString('es-AR')}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
-  </div>` : '<div class="sect"><h3>👥 Nuevas personas</h3><p class="empty">Sin nuevas personas en este período</p></div>'}
-
-  ${cultos.length > 0 ? `
-  <div class="sect">
-    <h3>📅 Asistencia por culto</h3>
-    <table>
-      <thead><tr><th>Culto</th><th>Fecha</th><th>Presentes</th><th>Total</th><th>%</th></tr></thead>
-      <tbody>${cultos.map(c => {
-        const p = c.total > 0 ? Math.round(c.presentes / c.total * 100) : 0
-        const col = p>=70?'#16A34A':p>=45?'#D97706':'#DC2626'
-        return `<tr>
-          <td><strong>${c.nombre}</strong></td>
-          <td>${c.fecha}</td>
-          <td style="color:${col};font-weight:700">${c.presentes}</td>
-          <td>${c.total}</td>
-          <td><div style="min-width:60px">${p}%<div class="bar"><div class="fill" style="width:${p}%;background:${col}"></div></div></div></td>
-        </tr>`}).join('')}
-      </tbody>
-    </table>
-  </div>` : '<div class="sect"><h3>📅 Cultos</h3><p class="empty">Sin cultos en este período</p></div>'}
-
-  ${seguimientos.length > 0 ? `
-  <div class="sect">
-    <h3>📋 Seguimientos realizados</h3>
-    <table>
-      <thead><tr><th>Tipo</th><th>Cantidad</th></tr></thead>
-      <tbody>${seguimientos.map(s => `<tr><td>${s.tipo}</td><td><strong>${s.qty}</strong></td></tr>`).join('')}</tbody>
-    </table>
-  </div>` : ''}
-
-  ${finanzas.length > 0 ? `
-  <div class="sect">
-    <h3>💰 Finanzas del período</h3>
-    <table>
-      <thead><tr><th>Tipo</th><th>Cantidad</th><th>Total</th></tr></thead>
-      <tbody>
-        ${finanzas.map(f => `<tr><td>${f.tipo}</td><td>${f.qty}</td><td><strong>$${Number(f.total||0).toLocaleString('es-AR')}</strong></td></tr>`).join('')}
-        <tr style="border-top:2px solid #E2E8F0"><td colspan="2"><strong>TOTAL</strong></td><td><strong style="color:${color}">$${totalOfrendas.toLocaleString('es-AR')}</strong></td></tr>
-      </tbody>
-    </table>
-  </div>` : ''}
-
-  <div class="footer">Church System Beta 2.4.1 — Generado el ${new Date().toLocaleString('es-AR')}</div>
+  ${nuevasPersonas.length > 0 ? `<div class="sect"><h3>👥 Nuevas personas (${nuevasPersonas.length})</h3><table><thead><tr><th>Nombre</th><th>Estado</th><th>Teléfono</th><th>Fecha ingreso</th></tr></thead><tbody>${nuevasPersonas.map(p => `<tr><td><strong>${p.apellido || ''} ${p.nombre || ''}</strong></td><td><span class="badge badge-${p.estado}">${p.estado}</span></td><td>${p.telefono || '—'}</td><td>${new Date(p.createdAt).toLocaleDateString('es-AR')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="sect"><h3>👥 Nuevas personas</h3><p class="empty">Sin nuevas personas en este período</p></div>'}
+  ${cultos.length > 0 ? `<div class="sect"><h3>📅 Asistencia por culto</h3><table><thead><tr><th>Culto</th><th>Fecha</th><th>Presentes</th><th>Total</th><th>%</th></tr></thead><tbody>${cultos.map(c => { const p = c.total > 0 ? Math.round(c.presentes / c.total * 100) : 0; const col = p>=70?'#16A34A':p>=45?'#D97706':'#DC2626'; return `<tr><td><strong>${c.nombre}</strong></td><td>${c.fecha}</td><td style="color:${col};font-weight:700">${c.presentes}</td><td>${c.total}</td><td><div style="min-width:60px">${p}%<div class="bar"><div class="fill" style="width:${p}%;background:${col}"></div></div></div></td></tr>` }).join('')}</tbody></table></div>` : '<div class="sect"><h3>📅 Cultos</h3><p class="empty">Sin cultos en este período</p></div>'}
+  ${seguimientos.length > 0 ? `<div class="sect"><h3>📋 Seguimientos realizados</h3><table><thead><tr><th>Tipo</th><th>Cantidad</th></tr></thead><tbody>${seguimientos.map(s => `<tr><td>${s.tipo}</td><td><strong>${s.qty}</strong></td></tr>`).join('')}</tbody></table></div>` : ''}
+  ${finanzas.length > 0 ? `<div class="sect"><h3>💰 Finanzas del período</h3><table><thead><tr><th>Tipo</th><th>Cantidad</th><th>Total</th></tr></thead><tbody>${finanzas.map(f => `<tr><td>${f.tipo}</td><td>${f.qty}</td><td><strong>$${Number(f.total||0).toLocaleString('es-AR')}</strong></td></tr>`).join('')}<tr style="border-top:2px solid #E2E8F0"><td colspan="2"><strong>TOTAL</strong></td><td><strong style="color:${color}">$${totalOfrendas.toLocaleString('es-AR')}</strong></td></tr></tbody></table></div>` : ''}
+  <div class="footer">Church System — Generado el ${new Date().toLocaleString('es-AR')}</div>
 </div>
 <script>if(new URLSearchParams(location.search).get('print')==='1')window.onload=()=>setTimeout(()=>window.print(),500)</script>
 </body></html>`
