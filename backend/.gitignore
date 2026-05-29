@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables (sensibles - NEVER commit)
+.env
+.env.local
+.env.*.local
+*.env.production
+.env.development
+
+# Backups with secrets (CRITICAL)
+backup/env-backup/
+backup/project.zip
+backup/**/*.env
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+backend/church*.db
+backend/dbs/*.db
+backend/backups/*.db
+
+# Prisma
+prisma/.env
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Build outputs
+dist/
+build/
+frontend/dist/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Certificates & Keys (CRITICAL)
+*.pem
+*.key
+*.cert
+backend/system_certs.pem
+
+# Temporary files
+*.tmp
+tmp/
+temp/
