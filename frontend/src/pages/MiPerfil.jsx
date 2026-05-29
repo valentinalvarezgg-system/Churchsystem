@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
-import { apiFetch, getApiUrl } from '../services/api.js'
+import { apiFetch } from '../services/api.js'
 
 export default function MiPerfil() {
   const navigate = useNavigate()
@@ -73,13 +73,13 @@ export default function MiPerfil() {
             {perfil.rol==='PASTOR_GENERAL'&&backupInfo&&(
               <div className="card">
                 <h3 style={{fontSize:12,fontWeight:600,marginBottom:10,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>💾 Backup</h3>
-                <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Tamaño: <strong>{backupInfo.tamano}</strong></p>
+                <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Motor: <strong>PostgreSQL</strong></p>
                 <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:12}}>
                   {Object.entries(backupInfo.totales||{}).map(([k,v])=>(
                     <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'2px 0'}}><span>{k}</span><strong>{v}</strong></div>
                   ))}
                 </div>
-                <a href={`${getApiUrl()}/backup/download?token=${localStorage.getItem("token")}`} style={{display:'block',textAlign:'center',padding:'8px',background:'var(--primary)',color:'var(--surface)',borderRadius:8,fontSize:13,fontWeight:600,textDecoration:'none'}}>⬇️ Descargar backup</a>
+                <p style={{fontSize:11,color:'var(--text-muted)',textAlign:'center',margin:0,lineHeight:1.5}}>Respaldos vía <strong>Neon</strong> · <code>pg_dump</code></p>
               </div>
             )}
           </div>

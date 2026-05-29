@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Star, Bell, Users, UsersRound,
+  LayoutDashboard, Bell, Users, UsersRound,
   ClipboardCheck, Calendar, MessageSquare, BarChart2,
   DollarSign, FileSpreadsheet, Sparkles, Settings,
   ShieldCheck, Clock, Ticket, Lock, HandHeart,

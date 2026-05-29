@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Icons from '../components/Icons.jsx'
 import { useParams } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
-import { apiFetch } from '../services/api.js'
+import { apiFetch, getApiUrl } from '../services/api.js'
 
 // ── Pantalla pública — lo que ve el miembro al escanear el QR ────────────────
 export function CheckInPublico() {
@@ -14,9 +14,7 @@ export function CheckInPublico() {
   const [err, setErr]         = useState(null)
 
   useEffect(() => {
-    // En HTTPS (Cloudflare): mismo origen. En HTTP (red local): :4000
-    const { protocol, hostname } = window.location
-    const base = protocol === 'https:' ? '' : `http://${hostname}:4000`
+    const base = getApiUrl()
     fetch(`${base}/checkin/info/${cultoId}/${token}`)
       .then(r => r.json())
       .then(d => { if (d.error) setErr(d.error); else setCulto(d) })
@@ -27,9 +25,7 @@ export function CheckInPublico() {
     e.preventDefault()
     setStep('loading')
     try {
-      // En HTTPS (Cloudflare): mismo origen. En HTTP (red local): :4000
-    const { protocol, hostname } = window.location
-    const base = protocol === 'https:' ? '' : `http://${hostname}:4000`
+      const base = getApiUrl()
       const r = await fetch(`${base}/checkin/registrar/${cultoId}/${token}`, {
         method: 'POST',
         headers: { 'Content-Type':'application/json' },

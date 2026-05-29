@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import BtnNotificaciones from '../components/BtnNotificaciones.jsx'
-import { apiFetch, getApiUrl, getStoredContext } from '../services/api.js'
+import { apiFetch, getStoredContext } from '../services/api.js'
 
 const CATEGORIAS = [
   { key:'iglesia', label:'Iglesia', icon:'🏛️', secciones:[
@@ -23,7 +23,7 @@ const CATEGORIAS = [
   ]},
   { key:'sistema', label:'Sistema', icon:'⊙', secciones:[
     { key:'seguridad', icon:'🔐', label:'Seguridad',     desc:'Sesiones y acceso' },
-    { key:'backup',    icon:'💾', label:'Backup y datos', desc:'Base de datos SQLite' },
+    { key:'backup',    icon:'💾', label:'Backup y datos', desc:'PostgreSQL · Neon' },
   ]},
 ]
 
@@ -605,7 +605,7 @@ export default function Configuracion() {
                 </div>
                 <div style={{background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)',overflow:'hidden'}}>
                   <div style={{padding:'8px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Protecciones activas</div>
-                  {['JWT con expiración configurable','Verificación de usuario activo en cada request','Rate limiting en login y API de IA','Sanitización de inputs en todos los endpoints','Validación Zod en rutas críticas','Helmet — headers HTTP de seguridad','CORS estricto — solo localhost','Auditoría de acciones en historial'].map((item,i)=>(
+                  {['JWT con expiración configurable','Verificación de usuario activo en cada request','Rate limiting en login y API de IA','Sanitización de inputs en todos los endpoints','Aislamiento multi-tenant (datos por iglesia)','Helmet — headers HTTP de seguridad','CORS estricto — whitelist de orígenes','Auditoría de acciones en historial'].map((item,i)=>(
                     <div key={i} style={{display:'flex',gap:10,padding:'8px 14px',borderBottom:'1px solid var(--border)',fontSize:13,alignItems:'center'}}>
                       <span style={{color:'var(--c-success)',flexShrink:0}}>✓</span>{item}
                     </div>
@@ -615,11 +615,11 @@ export default function Configuracion() {
 
               {/* BACKUP */}
               {sec==='backup' && <>
-                <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>La base de datos es un archivo SQLite. Descargalo periódicamente como respaldo.</p>
+                <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>Tus datos viven en PostgreSQL (Neon). Los respaldos automáticos se gestionan desde el panel de Neon o con <code>pg_dump</code>. Acá ves el resumen de tu información.</p>
                 {backupInfo && (
                   <>
                     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:10,marginBottom:16}}>
-                      {[['Tamaño',backupInfo.tamano],['Modificado',backupInfo.modificado?.slice(0,10)||'—'],['Tablas','18']].map(([l,v])=>(
+                      {[['Motor','PostgreSQL'],['Estado','Activo (Neon)'],['Actualizado',backupInfo.modificado?.slice(0,10)||'—']].map(([l,v])=>(
                         <div key={l} style={{padding:'12px 14px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
                           <div style={{fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)',marginBottom:4}}>{l}</div>
                           <div style={{fontSize:18,fontWeight:800,color:'var(--primary)'}}>{v}</div>
@@ -640,8 +640,12 @@ export default function Configuracion() {
                     )}
                   </>
                 )}
-                <a href={`${getApiUrl()}/backup/download?token=${localStorage.getItem("token")}`} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:12,background:'var(--primary)',color:'var(--surface)',borderRadius:'var(--r)',fontSize:14,fontWeight:600,textDecoration:'none'}}>⬇️ Descargar backup (church.db)</a>
-                <p style={{fontSize:11,color:'var(--text-muted)',marginTop:8,textAlign:'center'}}>Para restaurar: reemplazá <code>church.db</code> en <code>backend/</code></p>
+                <div style={{display:'flex',alignItems:'flex-start',gap:10,padding:14,background:'var(--bg)',border:'1px solid var(--border)',borderRadius:'var(--r)'}}>
+                  <span style={{fontSize:18,flexShrink:0}}>🛡️</span>
+                  <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.5}}>
+                    Los respaldos de PostgreSQL se administran desde <strong>Neon</strong> (recuperación point-in-time automática). Para exportar manualmente usá <code>pg_dump</code> con tu <code>DATABASE_URL</code>.
+                  </div>
+                </div>
               </>}
 
               {sec!=='backup' && (
