@@ -1,7 +1,7 @@
 import { TEXTOS, EMAILS } from '../utils/legal.js'
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { apiFetch, decodeJwt, getApiUrl, getStoredContext } from '../services/api.js'
+import { apiFetch, decodeJwt, getApiUrl, getStoredContext, syncContextFromUser } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 import EmailVerificacion from '../components/EmailVerificacion.jsx'
 import { TokenIglesiaInput } from '../components/TokenIglesia.jsx'
@@ -320,9 +320,13 @@ export default function Registro() {
         try {
           const user = await apiFetch('/auth/me')
           localStorage.setItem('user', JSON.stringify(user))
+          syncContextFromUser(user)
         } catch {
           const decoded = decodeJwt(token)
-          if (decoded) localStorage.setItem('user', JSON.stringify(decoded))
+          if (decoded) {
+            localStorage.setItem('user', JSON.stringify(decoded))
+            syncContextFromUser(decoded)
+          }
         }
         toast.success((REG_I18N[lang] || REG_I18N.es).oauthGoogleOk)
         navigate('/')

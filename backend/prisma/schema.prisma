@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Iglesia {
+  id        Int        @id @default(autoincrement())
+  nombre    String
+  token     String     @unique
+  deletedAt DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  users     User[]
+  personas  Persona[]
+  auditLogs AuditLog[]
+  config    Configuracion[]
+  mensajes  Mensaje[]
+  plantillas PlantillaMensaje[]
+  pushSubs  PushSubscription[]
+  permisos  Permiso[]
+}
+
+model Rol {
+  id          Int       @id @default(autoincrement())
+  codigo      String    @unique
+  nombre      String
+  descripcion String?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  users       User[]
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  password        String
+  nombre          String
+  apellido        String?
+  activo          Boolean   @default(true)
+  emailVerificado Boolean   @default(false)
+  iglesiaId       Int
+  rolId           Int
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  iglesia         Iglesia   @relation(fields: [iglesiaId], references: [id], onDelete: Restrict)
+  rol             Rol       @relation(fields: [rolId], references: [id], onDelete: Restrict)
+  personas        Persona[] @relation("PersonaAsignadaA")
+  mensajes        Mensaje[]
+  pushSubs        PushSubscription[]
+  permiso         Permiso?
+
+  @@index([iglesiaId])
+  @@index([rolId])
+}
+
+model Persona {
+  id              Int       @id @default(autoincrement())
+  iglesiaId       Int
+  nombre          String
+  apellido        String?
+  email           String?
+  telefono        String?
+  estado          String    @default("ACTIVO")
+  asignadoAUserId Int?
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  iglesia         Iglesia   @relation(fields: [iglesiaId], references: [id], onDelete: Restrict)
+  asignadoA       User?     @relation("PersonaAsignadaA", fields: [asignadoAUserId], references: [id], onDelete: SetNull)
+  mensajes        Mensaje[]
+
+  @@index([iglesiaId])
+  @@index([asignadoAUserId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  iglesiaId Int
+  userId    Int?
+  action    String
+  entity    String
+  entityId  String?
+  detail    String?
+  createdAt DateTime @default(now())
+  iglesia   Iglesia  @relation(fields: [iglesiaId], references: [id], onDelete: Restrict)
+
+  @@index([iglesiaId])
+  @@index([userId])
+  @@index([entity, entityId])
+}
+
+model Configuracion {
+  id        Int      @id @default(autoincrement())
+  iglesiaId Int?
+  clave     String
+  valor     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  iglesia   Iglesia? @relation(fields: [iglesiaId], references: [id], onDelete: Cascade)
+
+  @@index([iglesiaId])
+  @@index([clave])
+  @@unique([iglesiaId, clave])
+}
+
+model Mensaje {
+  id         Int      @id @default(autoincrement())
+  iglesiaId  Int
+  personaId  Int
+  userId     Int
+  tipo       String   @default("WHATSAPP")
+  destino    String   @default("")
+  mensaje    String
+  enviado    Boolean  @default(false)
+  error      String?
+  plantillaId Int?
+  createdAt  DateTime @default(now())
+  iglesia    Iglesia  @relation(fields: [iglesiaId], references: [id], onDelete: Restrict)
+  persona    Persona  @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([iglesiaId])
+  @@index([personaId])
+  @@index([userId])
+}
+
+model PlantillaMensaje {
+  id        Int      @id @default(autoincrement())
+  iglesiaId Int
+  nombre    String
+  tipo      String   @default("WHATSAPP")
+  contenido String
+  userId    Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  iglesia   Iglesia  @relation(fields: [iglesiaId], references: [id], onDelete: Restrict)
+
+  @@index([iglesiaId])
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  iglesiaId Int
+  userId    Int
+  endpoint  String   @unique
+  keys      String
+  createdAt DateTime @default(now())
+  iglesia   Iglesia  @relation(fields: [iglesiaId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([iglesiaId])
+  @@index([userId])
+}
+
+model Permiso {
+  id            Int      @id @default(autoincrement())
+  iglesiaId     Int
+  userId        Int      @unique
+  personas      Int      @default(0)
+  grupos        Int      @default(0)
+  asistencia    Int      @default(0)
+  calendario    Int      @default(0)
+  mensajes      Int      @default(0)
+  alertas       Int      @default(0)
+  finanzas      Int      @default(0)
+  reportes      Int      @default(0)
+  discipulado   Int      @default(0)
+  seguimiento   Int      @default(0)
+  historial     Int      @default(0)
+  consolidacion Int      @default(0)
+  oracion       Int      @default(0)
+  comunicados   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  iglesia       Iglesia  @relation(fields: [iglesiaId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([iglesiaId])
+}

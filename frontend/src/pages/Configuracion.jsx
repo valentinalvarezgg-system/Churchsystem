@@ -254,10 +254,10 @@ export default function Configuracion() {
             <p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>{catActiva?.label} · {secActiva?.label}</p>
           </div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'220px 1fr',gap:16,alignItems:'start'}}>
+        <div className="settings-shell" style={{display:'grid',gridTemplateColumns:'220px 1fr',gap:16,alignItems:'start'}}>
 
           {/* Sidebar */}
-          <nav className="card" style={{padding:6}}>
+          <nav className="card settings-nav" style={{padding:6}}>
             {CATEGORIAS.map(cat => {
               const open = !collapsed[cat.key]
               return (
@@ -289,9 +289,9 @@ export default function Configuracion() {
           </nav>
 
           {/* Panel */}
-          <form onSubmit={handleSave}>
-            <div className="card">
-              <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:24,paddingBottom:16,borderBottom:'1px solid var(--border)'}}>
+          <form className="settings-form" onSubmit={handleSave}>
+            <div className="card settings-panel">
+              <div className="settings-panel-header" style={{display:'flex',alignItems:'center',gap:12,marginBottom:24,paddingBottom:16,borderBottom:'1px solid var(--border)'}}>
                 <span style={{fontSize:22}}>{secActiva?.icon}</span>
                 <div><h2 style={{fontSize:16,fontWeight:700,margin:0}}>{secActiva?.label}</h2><p style={{fontSize:12,color:'var(--text-muted)',margin:0}}>{secActiva?.desc}</p></div>
               </div>

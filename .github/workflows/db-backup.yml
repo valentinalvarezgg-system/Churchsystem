@@ -1,0 +1,47 @@
+name: Database Backup
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  postgres-backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RETENTION_DAYS: "14"
+    steps:
+      - name: Validate required secret
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "DATABASE_URL secret is required"
+            exit 1
+          fi
+
+      - name: Create backup directory
+        run: mkdir -p backup
+
+      - name: Dump PostgreSQL (postgres:18 client)
+        run: |
+          TS="$(date +'%Y%m%d_%H%M%S')"
+          FILE="churchsystem_${TS}.sql"
+          docker run --rm \
+            -e DATABASE_URL="${DATABASE_URL}" \
+            -v "${PWD}/backup:/backup" \
+            postgres:18 \
+            bash -lc "pg_dump \"\$DATABASE_URL\" --no-owner --no-privileges --format=plain --file=\"/backup/${FILE}\""
+          gzip -f "backup/${FILE}"
+          echo "BACKUP_FILE=backup/${FILE}.gz" >> "$GITHUB_ENV"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-backup-${{ github.run_id }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 14

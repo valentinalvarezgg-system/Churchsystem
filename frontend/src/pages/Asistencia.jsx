@@ -75,8 +75,8 @@ export default function Asistencia() {
           <h1 className="page-title"><Icons.Attendance /> Asistencia a cultos</h1>
           {canManage && <button className="btn btn-primary" data-tip="Crear un nuevo registro de culto" onClick={()=>setModal(true)}>+ Nuevo culto</button>}
         </div>
-        <div style={{display:'grid', gridTemplateColumns:'280px 1fr', gap:16, alignItems:'start'}}>
-          <div className="card" style={{padding:0, overflowX:'auto'}}>
+        <div className="attendance-shell" style={{display:'grid', gridTemplateColumns:'280px 1fr', gap:16, alignItems:'start'}}>
+          <div className="card attendance-cultos" style={{padding:0, overflowX:'auto'}}>
             <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>CULTOS ({cultos.length})</div>
             {cultos.length===0 ? <div className="empty" style={{padding:30}}><p>Sin cultos</p></div>
               : cultos.map(c=>(
@@ -114,7 +114,21 @@ export default function Asistencia() {
                     {detalle && <button className="btn btn-ghost btn-sm" onClick={()=>setPresentes(p=>p.size===detalle.personas.length?new Set():new Set((detalle?.personas || []).map(x=>Number(x.id))))}>{presentes.size===detalle.personas?.length?'Desmarcar todos':'Marcar todos'}</button>}
                   </div>
                   {!detalle ? <div className="empty"><p>Cargando...</p></div>
-                    : <div style={{maxHeight:'calc(100vh - 340px)',overflowY:'auto'}}>
+                    : <>
+                      <div className="attendance-mobile-list">
+                        {(detalle?.personas || []).map(p => {
+                          const checked = presentes.has(Number(p.id))
+                          return (
+                            <button key={p.id} className={`attendance-person-card${checked ? ' is-present' : ''}`}
+                              onClick={() => canManage && togglePresente(Number(p.id))}>
+                              <span className="attendance-check">{checked ? '✓' : ''}</span>
+                              <span className="attendance-person-name">{p.nombre} {p.apellido}</span>
+                              <span className={`badge badge-${p.estado?.toLowerCase()}`}>{p.estado}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <div className="attendance-table-wrap" style={{maxHeight:'calc(100vh - 340px)',overflowY:'auto'}}>
                         <table style={{minWidth:500}}>
                           <thead><tr><th style={{width:44}}>✓</th><th>Nombre</th><th>Estado</th></tr></thead>
                           <tbody>{(detalle?.personas || []).map(p=>(
@@ -126,6 +140,7 @@ export default function Asistencia() {
                           ))}</tbody>
                         </table>
                       </div>
+                    </>
                   }
                 </div>
             }

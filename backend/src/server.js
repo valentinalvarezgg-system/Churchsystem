@@ -7,7 +7,9 @@ import cors from 'cors'
 import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 import bcrypt from 'bcryptjs'
-import db from './lib/db.js'
+import pino from 'pino'
+import { pgOne } from './lib/pg.js'
+import { requireLaunchEnvironment } from './lib/env.js'
 import { sanitizeBody, securityLogger, errorHandler } from './middlewares/security.js'
 import authRouter          from './routes/auth.js'
 import personasRouter      from './routes/personas.js'
@@ -50,18 +52,23 @@ import oauthRouter         from './routes/oauth.js'
 
 const app  = express()
 const PORT = process.env.PORT || 4000
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
+const launchEnv = requireLaunchEnvironment()
+for (const warning of launchEnv.warnings) logger.warn({ warning }, 'Launch environment warning')
 
 app.use(helmet({ contentSecurityPolicy:false, crossOriginEmbedderPolicy:false }))
+const allowedOrigins = [
+  'https://churchsystem.com.ar',
+  'https://www.churchsystem.com.ar',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(v => v.trim()).filter(Boolean) : []),
+]
 app.use(cors({
   origin: (origin, cb) => {
-    // Permite localhost, IP local y cualquier red 192.168/10.x/172.16-31
     if (!origin) return cb(null, true)
-    const ok = !origin ||
-      origin.startsWith('http://localhost') ||
-      origin.startsWith('http://127.0.0.1') ||
-      origin.startsWith('http://192.168.1.17') ||
-      /^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(origin)
-    cb(null, true) // dev: permitir todo
+    if (allowedOrigins.includes(origin)) return cb(null, true)
+    return cb(new Error('Origen no permitido por CORS'))
   },
   credentials: true,
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
@@ -75,8 +82,9 @@ app.use('/auth/login', rateLimit({ windowMs:60*60*1000, max:10, skipSuccessfulRe
 app.use('/ia', rateLimit({ windowMs:60*1000, max:20, message:{ error:'Límite de IA.' } }))
 app.use(sanitizeBody)
 app.use(securityLogger)
+app.use(tenantMiddleware)
 
-app.get('/health', (_req,res) => res.json({ ok:true }))
+app.get('/health', (_req,res) => res.json({ status:'ok' }))
 // Servir fotos de personas estáticamente
 const __dirname_fotos = path.join(process.cwd(), 'uploads', 'fotos')
 app.use('/fotos', express.static(__dirname_fotos))
@@ -137,8 +145,8 @@ if (fs.existsSync(_LANDING)) {
   // /app → SPA React
   app.use('/app', express.static(_DIST))
   app.get('/app/*', (_req, res) => res.sendFile(path.join(_DIST, 'index.html')))
-  console.log('🏠  Landing: / → landing/index.html')
-  console.log('📱  App:     /app → React SPA')
+  logger.info({ route:'/', mode:'landing' }, 'Landing activa')
+  logger.info({ route:'/app', mode:'spa' }, 'App React activa')
 }
 
 if (fs.existsSync(_DIST)) {
@@ -151,7 +159,7 @@ if (fs.existsSync(_DIST)) {
     if (isApi) return res.status(404).json({ error: 'Ruta no encontrada' })
     res.sendFile(path.join(_DIST, 'index.html'))
   })
-  console.log('🌐  Frontend: ' + _DIST)
+  logger.info({ dist:_DIST }, 'Frontend estatico activo')
 }
 
 app.use((_req,res) => res.status(404).json({ error:'Ruta no encontrada' }))
@@ -159,7 +167,15 @@ app.use(errorHandler)
 
 
 
-function cargarConfigEnv() {
+async function getLegacyDbIfAllowed() {
+  if (process.env.ALLOW_LEGACY_SQLJS !== 'true') return null
+  const mod = await import('./lib/db.js')
+  return mod.default
+}
+
+async function cargarConfigEnv() {
+  const db = await getLegacyDbIfAllowed()
+  if (!db) return
   try {
     const claves = { anthropic_key:'ANTHROPIC_API_KEY', twilio_sid:'TWILIO_ACCOUNT_SID', twilio_token:'TWILIO_AUTH_TOKEN', twilio_from:'TWILIO_WHATSAPP_FROM' }
     for (const [k,env] of Object.entries(claves)) {
@@ -170,14 +186,38 @@ function cargarConfigEnv() {
 }
 
 async function seedAdmin() {
-  const exists = db.get("SELECT id FROM users WHERE rol='PASTOR_GENERAL' LIMIT 1")
+  if (process.env.NODE_ENV === 'production') {
+    logger.info('Seed admin omitido en production')
+    return
+  }
+  const exists = await pgOne('SELECT id FROM "User" WHERE "rol"=$1 AND "deletedAt" IS NULL LIMIT 1', ['PASTOR_GENERAL'])
   if (!exists) {
-    const hash = await bcrypt.hash('admin123',10)
-    db.run('INSERT INTO users (email,password,nombre,rol) VALUES (?,?,?,?)',['admin@iglesia.com',hash,'Administrador','PASTOR_GENERAL'])
-    console.log('  ✅ Admin: admin@iglesia.com / admin123')
+    const iglesia = await pgOne(
+      'INSERT INTO "Iglesia" ("nombre","token","createdAt","updatedAt") VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING id',
+      ['Iglesia Principal', 'MAIN-IGLESIA']
+    ).catch(() => pgOne('SELECT id FROM "Iglesia" WHERE "token"=$1 LIMIT 1', ['MAIN-IGLESIA']))
+    const role = await pgOne(
+      `INSERT INTO "Rol" ("codigo","nombre","createdAt","updatedAt")
+       VALUES ('PASTOR_GENERAL','Pastor General',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+       ON CONFLICT ("codigo") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP
+       RETURNING id`
+    )
+    const hash = await bcrypt.hash('admin123', 10)
+    await pgOne(
+      `INSERT INTO "User"
+        ("email","password","nombre","apellido","activo","emailVerificado","iglesiaId","rolId","createdAt","updatedAt",
+         "rol","plan","pais","divisa","idioma","iglesia")
+       VALUES
+        ('admin@iglesia.com',$1,'Administrador','',true,true,$2,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,
+         'PASTOR_GENERAL','GENERAL','AR','ARS','es','Iglesia Principal')
+       RETURNING id`,
+      [hash, iglesia.id, role.id]
+    )
+    logger.info('Usuario admin seed creado en PostgreSQL')
   }
   // Plantillas por defecto
-  if (!db.get('SELECT id FROM plantillas_mensaje LIMIT 1')) {
+  const db = await getLegacyDbIfAllowed()
+  if (db && !db.get('SELECT id FROM plantillas_mensaje LIMIT 1')) {
     const plantillas = [
       ['Bienvenida','WHATSAPP','Hola {nombre}! 🙏 Bienvenido/a a nuestra iglesia. ¡Nos alegra tenerte!'],
       ['Recordatorio culto','WHATSAPP','Hola {nombre}! Te recordamos que mañana tenemos culto. ¡Te esperamos! 🙌'],
@@ -188,30 +228,27 @@ async function seedAdmin() {
   }
 }
 
-cargarConfigEnv()
+await cargarConfigEnv()
 
-seedAdmin().then(() => {
-  cargarConfigEnv()
+seedAdmin().then(async () => {
+  await cargarConfigEnv()
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n⛪  Church System Beta 2.4.1`)
-    console.log(`   Local:   http://localhost:${PORT}`)
+    logger.info({ port: PORT }, 'Church System iniciado')
     const localIP = Object.values(os.networkInterfaces()).flat()
       .find(n => n.family==='IPv4' && !n.internal)?.address || '??'
-    console.log(`   Red:     http://${localIP}:${PORT}`)
-    console.log(`🤖  IA: ${process.env.GROQ_API_KEY?'✅':'⚠️  Configurar en /configuracion'}`)
-    console.log(`📱  Twilio: ${process.env.TWILIO_ACCOUNT_SID?'✅':'⚠️  Configurar en /configuracion'}\n`)
+    logger.info({ local:`http://localhost:${PORT}`, network:`http://${localIP}:${PORT}` }, 'Endpoints de arranque')
     // Programar alertas diarias a las 8:30 AM
     const now = new Date(), target = new Date()
     target.setHours(8, 30, 0, 0)
     if (target <= now) target.setDate(target.getDate() + 1)
     const ms = target - now
     const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000)
-    console.log(`⏰  Alertas push: en ${h}h ${m}m`)
+    logger.info({ nextAlertsIn: `${h}h ${m}m` }, 'Programacion de alertas')
     setTimeout(async () => {
       try {
         const mod = await import('./routes/notificaciones.js').catch(() => null)
         if (mod?.enviarAlertas) await mod.enviarAlertas()
-      } catch (e) { console.log('⏰ Alertas error:', e.message) }
+      } catch (e) { logger.error({ err:e.message }, 'Error de alertas') }
     }, ms)
   })
 })

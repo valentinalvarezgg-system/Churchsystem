@@ -1,8 +1,10 @@
 import { Router } from 'express'
+import pino from 'pino'
 import { requireAuth } from '../middlewares/auth.js'
 import { sendSystemEmail } from '../lib/email.js'
 
 const router = Router()
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
 
 router.post('/', requireAuth, async (req, res) => {
   const { descripcion, url, userAgent } = req.body
@@ -32,7 +34,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.json({ ok: true, demo: result.demo, warning: result.skipped ? 'Email no configurado' : undefined })
   } catch (error) {
-    console.error('Error enviando email:', error)
+    logger.error({ err: error?.message }, 'Error enviando email de bug report')
     res.json({ ok: true, warning: 'Error al enviar email' })
   }
 })

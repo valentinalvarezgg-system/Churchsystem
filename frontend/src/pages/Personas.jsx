@@ -169,14 +169,14 @@ export default function Personas() {
       <main className="main">
         <div className="page-header">
           <h1 className="page-title"><Icons.Users /> Personas</h1>
-          <div style={{display:'flex',gap:8}}>
+          <div className="page-actions">
             <button className="btn btn-ghost" onClick={()=>setImportModal(true)}>Importar Excel</button>
             <button className="btn btn-primary" onClick={()=>{setModal('new');setForm(EMPTY)}}>+ Nueva persona</button>
           </div>
         </div>
 
         {/* Filtros */}
-        <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
+        <div className="mobile-filter-bar" style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
           <input type="text" placeholder="⊙ Buscar..." value={search} onChange={e=>setSearch(e.target.value)} className="form-input" style={{maxWidth:240}} />
           <select value={estadoF} onChange={e=>setEstadoF(e.target.value)} className="form-input" style={{width:140}}>
             <option value="">Todos</option>
@@ -187,6 +187,34 @@ export default function Personas() {
             {grupos.map(g=><option key={g.id} value={g.id}>{g.nombre}</option>)}
           </select>
           <button className="btn btn-ghost btn-sm" onClick={()=>{setSearch('');setEstadoF('');setGrupoF('');setPage(1)}}>✕ Limpiar</button>
+        </div>
+
+        <div className="mobile-list">
+          {loading ? (
+            <div className="mobile-empty">Cargando personas...</div>
+          ) : data.length === 0 ? (
+            <div className="mobile-empty">Sin resultados</div>
+          ) : data.map(p => (
+            <article className="mobile-person-card" key={p.id}>
+              <button className="mobile-person-main" onClick={() => navigate(`/perfil/${p.id}`)}>
+                <div className="mobile-person-avatar">{(p.nombre || '?').slice(0,1).toUpperCase()}</div>
+                <div className="mobile-person-info">
+                  <strong>{p.nombre} {p.apellido}</strong>
+                  <span>{p.email || p.telefono || 'Sin contacto'}</span>
+                </div>
+                <span className={`badge badge-${String(p.estado || '').toLowerCase()}`}>{p.estado}</span>
+              </button>
+              <div className="mobile-person-meta">
+                <span>{p.grupoNombre || 'Sin grupo'}</span>
+                <span>{p.cultoDia || 'Sin culto'}</span>
+              </div>
+              <div className="mobile-person-actions">
+                <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /> Seguimiento</button>
+                <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /> Editar</button>
+                {canDelete&&<button className="btn btn-ghost btn-sm danger-action" onClick={()=>handleDelete(p.id,p.nombre)}><Icons.Delete /></button>}
+              </div>
+            </article>
+          ))}
         </div>
 
         {/* Tabla */}
@@ -216,7 +244,7 @@ export default function Personas() {
         </div>
 
         {/* Paginación */}
-        {pages>1&&<div style={{display:'flex',justifyContent:'center',gap:8,marginTop:20}}>
+        {pages>1&&<div className="mobile-pagination" style={{display:'flex',justifyContent:'center',gap:8,marginTop:20}}>
           <button className="btn btn-ghost btn-sm" disabled={page===1} onClick={()=>setPage(p=>p-1)}>‹ Anterior</button>
           <span style={{padding:'6px 12px',fontSize:13}}>Página {page} de {pages}</span>
           <button className="btn btn-ghost btn-sm" disabled={page===pages} onClick={()=>setPage(p=>p+1)}>Siguiente ›</button>

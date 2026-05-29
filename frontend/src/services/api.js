@@ -39,6 +39,18 @@ function normalizeAppContext() {
 
 normalizeAppContext()
 
+export function syncContextFromUser(user) {
+  if (!user) return
+  const nextLang = (user.idioma || localStorage.getItem('church_lang') || 'es').slice(0, 2)
+  const nextCountry = (user.pais || localStorage.getItem('church_country') || 'AR').toUpperCase()
+  const nextCurrency = (user.divisa || localStorage.getItem('church_currency') || 'ARS').toUpperCase()
+  localStorage.setItem('church_lang', nextLang)
+  localStorage.setItem('church_country', nextCountry)
+  localStorage.setItem('church_currency', nextCurrency)
+  document.documentElement.lang = nextLang
+  emitDataChanged({ source: 'user-context' })
+}
+
 export function emitDataChanged(detail = {}) {
   const payload = { ...detail, at: Date.now() }
   window.dispatchEvent(new CustomEvent(DATA_EVENT, { detail: payload }))

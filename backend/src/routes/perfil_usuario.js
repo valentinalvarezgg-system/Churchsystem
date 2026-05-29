@@ -1,62 +1,115 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
-import db from '../lib/db.js'
+import { pgExec, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { sendNotificationEmail } from '../lib/email.js'
+
 const router = Router()
-function genCodigo() { return Math.floor(100000 + Math.random() * 900000).toString() }
-router.get('/', requireAuth, (req, res) => {
-  const u=db.get('SELECT id,email,nombre,rol,cultoDia,cultoTurno,createdAt FROM users WHERE id=?',[req.user.id])
-  if (!u) return res.status(404).json({ error:'No encontrado' })
-  res.json({ ...u, stats:{ totalPersonas:Number(db.get('SELECT COUNT(*) as c FROM personas WHERE asignadoA=?',[req.user.id])?.c??0), totalSeguimientos:Number(db.get('SELECT COUNT(*) as c FROM seguimientos WHERE userId=?',[req.user.id])?.c??0), totalMensajes:Number(db.get('SELECT COUNT(*) as c FROM mensajes WHERE userId=?',[req.user.id])?.c??0) } })
-})
-router.put('/', requireAuth, async (req, res) => {
-  const { nombre,passwordActual,passwordNuevo,codigo } = req.body||{}
-  const u=db.get('SELECT * FROM users WHERE id=?',[req.user.id])
-  if (!u) return res.status(404).json({ error:'No encontrado' })
+const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
+
+function genCodigo() {
+  return Math.floor(100000 + Math.random() * 900000).toString()
+}
+
+async function countMaybe(query, params = []) {
+  try {
+    const row = await pgOne(query, params)
+    return Number(row?.c || 0)
+  } catch {
+    return 0
+  }
+}
+
+router.get('/', requireAuth, wrap(async (req, res) => {
+  const user = await pgOne(
+    'SELECT "id","email","nombre","rol","cultoDia","cultoTurno","createdAt" FROM "User" WHERE "id"=$1 AND "deletedAt" IS NULL LIMIT 1',
+    [req.user.id]
+  )
+  if (!user) return res.status(404).json({ error: 'No encontrado' })
+
+  const iglesiaId = req.user.iglesiaId
+  const [totalPersonas, totalSeguimientos, totalMensajes] = await Promise.all([
+    countMaybe('SELECT COUNT(*)::int as c FROM "Persona" WHERE "iglesiaId"=$1 AND "asignadoAUserId"=$2 AND "deletedAt" IS NULL', [iglesiaId, req.user.id]),
+    countMaybe('SELECT COUNT(*)::int as c FROM "Seguimiento" WHERE "iglesiaId"=$1 AND "userId"=$2 AND "deletedAt" IS NULL', [iglesiaId, req.user.id]),
+    countMaybe('SELECT COUNT(*)::int as c FROM "Mensaje" WHERE "iglesiaId"=$1 AND "userId"=$2', [iglesiaId, req.user.id]),
+  ])
+
+  return res.json({ ...user, stats: { totalPersonas, totalSeguimientos, totalMensajes } })
+}))
+
+router.put('/', requireAuth, wrap(async (req, res) => {
+  const { nombre, passwordActual, passwordNuevo, codigo } = req.body || {}
+  const user = await pgOne('SELECT * FROM "User" WHERE "id"=$1 AND "deletedAt" IS NULL LIMIT 1', [req.user.id])
+  if (!user) return res.status(404).json({ error: 'No encontrado' })
+
   if (passwordNuevo) {
-    if (!passwordActual) return res.status(400).json({ error:'Ingresá tu contraseña actual' })
-    if (!(await bcrypt.compare(passwordActual,u.password))) return res.status(401).json({ error:'Contraseña actual incorrecta' })
+    if (!passwordActual) return res.status(400).json({ error: 'Ingresá tu contraseña actual' })
+    if (!(await bcrypt.compare(passwordActual, user.password))) {
+      return res.status(401).json({ error: 'Contraseña actual incorrecta' })
+    }
+    if (String(passwordNuevo).length < 8) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres' })
+    }
 
     if (!codigo) {
       const code = genCodigo()
-      const pendingHash = await bcrypt.hash(passwordNuevo,10)
-      const expira = new Date(Date.now()+10*60*1000).toISOString()
-      db.run(
-        "UPDATE users SET nombre=?, codigoVerif=?, codigoExpira=?, codigoContexto='PASSWORD_CHANGE', pendingPassword=? WHERE id=?",
-        [nombre||u.nombre, code, expira, pendingHash, req.user.id]
+      const pendingHash = await bcrypt.hash(passwordNuevo, 10)
+      const expira = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+
+      await pgExec(
+        'UPDATE "User" SET "nombre"=$1, "codigoVerif"=$2, "codigoExpira"=$3, "codigoContexto"=$4, "pendingPassword"=$5, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$6',
+        [nombre || user.nombre, code, expira, 'PASSWORD_CHANGE', pendingHash, req.user.id]
       )
+
       await sendNotificationEmail({
-        to:u.email,
-        subject:'Codigo para cambio de password - Church System',
-        title:'Confirmar cambio de password',
-        intro:'Recibimos una solicitud para cambiar tu password.',
-        lines:[`Codigo: ${code}`, 'Expira en 10 minutos.', 'Si no fuiste vos, cambia tu password y avisa a seguridad@churchsystem.com.ar.'],
+        to: user.email,
+        subject: 'Codigo para cambio de password - Church System',
+        title: 'Confirmar cambio de password',
+        intro: 'Recibimos una solicitud para cambiar tu password.',
+        lines: [
+          `Codigo: ${code}`,
+          'Expira en 10 minutos.',
+          'Si no fuiste vos, cambia tu password y avisa a seguridad@churchsystem.com.ar.',
+        ],
       }).catch(() => {})
-      return res.json({ ok:true, requiresCode:true, mensaje:'Te enviamos un codigo de 6 digitos.' })
+
+      return res.json({ ok: true, requiresCode: true, mensaje: 'Te enviamos un codigo de 6 digitos.' })
     }
 
-    if (u.codigoContexto !== 'PASSWORD_CHANGE')
-      return res.status(400).json({ error:'Primero solicitá el código de confirmación.' })
-    if (!u.codigoExpira || new Date(u.codigoExpira) < new Date())
-      return res.status(400).json({ error:'El código expiró.' })
-    if (String(u.codigoVerif || '') !== String(codigo).trim())
-      return res.status(400).json({ error:'Código incorrecto.' })
+    if (user.codigoContexto !== 'PASSWORD_CHANGE') {
+      return res.status(400).json({ error: 'Primero solicitá el código de confirmación.' })
+    }
+    if (!user.codigoExpira || new Date(user.codigoExpira) < new Date()) {
+      return res.status(400).json({ error: 'El código expiró.' })
+    }
+    if (String(user.codigoVerif || '') !== String(codigo).trim()) {
+      return res.status(400).json({ error: 'Código incorrecto.' })
+    }
+    if (!user.pendingPassword) {
+      return res.status(400).json({ error: 'No hay cambio de contraseña pendiente.' })
+    }
 
-    db.run(
-      'UPDATE users SET nombre=?,password=?,codigoVerif=NULL,codigoExpira=NULL,codigoContexto=NULL,pendingPassword=NULL WHERE id=?',
-      [nombre||u.nombre,u.pendingPassword,req.user.id]
+    await pgExec(
+      'UPDATE "User" SET "nombre"=$1, "password"=$2, "codigoVerif"=NULL, "codigoExpira"=NULL, "codigoContexto"=NULL, "pendingPassword"=NULL, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$3',
+      [nombre || user.nombre, user.pendingPassword, req.user.id]
     )
+
     await sendNotificationEmail({
-      to:u.email,
-      subject:'Password actualizado - Church System',
-      title:'Tu password fue actualizado',
-      intro:'Este aviso confirma un cambio de password en tu cuenta.',
-      lines:['Si no reconoces esta accion, contacta a seguridad@churchsystem.com.ar.'],
+      to: user.email,
+      subject: 'Password actualizado - Church System',
+      title: 'Tu password fue actualizado',
+      intro: 'Este aviso confirma un cambio de password en tu cuenta.',
+      lines: ['Si no reconoces esta accion, contacta a seguridad@churchsystem.com.ar.'],
     }).catch(() => {})
-  } else {
-    db.run('UPDATE users SET nombre=? WHERE id=?',[nombre||u.nombre,req.user.id])
+
+    return res.json({ ok: true })
   }
-  res.json({ ok:true })
-})
+
+  await pgExec(
+    'UPDATE "User" SET "nombre"=$1, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$2',
+    [nombre || user.nombre, req.user.id]
+  )
+  return res.json({ ok: true })
+}))
+
 export default router

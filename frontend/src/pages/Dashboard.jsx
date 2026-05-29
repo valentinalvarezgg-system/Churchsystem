@@ -128,7 +128,7 @@ export default function Dashboard() {
       <main className="main">
 
         {/* ── Bienvenida ─────────────────────────────────────────── */}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:24, flexWrap:'wrap', gap:12 }}>
+        <div className="dashboard-welcome" style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:24, flexWrap:'wrap', gap:12 }}>
           <div>
             <h1 style={{ fontSize:23, fontWeight:800, letterSpacing:'-0.6px', margin:'0 0 3px' }}>
               {saludo}, {user?.nombre?.split(' ')[0] || txt('pastor')} <Icons.Users />
@@ -151,7 +151,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── Stats principales ──────────────────────────────────── */}
-        <div className="stats-grid" style={{ gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12, marginBottom: 20 }}>
+        <div className="stats-grid dashboard-stats" style={{ gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12, marginBottom: 20 }}>
           {[
             { val: t.personas || 0,    lbl: txt('total'),      icon:'⊕', color:'var(--primary)',   path:'/personas' },
             { val: t.activos  || 0,    lbl: txt('active'),     icon:'✓', color:'var(--c-success)', path:'/personas' },
@@ -190,7 +190,7 @@ export default function Dashboard() {
         )}
 
         {/* ── Grid principal ───────────────────────────────────────── */}
-        <div style={{ display:'grid', gridTemplateColumns:`repeat(${ori.cols2},1fr)`, gap: ori.isPhone ? 10 : 16, marginBottom:16 }}>
+        <div className="dashboard-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.cols2},1fr)`, gap: ori.isPhone ? 10 : 16, marginBottom:16 }}>
 
           {/* Últimos cultos */}
           <div className="card">
@@ -293,7 +293,7 @@ export default function Dashboard() {
           {/* Acceso rápido */}
           <div className="card">
             <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>⚡ {txt('quick')}</h3>
-            <div style={{ display:'grid', gridTemplateColumns:`repeat(${ori.isPhone && ori.portrait ? 2 : ori.cols4},1fr)`, gap: ori.isPhone ? 7 : 7 }}>
+            <div className="quick-actions-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.isPhone && ori.portrait ? 2 : ori.cols4},1fr)`, gap: ori.isPhone ? 7 : 7 }}>
               {[
                 { icon:'○', label:copy.actions[0][0], desc:copy.actions[0][1], path:'/personas',     color:'#2563EB' },
                 { icon:'✓', label:copy.actions[1][0], desc:copy.actions[1][1], path:'/asistencia',   color:'#16A34A' },
@@ -303,7 +303,7 @@ export default function Dashboard() {
                 { icon:'▣', label:copy.actions[5][0], desc:copy.actions[5][1], path:'/alertas',      color:'#DC2626' },
                 { icon:'▤', label:copy.actions[6][0], desc:copy.actions[6][1], path:'/reportes',     color:'#9333EA' },
               ].map(a => (
-                <button key={a.path} onClick={() => navigate(a.path)}
+                <button key={a.path} className="quick-action-btn" onClick={() => navigate(a.path)}
                   style={{
                     display:'flex', flexDirection:'column', alignItems:'flex-start', gap:4,
                     padding:'12px 14px', borderRadius:10, cursor:'pointer',
@@ -322,7 +322,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── Fila inferior ─────────────────────────────────────────── */}
-        <div style={{ display:'grid', gridTemplateColumns:`repeat(${ori.cols2},1fr)`, gap: ori.isPhone ? 10 : 16, marginBottom:16 }}>
+        <div className="dashboard-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.cols2},1fr)`, gap: ori.isPhone ? 10 : 16, marginBottom:16 }}>
 
           {/* Crecimiento mensual (barras) */}
           <div className="card">
@@ -396,7 +396,7 @@ export default function Dashboard() {
         {(stats?.actividadReciente || []).length > 0 && (
           <div className="card">
             <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}><Icons.History /> {txt('recentActivity')}</h3>
-            <div style={{ display:'grid', gridTemplateColumns:`repeat(${ori.cols2},1fr)`, gap:0 }}>
+            <div className="dashboard-activity-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.cols2},1fr)`, gap:0 }}>
               {(stats?.actividadReciente || []).slice(0, 8).map((a, i) => {
                 const iconMap = { CREAR:'➕', ACTUALIZAR:'⊙', ELIMINAR:'⊙', MENSAJE:'✉', MASIVO:'▣', IMPORTAR_EXCEL:'▤', BACKUP:'💾', LOGIN:'🔐' }
                 const ico = iconMap[a.accion] || '✉'

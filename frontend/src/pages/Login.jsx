@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { apiFetch, getApiUrl, getStoredContext, decodeJwt } from '../services/api.js'
+import { apiFetch, getApiUrl, getStoredContext, decodeJwt, syncContextFromUser } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 
 const S = {
@@ -109,9 +109,13 @@ export default function Login() {
         try {
           const user = await apiFetch('/auth/me')
           localStorage.setItem('user', JSON.stringify(user))
+          syncContextFromUser(user)
         } catch {
           const decoded = decodeJwt(token)
-          if (decoded) localStorage.setItem('user', JSON.stringify(decoded))
+          if (decoded) {
+            localStorage.setItem('user', JSON.stringify(decoded))
+            syncContextFromUser(decoded)
+          }
         }
         toast.success((I18N[lang] || I18N.es).ok)
         navigate('/')
@@ -130,6 +134,7 @@ export default function Login() {
       const res = await apiFetch('/auth/login', { method:'POST', body:JSON.stringify({ email, password }) })
       localStorage.setItem('token', res.token)
       localStorage.setItem('user', JSON.stringify(res.user))
+      syncContextFromUser(res.user)
       navigate('/')
     } catch(err) { toast.error(err.message || t('invalid')) }
     finally { setLoading(false) }

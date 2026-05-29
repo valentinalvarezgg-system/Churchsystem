@@ -1,81 +1,140 @@
 import { Router } from 'express'
 import { requireAuth } from '../middlewares/auth.js'
-import db from '../lib/db.js'
+import { pgExec, pgOne } from '../lib/pg.js'
 import { sendNotificationEmail } from '../lib/email.js'
 
 const router = Router()
+const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 
 function generarToken() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  const seg = () => Array.from({length:4}, () => chars[Math.floor(Math.random()*chars.length)]).join('')
+  const seg = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
   return `IGL-${seg()}-${seg()}`
 }
 
-router.get('/token', requireAuth, (req, res) => {
-  const user = db.get('SELECT * FROM users WHERE id = ?', [req.user.id])
-  if (!['PASTOR_GENERAL','CONSOLIDACION'].includes(user?.rol))
+async function getCurrentUser(userId) {
+  return pgOne(
+    'SELECT "id","email","nombre","rol","plan","iglesiaId" FROM "User" WHERE "id"=$1 AND "activo"=true AND "deletedAt" IS NULL LIMIT 1',
+    [userId]
+  )
+}
+
+router.get('/token', requireAuth, wrap(async (req, res) => {
+  const user = await getCurrentUser(req.user.id)
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
+  if (!['PASTOR_GENERAL', 'CONSOLIDACION'].includes(user.rol)) {
     return res.status(403).json({ error: 'Solo el pastor general puede ver el token' })
-  let iglesia = db.get('SELECT * FROM iglesias WHERE adminId = ?', [user.id])
-  if (!iglesia) {
-    const token = generarToken()
-    db.run('INSERT INTO iglesias (nombre, token, adminId, plan) VALUES (?,?,?,?)',
-      [user.iglesia||'Mi Iglesia', token, user.id, user.plan||'GENERAL'])
-    iglesia = db.get('SELECT * FROM iglesias WHERE adminId = ?', [user.id])
   }
-  res.json({ token: iglesia.token, nombre: iglesia.nombre, plan: iglesia.plan,
-    miembros: db.get('SELECT COUNT(*) as c FROM users WHERE iglesiaId=?',[iglesia.id])?.c||0 })
-})
+  if (!user.iglesiaId) return res.status(400).json({ error: 'Usuario sin iglesia asociada' })
 
-router.post('/token/regenerar', requireAuth, async (req, res) => {
-  const user = db.get('SELECT * FROM users WHERE id = ?', [req.user.id])
-  if (user?.rol !== 'PASTOR_GENERAL') return res.status(403).json({ error: 'Solo pastor general' })
-  const t = generarToken()
-  const ig = db.get('SELECT * FROM iglesias WHERE adminId = ?', [user.id])
-  if (ig) db.run('UPDATE iglesias SET token=? WHERE id=?', [t, ig.id])
-  else db.run('INSERT INTO iglesias (nombre,token,adminId,plan) VALUES (?,?,?,?)',
-    [user.iglesia||'Mi Iglesia', t, user.id, user.plan||'GENERAL'])
+  let iglesia = await pgOne('SELECT "id","nombre","token" FROM "Iglesia" WHERE "id"=$1 AND "deletedAt" IS NULL LIMIT 1', [user.iglesiaId])
+  if (!iglesia) return res.status(404).json({ error: 'Iglesia no encontrada' })
+
+  if (!iglesia.token) {
+    const token = generarToken()
+    await pgExec('UPDATE "Iglesia" SET "token"=$1, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$2', [token, iglesia.id])
+    iglesia = await pgOne('SELECT "id","nombre","token" FROM "Iglesia" WHERE "id"=$1 LIMIT 1', [iglesia.id])
+  }
+
+  const miembros = await pgOne(
+    'SELECT COUNT(*)::int as c FROM "User" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL',
+    [iglesia.id]
+  )
+
+  return res.json({
+    token: iglesia.token,
+    nombre: iglesia.nombre,
+    plan: user.plan || 'GENERAL',
+    miembros: Number(miembros?.c || 0),
+  })
+}))
+
+router.post('/token/regenerar', requireAuth, wrap(async (req, res) => {
+  const user = await getCurrentUser(req.user.id)
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
+  if (user.rol !== 'PASTOR_GENERAL') return res.status(403).json({ error: 'Solo pastor general' })
+  if (!user.iglesiaId) return res.status(400).json({ error: 'Usuario sin iglesia asociada' })
+
+  const token = generarToken()
+  await pgExec('UPDATE "Iglesia" SET "token"=$1, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$2', [token, user.iglesiaId])
+
   await sendNotificationEmail({
-    to:user.email,
-    subject:'Token de iglesia regenerado - Church System',
-    title:'Token de iglesia regenerado',
-    intro:'Se genero un nuevo token para invitar personas a tu iglesia.',
-    lines:['Los tokens anteriores dejan de ser el canal principal de invitacion.', `Nuevo token: ${t}`],
+    to: user.email,
+    subject: 'Token de iglesia regenerado - Church System',
+    title: 'Token de iglesia regenerado',
+    intro: 'Se generó un nuevo token para invitar personas a tu iglesia.',
+    lines: ['Los tokens anteriores quedan desactivados.', `Nuevo token: ${token}`],
   }).catch(() => {})
-  res.json({ token: t, mensaje: 'Token regenerado.' })
-})
 
-router.post('/unirse', requireAuth, async (req, res) => {
-  const { token } = req.body
+  return res.json({ token, mensaje: 'Token regenerado.' })
+}))
+
+router.post('/unirse', requireAuth, wrap(async (req, res) => {
+  const { token } = req.body || {}
   if (!token?.trim()) return res.status(400).json({ error: 'Token requerido' })
-  const ig = db.get('SELECT * FROM iglesias WHERE token=?', [token.trim().toUpperCase()])
-  if (!ig) return res.status(404).json({ error: 'Token inválido.' })
-  db.run('UPDATE users SET iglesiaId=?, plan=? WHERE id=?', [ig.id, ig.plan||'GENERAL', req.user.id])
-  const admin = db.get('SELECT email,nombre FROM users WHERE id=?', [ig.adminId])
+
+  const user = await getCurrentUser(req.user.id)
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+  const iglesia = await pgOne(
+    'SELECT "id","nombre","token" FROM "Iglesia" WHERE "token"=$1 AND "deletedAt" IS NULL LIMIT 1',
+    [token.trim().toUpperCase()]
+  )
+  if (!iglesia) return res.status(404).json({ error: 'Token inválido.' })
+
+  await pgExec(
+    'UPDATE "User" SET "iglesiaId"=$1, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$2',
+    [iglesia.id, req.user.id]
+  )
+
+  const admin = await pgOne(
+    'SELECT "email","nombre" FROM "User" WHERE "iglesiaId"=$1 AND "rol"=$2 AND "deletedAt" IS NULL ORDER BY "id" ASC LIMIT 1',
+    [iglesia.id, 'PASTOR_GENERAL']
+  )
+
   await Promise.all([
     sendNotificationEmail({
-      to:req.user.email,
-      subject:'Te uniste a una iglesia - Church System',
-      title:'Token de iglesia utilizado',
-      intro:`Te uniste a ${ig.nombre}.`,
-      lines:['Este aviso confirma el uso de un token de iglesia.'],
+      to: user.email,
+      subject: 'Te uniste a una iglesia - Church System',
+      title: 'Token de iglesia utilizado',
+      intro: `Te uniste a ${iglesia.nombre}.`,
+      lines: ['Este aviso confirma el uso de un token de iglesia.'],
     }).catch(() => {}),
-    admin?.email ? sendNotificationEmail({
-      to:admin.email,
-      subject:'Nuevo usuario unido por token - Church System',
-      title:'Token de iglesia utilizado',
-      intro:`Un usuario se unio a ${ig.nombre}.`,
-      lines:[`Usuario: ${req.user.email}`],
-    }).catch(() => {}) : null,
+    admin?.email
+      ? sendNotificationEmail({
+          to: admin.email,
+          subject: 'Nuevo usuario unido por token - Church System',
+          title: 'Token de iglesia utilizado',
+          intro: `Un usuario se unió a ${iglesia.nombre}.`,
+          lines: [`Usuario: ${user.email}`],
+        }).catch(() => {})
+      : null,
   ])
-  res.json({ ok:true, iglesia:{id:ig.id,nombre:ig.nombre}, plan:ig.plan, mensaje:`Te uniste a ${ig.nombre}.` })
-})
 
-router.post('/validar-token', (req, res) => {
-  const { token } = req.body
+  return res.json({
+    ok: true,
+    iglesia: { id: iglesia.id, nombre: iglesia.nombre },
+    plan: user.plan || 'GENERAL',
+    mensaje: `Te uniste a ${iglesia.nombre}.`,
+  })
+}))
+
+router.post('/validar-token', wrap(async (req, res) => {
+  const { token } = req.body || {}
   if (!token?.trim()) return res.status(400).json({ error: 'Token requerido' })
-  const ig = db.get('SELECT id,nombre,plan FROM iglesias WHERE token=?', [token.trim().toUpperCase()])
-  if (!ig) return res.status(404).json({ valido:false, error:'Token no encontrado' })
-  res.json({ valido:true, iglesia:ig.nombre, plan:ig.plan })
-})
+
+  const iglesia = await pgOne(
+    'SELECT "id","nombre" FROM "Iglesia" WHERE "token"=$1 AND "deletedAt" IS NULL LIMIT 1',
+    [token.trim().toUpperCase()]
+  )
+  if (!iglesia) return res.status(404).json({ valido: false, error: 'Token no encontrado' })
+
+  const planRef = await pgOne(
+    'SELECT "plan" FROM "User" WHERE "iglesiaId"=$1 AND "rol"=$2 AND "deletedAt" IS NULL ORDER BY "id" ASC LIMIT 1',
+    [iglesia.id, 'PASTOR_GENERAL']
+  )
+
+  return res.json({ valido: true, iglesia: iglesia.nombre, plan: planRef?.plan || 'GENERAL' })
+}))
 
 export default router

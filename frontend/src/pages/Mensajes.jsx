@@ -141,7 +141,7 @@ export default function Mensajes() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <div className="mobile-tabs" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
           {[['enviar', '✉ Enviar'], ['plantillas', 'Plantillas'], ['historial', '≡ Historial']].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={tab === k ? 'btn btn-primary' : 'btn btn-ghost'}>{l}</button>
           ))}
@@ -149,7 +149,7 @@ export default function Mensajes() {
 
         {/* ── ENVIAR ── */}
         {tab === 'enviar' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
+          <div className="messages-compose-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
 
             <div className="card">
               <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>Nuevo mensaje</h3>
@@ -242,7 +242,7 @@ export default function Mensajes() {
             {/* Plantillas lateral */}
             <div className="card">
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Plantillas rápidas</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="template-list" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {todasPlantillas.filter(p => p.tipo === form.tipo).map(p => (
                   <div key={p.id} style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', cursor: 'pointer' }}
                     onClick={() => { f('mensaje', p.contenido); setMsg(null) }}>
@@ -267,7 +267,7 @@ export default function Mensajes() {
             </div>
 
             {showNewP && (
-              <form onSubmit={guardarPlantilla} style={{ marginBottom: 24, padding: 16, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+              <form className="mobile-inline-form" onSubmit={guardarPlantilla} style={{ marginBottom: 24, padding: 16, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                 <div className="form-grid">
                   <div className="form-group"><label>Nombre</label><input name="nombre" className="form-input" value={newP.nombre} onChange={e => setNewP(p => ({ ...p, nombre: e.target.value }))} required /></div>
                   <div className="form-group"><label>Tipo</label>
@@ -293,7 +293,7 @@ export default function Mensajes() {
             </p>
 
             {[...PLANTILLAS_DEFAULT, ...plantillas].map(p => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border)', gap: 12 }}>
+              <div key={p.id} className="template-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border)', gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 5 }}>
                     <strong style={{ fontSize: 14 }}>{String(p.id).startsWith('d') ? '📌 ' : ''}{p.nombre}</strong>
@@ -314,13 +314,30 @@ export default function Mensajes() {
 
         {/* ── HISTORIAL ── */}
         {tab === 'historial' && (
-          <div className="card" style={{ padding: 0, overflowX:'auto' }}>
+          <div className="card messages-history-card" style={{ padding: 0, overflowX:'auto' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Mensajes enviados ({hTotal})</h3>
             </div>
+            {historial.length > 0 && (
+              <div className="messages-mobile-history">
+                {historial.map(m => (
+                  <article className="message-history-card" key={m.id}>
+                    <div>
+                      <span style={{ ...badgeColor(m.tipo), padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{m.tipo}</span>
+                      {m.enviado
+                        ? <span className="badge badge-activo">Enviado</span>
+                        : <span className="badge badge-inactivo">Error</span>}
+                    </div>
+                    <strong>{m.personaNombre ? `${m.personaNombre} ${m.personaApellido || ''}` : 'Sin persona'}</strong>
+                    <p>{m.mensaje}</p>
+                    <small>{m.destino} · {m.createdAt?.slice(0, 16).replace('T', ' ')}</small>
+                  </article>
+                ))}
+              </div>
+            )}
             {historial.length === 0
               ? <div className="empty"><div className="empty-icon"><Icons.Messages /></div><p>Sin mensajes aún</p></div>
-              : <table style={{minWidth:500}}>
+              : <table className="messages-history-table" style={{minWidth:500}}>
                   <thead><tr><th>Canal</th><th>Persona</th><th>Destino</th><th>Mensaje</th><th>Estado</th><th>Fecha</th></tr></thead>
                   <tbody>
                     {historial.map(m => (

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import BannerNotificaciones from './components/BannerNotificaciones.jsx'
 import { apiFetch, getUser } from './services/api.js'
+import { syncContextFromUser } from './services/api.js'
 import SetupWizard      from './pages/SetupWizard.jsx'
 import Login            from './pages/Login.jsx'
 import Dashboard        from './pages/Dashboard.jsx'
@@ -83,6 +84,10 @@ export default function App() {
   const { mostrarWizard, setMostrarWizard, checkeado } = useSetupCheck()
   const user = getUser()
   const isLoggedIn = !!user
+
+  useEffect(() => {
+    if (user) syncContextFromUser(user)
+  }, [user?.id])
 
   return (
     <ErrorBoundary>

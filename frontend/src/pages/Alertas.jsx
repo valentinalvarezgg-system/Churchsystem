@@ -98,7 +98,7 @@ export default function Alertas() {
               Personas que necesitan atención
             </p>
           </div>
-          <div style={{display:'flex', gap:8, alignItems:'center', flexWrap:'wrap'}}>
+          <div className="page-actions">
             {criticas > 0 && (
               <span style={{background:'var(--c-danger-bg)',color:'var(--c-danger)',padding:'5px 14px',borderRadius:20,fontSize:13,fontWeight:700,border:'1px solid rgba(220,38,38,0.2)'}}>
                 🚨 {criticas} críticas
@@ -111,7 +111,7 @@ export default function Alertas() {
         </div>
 
         {/* Tabs */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:20}}>
+        <div className="alerts-tabs-grid" style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:20}}>
           {TABS.map(t => (
             <div key={t.key} onClick={() => setTab(t.key)}
               style={{
@@ -134,7 +134,7 @@ export default function Alertas() {
 
         {/* Acciones masivas */}
         {current.length > 0 && (
-          <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:12,padding:'10px 14px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
+          <div className="bulk-actions-bar" style={{display:'flex',gap:10,alignItems:'center',marginBottom:12,padding:'10px 14px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
             <label style={{display:'flex',alignItems:'center',gap:7,cursor:'pointer',fontSize:13,fontWeight:500,color:'var(--text)',textTransform:'none',letterSpacing:0}}>
               <input type="checkbox" name="seleccionarTodos"
                 checked={current.every(p => seleccionados.includes(p.personaId||p.id))}
@@ -160,7 +160,7 @@ export default function Alertas() {
         )}
 
         {/* Tabla */}
-        <div className="card" style={{padding:0, overflowX:'auto'}}>
+        <div className="card alerts-card" style={{padding:0, overflowX:'auto'}}>
           <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10,background:tabInfo?.bg}}>
             <span style={{fontSize:20}}>{tabInfo?.icon}</span>
             <h3 style={{margin:0,fontSize:14,fontWeight:700,color:tabInfo?.color}}>{tabInfo?.label}</h3>
@@ -169,7 +169,49 @@ export default function Alertas() {
 
           {current.length === 0
             ? <div className="empty"><div className="empty-icon"><Icons.Attendance /></div><p>¡Sin alertas en esta categoría!</p></div>
-            : <table style={{minWidth:500}}>
+            : <>
+              <div className="alerts-mobile-list">
+                {current.map((p, i) => {
+                  const pid = p.personaId||p.id
+                  const sel = seleccionados.includes(pid)
+                  const title = `${p.nombre || ''} ${p.apellido || ''}`.trim()
+                  const meta = tab==='sinAsistir'
+                    ? `Líder: ${p.liderNombre || 'sin asignar'}`
+                    : tab==='sinSeguimiento'
+                      ? `Último contacto: ${p.ultimoSeguimiento ? p.ultimoSeguimiento.slice(0,10) : 'nunca'}`
+                      : tab==='visitantesSinConsolidar'
+                        ? `Ingreso: ${p.fechaIngreso || 'sin fecha'}`
+                        : tab==='contactosVencidos'
+                          ? `${p.tipo || 'Contacto'} · vencía ${p.proximoContacto || 'sin fecha'}`
+                          : `Cumpleaños: ${p.fechaNacimiento?.slice(5)?.replace('-','/') || 'sin fecha'}`
+                  return (
+                    <article key={`${pid}-${i}`} className={`alert-mobile-card${sel ? ' selected' : ''}`}>
+                      <label className="alert-mobile-check">
+                        <input type="checkbox" name={`mobile_sel_${pid}`} checked={sel} onChange={() => toggleSeleccion(pid)} />
+                        <span>{sel ? 'Seleccionado' : 'Seleccionar'}</span>
+                      </label>
+                      <button type="button" className="alert-mobile-main" onClick={() => navigate(`/personas/${pid}`)}>
+                        <strong>{title || 'Sin nombre'}</strong>
+                        <span>{p.telefono || 'Sin teléfono'}</span>
+                        <small>{meta}</small>
+                      </button>
+                      <div className="alert-mobile-actions">
+                        <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/personas/${pid}`)}>Perfil</button>
+                        {p.telefono && (
+                          <button className="btn btn-sm"
+                            style={{background:'rgba(22,163,74,.08)',color:'var(--c-success)',border:'1px solid rgba(22,163,74,.2)',fontWeight:600}}
+                            disabled={enviando===pid}
+                            onClick={() => enviarWA(pid, p.nombre)}>
+                            {enviando===pid ? 'Enviando...' : 'WhatsApp'}
+                            {msgEnvio[pid] && <span style={{marginLeft:4}}>{msgEnvio[pid]}</span>}
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+              <table className="alerts-table" style={{minWidth:500}}>
                 <thead>
                   <tr>
                     <th style={{width:32}}></th>
@@ -264,6 +306,7 @@ export default function Alertas() {
                   })}
                 </tbody>
               </table>
+            </>
           }
         </div>
       </main>

@@ -127,6 +127,46 @@ SQLite en `/backend/church.db`. Tablas principales:
 - `seguimientos` — Tracking contactos
 - `promo_codes` — Códigos promocionales
 
+## 🛡️ Backups (Neon + Export Diario)
+
+ChurchSystem usa doble capa de respaldo:
+
+1. Backups automáticos nativos de Neon (recuperación rápida de base).
+2. Export diario independiente vía GitHub Actions (snapshot SQL comprimido).
+
+### A) Neon (obligatorio)
+
+En Neon:
+
+1. Ir al proyecto `neondb`.
+2. Activar `Automatic backups` (si no está activo).
+3. Definir política de retención recomendada (>= 14 días).
+4. Registrar en runbook interno la fecha de último restore test.
+
+Frecuencia recomendada de restore test: 1 vez por mes.
+
+### B) GitHub Actions (ya configurado)
+
+Workflow: [.github/workflows/db-backup.yml](/Users/Valentin/Desktop/church-system-alpha/.github/workflows/db-backup.yml)
+
+- Corre diariamente por cron.
+- También se puede disparar manualmente (`workflow_dispatch`).
+- Usa `postgres:18` para evitar incompatibilidades de cliente/servidor.
+- Sube el backup como artifact con retención de 14 días.
+
+#### Secret requerido en GitHub
+
+Crear en `Settings > Secrets and variables > Actions`:
+
+- `DATABASE_URL` = cadena PostgreSQL de Neon.
+
+### Verificación rápida
+
+1. Ejecutar manualmente el workflow `Database Backup`.
+2. Confirmar status `success`.
+3. Descargar artifact `postgres-backup-<run_id>`.
+4. Validar que contiene archivo `.sql.gz`.
+
 ## 🚦 Estado
 
 **Versión:** 2.6.0  

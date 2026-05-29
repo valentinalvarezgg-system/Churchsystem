@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { requireAuth } from '../middlewares/auth.js'
-import db from '../lib/db.js'
+import { pgMany, pgOne } from '../lib/pg.js'
+import { ensureOperationalTenantDataSynced } from '../lib/core-sync.js'
 
 const router = Router()
 
@@ -23,15 +24,21 @@ function variation(current, previous) {
   return Math.round(((current - previous) / previous) * 100)
 }
 
-function asistenciaResumen(where = '', params = []) {
-  const rows = db.all(
-    `SELECT c.id,
-            COUNT(a.id) as total,
-            COUNT(CASE WHEN a.presente=1 THEN 1 END) as presentes
-       FROM cultos c
-       LEFT JOIN asistencias a ON a.cultoId = c.id
-       ${where}
-       GROUP BY c.id`,
+async function asistenciaResumen(iglesiaId, dateFrom = null, dateTo = null) {
+  const params = [iglesiaId]
+  let extra = ''
+  if (dateFrom && dateTo) {
+    params.push(dateFrom, dateTo)
+    extra = 'AND c."fecha" BETWEEN $2 AND $3'
+  }
+  const rows = await pgMany(
+    `SELECT c."id",
+            COUNT(a."id")::int as total,
+            COUNT(CASE WHEN a."presente"=true THEN 1 END)::int as presentes
+       FROM "Culto" c
+       LEFT JOIN "Asistencia" a ON a."cultoId"=c."id"
+      WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL ${extra}
+      GROUP BY c."id"`,
     params
   )
   const total = rows.reduce((acc, r) => acc + Number(r.total || 0), 0)
@@ -44,101 +51,165 @@ function asistenciaResumen(where = '', params = []) {
   }
 }
 
-function dashboardStats() {
+async function dashboardStats(iglesiaId) {
+  await ensureOperationalTenantDataSynced(iglesiaId)
   const hoy = new Date().toISOString().slice(0, 10)
   const mesActual = monthKey()
   const mesPasado = previousMonthKey()
 
-  const personas = n(db.get('SELECT COUNT(*) as c FROM personas WHERE estado != "INACTIVO"'))
-  const activos = n(db.get("SELECT COUNT(*) as c FROM personas WHERE estado='ACTIVO'"))
-  const visitantes = n(db.get("SELECT COUNT(*) as c FROM personas WHERE estado='VISITANTE'"))
-  const grupos = n(db.get('SELECT COUNT(*) as c FROM grupos'))
-  const cultos = n(db.get('SELECT COUNT(*) as c FROM cultos'))
-  const nuevosMes = n(db.get('SELECT COUNT(*) as c FROM personas WHERE substr(createdAt,1,7)=?', [mesActual]))
-  const nuevosMesPasado = n(db.get('SELECT COUNT(*) as c FROM personas WHERE substr(createdAt,1,7)=?', [mesPasado]))
-  const asistencia = asistenciaResumen()
+  const personas = n(await pgOne(
+    `SELECT COUNT(*)::int AS c
+       FROM "Persona"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND COALESCE("estado",'ACTIVO')!='INACTIVO'`,
+    [iglesiaId]
+  ))
+  const activos = n(await pgOne(
+    `SELECT COUNT(*)::int AS c
+       FROM "Persona"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "estado"='ACTIVO'`,
+    [iglesiaId]
+  ))
+  const visitantes = n(await pgOne(
+    `SELECT COUNT(*)::int AS c
+       FROM "Persona"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "estado"='VISITANTE'`,
+    [iglesiaId]
+  ))
+  const grupos = n(await pgOne('SELECT COUNT(*)::int AS c FROM "Grupo" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId]))
+  const cultos = n(await pgOne('SELECT COUNT(*)::int AS c FROM "Culto" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId]))
+  const nuevosMes = n(await pgOne(
+    `SELECT COUNT(*)::int AS c FROM "Persona"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
+    [iglesiaId, mesActual]
+  ))
+  const nuevosMesPasado = n(await pgOne(
+    `SELECT COUNT(*)::int AS c FROM "Persona"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
+    [iglesiaId, mesPasado]
+  ))
+  const asistencia = await asistenciaResumen(iglesiaId)
 
-  const totales = {
-    personas,
-    activos,
-    visitantes,
-    grupos,
-    cultos,
-    pctAsistencia: asistencia.promedio,
-    nuevosMes,
-    variacionPersonas: variation(nuevosMes, nuevosMesPasado),
-    seguimientosVencidos: n(db.get(
-      `SELECT COUNT(*) as c FROM seguimientos
-       WHERE proximoContacto IS NOT NULL AND proximoContacto < ?`,
-      [hoy]
-    )),
-    visitantesSinConsolidar: n(db.get(
-      `SELECT COUNT(*) as c FROM personas
-       WHERE estado='VISITANTE' AND fechaIngreso <= date('now','-14 days')`
-    )),
-    consolidacionActiva: n(db.get("SELECT COUNT(*) as c FROM consolidaciones WHERE estado != 'COMPLETADA'")),
-    oracionesActivas: n(db.get("SELECT COUNT(*) as c FROM oracion WHERE estado='ACTIVA'")),
-    sinSeguimiento: n(db.get(
-      `SELECT COUNT(*) as c FROM personas p
-       WHERE p.estado IN ('ACTIVO','VISITANTE','NUEVO')
-         AND NOT EXISTS (SELECT 1 FROM seguimientos s WHERE s.personaId=p.id)`
-    )),
-  }
+  const seguimientosVencidos = n(await pgOne(
+    `SELECT COUNT(*)::int AS c
+       FROM "Seguimiento"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
+        AND "proximoContacto" IS NOT NULL AND "proximoContacto" < $2`,
+    [iglesiaId, hoy]
+  ))
+  const visitantesSinConsolidar = n(await pgOne(
+    `SELECT COUNT(*)::int AS c
+       FROM "Persona"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
+        AND "estado"='VISITANTE'
+        AND COALESCE("fechaIngreso", to_char("createdAt",'YYYY-MM-DD')) <= to_char(CURRENT_DATE - INTERVAL '14 days','YYYY-MM-DD')`,
+    [iglesiaId]
+  ))
+  const sinSeguimiento = n(await pgOne(
+    `SELECT COUNT(*)::int AS c
+       FROM "Persona" p
+      WHERE p."iglesiaId"=$1 AND p."deletedAt" IS NULL
+        AND p."estado" IN ('ACTIVO','VISITANTE','NUEVO')
+        AND NOT EXISTS (
+          SELECT 1 FROM "Seguimiento" s
+           WHERE s."iglesiaId"=$1 AND s."deletedAt" IS NULL AND s."personaId"=p."id"
+        )`,
+    [iglesiaId]
+  ))
 
-  const asistenciaReciente = db.all(
-    `SELECT c.id, c.nombre, c.fecha,
-            COUNT(a.id) as total,
-            COUNT(CASE WHEN a.presente=1 THEN 1 END) as presentes
-       FROM cultos c
-       LEFT JOIN asistencias a ON a.cultoId = c.id
-       GROUP BY c.id
-       ORDER BY c.fecha DESC, c.id DESC
-       LIMIT 5`
+  const asistenciaReciente = await pgMany(
+    `SELECT c."id", c."nombre", c."fecha",
+            COUNT(a."id")::int as total,
+            COUNT(CASE WHEN a."presente"=true THEN 1 END)::int as presentes
+       FROM "Culto" c
+       LEFT JOIN "Asistencia" a ON a."cultoId"=c."id"
+      WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
+      GROUP BY c."id"
+      ORDER BY c."fecha" DESC, c."id" DESC
+      LIMIT 5`,
+    [iglesiaId]
   )
 
-  const proximosContactos = db.all(
-    `SELECT s.personaId, s.tipo, s.proximoContacto, p.nombre, p.apellido
-       FROM seguimientos s
-       JOIN personas p ON p.id = s.personaId
-      WHERE s.proximoContacto IS NOT NULL
-        AND s.id IN (SELECT MAX(id) FROM seguimientos WHERE proximoContacto IS NOT NULL GROUP BY personaId)
-      ORDER BY s.proximoContacto ASC
-      LIMIT 8`
+  const proximosContactos = await pgMany(
+    `SELECT s."personaId", s."tipo", s."proximoContacto", p."nombre", p."apellido"
+       FROM "Seguimiento" s
+       JOIN "Persona" p ON p."id"=s."personaId"
+      WHERE s."iglesiaId"=$1 AND s."deletedAt" IS NULL
+        AND s."proximoContacto" IS NOT NULL
+        AND s."id" IN (
+          SELECT MAX("id")
+            FROM "Seguimiento"
+           WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "proximoContacto" IS NOT NULL
+           GROUP BY "personaId"
+        )
+      ORDER BY s."proximoContacto" ASC
+      LIMIT 8`,
+    [iglesiaId]
   )
 
-  const cumpleanos = db.all(
-    `SELECT id, nombre, apellido, fechaNacimiento, strftime('%m-%d', fechaNacimiento) as cumDia
-       FROM personas
-      WHERE fechaNacimiento IS NOT NULL AND fechaNacimiento != '' AND estado != 'INACTIVO'`
-  ).filter(p => {
-    const [m, d] = String(p.cumDia || '').split('-').map(Number)
-    if (!m || !d) return false
-    const target = new Date(new Date().getFullYear(), m - 1, d)
-    if (target < new Date()) target.setFullYear(target.getFullYear() + 1)
-    const days = Math.ceil((target - new Date()) / 86400000)
-    return days >= 0 && days <= 30
-  }).sort((a, b) => String(a.cumDia).localeCompare(String(b.cumDia))).slice(0, 8)
+  const cumpleanosRaw = await pgMany(
+    `SELECT "id","nombre","apellido","fechaNacimiento"
+       FROM "Persona"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "fechaNacimiento" IS NOT NULL AND "fechaNacimiento" != ''`,
+    [iglesiaId]
+  )
+  const cumpleanos = cumpleanosRaw.map(p => ({ ...p, cumDia: String(p.fechaNacimiento || '').slice(5, 10) }))
+    .filter(p => {
+      const [m, d] = String(p.cumDia || '').split('-').map(Number)
+      if (!m || !d) return false
+      const target = new Date(new Date().getFullYear(), m - 1, d)
+      if (target < new Date()) target.setFullYear(target.getFullYear() + 1)
+      const days = Math.ceil((target - new Date()) / 86400000)
+      return days >= 0 && days <= 30
+    })
+    .sort((a, b) => String(a.cumDia).localeCompare(String(b.cumDia)))
+    .slice(0, 8)
 
   const crecimientoMensual = []
   for (let i = 11; i >= 0; i--) {
     const d = new Date()
+    d.setDate(1)
     d.setMonth(d.getMonth() - i)
     const mes = d.toISOString().slice(0, 7)
-    crecimientoMensual.push({
-      mes,
-      nuevos: n(db.get('SELECT COUNT(*) as c FROM personas WHERE substr(createdAt,1,7)=?', [mes])),
-    })
+    const row = await pgOne(
+      `SELECT COUNT(*)::int AS c
+         FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
+      [iglesiaId, mes]
+    )
+    crecimientoMensual.push({ mes, nuevos: n(row) })
   }
 
-  const actividadReciente = db.all(
-    `SELECT accion, entidad, entidadId, detalle, email as usuario, fecha as createdAt
-       FROM auditoria
-      ORDER BY id DESC
-      LIMIT 12`
+  const actividadReciente = await pgMany(
+    `SELECT a."action" AS "accion",
+            a."entity" AS "entidad",
+            a."entityId" AS "entidadId",
+            COALESCE(a."detail",'') AS "detalle",
+            COALESCE(u."email",'sistema') AS "usuario",
+            a."createdAt"
+       FROM "AuditLog" a
+       LEFT JOIN "User" u ON a."userId"=u."id"
+      WHERE a."iglesiaId"=$1
+      ORDER BY a."id" DESC
+      LIMIT 12`,
+    [iglesiaId]
   )
 
   return {
-    totales,
+    totales: {
+      personas,
+      activos,
+      visitantes,
+      grupos,
+      cultos,
+      pctAsistencia: asistencia.promedio,
+      nuevosMes,
+      variacionPersonas: variation(nuevosMes, nuevosMesPasado),
+      seguimientosVencidos,
+      visitantesSinConsolidar,
+      consolidacionActiva: 0,
+      oracionesActivas: 0,
+      sinSeguimiento,
+    },
     asistenciaReciente,
     proximosContactos,
     cumpleanos,
@@ -148,53 +219,94 @@ function dashboardStats() {
   }
 }
 
-router.get('/', requireAuth, (_req, res) => {
-  res.json(dashboardStats())
+router.get('/', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  res.json(await dashboardStats(iglesiaId))
 })
 
-router.get('/personas', requireAuth, (_req, res) => {
+router.get('/personas', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  await ensureOperationalTenantDataSynced(iglesiaId)
   const mesActual = monthKey()
   const mesPasado = previousMonthKey()
-  const total = n(db.get('SELECT COUNT(*) as c FROM personas WHERE estado != "INACTIVO"'))
-  const nuevosMes = n(db.get('SELECT COUNT(*) as c FROM personas WHERE substr(createdAt,1,7)=?', [mesActual]))
-  const nuevosMesPasado = n(db.get('SELECT COUNT(*) as c FROM personas WHERE substr(createdAt,1,7)=?', [mesPasado]))
-  res.json({ total, mes:nuevosMes, variacion:variation(nuevosMes, nuevosMesPasado), nuevosMes })
+  const total = n(await pgOne(
+    `SELECT COUNT(*)::int AS c FROM "Persona"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND COALESCE("estado",'ACTIVO')!='INACTIVO'`,
+    [iglesiaId]
+  ))
+  const nuevosMes = n(await pgOne('SELECT COUNT(*)::int AS c FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",\'YYYY-MM\')=$2', [iglesiaId, mesActual]))
+  const nuevosMesPasado = n(await pgOne('SELECT COUNT(*)::int AS c FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",\'YYYY-MM\')=$2', [iglesiaId, mesPasado]))
+  res.json({ total, mes: nuevosMes, variacion: variation(nuevosMes, nuevosMesPasado), nuevosMes })
 })
 
-router.get('/asistencias', requireAuth, (_req, res) => {
-  const actual = asistenciaResumen()
-  const mesPasado = previousMonthKey()
-  const pasado = asistenciaResumen("WHERE substr(c.fecha,1,7)=?", [mesPasado])
-  const mesActual = monthKey()
-  const totalMes = asistenciaResumen("WHERE substr(c.fecha,1,7)=?", [mesActual]).presentes
+router.get('/asistencias', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  await ensureOperationalTenantDataSynced(iglesiaId)
+  const actual = await asistenciaResumen(iglesiaId)
+  const d = new Date()
+  d.setMonth(d.getMonth() - 1)
+  const ini = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)
+  const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10)
+  const pasado = await asistenciaResumen(iglesiaId, ini, fin)
+  const mes = monthKey()
+  const totalMes = n(await pgOne(
+    `SELECT COUNT(*)::int AS c
+       FROM "Asistencia" a
+       JOIN "Culto" c ON c."id"=a."cultoId"
+      WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
+        AND a."presente"=true
+        AND to_char(to_date(c."fecha",'YYYY-MM-DD'),'YYYY-MM')=$2`,
+    [iglesiaId, mes]
+  ))
   res.json({ promedio: actual.promedio, variacion: variation(actual.promedio, pasado.promedio), totalMes })
 })
 
-router.get('/grupos', requireAuth, (_req, res) => {
-  const total = n(db.get('SELECT COUNT(*) as c FROM grupos'))
-  const mesPasado = previousMonthKey()
-  const totalPasado = n(db.get('SELECT COUNT(*) as c FROM grupos WHERE substr(createdAt,1,7) <= ?', [mesPasado]))
-  const miembrosTotal = n(db.get('SELECT COUNT(*) as c FROM personas WHERE grupoId IS NOT NULL'))
-  res.json({ total, variacion: variation(total, totalPasado), miembrosProm: total > 0 ? Math.round(miembrosTotal / total) : 0 })
+router.get('/grupos', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  await ensureOperationalTenantDataSynced(iglesiaId)
+  const total = n(await pgOne('SELECT COUNT(*)::int AS c FROM "Grupo" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId]))
+  const miembrosTotal = n(await pgOne('SELECT COUNT(*)::int AS c FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "grupoId" IS NOT NULL', [iglesiaId]))
+  res.json({ total, variacion: 0, miembrosProm: total > 0 ? Math.round(miembrosTotal / total) : 0 })
 })
 
-router.get('/seguimientos', requireAuth, (_req, res) => {
+router.get('/seguimientos', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  await ensureOperationalTenantDataSynced(iglesiaId)
   const mesActual = monthKey()
   const mesPasado = previousMonthKey()
-  const mes = n(db.get('SELECT COUNT(*) as c FROM seguimientos WHERE substr(createdAt,1,7)=?', [mesActual]))
-  const prev = n(db.get('SELECT COUNT(*) as c FROM seguimientos WHERE substr(createdAt,1,7)=?', [mesPasado]))
+  const mes = n(await pgOne(
+    `SELECT COUNT(*)::int AS c FROM "Seguimiento"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
+    [iglesiaId, mesActual]
+  ))
+  const prev = n(await pgOne(
+    `SELECT COUNT(*)::int AS c FROM "Seguimiento"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
+    [iglesiaId, mesPasado]
+  ))
   res.json({ mes, variacion: variation(mes, prev) })
 })
 
-router.get('/consolidacion', requireAuth, (_req, res) => {
-  const totalConsolidados = n(db.get('SELECT COUNT(*) as c FROM personas WHERE estadoEspiritual IN ("CONSOLIDADO","MINISTERIO")'))
-  const mesPasado = previousMonthKey()
-  const pasado = n(db.get('SELECT COUNT(*) as c FROM personas WHERE estadoEspiritual IN ("CONSOLIDADO","MINISTERIO") AND substr(createdAt,1,7) <= ?', [mesPasado]))
-  const meta = 150
-  res.json({ totalConsolidados, variacion: variation(totalConsolidados, pasado), meta })
+router.get('/consolidacion', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  const totalConsolidados = n(await pgOne(
+    `SELECT COUNT(*)::int AS c FROM "Persona"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "estadoEspiritual" IN ('CONSOLIDADO','MINISTERIO')`,
+    [iglesiaId]
+  ))
+  res.json({ totalConsolidados, variacion: 0, meta: 150 })
 })
 
-router.get('/tendencia', requireAuth, (_req, res) => {
+router.get('/tendencia', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  await ensureOperationalTenantDataSynced(iglesiaId)
   const semanas = []
   for (let i = 11; i >= 0; i--) {
     const d = new Date()
@@ -205,8 +317,12 @@ router.get('/tendencia', requireAuth, (_req, res) => {
     fin.setDate(inicio.getDate() + 6)
     const iStr = inicio.toISOString().slice(0, 10)
     const fStr = fin.toISOString().slice(0, 10)
-    const asist = asistenciaResumen('WHERE c.fecha BETWEEN ? AND ?', [iStr, fStr])
-    const nuevos = n(db.get('SELECT COUNT(*) as c FROM personas WHERE DATE(createdAt) BETWEEN ? AND ?', [iStr, fStr]))
+    const asist = await asistenciaResumen(iglesiaId, iStr, fStr)
+    const nuevos = n(await pgOne(
+      `SELECT COUNT(*)::int AS c FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND DATE("createdAt") BETWEEN $2 AND $3`,
+      [iglesiaId, iStr, fStr]
+    ))
     semanas.push({
       semana: `${inicio.getDate()}/${inicio.getMonth() + 1}`,
       asistencia: asist.presentes,
@@ -217,12 +333,29 @@ router.get('/tendencia', requireAuth, (_req, res) => {
   res.json({ semanas })
 })
 
-router.get('/actividad', requireAuth, (_req, res) => {
-  const personas = db.all('SELECT id, nombre, apellido, estado, createdAt FROM personas ORDER BY createdAt DESC LIMIT 5') || []
-  const seguimientos = db.all('SELECT s.*, p.nombre, p.apellido FROM seguimientos s LEFT JOIN personas p ON s.personaId = p.id ORDER BY s.createdAt DESC LIMIT 5') || []
-  const cultos = db.all('SELECT * FROM cultos ORDER BY fecha DESC LIMIT 3') || []
-  const eventos = db.all('SELECT * FROM eventos ORDER BY fecha DESC LIMIT 3') || []
-  res.json({ personas, seguimientos, cultos, eventos })
+router.get('/actividad', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  await ensureOperationalTenantDataSynced(iglesiaId)
+  const personas = await pgMany(
+    'SELECT "id","nombre","apellido","estado","createdAt" FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL ORDER BY "createdAt" DESC LIMIT 5',
+    [iglesiaId]
+  )
+  const seguimientos = await pgMany(
+    `SELECT s.*, p."nombre", p."apellido"
+       FROM "Seguimiento" s
+       LEFT JOIN "Persona" p ON s."personaId"=p."id"
+      WHERE s."iglesiaId"=$1 AND s."deletedAt" IS NULL
+      ORDER BY s."createdAt" DESC
+      LIMIT 5`,
+    [iglesiaId]
+  )
+  const cultos = await pgMany(
+    'SELECT * FROM "Culto" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL ORDER BY "fecha" DESC LIMIT 3',
+    [iglesiaId]
+  )
+  res.json({ personas, seguimientos, cultos, eventos: [] })
 })
 
 export default router
+

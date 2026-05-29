@@ -1,11 +1,13 @@
-import { Router }  from 'express'
-import webpush      from 'web-push'
-import db           from '../lib/db.js'
-import { requireAuth, requireRol } from '../middlewares/auth.js'
+import { Router } from 'express'
+import webpush from 'web-push'
+import pino from 'pino'
+import { pgExec, pgMany, pgOne } from '../lib/pg.js'
+import { requireAuth } from '../middlewares/auth.js'
 
 const router = Router()
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
+const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 
-// Configurar VAPID (solo si están definidas las keys)
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
     process.env.VAPID_EMAIL || 'mailto:admin@churchsystem.com.ar',
@@ -14,132 +16,146 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   )
 }
 
-// Asegurar tabla
-function ensureTable() {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS push_subscriptions (
-      id        INTEGER PRIMARY KEY AUTOINCREMENT,
-      userId    INTEGER NOT NULL,
-      endpoint  TEXT    NOT NULL UNIQUE,
-      keys      TEXT    NOT NULL,
-      createdAt TEXT    DEFAULT (datetime('now'))
-    )
-  `)
-}
-
-// ── GET /notificaciones/vapid-key ──────────────────────────────
 router.get('/vapid-key', requireAuth, (_req, res) => {
-  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || null })
+  return res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || null })
 })
 
-// ── POST /notificaciones/subscribe ────────────────────────────
-router.post('/subscribe', requireAuth, (req, res) => {
-  const { subscription } = req.body
-  if (!subscription?.endpoint || !subscription?.keys)
+router.post('/subscribe', requireAuth, wrap(async (req, res) => {
+  const { subscription } = req.body || {}
+  if (!subscription?.endpoint || !subscription?.keys) {
     return res.status(400).json({ error: 'Suscripción inválida' })
+  }
+  await pgExec(
+    `INSERT INTO "PushSubscription" ("iglesiaId","userId","endpoint","keys","createdAt")
+     VALUES ($1,$2,$3,$4,CURRENT_TIMESTAMP)
+     ON CONFLICT ("endpoint")
+     DO UPDATE SET
+       "iglesiaId"=EXCLUDED."iglesiaId",
+       "userId"=EXCLUDED."userId",
+       "keys"=EXCLUDED."keys"`,
+    [req.user.iglesiaId, req.user.id, String(subscription.endpoint), JSON.stringify(subscription.keys)]
+  )
+  return res.json({ ok: true })
+}))
 
-  ensureTable()
-  try {
-    db.run(
-      `INSERT INTO push_subscriptions (userId, endpoint, keys)
-       VALUES (?, ?, ?)
-       ON CONFLICT(endpoint) DO UPDATE SET userId=excluded.userId, keys=excluded.keys`,
-      [req.user.id, subscription.endpoint, JSON.stringify(subscription.keys)]
-    )
-    res.json({ ok: true })
-  } catch (err) { res.status(500).json({ error: err.message }) }
-})
-
-// ── DELETE /notificaciones/unsubscribe ─────────────────────────
-router.delete('/unsubscribe', requireAuth, (req, res) => {
-  const { endpoint } = req.body
+router.delete('/unsubscribe', requireAuth, wrap(async (req, res) => {
+  const { endpoint } = req.body || {}
   if (!endpoint) return res.status(400).json({ error: 'Endpoint requerido' })
-  ensureTable()
-  db.run('DELETE FROM push_subscriptions WHERE userId=? AND endpoint=?', [req.user.id, endpoint])
-  res.json({ ok: true })
-})
+  await pgExec(
+    'DELETE FROM "PushSubscription" WHERE "userId"=$1 AND "iglesiaId"=$2 AND "endpoint"=$3',
+    [req.user.id, req.user.iglesiaId, String(endpoint)]
+  )
+  return res.json({ ok: true })
+}))
 
-// ── POST /notificaciones/test ──────────────────────────────────
-router.post('/test', requireAuth, async (req, res) => {
-  if (!process.env.VAPID_PUBLIC_KEY)
-    return res.status(400).json({ error: 'VAPID no configurado' })
+router.post('/test', requireAuth, wrap(async (req, res) => {
+  if (!process.env.VAPID_PUBLIC_KEY) return res.status(400).json({ error: 'VAPID no configurado' })
+  const subs = await pgMany(
+    'SELECT "endpoint","keys" FROM "PushSubscription" WHERE "userId"=$1 AND "iglesiaId"=$2',
+    [req.user.id, req.user.iglesiaId]
+  )
+  if (!subs.length) return res.status(404).json({ error: 'No hay suscripciones activas' })
 
-  ensureTable()
-  const subs = db.all('SELECT endpoint, keys FROM push_subscriptions WHERE userId=?', [req.user.id])
-  if (!subs.length)
-    return res.status(404).json({ error: 'No hay suscripciones activas' })
-
-  let ok = 0, errors = 0
+  let ok = 0
+  let errors = 0
   for (const row of subs) {
     try {
       await webpush.sendNotification(
         { endpoint: row.endpoint, keys: JSON.parse(row.keys) },
-        JSON.stringify({ title: '🔔 Church System', body: '¡Notificaciones activas!', url: '/' })
+        JSON.stringify({ title: 'Church System', body: 'Notificaciones activas', url: '/' })
       )
       ok++
     } catch (err) {
       errors++
-      if (err.statusCode === 410)
-        db.run('DELETE FROM push_subscriptions WHERE endpoint=?', [row.endpoint])
+      if (err.statusCode === 410) {
+        await pgExec('DELETE FROM "PushSubscription" WHERE "endpoint"=$1', [row.endpoint])
+      }
     }
   }
-  res.json({ ok: true, enviadas: ok, errores: errors })
-})
+  return res.json({ ok: true, enviadas: ok, errores: errors })
+}))
 
-// ── Función exportada para scheduler diario ────────────────────
 export async function enviarAlertas() {
   if (!process.env.VAPID_PUBLIC_KEY) return
-  ensureTable()
+  const iglesias = await pgMany('SELECT "id" FROM "Iglesia" WHERE "deletedAt" IS NULL')
 
-  const hoy = new Date().toISOString().slice(0, 10)
+  for (const iglesia of iglesias) {
+    const iglesiaId = iglesia.id
+    const hoy = new Date().toISOString().slice(0, 10)
 
-  const cumpleanos = db.get(
-    `SELECT COUNT(*) as n FROM personas
-     WHERE strftime('%m-%d', fechaNacimiento) = strftime('%m-%d', 'now') AND estado != 'INACTIVO'`
-  )?.n || 0
+    const cumpleanos = Number((await pgOne(
+      `SELECT COUNT(*)::int as n
+       FROM "Persona"
+       WHERE "iglesiaId"=$1
+         AND "deletedAt" IS NULL
+         AND "estado" <> 'INACTIVO'
+         AND NULLIF("fechaNacimiento",'') IS NOT NULL
+         AND to_char((NULLIF("fechaNacimiento",'')::date), 'MM-DD') = to_char(CURRENT_DATE, 'MM-DD')`,
+      [iglesiaId]
+    ))?.n || 0)
 
-  const vencidos = db.get(
-    `SELECT COUNT(*) as n FROM seguimientos
-     WHERE proximoContacto <= ? AND proximoContacto IS NOT NULL`, [hoy]
-  )?.n || 0
+    const vencidos = Number((await pgOne(
+      `SELECT COUNT(*)::int as n
+       FROM "Seguimiento"
+       WHERE "iglesiaId"=$1
+         AND "deletedAt" IS NULL
+         AND "proximoContacto" IS NOT NULL
+         AND ("proximoContacto")::date <= $2::date`,
+      [iglesiaId, hoy]
+    ))?.n || 0)
 
-  const visitantes = db.get(
-    `SELECT COUNT(*) as n FROM personas
-     WHERE estado = 'VISITANTE' AND fechaIngreso <= date('now', '-30 days')`
-  )?.n || 0
+    const visitantes = Number((await pgOne(
+      `SELECT COUNT(*)::int as n
+       FROM "Persona"
+       WHERE "iglesiaId"=$1
+         AND "deletedAt" IS NULL
+         AND "estado" = 'VISITANTE'
+         AND NULLIF("fechaIngreso",'') IS NOT NULL
+         AND (NULLIF("fechaIngreso",'')::date) <= CURRENT_DATE - INTERVAL '30 days'`,
+      [iglesiaId]
+    ))?.n || 0)
 
-  const alertas = [
-    ...(cumpleanos > 0 ? [`🎂 ${cumpleanos} cumpleaños hoy`] : []),
-    ...(vencidos   > 0 ? [`⏰ ${vencidos} seguimientos vencidos`] : []),
-    ...(visitantes > 0 ? [`👋 ${visitantes} visitantes sin consolidar`] : []),
-  ]
-  if (!alertas.length) return
+    const alertas = [
+      ...(cumpleanos > 0 ? [`${cumpleanos} cumpleaños hoy`] : []),
+      ...(vencidos > 0 ? [`${vencidos} seguimientos vencidos`] : []),
+      ...(visitantes > 0 ? [`${visitantes} visitantes sin consolidar`] : []),
+    ]
+    if (!alertas.length) continue
 
-  const admins = db.all(
-    `SELECT id FROM users WHERE rol IN ('PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION')`
-  ).map(r => r.id)
-  if (!admins.length) return
+    const admins = await pgMany(
+      `SELECT "id"
+       FROM "User"
+       WHERE "iglesiaId"=$1
+         AND "deletedAt" IS NULL
+         AND "rol" IN ('PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION')`,
+      [iglesiaId]
+    )
+    if (!admins.length) continue
 
-  const placeholders = admins.map(() => '?').join(',')
-  const subs = db.all(
-    `SELECT endpoint, keys FROM push_subscriptions WHERE userId IN (${placeholders})`, admins
-  )
+    const ids = admins.map(a => Number(a.id))
+    const subs = await pgMany(
+      'SELECT "endpoint","keys" FROM "PushSubscription" WHERE "iglesiaId"=$1 AND "userId" = ANY($2::int[])',
+      [iglesiaId, ids]
+    )
+    if (!subs.length) continue
 
-  const payload = JSON.stringify({
-    title: '🔔 Alertas pastorales',
-    body: alertas.join(' · '),
-    url: '/alertas'
-  })
+    const payload = JSON.stringify({
+      title: 'Alertas pastorales',
+      body: alertas.join(' · '),
+      url: '/alertas',
+    })
 
-  for (const row of subs) {
-    try {
-      await webpush.sendNotification({ endpoint: row.endpoint, keys: JSON.parse(row.keys) }, payload)
-    } catch (err) {
-      if (err.statusCode === 410)
-        db.run('DELETE FROM push_subscriptions WHERE endpoint=?', [row.endpoint])
+    for (const row of subs) {
+      try {
+        await webpush.sendNotification({ endpoint: row.endpoint, keys: JSON.parse(row.keys) }, payload)
+      } catch (err) {
+        if (err.statusCode === 410) {
+          await pgExec('DELETE FROM "PushSubscription" WHERE "endpoint"=$1', [row.endpoint])
+        }
+      }
     }
+    logger.info({ iglesiaId, alertas }, 'Alertas push enviadas')
   }
-  console.log(`⏰  Alertas enviadas: ${alertas.join(', ')}`)
 }
 
 export default router

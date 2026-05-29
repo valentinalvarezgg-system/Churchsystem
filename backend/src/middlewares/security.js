@@ -1,3 +1,7 @@
+import pino from 'pino'
+
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
+
 function sanitizeVal(v) {
   if (typeof v !== 'string') return v
   return v.replace(/\0/g,'').replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'')
@@ -28,7 +32,7 @@ export function securityLogger(req,res,next) {
   res.on('finish',()=>{
     if ([401,403,429].includes(res.statusCode)) {
       const ip = req.headers['x-forwarded-for']||req.socket?.remoteAddress||'?'
-      console.warn(`[SEC] ${res.statusCode} ${req.method} ${req.path} IP:${ip}`)
+      logger.warn({ statusCode: res.statusCode, method: req.method, path: req.path, ip }, 'Security event')
     }
   }); next()
 }
@@ -40,7 +44,7 @@ export function validate(schema) {
   }
 }
 export function errorHandler(err,req,res,_next) {
-  console.error('[ERROR]', req.method, req.path, err.message)
+  logger.error({ method: req.method, path: req.path, err: err.message }, 'Unhandled error')
   if (err.message?.includes('UNIQUE constraint')) return res.status(409).json({ error:'Ya existe un registro con esos datos' })
   if (err.message?.includes('NOT NULL')) return res.status(400).json({ error:'Faltan campos obligatorios' })
   res.status(500).json({ error: process.env.NODE_ENV==='production' ? 'Error interno' : (err.message||'Error') })

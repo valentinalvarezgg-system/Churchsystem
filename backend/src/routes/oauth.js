@@ -1,12 +1,25 @@
 import { Router } from 'express'
 import jwt from 'jsonwebtoken'
-import db from '../lib/db.js'
+import pino from 'pino'
+import { pgExec, pgOne } from '../lib/pg.js'
 import { sendNotificationEmail } from '../lib/email.js'
 
 const router = Router()
-const SECRET     = () => process.env.JWT_SECRET || 'dev'
-const BASE_URL   = () => process.env.BASE_URL || 'http://localhost:4000'
-const FRONT_URL  = () => process.env.FRONTEND_URL || BASE_URL()
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
+const SECRET     = () => {
+  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET no configurado')
+  return process.env.JWT_SECRET
+}
+function resolveBaseUrl(req) {
+  if (process.env.BASE_URL) return process.env.BASE_URL
+  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim()
+  const host = (req.headers['x-forwarded-host'] || req.headers.host || `localhost:${process.env.PORT || 4000}`).split(',')[0].trim()
+  return `${proto}://${host}`
+}
+
+function resolveFrontUrl(req) {
+  return process.env.FRONTEND_URL || resolveBaseUrl(req)
+}
 
 function decodeJwtPayload(token = '') {
   try {
@@ -34,32 +47,45 @@ function signSession(user) {
   return jwt.sign(payload, SECRET(), { expiresIn: '8h' })
 }
 
-async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '', emailVerified = true }) {
+async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '', emailVerified = true, frontUrl = process.env.FRONTEND_URL || process.env.BASE_URL || 'http://localhost:4000' }) {
   const normalizedEmail = String(email || '').toLowerCase()
-  let user = db.get('SELECT * FROM users WHERE email = ?', [normalizedEmail])
+  let user = await pgOne('SELECT * FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [normalizedEmail])
 
   if (!user) {
-    const expira = new Date(Date.now() + 14 * 86400000).toISOString()
-    const result = db.run(
-      `INSERT INTO users (nombre, email, password, rol, activo, emailVerificado, plan, expira, oauth_provider, oauth_id)
-       VALUES (?,?,?,?,1,?,?,?, ?, ?)`,
-      [nombre || normalizedEmail, normalizedEmail, '', 'PASTOR_GENERAL', emailVerified ? 1 : 0, 'GENERAL', expira, provider, providerId]
+    const role = await pgOne(
+      `INSERT INTO "Rol" ("codigo","nombre","createdAt","updatedAt")
+       VALUES ('PASTOR_GENERAL','Pastor General',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+       ON CONFLICT ("codigo") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP
+       RETURNING id`
     )
-    user = db.get('SELECT * FROM users WHERE id = ?', [result.lastID])
+    const iglesia = await pgOne(
+      'INSERT INTO "Iglesia" ("nombre","token","createdAt","updatedAt") VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING id',
+      ['Mi Iglesia', `IGL-${Date.now()}`]
+    )
+    const expira = new Date(Date.now() + 14 * 86400000).toISOString()
+    await pgOne(
+      `INSERT INTO "User"
+        ("nombre","email","password","rol","activo","emailVerificado","plan","expira","oauth_provider","oauth_id","iglesiaId","rolId","createdAt","updatedAt")
+       VALUES
+        ($1,$2,$3,'PASTOR_GENERAL',true,$4,'GENERAL',$5,$6,$7,$8,$9,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+       RETURNING id`,
+      [nombre || normalizedEmail, normalizedEmail, '', !!emailVerified, expira, provider, providerId, iglesia.id, role.id]
+    )
+    user = await pgOne('SELECT * FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [normalizedEmail])
     await sendNotificationEmail({
       to: normalizedEmail,
       subject: 'Registro exitoso - Church System',
       title: 'Tu cuenta fue creada',
       intro: `Hola ${nombre || 'Pastor'}, ya tenes tu cuenta de Church System activa.`,
       lines: ['El inicio de sesion se realizo con proveedor externo.', `Proveedor: ${provider}`],
-      actionUrl: `${FRONT_URL()}/app`,
+      actionUrl: `${frontUrl}/app`,
     }).catch(() => {})
   } else {
-    db.run(
-      'UPDATE users SET emailVerificado=?, oauth_provider=?, oauth_id=? WHERE id=?',
-      [emailVerified ? 1 : user.emailVerificado, provider, providerId, user.id]
+    await pgExec(
+      'UPDATE "User" SET "emailVerificado"=$1, "oauth_provider"=$2, "oauth_id"=$3, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$4',
+      [emailVerified ? true : !!user.emailVerificado, provider, providerId, user.id]
     )
-    user = db.get('SELECT * FROM users WHERE id = ?', [user.id])
+    user = await pgOne('SELECT * FROM "User" WHERE "id"=$1 LIMIT 1', [user.id])
   }
 
   return user
@@ -68,9 +94,9 @@ async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '',
 // ── Google OAuth ─────────────────────────────────────────────────────────────
 router.get('/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID
-  if (!clientId) return res.redirect(`${FRONT_URL()}/app/login?error=oauth_not_configured`)
+  if (!clientId) return res.redirect(`${resolveFrontUrl(req)}/app/login?error=oauth_not_configured`)
 
-  const redirectUri = `${BASE_URL()}/oauth/google/callback`
+  const redirectUri = `${resolveBaseUrl(req)}/oauth/google/callback`
   const params = new URLSearchParams({
     client_id:     clientId,
     redirect_uri:  redirectUri,
@@ -84,12 +110,13 @@ router.get('/google', (req, res) => {
 
 router.get('/google/callback', async (req, res) => {
   const { code } = req.query
-  if (!code) return res.redirect(`${FRONT_URL()}/app/login?error=no_code`)
+  if (!code) return res.redirect(`${resolveFrontUrl(req)}/app/login?error=no_code`)
 
   try {
     const clientId     = process.env.GOOGLE_CLIENT_ID
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-    const redirectUri  = `${BASE_URL()}/oauth/google/callback`
+    const redirectUri  = `${resolveBaseUrl(req)}/oauth/google/callback`
+    if (!clientId || !clientSecret) return res.redirect(`${resolveFrontUrl(req)}/app/login?error=oauth_not_configured`)
 
     // Intercambiar code por tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -99,8 +126,8 @@ router.get('/google/callback', async (req, res) => {
     })
     const tokens = await tokenRes.json()
     if (!tokens.access_token) {
-      console.error('OAuth error:', tokens)
-      return res.redirect(`${FRONT_URL()}/app/login?error=no_token`)
+      logger.error({ tokens, status: tokenRes.status }, 'OAuth error')
+      return res.redirect(`${resolveFrontUrl(req)}/app/login?error=no_token`)
     }
 
     // Obtener info del usuario
@@ -108,7 +135,7 @@ router.get('/google/callback', async (req, res) => {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     })
     const info = await infoRes.json()
-    if (!info.email) return res.redirect(`${FRONT_URL()}/app/login?error=oauth_failed`)
+    if (!info.email) return res.redirect(`${resolveFrontUrl(req)}/app/login?error=oauth_failed`)
 
     const user = await findOrCreateOAuthUser({
       provider: 'google',
@@ -116,16 +143,17 @@ router.get('/google/callback', async (req, res) => {
       email: info.email,
       nombre: info.name || info.given_name || '',
       emailVerified: true,
+      frontUrl: resolveFrontUrl(req),
     })
 
-    if (!user.activo) return res.redirect(`${FRONT_URL()}/app/login?error=account_disabled`)
+    if (!user.activo) return res.redirect(`${resolveFrontUrl(req)}/app/login?error=account_disabled`)
 
     const token = signSession(user)
-    res.redirect(`${FRONT_URL()}/app/login?token=${token}`)
+    res.redirect(`${resolveFrontUrl(req)}/app/login?token=${token}`)
 
   } catch(err) {
-    console.error('OAuth Google error:', err)
-    res.redirect(`${FRONT_URL()}/app/login?error=oauth_failed`)
+    logger.error({ err: err?.message }, 'OAuth Google error')
+    res.redirect(`${resolveFrontUrl(req)}/app/login?error=oauth_failed`)
   }
 })
 
@@ -146,12 +174,12 @@ function appleClientSecret() {
   })
 }
 
-router.get('/apple', (_req, res) => {
+router.get('/apple', (req, res) => {
   const clientId = process.env.APPLE_CLIENT_ID
   if (!clientId || !appleClientSecret())
-    return res.redirect(`${FRONT_URL()}/app/login?error=apple_not_configured`)
+    return res.redirect(`${resolveFrontUrl(req)}/app/login?error=apple_not_configured`)
 
-  const redirectUri = process.env.APPLE_REDIRECT_URI || `${BASE_URL()}/oauth/apple/callback`
+  const redirectUri = process.env.APPLE_REDIRECT_URI || `${resolveBaseUrl(req)}/oauth/apple/callback`
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -164,13 +192,15 @@ router.get('/apple', (_req, res) => {
 
 router.post('/apple/callback', async (req, res) => {
   const { code, id_token } = req.body || {}
-  if (!code && !id_token) return res.redirect(`${FRONT_URL()}/app/login?error=no_code`)
+  const frontUrl = resolveFrontUrl(req)
+  const baseUrl = resolveBaseUrl(req)
+  if (!code && !id_token) return res.redirect(`${frontUrl}/app/login?error=no_code`)
 
   try {
     const clientId = process.env.APPLE_CLIENT_ID
     const clientSecret = appleClientSecret()
-    const redirectUri = process.env.APPLE_REDIRECT_URI || `${BASE_URL()}/oauth/apple/callback`
-    if (!clientId || !clientSecret) return res.redirect(`${FRONT_URL()}/app/login?error=apple_not_configured`)
+    const redirectUri = process.env.APPLE_REDIRECT_URI || `${baseUrl}/oauth/apple/callback`
+    if (!clientId || !clientSecret) return res.redirect(`${frontUrl}/app/login?error=apple_not_configured`)
 
     let idToken = id_token
     if (code) {
@@ -188,14 +218,14 @@ router.post('/apple/callback', async (req, res) => {
       const tokens = await tokenRes.json()
       idToken = tokens.id_token || idToken
       if (!tokenRes.ok || !idToken) {
-        console.error('Apple OAuth error:', tokens)
-        return res.redirect(`${FRONT_URL()}/app/login?error=no_token`)
+        logger.error({ tokens }, 'Apple OAuth error')
+        return res.redirect(`${frontUrl}/app/login?error=no_token`)
       }
     }
 
     const info = decodeJwtPayload(idToken)
     if (!info?.email || info.aud !== clientId)
-      return res.redirect(`${FRONT_URL()}/app/login?error=oauth_failed`)
+      return res.redirect(`${frontUrl}/app/login?error=oauth_failed`)
 
     const user = await findOrCreateOAuthUser({
       provider: 'apple',
@@ -203,14 +233,15 @@ router.post('/apple/callback', async (req, res) => {
       email: info.email,
       nombre: info.email.split('@')[0],
       emailVerified: info.email_verified === true || info.email_verified === 'true',
+      frontUrl,
     })
 
-    if (!user.activo) return res.redirect(`${FRONT_URL()}/app/login?error=account_disabled`)
+    if (!user.activo) return res.redirect(`${frontUrl}/app/login?error=account_disabled`)
     const token = signSession(user)
-    res.redirect(`${FRONT_URL()}/app/login?token=${token}`)
+    res.redirect(`${frontUrl}/app/login?token=${token}`)
   } catch (err) {
-    console.error('OAuth Apple error:', err)
-    res.redirect(`${FRONT_URL()}/app/login?error=oauth_failed`)
+    logger.error({ err: err?.message }, 'OAuth Apple error')
+    res.redirect(`${frontUrl}/app/login?error=oauth_failed`)
   }
 })
 

@@ -4,6 +4,10 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { createRequire } from 'module'
 
+if (process.env.NODE_ENV === 'production' && process.env.ALLOW_LEGACY_SQLJS !== 'true') {
+  throw new Error('SQL.js legacy DB bloqueada en production. Migrar el modulo a PostgreSQL o activar solo temporalmente ALLOW_LEGACY_SQLJS=true fuera de production.')
+}
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname  = path.dirname(__filename)
 const require    = createRequire(import.meta.url)
@@ -233,6 +237,17 @@ const tablas = [
   adminId INTEGER NOT NULL,
   plan TEXT NOT NULL DEFAULT 'GENERAL',
   createdAt TEXT DEFAULT (datetime('now'))
+)`,
+`CREATE TABLE IF NOT EXISTS user_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  userId INTEGER NOT NULL,
+  refreshToken TEXT NOT NULL UNIQUE,
+  userAgent TEXT DEFAULT '',
+  ip TEXT DEFAULT '',
+  expiresAt TEXT NOT NULL,
+  revoked INTEGER NOT NULL DEFAULT 0,
+  createdAt TEXT DEFAULT (datetime('now')),
+  updatedAt TEXT DEFAULT (datetime('now'))
 )`
 ]
 
