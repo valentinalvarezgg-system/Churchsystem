@@ -24,7 +24,7 @@ const I18N = {
     discipleship:'Discipulado', consolidation:'Consolidación', messages:'Mensajería', alerts:'Alertas',
     reports:'Reportes', finances:'Finanzas', excel:'Excel + IA', assistant:'Asistente IA', users:'Usuarios',
     promo:'Promo Codes', permissions:'Permisos', history:'Historial', settings:'Configuración',
-    prayer:'Oración', profile:'Mi perfil', pageProfile:'Perfil', menu:'Menú',
+    prayer:'Oración', events:'Eventos', profile:'Mi perfil', pageProfile:'Perfil', menu:'Menú',
   },
   pt: {
     smart:'Gestão Pastoral Inteligente', openMenu:'Abrir menu', search:'Buscar', notifications:'Notificações',
@@ -36,7 +36,7 @@ const I18N = {
     discipleship:'Discipulado', consolidation:'Consolidação', messages:'Mensagens', alerts:'Alertas',
     reports:'Relatórios', finances:'Finanças', excel:'Excel + IA', assistant:'Assistente IA', users:'Usuários',
     promo:'Promo Codes', permissions:'Permissões', history:'Histórico', settings:'Configuração',
-    prayer:'Oração', profile:'Meu perfil', pageProfile:'Perfil', menu:'Menu',
+    prayer:'Oração', events:'Eventos', profile:'Meu perfil', pageProfile:'Perfil', menu:'Menu',
   },
   en: {
     smart:'Smart Pastoral Management', openMenu:'Open menu', search:'Search', notifications:'Notifications',
@@ -48,7 +48,7 @@ const I18N = {
     discipleship:'Discipleship', consolidation:'Follow-up', messages:'Messaging', alerts:'Alerts',
     reports:'Reports', finances:'Finances', excel:'Excel + AI', assistant:'AI Assistant', users:'Users',
     promo:'Promo Codes', permissions:'Permissions', history:'History', settings:'Settings',
-    prayer:'Prayer', profile:'My profile', pageProfile:'Profile', menu:'Menu',
+    prayer:'Prayer', events:'Events', profile:'My profile', pageProfile:'Profile', menu:'Menu',
   },
 }
 
@@ -128,6 +128,7 @@ export default function Menu() {
     '/users': tt('users'), '/permisos': tt('permissions'),
     '/historial': tt('history'), '/oracion': tt('prayer'),
     '/comunicados': tt('communications'), '/mi-perfil': tt('profile'),
+    '/eventos': tt('events'),
   }
   const currentPage = PAGE_NAMES[location.pathname] ||
     (location.pathname.startsWith('/personas/') ? tt('pageProfile') : 'Church System')
@@ -204,6 +205,8 @@ export default function Menu() {
             {lnk('/asistencia',  <Icons.Attendance />, tt('attendance'))}
             {lnk('/checkin',     <Icons.CheckIn />, tt('checkin'))}
             {lnk('/calendario',  <Icons.Calendar />, tt('calendar'))}
+            {lnk('/eventos',     <Icons.Calendar />, tt('events'))}
+            {lnk('/oracion',     <Icons.Prayer />,   tt('prayer'))}
             {lnk('/discipulado', <Icons.Discipleship />,  tt('discipleship'))}
             {isAudit && lnk('/consolidacion', <Icons.Users />, tt('consolidation'))}
           </>}

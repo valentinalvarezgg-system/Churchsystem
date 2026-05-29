@@ -13,7 +13,7 @@ export default defineConfig({
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
         "style-src 'self' 'unsafe-inline'",
-        "connect-src 'self' http://localhost:4000 http://192.168.1.17:4000 ws://localhost:5173 ws://192.168.1.17:5173 ws://0.0.0.0:5173",
+        "connect-src 'self' http://localhost:4000 ws://localhost:5173 ws://0.0.0.0:5173",
         "img-src 'self' data: https: blob:",
         "font-src 'self' data:",
       ].join('; ')
