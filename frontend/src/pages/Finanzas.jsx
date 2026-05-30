@@ -69,8 +69,11 @@ export default function Finanzas() {
   const [confirmDel, setConfirmDel] = useState(null)
   const [view, setView]       = useState('tabla')  // tabla | graficos
   const [currency, setCurrency] = useState(getStoredContext().currency || 'ARS')
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
   const load = useCallback(async () => {
+    setLoading(true); setError(null)
     const p = new URLSearchParams({page, limit:30})
     if (filtros.desde) p.set('desde', filtros.desde)
     if (filtros.hasta) p.set('hasta', filtros.hasta)
@@ -81,7 +84,8 @@ export default function Finanzas() {
       setPages(res.pages||1); setPorTipo(res.porTipo||[])
       setTendencia(res.tendencia||[])
       if (res.currency) setCurrency(res.currency)
-    } catch {}
+    } catch(e) { setError(e.message) }
+    setLoading(false)
   }, [page, filtros])
 
   useEffect(() => { load() }, [load])
@@ -237,7 +241,11 @@ export default function Finanzas() {
 
         {/* Tabla / Cards */}
         <div className="card" style={{padding:0}}>
-          {data.length === 0
+          {loading
+            ? <div className="empty"><p>Cargando...</p></div>
+            : error
+            ? <div className="alert alert-error" style={{margin:16}}>{error}</div>
+            : data.length === 0
             ? <div className="empty"><div className="empty-icon"><Icons.Finance /></div><p>Sin registros para los filtros seleccionados</p></div>
             : <>
                 <div className="mobile-list">

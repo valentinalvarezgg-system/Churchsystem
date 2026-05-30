@@ -21,9 +21,14 @@ export default function Comunicados() {
   const [msg, setMsg]       = useState(null)
   const [expandido, setExpandido] = useState(null)
   const [confirmArch, setConfirmArch] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
   const load = useCallback(async () => {
-    try { const r = await apiFetch(`/comunicados?page=${page}&limit=15`); setData(r.data||[]); setTotal(r.total||0); setPages(r.pages||1) } catch {}
+    setLoading(true); setError(null)
+    try { const r = await apiFetch(`/comunicados?page=${page}&limit=15`); setData(r.data||[]); setTotal(r.total||0); setPages(r.pages||1) }
+    catch(e) { setError(e.message) }
+    setLoading(false)
   }, [page])
   useEffect(()=>{load()},[load])
 
@@ -45,7 +50,11 @@ export default function Comunicados() {
           <div><h1 className="page-title"><Icons.Comunicados /> Comunicados</h1><p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>Novedades internas del equipo</p></div>
           {canCreate&&<button className="btn btn-primary" data-tip="Publicar nuevo comunicado al equipo" onClick={()=>{setModal(true);setMsg(null)}}>+ Nuevo</button>}
         </div>
-        {data.length===0 ? <div className="empty"><div className="empty-icon"><Icons.Comunicados /></div><p>Sin comunicados</p></div>
+        {loading
+          ? <div className="empty"><p>Cargando...</p></div>
+          : error
+          ? <div className="alert alert-error" style={{margin:'0 0 16px'}}>{error}</div>
+          : data.length===0 ? <div className="empty"><div className="empty-icon"><Icons.Comunicados /></div><p>Sin comunicados</p></div>
           : <div style={{display:'flex',flexDirection:'column',gap:10}}>
               {data.map(c=>(
                 <div key={c.id} className="card" style={{padding:'16px',borderLeft:`3px solid ${TCOLOR[c.tipo]||'#2563EB'}`}}>

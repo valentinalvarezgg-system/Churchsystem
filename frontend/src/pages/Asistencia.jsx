@@ -22,9 +22,13 @@ export default function Asistencia() {
   const [form, setForm]           = useState({ nombre:'', fecha:new Date().toISOString().slice(0,10), cultoDia:'DOMINGO', cultoTurno:0, observaciones:'', esEspecial:false, nombreEspecial:'', horario:'18hs' })
   const [msg, setMsg]             = useState(null)
   const [confirmDelCulto, setConfirmDelCulto] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
   async function loadCultos() {
-    try { setCultos(await apiFetch('/cultos') || []) } catch {}
+    setLoading(true); setError(null)
+    try { setCultos(await apiFetch('/cultos') || []) } catch(e) { setError(e.message) }
+    setLoading(false)
   }
   useEffect(() => { loadCultos() }, [])
 
@@ -83,7 +87,12 @@ export default function Asistencia() {
         <div className="attendance-shell" style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:16, alignItems:'start'}}>
           <div className="card attendance-cultos" style={{padding:0, overflowX:'auto'}}>
             <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>CULTOS ({cultos.length})</div>
-            {cultos.length===0 ? <div className="empty" style={{padding:30}}><p>Sin cultos</p></div>
+            {loading
+              ? <div className="empty" style={{padding:30}}><p>Cargando...</p></div>
+              : error
+              ? <div className="alert alert-error" style={{margin:12}}>{error}</div>
+              : cultos.length===0
+              ? <div className="empty" style={{padding:30}}><p>Sin cultos</p></div>
               : cultos.map(c=>(
                 <div key={c.id} onClick={()=>{setSelected(Number(c.id));setSearch('');setMsg(null)}}
                   style={{padding:'12px 16px',cursor:'pointer',borderBottom:'1px solid var(--border)',

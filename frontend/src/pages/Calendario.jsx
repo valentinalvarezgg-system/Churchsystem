@@ -25,8 +25,11 @@ export default function Calendario() {
   const [selEv, setSelEv]   = useState(null)
   const [view, setView]     = useState('mes') // mes | lista
   const [confirmDelEv, setConfirmDelEv] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
   async function load() {
+    setLoading(true); setError(null)
     const desde = new Date(año, mes, 1).toISOString().slice(0,10)
     const hasta = new Date(año, mes+1, 0).toISOString().slice(0,10)
     try {
@@ -35,7 +38,8 @@ export default function Calendario() {
         apiFetch('/eventos/proximos')
       ])
       setEventos(ev||[]); setProximos(prox||[])
-    } catch {}
+    } catch(e) { setError(e.message) }
+    setLoading(false)
   }
   useEffect(() => { load() }, [año, mes])
 
@@ -135,8 +139,10 @@ export default function Calendario() {
               <button className="btn btn-ghost btn-sm" onClick={() => navMes(1)}>Siguiente →</button>
             </div>
 
+            {loading && <div className="empty"><p>Cargando...</p></div>}
+            {!loading && error && <div className="alert alert-error" style={{margin:'0 0 12px'}}>{error}</div>}
             {/* Vista mes */}
-            {view === 'mes' && (
+            {!loading && !error && view === 'mes' && (
               <div className="card" style={{ padding:0, overflowX:'auto' }}>
                 {/* Cabecera días */}
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid var(--border)' }}>
@@ -214,7 +220,7 @@ export default function Calendario() {
             )}
 
             {/* Vista lista */}
-            {view === 'lista' && (
+            {!loading && !error && view === 'lista' && (
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 {eventos.length === 0
                   ? <div className="empty"><div className="empty-icon"><Icons.Calendar /></div><p>Sin eventos este mes</p></div>

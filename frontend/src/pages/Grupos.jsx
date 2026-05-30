@@ -20,8 +20,14 @@ export default function Grupos() {
   const [form, setForm]       = useState(EMPTY)
   const [msg, setMsg]         = useState(null)
   const [confirmDel, setConfirmDel] = useState(null) // {id, nombre}
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
-  async function load() { try { setGrupos(await apiFetch('/grupos')||[]) } catch {} }
+  async function load() {
+    setLoading(true); setError(null)
+    try { setGrupos(await apiFetch('/grupos')||[]) } catch(e) { setError(e.message) }
+    setLoading(false)
+  }
   useEffect(() => {
     load()
     apiFetch('/users').then(u=>setUsers(u||[])).catch(()=>{})
@@ -61,7 +67,11 @@ export default function Grupos() {
           <button className="btn btn-primary" data-tip="Crear un nuevo grupo pastoral" onClick={()=>openModal()}>+ Nuevo grupo</button>
         </div>
         {msg && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}}>
+        {loading
+          ? <div className="empty"><p>Cargando...</p></div>
+          : error
+          ? <div className="alert alert-error" style={{margin:'0 0 16px'}}>{error}</div>
+          : <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}}>
           {grupos.length===0 && <div className="card empty"><div className="empty-icon"><Icons.Groups /></div><p>No hay grupos</p></div>}
           {grupos.map(g=>(
             <div key={g.id} className="card" style={{cursor:'pointer'}} onClick={()=>openDetalle(g)}>
@@ -81,6 +91,7 @@ export default function Grupos() {
             </div>
           ))}
         </div>
+        }
         {modal && (
           <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
             <div className="modal">

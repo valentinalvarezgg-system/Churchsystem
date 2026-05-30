@@ -32,8 +32,11 @@ export default function Consolidacion() {
   const [formNuevo, setFormNuevo]   = useState({ personaId:'', notas:'' })
   const [msg, setMsg]       = useState(null)
   const [view, setView]     = useState('lista') // lista | kanban
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
   const load = useCallback(async () => {
+    setLoading(true); setError(null)
     const p = new URLSearchParams({ page, limit:20 })
     if (filtro) p.set('estado', filtro)
     try {
@@ -42,7 +45,7 @@ export default function Consolidacion() {
         apiFetch('/consolidacion/stats')
       ])
       setData(r.data||[]); setTotal(r.total||0); setPages(r.pages||1); setStats(s)
-    } catch {}
+    } catch(e) { setError(e.message) }
   }, [page, filtro])
 
   useEffect(() => { load() }, [load])
@@ -147,8 +150,10 @@ export default function Consolidacion() {
           })}
         </div>
 
+        {loading && <div className="empty"><p>Cargando...</p></div>}
+        {!loading && error && <div className="alert alert-error" style={{margin:'0 0 16px'}}>{error}</div>}
         {/* Vista Lista */}
-        {view === 'lista' && (
+        {!loading && !error && view === 'lista' && (
           <div className="card" style={{ padding:0 }}>
             {data.length === 0
               ? <div className="empty"><div className="empty-icon"><Icons.Users /></div><p>Sin procesos activos</p></div>
@@ -222,7 +227,7 @@ export default function Consolidacion() {
         )}
 
         {/* Vista Kanban */}
-        {view === 'kanban' && (
+        {!loading && !error && view === 'kanban' && (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:12 }}>
             {ESTADOS.map(e => {
               const items = data.filter(c => c.estado === e)

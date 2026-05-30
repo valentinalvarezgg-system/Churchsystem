@@ -24,14 +24,18 @@ export default function Oracion() {
   const [msg, setMsg]       = useState(null)
   const [apoyando, setApoyando] = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
   const load = useCallback(async () => {
+    setLoading(true); setError(null)
     const p = new URLSearchParams({ page, limit:12 })
     if (filtro) p.set('estado', filtro)
     try {
       const r = await apiFetch(`/oracion?${p}`)
       setData(r.data||[]); setTotal(r.total||0); setPages(r.pages||1)
-    } catch {}
+    } catch(e) { setError(e.message) }
+    setLoading(false)
   }, [page, filtro])
 
   useEffect(() => { load() }, [load])
@@ -100,7 +104,11 @@ export default function Oracion() {
         </div>
 
         {/* Grid de peticiones */}
-        {data.length === 0
+        {loading
+          ? <div className="empty"><p>Cargando...</p></div>
+          : error
+          ? <div className="alert alert-error" style={{margin:'0 0 16px'}}>{error}</div>
+          : data.length === 0
           ? <div className="empty"><div className="empty-icon"><Icons.Prayer /></div><p>Sin peticiones en esta categoría</p></div>
           : <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:14 }}>
               {data.map(o => {

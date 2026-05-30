@@ -22,12 +22,17 @@ export default function Discipulado() {
   const [search, setSearch] = useState('')
   const [modal, setModal]   = useState(null)
   const [materiales, setMateriales] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
   const load = useCallback(async () => {
+    setLoading(true); setError(null)
     const p = new URLSearchParams({page,limit:20})
     if (filtroEtapa) p.set('etapa',filtroEtapa)
     if (search) p.set('search',search)
-    try { const res = await apiFetch(`/discipulado?${p}`); setData(res.data||[]); setTotal(res.total||0); setPages(res.pages||1) } catch {}
+    try { const res = await apiFetch(`/discipulado?${p}`); setData(res.data||[]); setTotal(res.total||0); setPages(res.pages||1) }
+    catch(e) { setError(e.message) }
+    setLoading(false)
   }, [page,filtroEtapa,search])
 
   useEffect(()=>{load()},[load])
@@ -81,7 +86,11 @@ export default function Discipulado() {
           <button className="btn btn-ghost" data-tip="Quitar todos los filtros activos" onClick={()=>{setFiltroEtapa('');setSearch('');setPage(1)}}>Limpiar</button>
         </div>
         <div className="card" style={{padding:0}}>
-          {data.length===0 ? <div className="empty"><div className="empty-icon"><Icons.Discipleship /></div><p>Sin resultados</p></div>
+          {loading
+            ? <div className="empty"><p>Cargando...</p></div>
+            : error
+            ? <div className="alert alert-error" style={{margin:16}}>{error}</div>
+            : data.length===0 ? <div className="empty"><div className="empty-icon"><Icons.Discipleship /></div><p>Sin resultados</p></div>
             : <>
                 <div className="mobile-list">
                   {data.map(p=>(
