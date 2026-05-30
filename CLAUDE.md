@@ -33,13 +33,23 @@ WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
 - Mobile-first: inputs ≥44px, cards en lugar de tablas en móvil, bottom-sheet modals.
 - i18n: agregar keys en el objeto `I18N` de `components/Menu.jsx` (es/pt/en).
 
-## Verificación obligatoria
+## Verificación obligatoria y deploy
+
+**SIEMPRE ejecutar estos pasos antes de cada push, sin excepción:**
 
 ```bash
-cd frontend && pnpm build          # debe pasar sin errores
-git push origin master
+cd frontend && pnpm build          # 1. construir frontend
+cd ..
+git add frontend/dist/             # 2. commitear el dist compilado (OBLIGATORIO)
+git add -A                         # 3. agregar resto de cambios
+git commit -m "..."                # 4. commit
+git push origin master             # 5. push → Render auto-redeploy
 # Actualizar /BITACORA.md
 ```
+
+**Por qué:** `frontend/dist/` está commiteado en git (no ignorado). Render sirve
+directamente estos archivos. Si no se commitea el dist, el frontend en producción
+(`churchsystem.com.ar`) no se actualiza aunque el código fuente cambie.
 
 ## Foco actual (P1): Móvil
 
