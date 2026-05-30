@@ -1,6 +1,7 @@
 import { Router } from 'express'
-import { pgMany, pgOne } from '../lib/pg.js'
+import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
+import { normalizePlan, PLANES } from '../lib/billing.js'
 import { sendNotificationEmail } from '../lib/email.js'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
@@ -129,6 +130,56 @@ router.get('/overview', requireAuth, requireGodMode, async (_req, res) => {
     },
     generatedAt: new Date().toISOString(),
   })
+})
+
+// ── GET /godmode/transferencias ────────────────────────────────────
+router.get('/transferencias', requireAuth, requireGodMode, async (_req, res) => {
+  const rows = await pgMany(
+    `SELECT c."iglesiaId",
+       MAX(CASE WHEN c."clave"='transferencia_plan' THEN c."valor" END) AS plan,
+       MAX(CASE WHEN c."clave"='transferencia_monto' THEN c."valor" END) AS monto,
+       MAX(CASE WHEN c."clave"='transferencia_fecha' THEN c."valor" END) AS fecha,
+       MAX(CASE WHEN c."clave"='nombre_iglesia' THEN c."valor" END) AS iglesia
+     FROM "Configuracion" c
+     WHERE c."clave" IN ('transferencia_solicitada','transferencia_plan','transferencia_monto','transferencia_fecha','nombre_iglesia')
+     GROUP BY c."iglesiaId"
+     HAVING MAX(CASE WHEN c."clave"='transferencia_solicitada' THEN c."valor" END) = '1'
+     ORDER BY MAX(CASE WHEN c."clave"='transferencia_fecha' THEN c."valor" END) DESC NULLS LAST`,
+    []
+  )
+  return res.json({ ok: true, pendientes: rows })
+})
+
+// ── POST /godmode/transferencias/aprobar ──────────────────────────
+router.post('/transferencias/aprobar', requireAuth, requireGodMode, async (req, res) => {
+  const { iglesiaId, plan } = req.body || {}
+  if (!iglesiaId) return res.status(400).json({ error: 'iglesiaId requerido' })
+
+  const planKey = normalizePlan(plan || 'PRO')
+  const planInfo = PLANES[planKey]
+  const vence = new Date()
+  vence.setMonth(vence.getMonth() + 1)
+
+  async function set(clave, valor) {
+    await pgExec(
+      `INSERT INTO "Configuracion" ("iglesiaId","clave","valor","createdAt","updatedAt")
+       VALUES ($1,$2,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+       ON CONFLICT ("iglesiaId","clave") DO UPDATE SET "valor"=EXCLUDED."valor","updatedAt"=CURRENT_TIMESTAMP`,
+      [Number(iglesiaId), clave, String(valor ?? '')]
+    )
+  }
+
+  await set('plan', planKey)
+  await set('plan_label', planInfo.label.es)
+  await set('plan_personas_max', String(planInfo.personas))
+  await set('suscripcion_activa', '1')
+  await set('suscripcion_vence', vence.toISOString().slice(0, 10))
+  await set('ultimo_pago', new Date().toISOString().slice(0, 10))
+  await set('plan_pendiente', '')
+  await set('transferencia_solicitada', '0')
+  await set('metodo_pago', 'transferencia')
+
+  return res.json({ ok: true, iglesiaId, plan: planKey, vence: vence.toISOString().slice(0, 10) })
 })
 
 router.post('/mail-test', requireAuth, requireGodMode, async (req, res) => {

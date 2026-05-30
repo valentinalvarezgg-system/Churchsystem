@@ -19,47 +19,40 @@ export const FALLBACK_COUNTRY = {
 }
 
 export const PLANES = {
-  LIDER: {
-    key:'LIDER',
-    label:{ es:'Lider', pt:'Lider', en:'Leader' },
-    personas:100,
-    precios:{ USD:15, ARS:15000, BRL:75, CLP:14000, COP:60000, MXN:280, PEN:55, UYU:600 },
+  STARTER: {
+    key:'STARTER',
+    label:{ es:'Starter', pt:'Starter', en:'Starter' },
+    personas:300,
+    precios:{ USD:29, ARS:29000, BRL:149, CLP:28000, COP:120000, MXN:550, PEN:110, UYU:1150 },
   },
-  CULTO: {
-    key:'CULTO',
-    label:{ es:'Culto', pt:'Culto', en:'Service' },
-    personas:250,
-    precios:{ USD:30, ARS:30000, BRL:150, CLP:28000, COP:120000, MXN:560, PEN:110, UYU:1200 },
-  },
-  CONSOLIDACION: {
-    key:'CONSOLIDACION',
-    label:{ es:'Consolidacion', pt:'Consolidacao', en:'Follow-up' },
-    personas:500,
-    precios:{ USD:50, ARS:50000, BRL:250, CLP:47000, COP:200000, MXN:950, PEN:185, UYU:2000 },
-  },
-  ADMINISTRACION: {
-    key:'ADMINISTRACION',
-    label:{ es:'Administracion', pt:'Administracao', en:'Administration' },
+  PRO: {
+    key:'PRO',
+    label:{ es:'Pro', pt:'Pro', en:'Pro' },
     personas:1000,
-    precios:{ USD:80, ARS:80000, BRL:400, CLP:75000, COP:320000, MXN:1500, PEN:295, UYU:3200 },
+    precios:{ USD:59, ARS:59000, BRL:299, CLP:55000, COP:230000, MXN:1100, PEN:220, UYU:2350 },
   },
-  GENERAL: {
-    key:'GENERAL',
-    label:{ es:'General', pt:'Geral', en:'General' },
+  MAX: {
+    key:'MAX',
+    label:{ es:'Max', pt:'Max', en:'Max' },
     personas:99999,
-    precios:{ USD:120, ARS:120000, BRL:600, CLP:112000, COP:480000, MXN:2250, PEN:440, UYU:4800 },
+    precios:{ USD:99, ARS:99000, BRL:499, CLP:92000, COP:390000, MXN:1850, PEN:365, UYU:3950 },
   },
 }
 
 export const LEGACY_PLAN_MAP = {
-  basico:'LIDER',
-  estandar:'CONSOLIDACION',
-  pro:'GENERAL',
-  lider:'LIDER',
-  culto:'CULTO',
-  consolidacion:'CONSOLIDACION',
-  administracion:'ADMINISTRACION',
-  general:'GENERAL',
+  // Legacy 5-plan keys
+  lider:'STARTER',
+  culto:'STARTER',
+  consolidacion:'PRO',
+  administracion:'PRO',
+  general:'MAX',
+  // Old lowercase aliases
+  basico:'STARTER',
+  estandar:'PRO',
+  pro:'PRO',
+  // New 3-plan lowercase
+  starter:'STARTER',
+  max:'MAX',
 }
 
 export function normalizeCountry(code = '') {
@@ -72,10 +65,10 @@ export function normalizeLanguage(language = '', country = FALLBACK_COUNTRY) {
   return ['es','pt','en'].includes(raw) ? raw : 'es'
 }
 
-export function normalizePlan(plan = 'CONSOLIDACION') {
-  const raw = String(plan || 'CONSOLIDACION').trim()
+export function normalizePlan(plan = 'PRO') {
+  const raw = String(plan || 'PRO').trim()
   const key = LEGACY_PLAN_MAP[raw.toLowerCase()] || raw.toUpperCase()
-  return PLANES[key] ? key : 'CONSOLIDACION'
+  return PLANES[key] ? key : 'PRO'
 }
 
 export function currencyForCountry(countryCode = '') {

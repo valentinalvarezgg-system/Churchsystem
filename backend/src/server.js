@@ -37,6 +37,9 @@ import backupRouter from './routes/backup.js'
 import permisosRouter from './routes/permisos.js'
 import excelIaRouter from './routes/excel_ia.js'
 import mpRouter from './routes/mercadopago.js'
+import stripeRouter from './routes/stripe.js'
+import paypalRouter from './routes/paypal.js'
+import transferenciaRouter from './routes/transferencia.js'
 import planRouter from './routes/plan.js'
 import iglesiaRouter from './routes/iglesia.js'
 import verificacionRouter from './routes/verificacion.js'
@@ -90,6 +93,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
+// Stripe webhook needs raw body BEFORE global JSON parser for signature verification
+app.use('/stripe/webhook', express.raw({ type: 'application/json' }))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: false, limit: '1mb' }))
 app.disable('x-powered-by')
@@ -154,6 +159,9 @@ app.use('/excel-ia', excelIaRouter)
 app.use('/notificaciones', notificacionesRouter)
 app.use('/registro', registroRouter)
 app.use('/mp', mpRouter)
+app.use('/stripe', stripeRouter)
+app.use('/paypal', paypalRouter)
+app.use('/transferencia', transferenciaRouter)
 app.use('/checkin', checkinRouter)
 app.use('/oracion', blockLegalModule, oracionRouter)
 app.use('/comunicados', comunicadosRouter)
@@ -187,7 +195,7 @@ if (fs.existsSync(distDir)) {
   app.use(express.static(distDir))
   app.get('*', (req, res) => {
     const isCheckinApi = /^\/checkin\/(token|info|registrar|descriptores)\//.test(req.path)
-    const isApi = isCheckinApi || /^\/(auth|personas|grupos|cultos|stats|alertas|mensajes|config|ia|fotos|export|finanzas|historial|reportes|discipulado|consolidacion|seguimiento|oracion|comunicados|eventos|backup|users|permisos|perfil|import|busqueda|mp|plan|oauth|verificacion|iglesia|notificaciones|promo-codes|bug-report|mi-perfil|excel-ia|godmode)/.test(req.path)
+    const isApi = isCheckinApi || /^\/(auth|personas|grupos|cultos|stats|alertas|mensajes|config|ia|fotos|export|finanzas|historial|reportes|discipulado|consolidacion|seguimiento|oracion|comunicados|eventos|backup|users|permisos|perfil|import|busqueda|mp|stripe|paypal|transferencia|plan|oauth|verificacion|iglesia|notificaciones|promo-codes|bug-report|mi-perfil|excel-ia|godmode)/.test(req.path)
     if (isApi) return res.status(404).json({ error: 'Ruta no encontrada' })
     return res.sendFile(path.join(distDir, 'index.html'))
   })

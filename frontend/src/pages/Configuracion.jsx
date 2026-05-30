@@ -48,14 +48,23 @@ function badge(sec, cfg) {
 }
 
 
+const METODOS_PAGO = [
+  { key:'mercadopago', label:'MercadoPago', icon:'💳', desc:'Tarjeta, débito, efectivo (Latinoamérica)' },
+  { key:'stripe',      label:'Stripe',      icon:'💳', desc:'Tarjeta de crédito/débito (internacional)' },
+  { key:'paypal',      label:'PayPal',      icon:'🅿',  desc:'Cuenta PayPal (USD, internacional)' },
+  { key:'transferencia', label:'Transferencia', icon:'🏦', desc:'Transferencia bancaria manual (24hs hábiles)' },
+]
+
 function SuscripcionTab() {
   const [estado, setEstado]     = React.useState(null)
   const [planes, setPlanes]     = React.useState([])
   const [loading, setLoading]   = React.useState(false)
   const [msg, setMsg]           = React.useState(null)
   const [billingCtx, setBillingCtx] = React.useState(getStoredContext())
-  const [diag, setDiag] = React.useState(null)
+  const [diag, setDiag]         = React.useState(null)
   const [readiness, setReadiness] = React.useState(null)
+  const [metodo, setMetodo]     = React.useState('mercadopago')
+  const [datosTransf, setDatosTransf] = React.useState(null)
 
   React.useEffect(() => {
     Promise.all([
@@ -79,9 +88,42 @@ function SuscripcionTab() {
   async function pagar(planId) {
     setLoading(true); setMsg(null)
     try {
-      const r = await apiFetch('/mp/crear-preferencia', { method:'POST', body: JSON.stringify({ plan: planId, country: billingCtx.country, currency: billingCtx.currency, promo: billingCtx.promo }) })
-      if (r.initPoint) window.open(r.initPoint, '_blank')
-      else setMsg({ type:'error', text: r.error || 'Error al crear el link de pago' })
+      if (metodo === 'mercadopago') {
+        const r = await apiFetch('/mp/crear-preferencia', {
+          method:'POST',
+          body: JSON.stringify({ plan: planId, country: billingCtx.country, currency: billingCtx.currency, promo: billingCtx.promo }),
+        })
+        if (r.initPoint) window.open(r.initPoint, '_blank')
+        else setMsg({ type:'error', text: r.error || 'Error al crear el link de pago' })
+
+      } else if (metodo === 'stripe') {
+        const r = await apiFetch('/stripe/crear-sesion', {
+          method:'POST',
+          body: JSON.stringify({ plan: planId, currency: 'USD', promo: billingCtx.promo }),
+        })
+        if (r.url) window.open(r.url, '_blank')
+        else setMsg({ type:'error', text: r.error || 'Error al crear sesión Stripe' })
+
+      } else if (metodo === 'paypal') {
+        const r = await apiFetch('/paypal/crear-orden', {
+          method:'POST',
+          body: JSON.stringify({ plan: planId, promo: billingCtx.promo }),
+        })
+        if (r.approveUrl) window.open(r.approveUrl, '_blank')
+        else setMsg({ type:'error', text: r.error || 'Error al crear orden PayPal' })
+
+      } else if (metodo === 'transferencia') {
+        const r = await apiFetch('/transferencia/solicitar', {
+          method:'POST',
+          body: JSON.stringify({ plan: planId }),
+        })
+        if (r.ok) {
+          setDatosTransf(r)
+          setMsg({ type:'success', text: r.mensaje || 'Solicitud registrada. Revisá los datos bancarios.' })
+        } else {
+          setMsg({ type:'error', text: r.error || 'Error al registrar la solicitud' })
+        }
+      }
     } catch(e) { setMsg({ type:'error', text: e.message }) }
     setLoading(false)
   }
@@ -106,7 +148,7 @@ function SuscripcionTab() {
             </div>
             {!!estado.planPendiente && (
               <div style={{ fontSize:11, color:'var(--c-warning)', marginTop:6, fontWeight:600 }}>
-                Pago pendiente para plan {estado.planPendiente}. Se activa automáticamente al aprobarse.
+                Pago pendiente para plan {estado.planPendiente}. Se activa al aprobarse.
               </div>
             )}
           </div>
@@ -120,6 +162,43 @@ function SuscripcionTab() {
         </div>
       </div>
 
+      {/* Selector de medio de pago */}
+      <div className="card" style={{ padding:'20px 24px' }}>
+        <h3 style={{ fontSize:14, fontWeight:700, marginBottom:14 }}>Medio de pago</h3>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:8 }}>
+          {METODOS_PAGO.map(m => (
+            <button key={m.key} onClick={() => setMetodo(m.key)} style={{
+              padding:'12px 14px',
+              borderRadius:'var(--r-lg)',
+              border: metodo === m.key ? '2px solid var(--primary)' : '1px solid var(--border)',
+              background: metodo === m.key ? 'var(--primary-soft)' : 'var(--surface)',
+              cursor:'pointer',
+              textAlign:'left',
+            }}>
+              <div style={{ fontSize:20, marginBottom:4 }}>{m.icon}</div>
+              <div style={{ fontSize:13, fontWeight:700, color: metodo === m.key ? 'var(--primary)' : 'var(--text)' }}>{m.label}</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2, lineHeight:1.3 }}>{m.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Datos bancarios (transferencia) */}
+      {datosTransf?.datos && (
+        <div className="card" style={{ padding:'20px 24px', border:'1px solid var(--c-info-brd)', background:'var(--c-info-bg)' }}>
+          <h3 style={{ fontSize:14, fontWeight:700, marginBottom:12 }}>Datos para transferencia</h3>
+          <div style={{ display:'flex', flexDirection:'column', gap:6, fontSize:13 }}>
+            {datosTransf.datos.banco   && <div><b>Banco:</b> {datosTransf.datos.banco}</div>}
+            {datosTransf.datos.titular && <div><b>Titular:</b> {datosTransf.datos.titular}</div>}
+            {datosTransf.datos.cbu     && <div><b>CBU:</b> {datosTransf.datos.cbu}</div>}
+            {datosTransf.datos.alias   && <div><b>Alias:</b> {datosTransf.datos.alias}</div>}
+            {datosTransf.datos.cuit    && <div><b>CUIT:</b> {datosTransf.datos.cuit}</div>}
+            {datosTransf.monto         && <div><b>Monto:</b> {datosTransf.monto}</div>}
+            {datosTransf.datos.nota    && <div style={{ marginTop:6, color:'var(--c-info)', fontStyle:'italic' }}>{datosTransf.datos.nota}</div>}
+          </div>
+        </div>
+      )}
+
       {/* Diagnóstico comercial */}
       {diag && (
         <div className="card" style={{ padding:'20px 24px' }}>
@@ -127,8 +206,7 @@ function SuscripcionTab() {
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))', gap:10 }}>
             {(diag.checks || []).map(c => (
               <div key={c.key} style={{
-                padding:'10px 12px',
-                borderRadius:'var(--r)',
+                padding:'10px 12px', borderRadius:'var(--r)',
                 border:`1px solid ${c.ok ? 'var(--c-success-brd)' : 'var(--c-warning-brd)'}`,
                 background: c.ok ? 'var(--c-success-bg)' : 'var(--c-warning-bg)',
               }}>
@@ -160,7 +238,11 @@ function SuscripcionTab() {
 
       {/* Planes */}
       <div className="card" style={{ padding:'20px 24px' }}>
-        <h3 style={{ fontSize:14, fontWeight:700, marginBottom:16 }}>Planes disponibles</h3>
+        <h3 style={{ fontSize:14, fontWeight:700, marginBottom:6 }}>Planes disponibles</h3>
+        <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:16 }}>
+          Pagando con {METODOS_PAGO.find(m => m.key === metodo)?.label}
+          {metodo === 'paypal' ? ' (USD)' : metodo === 'stripe' ? ' (USD)' : ` (${billingCtx.currency || 'ARS'})`}
+        </p>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:12 }}>
           {planes.map(p => (
             <div key={p.id} style={{
@@ -180,7 +262,7 @@ function SuscripcionTab() {
               </div>
               <button className="btn btn-primary btn-sm" style={{ width:'100%' }}
                 onClick={() => pagar(p.id)} disabled={loading}>
-                {loading ? '…' : '▣ Suscribirse'}
+                {loading ? '…' : metodo === 'transferencia' ? '🏦 Solicitar' : '▣ Suscribirse'}
               </button>
             </div>
           ))}

@@ -1,14 +1,24 @@
 import { usePlan } from '../hooks/usePlan.js'
 
-const LABELS = {LIDER:'Líder',CULTO:'Culto',CONSOLIDACION:'Consolidación',ADMINISTRACION:'Administración',GENERAL:'General'}
-const ORDER = ['LIDER','CULTO','CONSOLIDACION','ADMINISTRACION','GENERAL']
-const MOD_PLAN = {asistencia:'CULTO',calendario:'CULTO',comunicados:'CULTO',seguimiento:'CONSOLIDACION',consolidacion:'CONSOLIDACION',alertas:'CONSOLIDACION',mensajes:'CONSOLIDACION',reportes:'ADMINISTRACION',historial:'ADMINISTRACION',users:'ADMINISTRACION',permisos:'ADMINISTRACION',configuracion:'ADMINISTRACION',discipulado:'ADMINISTRACION','excel-ia':'ADMINISTRACION','asistente-ia':'GENERAL',premium:'GENERAL',backup:'GENERAL'}
+const LABELS = {
+  STARTER:'Starter', PRO:'Pro', MAX:'Max',
+  // Legacy labels still in some JWTs
+  LIDER:'Starter', CULTO:'Starter', CONSOLIDACION:'Pro', ADMINISTRACION:'Pro', GENERAL:'Max',
+}
+const ORDER = ['STARTER','PRO','MAX']
+const MOD_PLAN = {
+  asistencia:'STARTER', calendario:'STARTER', comunicados:'STARTER',
+  seguimiento:'PRO', consolidacion:'PRO', alertas:'PRO', mensajes:'PRO',
+  reportes:'PRO', historial:'PRO', users:'PRO', permisos:'PRO',
+  configuracion:'PRO', discipulado:'PRO', 'excel-ia':'PRO',
+  'asistente-ia':'MAX', premium:'MAX', backup:'MAX',
+}
 
 export default function UpgradeGate({ modulo, children }) {
   const { tiene, plan, loading } = usePlan()
   if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:200}}><div className="spinner-xs"/></div>
   if (tiene(modulo)) return children
-  const req = MOD_PLAN[modulo]||'GENERAL'
+  const req = MOD_PLAN[modulo] || 'MAX'
   return (
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'calc(100vh - 120px)',padding:40,textAlign:'center'}}>
       <div style={{width:72,height:72,borderRadius:20,marginBottom:24,background:'linear-gradient(135deg,#6B5CFF,#4845D2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:32,color:'#fff'}}>★</div>
