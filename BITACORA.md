@@ -197,7 +197,37 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Criterio de salida: 0 estados inconsistentes detectables en flujo principal.
 
 ## EN CURSO
-- Ninguno. Último bloque cerrado: `v2.7-beta/block-07`.
+- Ninguno. Último bloque cerrado: `v2.7-beta/block-08`.
+
+## Avance global v2.7 (al 2026-05-30)
+
+| Área | % | Estado |
+|------|---|--------|
+| Infraestructura backend | 95% | ✅ |
+| Autenticación y seguridad | 85% | ✅ |
+| Gestión de personas | 88% | ✅ |
+| Grupos y discipulado | 75% | 🟡 tablas mobile pendientes |
+| Asistencia y QR | 85% | ✅ |
+| Reportes | 80% | 🟡 PDF con logo pendiente |
+| Mensajería | 75% | 🟡 push on-message pendiente |
+| Comunicados | 70% | 🟡 tablas mobile pendientes |
+| Alertas push | 85% | ✅ |
+| Calendario/Eventos | 70% | 🟡 |
+| IA pastoral | 60% | 🟡 |
+| Comercial/pagos | 80% | ✅ |
+| Configuración | 85% | ✅ |
+| GodMode | 80% | ✅ |
+| Mobile/responsive | 80% | 🟡 6 páginas sin card-view |
+| i18n | 40% | 🔴 solo auth+menu |
+| Testing | 20% | 🔴 prioridad baja aún |
+| Documentación | 80% | ✅ |
+| Deploy/operaciones | 92% | ✅ |
+| **PROMEDIO GLOBAL** | **73%** | |
+
+## P0 próximas builds
+1. Tablas → cards mobile (Grupos, Comunicados, Consolidacion, Eventos)
+2. Búsqueda avanzada con filtros en Personas
+3. Estado loading/error/vacío uniforme en 6 páginas pendientes
 
 ## Historial de bloques 2.7 beta
 
@@ -387,10 +417,26 @@ git push
 - `frontend pnpm build` ✅ OK (4.72s, 0 errores)
 - Pushed a `master` (`a11c5a4`)
 
+### 2026-05-30 — v2.7-beta/block-08 (limpieza + README + esquema + análisis de avance) — Claude
+
+**Archivos muertos eliminados:**
+- `backend/src/lib/migrate-production.js` — script SQLite one-off, nunca importado en server
+- `backend/src/lib/seed-test-users.js` — script SQLite seed, nunca importado en server
+- `frontend/src/pages/Finanzas.jsx` — nunca importado en App.jsx (ruta redirige a /)
+- `frontend/src/pages/Oracion.jsx` — ídem
+
+**README reescrito** desde cero para v2.7: stack real (PG/Neon), estructura completa, módulos con planes, roles, convenciones, deploy, QR, alertas.
+
+**BITACORA.md** actualizada con tabla de avance global y P0 de próximas builds.
+
+**Build:** ✅ 1638 módulos, sin errores, mismos chunks (archivos eliminados nunca compilaban).
+
+**Pushed a master:** `60e5ef2`
+
 ### Pendientes conocidos
 - `QR_SECRET` en Render: si no está seteado, los QR se invalidan en cada redeploy (recomendado setear en Render env vars)
-- Páginas con tablas sin vista mobile: Grupos, Consolidacion, Comunicados, Reportes, Oracion, Eventos (fase A sigue pendiente para algunas)
-- Mac: `git pull + pnpm build + restart backend` para ver cambios en modo local
+- Páginas con tablas sin vista mobile: Grupos, Consolidacion, Comunicados, Eventos (fase A sigue pendiente)
+- Mac: `git pull + restart backend` para ver cambios en modo local
 
 ---
 
