@@ -197,7 +197,9 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Criterio de salida: 0 estados inconsistentes detectables en flujo principal.
 
 ## EN CURSO
-- Ninguno. Último bloque cerrado: `v2.7-beta/block-08`.
+- Ninguno. Último bloque cerrado: `v2.8/block-01`.
+
+## Versión actual: **v2.8** (inicio 2026-05-30)
 
 ## Avance global v2.7 (al 2026-05-30)
 
@@ -433,10 +435,41 @@ git push
 
 **Pushed a master:** `60e5ef2`
 
-### Pendientes conocidos
-- `QR_SECRET` en Render: si no está seteado, los QR se invalidan en cada redeploy (recomendado setear en Render env vars)
-- Páginas con tablas sin vista mobile: Grupos, Consolidacion, Comunicados, Eventos (fase A sigue pendiente)
+---
+
+## Historial v2.8
+
+### 2026-05-30 — v2.8/block-01 (P0: cards mobile en todas las páginas de lista) — Claude
+
+**Problema raíz diagnosticado:**
+Las CSS classes `.mobile-list`, `.mobile-person-card`, `.mobile-person-avatar`, `.mobile-person-info`, `.mobile-person-meta`, `.mobile-person-actions`, `.mobile-empty`, `.mobile-filter-bar` estaban **usadas en el JSX pero no definidas** en `index.css`. Resultado: mobile-list renderizaba sin estilos y la tabla siempre se mostraba.
+
+**Cambios aplicados:**
+
+- **`frontend/src/index.css`** — Bloque CSS `/* F. Mobile list / card alternativas */` completo:
+  - Todas las clases mobile-person-* con estilos correctos (avatar, info, meta, actions, empty)
+  - `@media (max-width: 767px)`: `.mobile-list` visible, `.mobile-list + .table-responsive` oculta
+  - `.mobile-filter-bar` en columna única en mobile
+  - `.member-card-mobile`, `.members-mobile-list`, `.table-responsive-mobile-hide` para modales
+
+- **`Grupos.jsx`** — Modal de detalle de miembros: agrega vista card (`.member-card-mobile`) en mobile + oculta tabla con `.table-responsive-mobile-hide`
+
+- **`Eventos.jsx`** — Fix error state: `catch {}` vacío → estado `error` con mensaje y botón Reintentar
+
+- **Páginas ya correctas** (sin cambios necesarios):
+  - `Personas.jsx`: ya tenía estructura dual mobile-list/tabla — ahora el CSS la activa correctamente
+  - `Discipulado.jsx`: ya tenía estructura dual — ídem
+  - `Comunicados.jsx`: ya era 100% card-based
+  - `Eventos.jsx`: ya era 100% card-based (solo faltaba el error state)
+
+**Build:** ✅ OK  
+**Pushed:** `9c5885b`
+
+### Pendientes conocidos v2.8
+- `QR_SECRET` en Render: si no está seteado, los QR se invalidan en cada redeploy
 - Mac: `git pull + restart backend` para ver cambios en modo local
+- Próximo P0: estado loading/error/vacío uniforme en Alertas e Historial (único faltante real ya que Eventos fue corregido)
+- Próximo P1: i18n de páginas internas (40% → objetivo 70%)
 
 ---
 
