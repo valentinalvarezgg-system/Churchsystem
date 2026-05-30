@@ -14,7 +14,11 @@ export default function GodModeLogin() {
     setErr('')
     setLoading(true)
     try {
-      const r = await apiFetch('/godmode/login', { method: 'POST', body: JSON.stringify({ email, password }) })
+      const r = await apiFetch('/godmode/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+        skipAuthRedirect: true,
+      })
       localStorage.setItem('token', r.token)
       localStorage.setItem('user', JSON.stringify(r.user))
       navigate('/vault')
