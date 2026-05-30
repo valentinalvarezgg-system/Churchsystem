@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
+import { ConfirmModal } from '../components/Modal.jsx'
+import { toast } from '../components/Toast.jsx'
 
 const TIPOS  = ['CULTO','REUNION','EVENTO','CAPACITACION','RETIRO','OTRO']
 const TCOLOR = { CULTO:'#2563EB', REUNION:'#7C3AED', EVENTO:'#059669', CAPACITACION:'#D97706', RETIRO:'#DB2777', OTRO:'#64748B' }
@@ -22,6 +24,7 @@ export default function Calendario() {
   const [form, setForm]     = useState(EMPTY)
   const [selEv, setSelEv]   = useState(null)
   const [view, setView]     = useState('mes') // mes | lista
+  const [confirmDelEv, setConfirmDelEv] = useState(null)
 
   async function load() {
     const desde = new Date(año, mes, 1).toISOString().slice(0,10)
@@ -57,13 +60,13 @@ export default function Calendario() {
     try {
       await apiFetch('/eventos', { method:'POST', body: JSON.stringify(form) })
       setModal(false); setForm(EMPTY); load()
-    } catch(e) { alert(e.message) }
+    } catch(e) { toast.error(e.message) }
   }
 
-  async function eliminar(id) {
-    if (!confirm('¿Eliminar evento?')) return
-    try { await apiFetch(`/eventos/${id}`, { method:'DELETE' }); setSelEv(null); load() }
-    catch(e) { alert(e.message) }
+  async function eliminar() {
+    if (!confirmDelEv) return
+    try { await apiFetch(`/eventos/${confirmDelEv}`, { method:'DELETE' }); setConfirmDelEv(null); setSelEv(null); load() }
+    catch(e) { toast.error(e.message) }
   }
 
   const f = (k, v) => setForm(p => ({...p, [k]:v}))
@@ -356,7 +359,7 @@ export default function Calendario() {
               </div>
               {canEdit && (
                 <div className="modal-footer" style={{display:'flex',gap:8,justifyContent:'space-between'}}>
-                  <button className="btn btn-danger btn-sm" onClick={() => eliminar(selEv.id)}>
+                  <button className="btn btn-danger btn-sm" onClick={() => setConfirmDelEv(selEv.id)}>
                     Eliminar
                   </button>
                   <div style={{display:'flex',gap:8}}>
@@ -444,6 +447,12 @@ export default function Calendario() {
         )}
 
       </main>
+      <ConfirmModal
+        open={!!confirmDelEv} onClose={()=>setConfirmDelEv(null)} onConfirm={eliminar}
+        title="¿Eliminar evento?" danger
+        message="Este evento será eliminado permanentemente del calendario."
+        confirmLabel="Eliminar" cancelLabel="Cancelar"
+      />
     </div>
   )
 }

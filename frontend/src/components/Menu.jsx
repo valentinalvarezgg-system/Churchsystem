@@ -246,6 +246,13 @@ export default function Menu() {
           {isAdmin && lnk('/premium', <Icons.Premium />, tt('executive'))}
           {isMid  && lnk('/comunicados', <Icons.Comunicados />, tt('communications'))}
 
+          {isLider && <>
+            <div className="nav-section">{tt('congregation')}</div>
+            {lnk('/personas',  <Icons.Users />, tt('people'))}
+            {lnk('/grupos',    <Icons.Groups />, tt('groups'))}
+            {lnk('/mensajes',  <Icons.Messages />, tt('messages'))}
+          </>}
+
           {isMid && <>
             <div className="nav-section">{tt('congregation')}</div>
             {lnk('/personas',    <Icons.Users />, tt('people'))}

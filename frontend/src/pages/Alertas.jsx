@@ -3,6 +3,8 @@ import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
+import { ConfirmModal } from '../components/Modal.jsx'
+import { toast } from '../components/Toast.jsx'
 
 export default function Alertas() {
   const navigate   = useNavigate()
@@ -14,6 +16,7 @@ export default function Alertas() {
   const [enviandoMasivo, setEnviandoMasivo] = useState(false)
   const [msgMasivo, setMsgMasivo] = useState(null)
   const [seleccionados, setSeleccionados] = useState([])
+  const [confirmMasivo, setConfirmMasivo] = useState(false)
 
   useEffect(() => {
     apiFetch('/alertas')
@@ -39,8 +42,13 @@ export default function Alertas() {
 
   async function enviarMasivo() {
     const personas = current.filter(p => seleccionados.includes(p.personaId||p.id))
-    if (!personas.length) return alert('Seleccioná al menos una persona')
-    if (!confirm(`¿Enviar WhatsApp a ${personas.length} personas?`)) return
+    if (!personas.length) return toast.error('Seleccioná al menos una persona')
+    setConfirmMasivo(true)
+  }
+
+  async function ejecutarMasivo() {
+    const personas = current.filter(p => seleccionados.includes(p.personaId||p.id))
+    setConfirmMasivo(false)
     setEnviandoMasivo(true); setMsgMasivo(null)
     let ok=0, err=0
     for (const p of personas) {
@@ -310,6 +318,14 @@ export default function Alertas() {
           }
         </div>
       </main>
+      <ConfirmModal
+        open={confirmMasivo}
+        onClose={() => setConfirmMasivo(false)}
+        onConfirm={ejecutarMasivo}
+        title={`¿Enviar WhatsApp a ${seleccionados.length} personas?`}
+        message="Se enviará un mensaje de contacto pastoral a cada persona seleccionada."
+        confirmLabel="Enviar" cancelLabel="Cancelar"
+      />
     </div>
   )
 }
