@@ -2034,6 +2034,59 @@ img, video, iframe { max-width: 100%; }
 .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
 .overflow-y-auto::-webkit-scrollbar-thumb { background: var(--border-med, #D1D5DB); border-radius: 10px; }
 
+/* ── Sidebar/Nav Theme Harmonization (mobile + tablet) ───── */
+@media (max-width: 1023px) {
+  .mobile-header {
+    background: var(--sidebar-bg) !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+
+  .mobile-header-title {
+    color: var(--text) !important;
+  }
+
+  .mobile-header-title span {
+    color: var(--text-muted) !important;
+  }
+
+  .mobile-menu-btn {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-2) !important;
+  }
+
+  .mobile-menu-btn:active {
+    background: var(--nav-hover-bg) !important;
+  }
+
+  .bottom-nav {
+    background: var(--sidebar-bg) !important;
+    border-top: 1px solid var(--border) !important;
+  }
+
+  .bottom-nav-item {
+    color: var(--text-faint) !important;
+  }
+
+  .bottom-nav-item.active {
+    color: var(--nav-active-icon) !important;
+  }
+
+  .landscape-rail {
+    background: var(--sidebar-bg) !important;
+    border-left: 1px solid var(--border) !important;
+  }
+
+  .landscape-rail-item {
+    color: var(--text-faint) !important;
+  }
+
+  .landscape-rail-item.active {
+    background: var(--nav-active-bg) !important;
+    color: var(--nav-active-icon) !important;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Páginas legales y FAQ (Sesión 4)
    ═══════════════════════════════════════════════════════════════════════════ */
