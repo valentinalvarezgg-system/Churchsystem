@@ -152,7 +152,7 @@ export default function Finanzas() {
             </div>
             {isAdmin && (
               <button className="btn btn-ghost" data-tip="Exportar finanzas a Excel"
-                onClick={() => window.open(`${getApiUrl()}/finanzas/export?token=${localStorage.getItem('token')}`, '_blank')}>
+                onClick={async()=>{const t=localStorage.getItem('token');const r=await fetch(`${getApiUrl()}/finanzas/export`,{headers:{Authorization:`Bearer ${t}`}});if(!r.ok)return;const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='finanzas.xlsx';a.click();URL.revokeObjectURL(u)}}>
                 ↑ Excel
               </button>
             )}

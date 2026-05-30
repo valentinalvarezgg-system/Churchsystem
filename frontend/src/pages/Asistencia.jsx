@@ -170,7 +170,7 @@ export default function Asistencia() {
               <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
                 {canManage && <>
                   <button className="btn btn-primary btn-sm" onClick={guardar} disabled={saving || !detalle}>{saving ? 'Guardando...' : 'Guardar'}</button>
-                  <button className="btn btn-ghost btn-sm" data-tip="Descargar planilla Excel con la asistencia" onClick={()=>window.open(`${getApiUrl()}/export/asistencia/${selected}?token=${localStorage.getItem("token")}`,"_blank")}>Exportar</button>
+                  <button className="btn btn-ghost btn-sm" data-tip="Descargar planilla Excel con la asistencia" onClick={async()=>{const t=localStorage.getItem('token');const r=await fetch(`${getApiUrl()}/export/asistencia/${selected}`,{headers:{Authorization:`Bearer ${t}`}});if(!r.ok)return;const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`asistencia-${selected}.xlsx`;a.click();URL.revokeObjectURL(u)}}>Exportar</button>
                   <button className="btn btn-danger btn-sm" data-tip="Eliminar este culto y su registro de asistencia" onClick={()=>setConfirmDelCulto(selected)}>Eliminar</button>
                 </>}
               </div>

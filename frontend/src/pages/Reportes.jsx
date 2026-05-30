@@ -35,22 +35,32 @@ export default function Reportes() {
     { intervalMs: 10000 }
   )
 
-  function exportarPDF() {
+  async function descargar(path, nombre) {
     const token = localStorage.getItem('token')
     const base  = getApiUrl()
+    try {
+      const res = await fetch(`${base}${path}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) return
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href = url; a.download = nombre; a.click()
+      URL.revokeObjectURL(url)
+    } catch {}
+  }
+
+  function exportarPDF() {
     if (tipo === 'semanal') {
-      window.open(`${base}/export/reporte/semanal?token=${token}`, '_blank')
+      descargar('/export/reporte/semanal', 'reporte-semanal.xlsx')
     } else if (tipo === 'mensual') {
-      window.open(`${base}/export/reporte/mensual?mes=${mes}&token=${token}`, '_blank')
+      descargar(`/export/reporte/mensual?mes=${mes}`, 'reporte-mensual.xlsx')
     } else {
       imprimirReporte()
     }
   }
 
   function exportarExcel() {
-    const token = localStorage.getItem('token')
-    const base  = getApiUrl()
-    window.open(`${base}/export/excel/personas?token=${token}`, '_blank')
+    descargar('/export/excel/personas', 'membresia.xlsx')
   }
 
   function imprimirReporte() {
