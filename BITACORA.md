@@ -197,7 +197,7 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Criterio de salida: 0 estados inconsistentes detectables en flujo principal.
 
 ## EN CURSO
-- `v2.7-beta/block-03` — navegación visible, QR, reportes y flujos críticos UX.
+- Ninguno. Último bloque cerrado: `v2.7-beta/block-05`.
 
 ## Historial de bloques 2.7 beta
 
@@ -281,6 +281,70 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
   `getModulosPlan` (plan.js). También actualizado `pnpm-lock.yaml` (zod ya removido).
 - `frontend pnpm build` ✅ OK. `backend pnpm audit:launch` ✅ OK (env vars ausentes en dev, OK en prod).
 - Pushed a `master` (`9b0c823`, `6317d18`).
+
+### 2026-05-30 — v2.7-beta/block-05 (CheckIn QR — solución definitiva) — Claude
+
+**Problema raíz:** Cloudflare TryClouflare URLs son efímeras — cambian en cada reinicio del túnel, invalidando QR generados anteriormente.
+
+**Cambios aplicados:**
+
+- **`checkin.js` — detección HTTPS automática** (`29334c6`):
+  Lee `x-forwarded-proto` de los headers. Si la request entró por HTTPS (Cloudflare, Render, nginx), auto-detecta `https://${host}` como base pública. Prioridad final:
+  `?baseUrl= > FRONTEND_URL > PUBLIC_URL > BASE_URL > x-forwarded-proto detectado > http://IP:PORT`
+
+- **`checkin.js` — acepta `?baseUrl=`** (`5af730c`):
+  El admin puede pasar su URL base desde el panel. Validada con regex `^https?://.+`.
+
+- **`CheckIn.jsx` — widget "URL base QR"** (`5af730c`):
+  Barra configurable encima del panel. Persiste en `localStorage` clave `church_qr_base_url`.
+  - Sin configurar → aviso amarillo + hint a `churchsystem.com.ar`
+  - Configurada → `<code>` verde + botón "Cambiar" / "✕" para borrar
+  - Al generar QR, pasa `?baseUrl=` al backend → URL permanente sin depender del tunnel
+
+- **`CheckIn.jsx` — 3 estados del banner QR** (`80bfa37`):
+  | Estado | Color | Texto |
+  |--------|-------|-------|
+  | URL local (sin proxy) | Amarillo | ⚠ Solo WiFi local |
+  | Cloudflare trycloudflare.com | Amarillo | ⚠ URL temporal (Cloudflare) |
+  | URL pública permanente | Verde | 🌐 Acceso público |
+
+**Para activar en la Mac:**
+```bash
+git pull
+cd frontend && pnpm build
+# reiniciar backend
+# Abrir Check-in QR → "Configurar" → escribir https://churchsystem.com.ar → Enter
+```
+
+**Verificaciones:**
+- `frontend pnpm build` ✅ OK
+- Bundle contiene 12/12 strings esperados (verificado) ✅
+- Backend: 4/4 puntos de lógica correctos ✅
+- `pnpm audit:launch` — 0 warnings, 0 legacyDbImports ✅ (falla solo por env vars del sandbox)
+- Pushed a `master` (`29334c6`, `80bfa37`, `5af730c`)
+
+---
+
+## Resumen de integridad v2.7-beta (al 2026-05-30)
+
+### Módulos tocados en esta sesión y estado
+| Archivo | Cambio | Estado |
+|---------|--------|--------|
+| `backend/routes/checkin.js` | QR_SECRET seguro, URL pública auto-detectada, acepta `?baseUrl=` | ✅ |
+| `frontend/pages/CheckIn.jsx` | Widget URL base, 3 estados de banner, tunnel warning | ✅ |
+| `frontend/pages/Reportes.jsx` | Exports sin JWT en URL (fetch+blob) | ✅ |
+| `frontend/pages/Asistencia.jsx` | Export sin JWT en URL | ✅ |
+| `frontend/pages/Finanzas.jsx` | Export sin JWT en URL | ✅ |
+| `backend/middlewares/auth.js` | Eliminados `requireTenant`, `requireRole`, `requirePermiso` | ✅ |
+| `backend/middlewares/security.js` | Eliminados `requireJSON`, `validate` | ✅ |
+| `backend/lib/pg.js` | Eliminados `pgQuery`, `closePgPool` | ✅ |
+| `backend/middlewares/plan.js` | Eliminado `getModulosPlan` | ✅ |
+| `backend/pnpm-lock.yaml` | Sincronizado (zod ya removido) | ✅ |
+
+### Pendientes conocidos
+- Mac necesita `git pull + pnpm build + restart backend` para ver cambios del panel CheckIn
+- `QR_SECRET` en Render: si no está seteado, los QR se invalidan en cada redeploy (recomendado setear en Render env vars)
+- Páginas con tablas sin vista mobile: Grupos, Consolidacion, Comunicados, Reportes, Oracion, Eventos (fase A sigue pendiente para algunas)
 
 ---
 
