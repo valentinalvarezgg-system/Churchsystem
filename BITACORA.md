@@ -260,6 +260,10 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Verificaciones:
   - `cd frontend && pnpm build` ✅ OK.
   - `cd backend && pnpm audit:launch` ✅ OK.
+  - `https://churchsystem.com.ar/` ✅ Landing pública visible como primera pantalla.
+  - `https://churchsystem.com.ar/app/` ✅ Bundle nuevo con service worker scope `/app/`.
+  - Restart backend local (`MODO_CLOUDFLARE_LOCAL`) ✅ API cargó rutas nuevas.
+  - Smoke API producción: login ✅, `/reportes/general?periodo=trimestre` ✅, `/cultos` ✅, `/personas` ✅.
 
 ---
 
