@@ -133,7 +133,7 @@ export default function Asistencia() {
                           )
                         })}
                       </div>
-                      <div className="attendance-table-wrap" style={{maxHeight:'calc(100vh - 340px)',overflowY:'auto'}}>
+                      <div className="attendance-table-wrap" style={{maxHeight:'calc(100vh - 340px)',overflowY:'auto',overflowX:'auto'}}>
                         <table style={{minWidth:500}}>
                           <thead><tr><th style={{width:44}}>✓</th><th>Nombre</th><th>Estado</th></tr></thead>
                           <tbody>{(detalle?.personas || []).map(p=>(

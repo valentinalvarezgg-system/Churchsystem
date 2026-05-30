@@ -124,11 +124,11 @@ export default function Grupos() {
               <div className="modal-body">
                 <p style={{marginBottom:14,color:'var(--text-muted)',fontSize:13}}>{detalle.miembros?.length||0} miembro(s)</p>
                 {detalle.miembros?.length>0
-                  ? <table style={{minWidth:500}}><thead><tr><th>Nombre</th><th>Teléfono</th><th>Estado</th></tr></thead>
+                  ? <div className="table-responsive"><table style={{minWidth:500}}><thead><tr><th>Nombre</th><th>Teléfono</th><th>Estado</th></tr></thead>
                       <tbody>{(detalle?.miembros || []).map(m=>(
                         <tr key={m.id}><td><span className="persona-link" data-tip="Ver perfil completo" onClick={()=>navigate(`/personas/${m.id}`)}>{m.nombre} {m.apellido}</span></td><td>{m.telefono||'—'}</td>
                           <td><span className={`badge badge-${m.estado?.toLowerCase()}`}>{m.estado}</span></td>
-                        </tr>))}</tbody></table>
+                        </tr>))}</tbody></table></div>
                   : <div className="empty"><p>Sin miembros asignados</p></div>}
               </div>
             </div>

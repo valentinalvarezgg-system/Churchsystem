@@ -674,9 +674,11 @@ export default function Perfil() {
                         </div>
                       ))}
                     </div>
+                    <div className="table-responsive">
                     <table style={{minWidth:500}}><thead><tr><th>Culto</th><th>Fecha</th><th>Asistencia</th></tr></thead>
                       <tbody>{asistencias.map((a,i)=><tr key={i}><td>{a.nombre}</td><td style={{fontSize:12,color:'var(--text-muted)'}}>{a.fecha}</td><td><span className={`badge ${a.presente?'badge-activo':'badge-inactivo'}`}>{a.presente?'Presente':'Ausente'}</span></td></tr>)}</tbody>
                     </table>
+                    </div>
                   </>
               )}
 

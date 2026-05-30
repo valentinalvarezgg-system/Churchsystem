@@ -219,6 +219,7 @@ export default function Alertas() {
                   )
                 })}
               </div>
+              <div className="table-responsive">
               <table className="alerts-table" style={{minWidth:500}}>
                 <thead>
                   <tr>
@@ -314,6 +315,7 @@ export default function Alertas() {
                   })}
                 </tbody>
               </table>
+              </div>
             </>
           }
         </div>

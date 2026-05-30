@@ -149,10 +149,10 @@ export default function Consolidacion() {
 
         {/* Vista Lista */}
         {view === 'lista' && (
-          <div className="card" style={{ padding:0, overflowX:'auto' }}>
+          <div className="card" style={{ padding:0 }}>
             {data.length === 0
               ? <div className="empty"><div className="empty-icon"><Icons.Users /></div><p>Sin procesos activos</p></div>
-              : <table style={{minWidth:500}}>
+              : <div className="table-responsive"><table style={{minWidth:500}}>
                   <thead>
                     <tr>
                       <th>Persona</th>
@@ -216,7 +216,7 @@ export default function Consolidacion() {
                       )
                     })}
                   </tbody>
-                </table>
+                </table></div>
             }
           </div>
         )}

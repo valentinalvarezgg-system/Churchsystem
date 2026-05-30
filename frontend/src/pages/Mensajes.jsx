@@ -320,7 +320,7 @@ export default function Mensajes() {
 
         {/* ── HISTORIAL ── */}
         {tab === 'historial' && (
-          <div className="card messages-history-card" style={{ padding: 0, overflowX:'auto' }}>
+          <div className="card messages-history-card" style={{ padding: 0 }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Mensajes enviados ({hTotal})</h3>
             </div>
@@ -343,7 +343,7 @@ export default function Mensajes() {
             )}
             {historial.length === 0
               ? <div className="empty"><div className="empty-icon"><Icons.Messages /></div><p>Sin mensajes aún</p></div>
-              : <table className="messages-history-table" style={{minWidth:500}}>
+              : <div className="table-responsive"><table className="messages-history-table" style={{minWidth:500}}>
                   <thead><tr><th>Canal</th><th>Persona</th><th>Destino</th><th>Mensaje</th><th>Estado</th><th>Fecha</th></tr></thead>
                   <tbody>
                     {historial.map(m => (
@@ -362,7 +362,7 @@ export default function Mensajes() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
             }
             {Math.ceil(hTotal / 30) > 1 && (
               <div className="pagination">
