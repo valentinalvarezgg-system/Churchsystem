@@ -2,7 +2,7 @@ import { usePlan } from '../hooks/usePlan.js'
 
 const LABELS = {LIDER:'Líder',CULTO:'Culto',CONSOLIDACION:'Consolidación',ADMINISTRACION:'Administración',GENERAL:'General'}
 const ORDER = ['LIDER','CULTO','CONSOLIDACION','ADMINISTRACION','GENERAL']
-const MOD_PLAN = {asistencia:'CULTO',calendario:'CULTO',comunicados:'CULTO',seguimiento:'CONSOLIDACION',consolidacion:'CONSOLIDACION',alertas:'CONSOLIDACION',mensajes:'CONSOLIDACION',reportes:'ADMINISTRACION',historial:'ADMINISTRACION',users:'ADMINISTRACION',permisos:'ADMINISTRACION',configuracion:'ADMINISTRACION',discipulado:'ADMINISTRACION','excel-ia':'ADMINISTRACION','asistente-ia':'GENERAL',premium:'GENERAL','promo-codes':'GENERAL',backup:'GENERAL'}
+const MOD_PLAN = {asistencia:'CULTO',calendario:'CULTO',comunicados:'CULTO',seguimiento:'CONSOLIDACION',consolidacion:'CONSOLIDACION',alertas:'CONSOLIDACION',mensajes:'CONSOLIDACION',reportes:'ADMINISTRACION',historial:'ADMINISTRACION',users:'ADMINISTRACION',permisos:'ADMINISTRACION',configuracion:'ADMINISTRACION',discipulado:'ADMINISTRACION','excel-ia':'ADMINISTRACION','asistente-ia':'GENERAL',premium:'GENERAL',backup:'GENERAL'}
 
 export default function UpgradeGate({ modulo, children }) {
   const { tiene, plan, loading } = usePlan()

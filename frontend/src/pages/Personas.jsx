@@ -59,6 +59,7 @@ export default function Personas() {
   const [importLoading, setImportLoading] = useState(false)
   const [confirmDel, setConfirmDel] = useState(null) // {id, nombre}
   const [confirmDelSeg, setConfirmDelSeg] = useState(null) // id de seguimiento
+  const [personaPreview, setPersonaPreview] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -207,7 +208,7 @@ export default function Personas() {
             <div className="mobile-empty">Sin resultados</div>
           ) : data.map(p => (
             <article className="mobile-person-card" key={p.id}>
-              <button className="mobile-person-main" onClick={() => navigate(`/perfil/${p.id}`)}>
+              <button className="mobile-person-main" onClick={() => setPersonaPreview(p)}>
                 <div className="mobile-person-avatar">{(p.nombre || '?').slice(0,1).toUpperCase()}</div>
                 <div className="mobile-person-info">
                   <strong>{p.nombre} {p.apellido}</strong>
@@ -237,7 +238,7 @@ export default function Personas() {
                 : data.length===0 ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>Sin resultados</td></tr>
                 : data.map(p => (
                   <tr key={p.id}>
-                    <td onClick={()=>navigate(`/perfil/${p.id}`)} style={{cursor:'pointer',fontWeight:600}}>{p.nombre} {p.apellido}</td>
+                    <td onClick={()=>setPersonaPreview(p)} style={{cursor:'pointer',fontWeight:600}}>{p.nombre} {p.apellido}</td>
                     <td>{p.email}<br/><small>{p.telefono}</small></td>
                     <td>{p.cultoDia}</td>
                     <td><small>{p.grupoNombre||'-'}</small></td>
@@ -260,6 +261,63 @@ export default function Personas() {
           <span style={{padding:'6px 12px',fontSize:13}}>Página {page} de {pages}</span>
           <button className="btn btn-ghost btn-sm" disabled={page===pages} onClick={()=>setPage(p=>p+1)}>Siguiente ›</button>
         </div>}
+
+        {/* Vista rápida de persona */}
+        <Modal
+          open={!!personaPreview}
+          onClose={() => setPersonaPreview(null)}
+          title={personaPreview ? `${personaPreview.nombre || ''} ${personaPreview.apellido || ''}`.trim() || 'Persona' : 'Persona'}
+          subtitle="Ficha rápida"
+          size="md"
+          footer={personaPreview && <>
+            <button className="btn btn-ghost" onClick={() => setPersonaPreview(null)}>Cerrar</button>
+            <button className="btn btn-ghost" onClick={() => { setForm(personaPreview); setModal('edit'); setPersonaPreview(null) }}>Editar</button>
+            <button className="btn btn-primary" onClick={() => navigate(`/personas/${personaPreview.id}`)}>Abrir perfil</button>
+          </>}
+        >
+          {personaPreview && (
+            <div style={{display:'grid',gap:16}}>
+              <div style={{display:'flex',alignItems:'center',gap:14}}>
+                <div style={{
+                  width:58,height:58,borderRadius:16,display:'flex',alignItems:'center',justifyContent:'center',
+                  background:'var(--primary-soft)',color:'var(--primary)',fontWeight:800,fontSize:22,flexShrink:0,
+                }}>
+                  {(personaPreview.nombre || '?').slice(0,1).toUpperCase()}
+                </div>
+                <div style={{minWidth:0}}>
+                  <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                    <strong style={{fontSize:17,color:'var(--text)'}}>{personaPreview.nombre} {personaPreview.apellido}</strong>
+                    {personaPreview.estado && <span className={`badge badge-${String(personaPreview.estado).toLowerCase()}`}>{personaPreview.estado}</span>}
+                  </div>
+                  <p style={{margin:'4px 0 0',fontSize:13,color:'var(--text-muted)'}}>
+                    {personaPreview.grupoNombre || 'Sin grupo'} · {personaPreview.cultoDia || 'Sin culto asignado'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:10}}>
+                {[
+                  ['Email', personaPreview.email || 'Sin email'],
+                  ['Teléfono', personaPreview.telefono || 'Sin teléfono'],
+                  ['Fecha de ingreso', personaPreview.fechaIngreso || personaPreview.createdAt?.slice?.(0,10) || 'Sin dato'],
+                  ['Nacimiento', personaPreview.fechaNacimiento || 'Sin dato'],
+                ].map(([label, value]) => (
+                  <div key={label} style={{padding:12,border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--bg)'}}>
+                    <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:.3,color:'var(--text-faint)',fontWeight:700,marginBottom:4}}>{label}</div>
+                    <div style={{fontSize:13,color:'var(--text-2)',wordBreak:'break-word'}}>{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {personaPreview.notas && (
+                <div style={{padding:12,border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--bg)'}}>
+                  <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:.3,color:'var(--text-faint)',fontWeight:700,marginBottom:6}}>Notas</div>
+                  <p style={{margin:0,fontSize:13,lineHeight:1.6,color:'var(--text-2)'}}>{personaPreview.notas}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </Modal>
 
         {/* Modal CRUD */}
         {modal&&<Modal open={!!modal} onClose={()=>setModal(null)} title={modal==='edit'?'Editar persona':'Nueva persona'} size="lg"

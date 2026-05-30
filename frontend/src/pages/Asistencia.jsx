@@ -2,12 +2,23 @@ import { useEffect, useState, useCallback } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser, getApiUrl } from '../services/api.js'
-import { ConfirmModal } from '../components/Modal.jsx'
+import Modal, { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
 
 const DIAS_REGULARES = ['LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO']
 const CULTOS_ESPECIALES = ['Oración','Mujeres','Sanos por la Palabra','Pre-Adolescentes','Adolescentes','Jóvenes','Jóvenes Adultos','Escuelita']
 const HORARIOS = ['8:45','10hs','18hs','19hs','20hs','21hs']
+
+function dayRank(dia) {
+  const i = DIAS_REGULARES.indexOf(String(dia || '').toUpperCase())
+  return i === -1 ? 99 : i
+}
+
+function fechaCorta(fecha) {
+  if (!fecha) return 'Sin fecha'
+  const [year, month, day] = String(fecha).slice(0, 10).split('-')
+  return day && month && year ? `${day}/${month}/${year}` : fecha
+}
 
 export default function Asistencia() {
   const user = getUser()
@@ -52,7 +63,7 @@ export default function Asistencia() {
     setSaving(true); setMsg(null)
     try {
       const res = await apiFetch(`/cultos/${selected}/asistencia`, { method:'POST', body:JSON.stringify({ presentes:[...presentes] }) })
-      setMsg({ type:'success', text:`<Icons.Attendance /> ${res.presentes} presentes guardados` })
+      setMsg({ type:'success', text:`Asistencia guardada: ${res.presentes} presentes` })
       loadCultos()
     } catch(e) { setMsg({ type:'error', text:e.message }) }
     setSaving(false)
@@ -75,6 +86,21 @@ export default function Asistencia() {
   }
 
   const cultoActual = cultos.find(c=>Number(c.id)===Number(selected))
+  const cultosOrdenados = [...cultos].sort((a, b) => {
+    const dia = dayRank(a.cultoDia) - dayRank(b.cultoDia)
+    if (dia !== 0) return dia
+    const fecha = String(a.fecha || '').localeCompare(String(b.fecha || ''))
+    if (fecha !== 0) return fecha
+    return String(a.nombre || '').localeCompare(String(b.nombre || ''))
+  })
+
+  function abrirCulto(culto) {
+    setSelected(Number(culto.id))
+    setDetalle(null)
+    setPresentes(new Set())
+    setSearch('')
+    setMsg(null)
+  }
 
   return (
     <div className="layout">
@@ -84,82 +110,117 @@ export default function Asistencia() {
           <h1 className="page-title"><Icons.Attendance /> Asistencia a cultos</h1>
           {canManage && <button className="btn btn-primary" data-tip="Crear un nuevo registro de culto" onClick={()=>setModal(true)}>+ Nuevo culto</button>}
         </div>
-        <div className="attendance-shell" style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:16, alignItems:'start'}}>
-          <div className="card attendance-cultos" style={{padding:0, overflowX:'auto'}}>
-            <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>CULTOS ({cultos.length})</div>
-            {loading
-              ? <div className="empty" style={{padding:30}}><p>Cargando...</p></div>
-              : error
-              ? <div className="alert alert-error" style={{margin:12}}>{error}</div>
-              : cultos.length===0
-              ? <div className="empty" style={{padding:30}}><p>Sin cultos</p></div>
-              : cultos.map(c=>(
-                <div key={c.id} onClick={()=>{setSelected(Number(c.id));setSearch('');setMsg(null)}}
-                  style={{padding:'12px 16px',cursor:'pointer',borderBottom:'1px solid var(--border)',
-                    background:Number(selected)===Number(c.id)?'#eff6ff':'transparent',
-                    borderLeft:Number(selected)===Number(c.id)?'3px solid var(--primary)':'3px solid transparent'}}>
-                  <div style={{fontWeight:600,fontSize:13}}>{c.nombre}</div>
-                  <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{c.fecha}</div>
-                  <div style={{fontSize:11,marginTop:4}}><span className="badge badge-activo">{c.presentes||0} presentes</span></div>
-                </div>
-              ))
-            }
+        {loading ? (
+          <div className="empty"><p>Cargando cultos...</p></div>
+        ) : error ? (
+          <div className="alert alert-error" style={{marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center', gap:10}}>
+            <span>{error}</span>
+            <button className="btn btn-ghost btn-sm" onClick={loadCultos}>Reintentar</button>
           </div>
-          <div>
-            {!selected ? <div className="card empty"><div className="empty-icon"><Icons.Attendance /></div><p>Seleccioná un culto</p></div>
-              : <div className="card" style={{padding:0, overflowX:'auto'}}>
-                  <div style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
-                    <div>
-                      <h2 style={{fontSize:16,fontWeight:700,margin:0}}>{cultoActual?.nombre}</h2>
-                      <p style={{fontSize:12,color:'var(--text-muted)',margin:0}}>{cultoActual?.fecha}</p>
-                    </div>
-                    <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-                      {detalle && <span style={{fontSize:13,color:'var(--text-muted)'}}>{presentes.size}/{detalle.personas.length}</span>}
-                      {canManage && <>
-                        <button className="btn btn-primary btn-sm" onClick={guardar} disabled={saving}>{saving?'Guardando...':'💾 Guardar'}</button>
-                        <button className="btn btn-ghost btn-sm" data-tip="Descargar planilla Excel con la asistencia" onClick={()=>window.open(`${getApiUrl()}/export/asistencia/${selected}?token=${localStorage.getItem("token")}`,"_blank")}>↑ Exportar</button>
-                        <button className="btn btn-danger btn-sm" data-tip="Eliminar este culto y su registro de asistencia" onClick={()=>setConfirmDelCulto(selected)}>Eliminar</button>
-                      </>}
-                    </div>
-                  </div>
-                  {msg && <div style={{margin:'0 16px',marginTop:10}}><div className={`alert alert-${msg.type}`}>{msg.text}</div></div>}
-                  <div style={{padding:'10px 16px',borderBottom:'1px solid var(--border)',display:'flex',gap:10,flexWrap:'wrap'}}>
-                    <input name="h" className="input input-search" placeholder="Buscar..." value={search} onChange={e=>setSearch(e.target.value)} />
-                    {detalle && <button className="btn btn-ghost btn-sm" onClick={()=>setPresentes(p=>p.size===detalle.personas.length?new Set():new Set((detalle?.personas || []).map(x=>Number(x.id))))}>{presentes.size===detalle.personas?.length?'Desmarcar todos':'Marcar todos'}</button>}
-                  </div>
-                  {!detalle ? <div className="empty"><p>Cargando...</p></div>
-                    : <>
-                      <div className="attendance-mobile-list">
-                        {(detalle?.personas || []).map(p => {
-                          const checked = presentes.has(Number(p.id))
-                          return (
-                            <button key={p.id} className={`attendance-person-card${checked ? ' is-present' : ''}`}
-                              onClick={() => canManage && togglePresente(Number(p.id))}>
-                              <span className="attendance-check">{checked ? '✓' : ''}</span>
-                              <span className="attendance-person-name">{p.nombre} {p.apellido}</span>
-                              <span className={`badge badge-${p.estado?.toLowerCase()}`}>{p.estado}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                      <div className="attendance-table-wrap" style={{maxHeight:'calc(100vh - 340px)',overflowY:'auto',overflowX:'auto'}}>
-                        <table style={{minWidth:500}}>
-                          <thead><tr><th style={{width:44}}>✓</th><th>Nombre</th><th>Estado</th></tr></thead>
-                          <tbody>{(detalle?.personas || []).map(p=>(
-                            <tr key={p.id} onClick={()=>canManage&&togglePresente(Number(p.id))} style={{cursor:canManage?'pointer':'default',background:presentes.has(Number(p.id))?'#f0fdf4':''}}>
-                              <td><input name="has" type="checkbox" readOnly checked={presentes.has(Number(p.id))} style={{width:16,height:16,accentColor:'var(--primary)'}}/></td>
-                              <td><strong>{p.nombre} {p.apellido}</strong></td>
-                              <td><span className={`badge badge-${p.estado?.toLowerCase()}`}>{p.estado}</span></td>
-                            </tr>
-                          ))}</tbody>
-                        </table>
-                      </div>
-                    </>
-                  }
-                </div>
-            }
+        ) : cultosOrdenados.length === 0 ? (
+          <div className="empty">
+            <div className="empty-icon"><Icons.Attendance /></div>
+            <p>Sin cultos cargados</p>
           </div>
-        </div>
+        ) : (
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:14}}>
+            {cultosOrdenados.map(c => {
+              const active = Number(selected) === Number(c.id)
+              const dia = c.cultoDia || 'ESPECIAL'
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => abrirCulto(c)}
+                  style={{
+                    textAlign:'left',padding:16,borderRadius:'var(--r-lg)',border:`1px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
+                    background: active ? 'var(--primary-soft)' : 'var(--surface)',color:'var(--text)',cursor:'pointer',
+                    boxShadow: active ? '0 14px 36px rgba(77,70,229,.16)' : 'var(--shadow-sm)',
+                    transition:'var(--t)',minHeight:146,display:'grid',alignContent:'space-between',gap:12,
+                  }}
+                >
+                  <div>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',marginBottom:10}}>
+                      <span style={{fontSize:11,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-faint)',fontWeight:800}}>{dia}</span>
+                      <span className="badge badge-activo">{c.presentes || 0} presentes</span>
+                    </div>
+                    <div style={{fontSize:16,fontWeight:800,lineHeight:1.25,marginBottom:6}}>{c.nombre}</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)'}}>{fechaCorta(c.fecha)}</div>
+                  </div>
+                  <div style={{fontSize:12,color:'var(--primary)',fontWeight:700}}>Abrir asistencia</div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        <Modal
+          open={!!selected}
+          onClose={() => { setSelected(null); setDetalle(null); setSearch(''); setMsg(null) }}
+          title={cultoActual?.nombre || 'Asistencia'}
+          subtitle={cultoActual ? `${cultoActual.cultoDia || 'Culto especial'} · ${fechaCorta(cultoActual.fecha)}` : ''}
+          size="xl"
+          noPadding
+        >
+          <div style={{display:'grid',gap:0}}>
+            <div style={{padding:'14px 18px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
+              <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+                {detalle && <span style={{fontSize:13,color:'var(--text-muted)',fontWeight:700}}>{presentes.size}/{detalle.personas.length} presentes</span>}
+                {msg && <span className={`alert alert-${msg.type}`} style={{padding:'7px 10px',fontSize:12}}>{msg.text}</span>}
+              </div>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+                {canManage && <>
+                  <button className="btn btn-primary btn-sm" onClick={guardar} disabled={saving || !detalle}>{saving ? 'Guardando...' : 'Guardar'}</button>
+                  <button className="btn btn-ghost btn-sm" data-tip="Descargar planilla Excel con la asistencia" onClick={()=>window.open(`${getApiUrl()}/export/asistencia/${selected}?token=${localStorage.getItem("token")}`,"_blank")}>Exportar</button>
+                  <button className="btn btn-danger btn-sm" data-tip="Eliminar este culto y su registro de asistencia" onClick={()=>setConfirmDelCulto(selected)}>Eliminar</button>
+                </>}
+              </div>
+            </div>
+
+            <div style={{padding:'12px 18px',borderBottom:'1px solid var(--border)',display:'flex',gap:10,flexWrap:'wrap'}}>
+              <input name="h" className="input input-search" placeholder="Buscar persona..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:'1 1 220px'}} />
+              {detalle && (
+                <button className="btn btn-ghost btn-sm" onClick={()=>setPresentes(p=>p.size===detalle.personas.length?new Set():new Set((detalle?.personas || []).map(x=>Number(x.id))))}>
+                  {presentes.size===detalle.personas?.length ? 'Desmarcar todos' : 'Marcar todos'}
+                </button>
+              )}
+            </div>
+
+            {!detalle ? (
+              <div className="empty"><p>Cargando listado...</p></div>
+            ) : (
+              <div style={{padding:18}}>
+                <div className="attendance-mobile-list">
+                  {(detalle?.personas || []).map(p => {
+                    const checked = presentes.has(Number(p.id))
+                    return (
+                      <button key={p.id} className={`attendance-person-card${checked ? ' is-present' : ''}`}
+                        onClick={() => canManage && togglePresente(Number(p.id))}>
+                        <span className="attendance-check">{checked ? '✓' : ''}</span>
+                        <span className="attendance-person-name">{p.nombre} {p.apellido}</span>
+                        <span className={`badge badge-${p.estado?.toLowerCase()}`}>{p.estado}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="attendance-table-wrap" style={{maxHeight:'calc(88dvh - 250px)',overflowY:'auto',overflowX:'auto'}}>
+                  <table style={{minWidth:500}}>
+                    <thead><tr><th style={{width:44}}>✓</th><th>Nombre</th><th>Estado</th></tr></thead>
+                    <tbody>{(detalle?.personas || []).map(p=> {
+                      const checked = presentes.has(Number(p.id))
+                      return (
+                        <tr key={p.id} onClick={()=>canManage&&togglePresente(Number(p.id))} style={{cursor:canManage?'pointer':'default',background:checked?'var(--c-success-bg)':''}}>
+                          <td><input name="has" type="checkbox" readOnly checked={checked} style={{width:16,height:16,accentColor:'var(--primary)'}}/></td>
+                          <td><strong>{p.nombre} {p.apellido}</strong></td>
+                          <td><span className={`badge badge-${p.estado?.toLowerCase()}`}>{p.estado}</span></td>
+                        </tr>
+                      )
+                    })}</tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
         {modal && (
           <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(false)}>
             <div className="modal">

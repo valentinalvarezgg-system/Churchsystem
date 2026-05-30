@@ -25,8 +25,7 @@ const Calendario       = lazy(() => import('./pages/Calendario.jsx'))
 const Mensajes         = lazy(() => import('./pages/Mensajes.jsx'))
 const Alertas          = lazy(() => import('./pages/Alertas.jsx'))
 const Reportes         = lazy(() => import('./pages/Reportes.jsx'))
-const Discipulado      = lazy(() => import('./pages/Discipulado.jsx'))
-const Consolidacion    = lazy(() => import('./pages/Consolidacion.jsx'))
+const Consolidacion    = lazy(() => import('./pages/Discipulado.jsx'))
 const Comunicados      = lazy(() => import('./pages/Comunicados.jsx'))
 const Eventos          = lazy(() => import('./pages/Eventos.jsx'))
 const ExcelIA          = lazy(() => import('./pages/ExcelIA.jsx'))
@@ -131,8 +130,8 @@ export default function App() {
           <Route path="/mensajes"      element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="mensajes"><Mensajes /></UpgradeGate>} />} />
           <Route path="/alertas"       element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="alertas"><Alertas /></UpgradeGate>} />} />
           <Route path="/reportes"      element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="reportes"><Reportes /></UpgradeGate>} />} />
-          <Route path="/discipulado"   element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="discipulado"><Discipulado /></UpgradeGate>} />} />
-          <Route path="/consolidacion" element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="consolidacion"><Consolidacion /></UpgradeGate>} />} />
+          <Route path="/discipulado"   element={<Navigate to="/grupos" replace />} />
+          <Route path="/consolidacion" element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="consolidacion"><Consolidacion title="Consolidación" /></UpgradeGate>} />} />
           <Route path="/finanzas"      element={<Navigate to="/" replace />} />
           <Route path="/oracion"       element={<Navigate to="/" replace />} />
           <Route path="/comunicados"   element={<ProtectedRoute roles={MID}   element={<Comunicados />} />} />
@@ -143,7 +142,7 @@ export default function App() {
           <Route path="/configuracion" element={<ProtectedRoute roles={ADMIN} element={<Configuracion />} />} />
           <Route path="/permisos"      element={<ProtectedRoute roles={ADMIN} element={<GestionPermisos />} />} />
           <Route path="/users"         element={<ProtectedRoute roles={ADMIN} element={<Users />} />} />
-          <Route path="/promo-codes"   element={<ProtectedRoute roles={ADMIN} element={<PromoCodes />} />} />
+          <Route path="/promo-codes"   element={<ProtectedRoute roles={['GODMODE']} element={<PromoCodes />} />} />
           <Route path="/vault"         element={<ProtectedRoute roles={['GODMODE']} element={<GodMode />} />} />
           <Route path="/historial"     element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="historial"><Historial /></UpgradeGate>} />} />
           <Route path="*"              element={<Navigate to="/" replace />} />

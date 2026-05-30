@@ -4,9 +4,39 @@ import { ensureOperationalTenantDataSynced } from '../lib/core-sync.js'
 import { pgMany, pgOne } from '../lib/pg.js'
 
 const router = Router()
+const GENERAL_PERIODS = {
+  semana: { label: 'Semana', days: 7 },
+  mes: { label: 'Mes', months: 1 },
+  bimestre: { label: 'Bimestre', months: 2 },
+  trimestre: { label: 'Trimestre', months: 3 },
+  cuatrimestre: { label: 'Cuatrimestre', months: 4 },
+  semestre: { label: 'Semestre', months: 6 },
+  anual: { label: 'Anual', months: 12 },
+}
 
 function n(row, key = 'c') {
   return Number(row?.[key] ?? 0)
+}
+
+function iso(date) {
+  return date.toISOString().slice(0, 10)
+}
+
+function getGeneralRange(periodo = 'semana') {
+  const key = GENERAL_PERIODS[periodo] ? periodo : 'semana'
+  const cfg = GENERAL_PERIODS[key]
+  const now = new Date()
+  const hasta = iso(now)
+  const desdeDate = new Date(now)
+
+  if (cfg.days) {
+    desdeDate.setDate(now.getDate() - cfg.days + 1)
+  } else {
+    desdeDate.setDate(1)
+    desdeDate.setMonth(now.getMonth() - cfg.months + 1)
+  }
+
+  return { key, label: cfg.label, desde: iso(desdeDate), hasta }
 }
 
 router.get('/semanal', requireAuth, async (req, res) => {
@@ -144,5 +174,77 @@ router.get('/mensual', requireAuth, async (req, res) => {
   })
 })
 
-export default router
+router.get('/general', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  await ensureOperationalTenantDataSynced(iglesiaId)
 
+  const periodo = getGeneralRange(String(req.query.periodo || 'semana'))
+  const { desde, hasta } = periodo
+
+  const nuevasPersonas = await pgMany(
+    `SELECT "id","nombre","apellido","estado","cultoDia","createdAt"
+       FROM "Persona"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
+        AND DATE("createdAt") BETWEEN $2 AND $3
+      ORDER BY "createdAt" DESC
+      LIMIT 100`,
+    [iglesiaId, desde, hasta]
+  )
+
+  const cultos = await pgMany(
+    `SELECT c."id", c."nombre", c."fecha", c."cultoDia",
+            COUNT(CASE WHEN a."presente"=true THEN 1 END)::int as presentes,
+            COUNT(a."id")::int as total
+       FROM "Culto" c
+       LEFT JOIN "Asistencia" a ON a."cultoId"=c."id"
+      WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
+        AND c."fecha" BETWEEN $2 AND $3
+      GROUP BY c."id"
+      ORDER BY c."fecha"`,
+    [iglesiaId, desde, hasta]
+  )
+
+  const seguimientos = await pgMany(
+    `SELECT "tipo", COUNT(*)::int as qty
+       FROM "Seguimiento"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
+        AND DATE("createdAt") BETWEEN $2 AND $3
+      GROUP BY "tipo"
+      ORDER BY qty DESC`,
+    [iglesiaId, desde, hasta]
+  )
+
+  const crecimiento = await pgMany(
+    `SELECT DATE("createdAt")::text AS fecha, COUNT(*)::int AS qty
+       FROM "Persona"
+      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
+        AND DATE("createdAt") BETWEEN $2 AND $3
+      GROUP BY DATE("createdAt")
+      ORDER BY fecha`,
+    [iglesiaId, desde, hasta]
+  )
+
+  const totales = {
+    personas: n(await pgOne('SELECT COUNT(*)::int as c FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId])),
+    activos: n(await pgOne('SELECT COUNT(*)::int as c FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "estado"=\'ACTIVO\'', [iglesiaId])),
+    visitantes: n(await pgOne('SELECT COUNT(*)::int as c FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "estado"=\'VISITANTE\'', [iglesiaId])),
+    grupos: n(await pgOne('SELECT COUNT(*)::int as c FROM "Grupo" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId])),
+    nuevosPeriodo: nuevasPersonas.length,
+    cultosPeriodo: cultos.length,
+    seguimientosPeriodo: seguimientos.reduce((acc, row) => acc + Number(row.qty || 0), 0),
+  }
+
+  res.json({
+    tipo: 'general',
+    periodo,
+    nuevasPersonas,
+    cultos,
+    seguimientos,
+    crecimiento,
+    totales,
+    generadoEl: new Date().toISOString(),
+  })
+})
+
+export default router

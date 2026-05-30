@@ -17,7 +17,7 @@ export const PLANES = {
   },
   GENERAL: {
     nombre: 'General', precio: 120,
-    modulos: ['dashboard','personas','grupos','perfil','checkin','asistencia','calendario','comunicados','seguimiento','consolidacion','alertas','mensajes','reportes','historial','users','permisos','configuracion','discipulado','excel-ia','asistente-ia','premium','promo-codes','backup'],
+    modulos: ['dashboard','personas','grupos','perfil','checkin','asistencia','calendario','comunicados','seguimiento','consolidacion','alertas','mensajes','reportes','historial','users','permisos','configuracion','discipulado','excel-ia','asistente-ia','premium','backup'],
   },
 }
 

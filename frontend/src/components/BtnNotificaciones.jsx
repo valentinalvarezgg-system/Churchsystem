@@ -10,30 +10,31 @@ const ESTADO_LABEL = {
 }
 
 export default function BtnNotificaciones() {
-  const { estado, activar, desactivar, probar } = useNotificaciones()
+  const { permiso, suscrito, cargando: hookCargando, error, soportado, suscribir, desuscribir, testear } = useNotificaciones()
   const [cargando, setCargando] = useState(false)
   const [msg, setMsg]           = useState(null)
+  const estado = !soportado ? 'sin-soporte' : permiso === 'denied' ? 'denegado' : suscrito ? 'activo' : 'idle'
 
   const info = ESTADO_LABEL[estado] || ESTADO_LABEL.idle
 
   async function handleToggle() {
     setCargando(true); setMsg(null)
     if (estado === 'activo') {
-      await desactivar()
+      await desuscribir()
       setMsg({ type: 'ok', text: 'Notificaciones desactivadas' })
     } else {
-      const ok = await activar()
+      const ok = await suscribir()
       if (ok) setMsg({ type: 'ok',    text: '🔔 ¡Notificaciones activadas!' })
       else    setMsg({ type: 'error', text: estado === 'denegado'
         ? 'Permiso bloqueado. Habilitalo en la configuración del browser.'
-        : 'No se pudo activar. Intentá de nuevo.' })
+        : error || 'No se pudo activar. Intentá de nuevo.' })
     }
     setCargando(false)
   }
 
   async function handleProbar() {
     setCargando(true); setMsg(null)
-    const r = await probar()
+    const r = await testear()
     if (r.error) setMsg({ type: 'error', text: r.error })
     else         setMsg({ type: 'ok',    text: `✅ Notificación enviada (${r.enviadas} dispositivo${r.enviadas !== 1 ? 's' : ''})` })
     setCargando(false)
@@ -94,24 +95,31 @@ export default function BtnNotificaciones() {
 
       {/* Botones */}
       {estado !== 'sin-soporte' && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', alignItems:'center' }}>
           {estado !== 'denegado' && (
             <button
               onClick={handleToggle}
-              disabled={cargando}
+              disabled={cargando || hookCargando}
+              aria-pressed={estado === 'activo'}
+              data-tip={estado === 'activo' ? 'Desactivar notificaciones' : 'Activar notificaciones'}
               style={{
-                padding: '9px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-                cursor: cargando ? 'default' : 'pointer',
-                background: estado === 'activo' ? 'var(--bg-2)' : 'var(--primary)',
-                color:      estado === 'activo' ? 'var(--text-muted)' : 'white',
-                border: estado === 'activo' ? '1px solid var(--border-med)' : 'none',
-                opacity: cargando ? 0.6 : 1,
+                width: 52, height: 30, borderRadius: 999, padding: 3,
+                cursor: cargando || hookCargando ? 'default' : 'pointer',
+                background: estado === 'activo' ? 'var(--c-success)' : 'var(--bg-2)',
+                border: '1px solid var(--border-med)',
+                opacity: cargando || hookCargando ? 0.6 : 1,
+                display:'inline-flex', alignItems:'center', justifyContent: estado === 'activo' ? 'flex-end' : 'flex-start',
+                transition:'var(--t)',
               }}>
-              {cargando       ? '⏳ Un momento...'
-               : estado === 'activo' ? '🔕 Desactivar'
-               : '🔔 Activar notificaciones'}
+              <span style={{
+                width:24, height:24, borderRadius:'50%', background:'var(--surface)',
+                boxShadow:'var(--shadow-sm)', display:'block',
+              }} />
             </button>
           )}
+          <span style={{fontSize:13,color:'var(--text-2)',fontWeight:600}}>
+            {cargando || hookCargando ? 'Actualizando...' : estado === 'activo' ? 'Activadas' : 'Desactivadas'}
+          </span>
 
           {estado === 'activo' && (
             <button

@@ -6,7 +6,7 @@ const FALLBACK = {
   CULTO:['dashboard','personas','grupos','perfil','checkin','asistencia','calendario','comunicados'],
   CONSOLIDACION:['dashboard','personas','grupos','perfil','checkin','asistencia','calendario','comunicados','seguimiento','consolidacion','alertas','mensajes'],
   ADMINISTRACION:['dashboard','personas','grupos','perfil','checkin','asistencia','calendario','comunicados','seguimiento','consolidacion','alertas','mensajes','reportes','historial','users','permisos','configuracion','discipulado','excel-ia'],
-  GENERAL:['dashboard','personas','grupos','perfil','checkin','asistencia','calendario','comunicados','seguimiento','consolidacion','alertas','mensajes','reportes','historial','users','permisos','configuracion','discipulado','excel-ia','asistente-ia','premium','promo-codes','backup'],
+  GENERAL:['dashboard','personas','grupos','perfil','checkin','asistencia','calendario','comunicados','seguimiento','consolidacion','alertas','mensajes','reportes','historial','users','permisos','configuracion','discipulado','excel-ia','asistente-ia','premium','backup'],
 }
 let _cache = null
 

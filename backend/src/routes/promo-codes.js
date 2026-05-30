@@ -15,12 +15,12 @@ function isDisponible(promo) {
   return true
 }
 
-router.get('/', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (_req, res) => {
+router.get('/', requireAuth, requireRol('GODMODE'), wrap(async (_req, res) => {
   const codes = await pgMany('SELECT * FROM "promo_codes" ORDER BY "createdAt" DESC')
   return res.json(codes.map(c => ({ ...c, disponible: isDisponible(c) })))
 }))
 
-router.post('/', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res) => {
+router.post('/', requireAuth, requireRol('GODMODE'), wrap(async (req, res) => {
   const {
     code,
     dias_extra = 0,

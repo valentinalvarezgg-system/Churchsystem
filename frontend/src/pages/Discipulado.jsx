@@ -11,7 +11,7 @@ const ETAPA_COLOR = { NUEVO_CREYENTE:'var(--c-info)',CONSOLIDADO:'var(--c-warnin
 const ETAPA_BG    = { NUEVO_CREYENTE:'var(--c-info-bg)',CONSOLIDADO:'var(--c-warning-bg)',DISCIPULO:'var(--c-success-bg)',LIDER:'var(--c-purple-bg)',MINISTRO:'var(--c-danger-bg)' }
 const MAT_LABEL   = { BIBLIA_BASICA:'▤ Biblia básica',CONSOLIDACION_1:'Consolidación 1',CONSOLIDACION_2:'◇ Consolidación 2',DISCIPULADO_1:'Discipulado 1',DISCIPULADO_2:'Discipulado 2',MINISTERIO:'★ Ministerio' }
 
-export default function Discipulado() {
+export default function Discipulado({ title = 'Discipulado' }) {
   const navigate = useNavigate()
   const [data, setData]     = useState([])
   const [stats, setStats]   = useState(null)
@@ -61,7 +61,7 @@ export default function Discipulado() {
     <div className="layout">
       <Menu />
       <main className="main">
-        <div className="page-header"><h1 className="page-title">Discipulado</h1></div>
+        <div className="page-header"><h1 className="page-title">{title}</h1></div>
         <div style={{display:'flex',overflowX:'auto',gap:10,paddingBottom:4,marginBottom:20}}>
           {ETAPAS.map(e=>(
             <div key={e} onClick={()=>setFiltroEtapa(filtroEtapa===e?'':e)}

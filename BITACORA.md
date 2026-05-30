@@ -197,7 +197,7 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Criterio de salida: 0 estados inconsistentes detectables en flujo principal.
 
 ## EN CURSO
-- `v2.7-beta/block-01` — UX States Unification + cierre de glitches de navegación/carga.
+- `v2.7-beta/block-03` — navegación visible, QR, reportes y flujos críticos UX.
 
 ## Historial de bloques 2.7 beta
 
@@ -235,6 +235,29 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Uso:
   - `cd backend`
   - `RESEND_INBOUND_SECRET=... BASE_URL=https://churchsystem.com.ar ./scripts/smoke-resend-inbound.sh`
+
+### 2026-05-30 — v2.7-beta/block-03 (visual/navigation core)
+- Objetivo:
+  - corregir exposición de módulos pausados,
+  - arreglar QR público de Check-in,
+  - ordenar navegación de Discipulado/Consolidación,
+  - mejorar `/personas`, `/asistencia`, `/reportes` y notificaciones.
+- Cambios aplicados:
+  - `Menu.jsx`: se ocultó Finanzas, se eliminó Discipulado como módulo suelto y se retiró Promo Codes del menú regular.
+  - `App.jsx`: `/discipulado` redirige a `/grupos`; `/consolidacion` usa la vista operativa que antes vivía en Discipulado; `/promo-codes` queda restringido a `GODMODE`.
+  - `backend/routes/promo-codes.js`: administración de códigos promocionales alineada a `GODMODE`; validación pública de códigos se mantiene para registro/invitación.
+  - `backend/routes/checkin.js`: QR ahora genera enlaces `/app/checkin/:cultoId/:token`; se corrigió import faltante de `pgMany`.
+  - `BtnNotificaciones.jsx`: switch I/O estilo iOS conectado al hook real (`suscribir/desuscribir/testear`) para Configuración.
+  - `Personas.jsx`: click en nombre abre ficha rápida en modal translúcido; desde ahí se puede editar o abrir perfil completo.
+  - `Asistencia.jsx`: primera vista muestra cultos en tarjetas ordenadas por día; click abre modal con listado y checks de asistencia.
+  - `Reportes.jsx` + `backend/routes/reportes.js`: agregado reporte general por semana, mes, bimestre, trimestre, cuatrimestre, semestre y anual.
+  - `usePlan.js`, `middlewares/plan.js`, `UpgradeGate.jsx`: `promo-codes` removido de planes comerciales regulares.
+- Decisiones:
+  - Finanzas y Oración permanecen en código, pero siguen ocultos/bloqueados por decisión legal.
+  - Landing + traducción total quedan como siguiente bloque dedicado para evitar mezclar copy/i18n masivo con cambios funcionales.
+- Verificaciones:
+  - `cd frontend && pnpm build` ✅ OK.
+  - `cd backend && pnpm audit:launch` ✅ OK.
 
 ---
 

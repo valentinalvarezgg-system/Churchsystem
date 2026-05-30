@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { createHash, randomBytes } from 'crypto'
 import os from 'os'
-import { pgExec, pgOne } from '../lib/pg.js'
+import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 
 const router = Router()
@@ -29,8 +29,8 @@ router.get('/token/:cultoId', requireAuth, async (req, res) => {
   const ip = getLocalIP()
   const publicUrl = process.env.PUBLIC_URL
   const url = publicUrl
-    ? `${publicUrl}/checkin/${culto.id}/${t}`
-    : `http://${ip}:${FRONTEND_PORT}/checkin/${culto.id}/${t}`
+    ? `${publicUrl}/app/checkin/${culto.id}/${t}`
+    : `http://${ip}:${FRONTEND_PORT}/app/checkin/${culto.id}/${t}`
   res.json({ token: t, url, culto, ip })
 })
 

@@ -89,7 +89,7 @@ export default function Menu() {
   const [alertCount, setAlertCount] = useState(0)
   const [dark, setDark]           = useState(() => localStorage.getItem('theme') === 'dark')
   const [ctx, setCtx] = useState(getStoredContext())
-  const lang = (localStorage.getItem('church_lang') || user?.idioma || 'es').slice(0, 2)
+  const lang = (ctx.lang || localStorage.getItem('church_lang') || user?.idioma || 'es').slice(0, 2)
   const tt = key => I18N[lang]?.[key] || I18N.es[key] || key
   const COUNTRY_OPTIONS = [
     { code:'AR', label:'Argentina', currency:'ARS', lang:'es' },
@@ -261,7 +261,6 @@ export default function Menu() {
             {lnk('/checkin',     <Icons.CheckIn />, tt('checkin'))}
             {lnk('/calendario',  <Icons.Calendar />, tt('calendar'))}
             {lnk('/eventos',     <Icons.Calendar />, tt('events'))}
-            {lnk('/discipulado', <Icons.Discipleship />,  tt('discipleship'))}
             {isAudit && lnk('/consolidacion', <Icons.Users />, tt('consolidation'))}
           </>}
 
@@ -269,7 +268,6 @@ export default function Menu() {
             <div className="nav-section">{tt('management')}</div>
             {isMid   && lnk('/mensajes',  <Icons.Messages />, tt('messages'))}
             {isAudit && lnk('/alertas',   <Icons.Comunicados />, tt('alerts'), false, alertCount)}
-            {isAudit && lnk('/finanzas',  <Icons.Finance />, tt('finances'))}
             {isAudit && lnk('/reportes',  <Icons.Reports />, tt('reports'))}
           </>}
 
@@ -282,7 +280,6 @@ export default function Menu() {
           {isAdmin && <>
             <div className="nav-section">{tt('admin')}</div>
             {lnk('/users',         <Icons.Profile />, tt('users'))}
-            {lnk('/promo-codes',   <Icons.Ticket />,  tt('promo'))}
             {lnk('/permisos',      <Icons.Shield />,  tt('permissions'))}
             {lnk('/historial',     <Icons.History />, tt('history'))}
             {lnk('/configuracion', <Icons.Settings />,  tt('settings'))}
@@ -319,9 +316,9 @@ export default function Menu() {
             <button onClick={async () => { if(!suscrito){ const ok = await suscribir(); if(ok){ /* ya suscrito, el botón se oculta */ } } }}
               style={{
                 display:'flex', alignItems:'center', gap:8, padding:'8px 10px',
-                borderRadius:'var(--r)', border:'1px solid rgba(255,255,255,0.08)',
-                background: suscrito ? 'rgba(22,163,74,0.1)' : 'rgba(255,255,255,0.04)',
-                color: suscrito ? '#4ADE80' : 'rgba(255,255,255,0.5)',
+                borderRadius:'var(--r)', border:'1px solid var(--border)',
+                background: suscrito ? 'var(--c-success-bg)' : 'var(--bg)',
+                color: suscrito ? 'var(--c-success)' : 'var(--text-muted)',
                 fontSize:12, cursor:'pointer', width:'100%', marginBottom:6,
               }}>
               <span>{suscrito ? '🔔' : '🔕'}</span>
@@ -384,9 +381,9 @@ export default function Menu() {
           style={{
             display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
             width:44, height:40, borderRadius:8, marginTop:4,
-            background:'rgba(255,255,255,0.05)',
-            border:'1px solid rgba(255,255,255,0.08)',
-            color:'rgba(255,255,255,0.4)', fontSize:16, cursor:'pointer',
+            background:'var(--surface)',
+            border:'1px solid var(--border)',
+            color:'var(--text-muted)', fontSize:16, cursor:'pointer',
           }}>
           ☰
         </button>

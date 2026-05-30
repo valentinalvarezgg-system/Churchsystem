@@ -7,15 +7,31 @@ import { useRealtimeQuery } from '../hooks/useRealtimeQuery.js'
 
 const fmt = n => Number(n || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 })
 const pct  = (a, b) => b > 0 ? Math.round(a / b * 100) : 0
+const PERIODOS = [
+  ['semana', 'Semana'],
+  ['mes', 'Mes'],
+  ['bimestre', 'Bimestre'],
+  ['trimestre', 'Trimestre'],
+  ['cuatrimestre', 'Cuatrimestre'],
+  ['semestre', 'Semestre'],
+  ['anual', 'Anual'],
+]
 
 export default function Reportes() {
   const navigate  = useNavigate()
   const [tipo, setTipo]     = useState('semanal')
   const [mes, setMes]       = useState(new Date().toISOString().slice(0, 7))
+  const [periodo, setPeriodo] = useState('semana')
   const { data, loading, error } = useRealtimeQuery(
-    'stats',
-    () => apiFetch(tipo === 'semanal' ? '/reportes/semanal' : `/reportes/mensual?mes=${mes}`),
-    [tipo, mes],
+    'reportes',
+    () => apiFetch(
+      tipo === 'semanal'
+        ? '/reportes/semanal'
+        : tipo === 'mensual'
+        ? `/reportes/mensual?mes=${mes}`
+        : `/reportes/general?periodo=${periodo}`
+    ),
+    [tipo, mes, periodo],
     { intervalMs: 10000 }
   )
 
@@ -24,8 +40,10 @@ export default function Reportes() {
     const base  = getApiUrl()
     if (tipo === 'semanal') {
       window.open(`${base}/export/reporte/semanal?token=${token}`, '_blank')
-    } else {
+    } else if (tipo === 'mensual') {
       window.open(`${base}/export/reporte/mensual?mes=${mes}&token=${token}`, '_blank')
+    } else {
+      imprimirReporte()
     }
   }
 
@@ -70,22 +88,29 @@ export default function Reportes() {
           <div>
             <h1 className="page-title"><Icons.Reports /> Reportes</h1>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>
-              {tipo === 'semanal' ? `Semana ${r?.periodo?.desde || '...'} → ${r?.periodo?.hasta || '...'}` : `Mes ${mes}`}
+              {tipo === 'mensual'
+                ? `Mes ${mes}`
+                : `${r?.periodo?.label || (tipo === 'general' ? 'Período' : 'Semana')} ${r?.periodo?.desde || '...'} → ${r?.periodo?.hasta || '...'}`}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {tipo === 'mensual' && (
               <input name="mes" type="month" className="input" value={mes} onChange={e => setMes(e.target.value)} style={{ width: 140 }} />
             )}
+            {tipo === 'general' && (
+              <select className="input" value={periodo} onChange={e => setPeriodo(e.target.value)} style={{ width: 160 }}>
+                {PERIODOS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+              </select>
+            )}
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {[['semanal', 'Esta semana'], ['mensual', 'Mensual']].map(([k, l]) => (
+              {[['semanal', 'Esta semana'], ['mensual', 'Mensual'], ['general', 'General']].map(([k, l]) => (
                 <button key={k} onClick={() => setTipo(k)} className={tipo === k ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}>{l}</button>
               ))}
             </div>
             {r && <>
               <button className="btn btn-ghost btn-sm" data-tip="Imprimir reporte" onClick={imprimirReporte}>🖨️ Imprimir</button>
               <button className="btn btn-ghost btn-sm" data-tip="Exportar membresía en Excel" onClick={exportarExcel}><Icons.Reports /> Excel</button>
-              <button className="btn btn-ghost btn-sm" data-tip="Ver lista de membresía en PDF" onClick={exportarPDF}>📄 PDF</button>
+              {tipo !== 'general' && <button className="btn btn-ghost btn-sm" data-tip="Ver lista de membresía en PDF" onClick={exportarPDF}>📄 PDF</button>}
             </>}
           </div>
         </div>
@@ -119,7 +144,7 @@ export default function Reportes() {
                 <div className="stat-val" style={{ color: 'var(--c-info)' }}>{r.totales?.grupos || 0}</div>
                 <div className="stat-lbl"><Icons.Groups /> Grupos</div>
               </div>
-              {tipo === 'semanal' && (
+              {tipo !== 'mensual' && (
                 <div className="stat-card">
                   <div className="stat-val" style={{ color: 'var(--c-purple)' }}>{r.seguimientos?.reduce((a, b) => a + Number(b.qty), 0) || 0}</div>
                   <div className="stat-lbl">≡ Seguimientos</div>
@@ -128,13 +153,13 @@ export default function Reportes() {
             </div>
 
             {/* Semanal */}
-            {tipo === 'semanal' && (
+            {tipo !== 'mensual' && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
 
                 {/* Cultos */}
                 {(r.cultos || []).length > 0 && (
                   <div className="card">
-                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}><Icons.Attendance /> Cultos de la semana</h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}><Icons.Attendance /> Cultos del período</h3>
                     {(r.cultos || []).map((c, i) => {
                       const p = pct(c.presentes, c.total)
                       const color = p >= 70 ? 'var(--c-success)' : p >= 50 ? 'var(--c-warning)' : 'var(--c-danger)'
@@ -151,7 +176,7 @@ export default function Reportes() {
                         </div>
                       )
                     })}
-                    {(r.cultos || []).length === 0 && <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sin cultos esta semana</p>}
+                    {(r.cultos || []).length === 0 && <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sin cultos en el período</p>}
                   </div>
                 )}
 
@@ -161,7 +186,7 @@ export default function Reportes() {
                     <Icons.Users /> Nuevas personas ({(r.nuevasPersonas || []).length})
                   </h3>
                   {(r.nuevasPersonas || []).length === 0
-                    ? <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sin nuevas personas esta semana</p>
+                    ? <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sin nuevas personas en el período</p>
                     : (r.nuevasPersonas || []).map((p, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
                         onClick={() => navigate(`/personas/${p.id}`)}>
