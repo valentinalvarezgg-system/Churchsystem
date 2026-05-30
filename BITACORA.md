@@ -197,7 +197,7 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Criterio de salida: 0 estados inconsistentes detectables en flujo principal.
 
 ## EN CURSO
-- Ninguno. Último bloque cerrado: `v2.7-beta/block-06`.
+- Ninguno. Último bloque cerrado: `v2.7-beta/block-07`.
 
 ## Historial de bloques 2.7 beta
 
@@ -366,6 +366,26 @@ git push
 **Verificaciones:**
 - Build ✅ — 44 assets + index.html + sw.js en dist
 - `git push` exitoso → Render recibe commit con dist completo ✅
+
+### 2026-05-30 — v2.7-beta/block-07 (safe-area notch/dynamic island en todas las orientaciones) — Claude
+
+**Problema:** En iPhone con notch/Dynamic Island, el header quedaba cubierto por la barra de estado del sistema. El texto y el botón de menú no eran accesibles.
+
+**Cambios aplicados en `frontend/src/index.css`:**
+- **Celular portrait** (`≤767px portrait`): ya corregido en sesión anterior:
+  - `.mobile-header`: `height: calc(var(--header-h) + env(safe-area-inset-top, 0px))`, `align-items: flex-end`, `padding-top: env(safe-area-inset-top, 0px)`
+  - `.main`: `padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 12px)`
+- **Celular landscape** (`orientation: landscape and max-height: 599px`):
+  - `.mobile-header`: `height: calc(var(--header-h) + env(safe-area-inset-top, 0px))`, `align-items: flex-end`, `padding-top: env(safe-area-inset-top, 0px)`, `padding-left: calc(10px + env(safe-area-inset-left, 0px))`
+  - `.landscape-rail` (columna derecha): `padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 4px)`
+  - `.main`: `padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 8px)`, `padding-left: calc(12px + env(safe-area-inset-left, 0px))`
+- **Tablet portrait** (`768–1023px portrait`):
+  - `.mobile-header`: mismo patrón `height + env()`, `align-items: flex-end`
+  - `.main`: `padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 16px)`
+
+**Verificaciones:**
+- `frontend pnpm build` ✅ OK (4.72s, 0 errores)
+- Pushed a `master` (`a11c5a4`)
 
 ### Pendientes conocidos
 - `QR_SECRET` en Render: si no está seteado, los QR se invalidan en cada redeploy (recomendado setear en Render env vars)
