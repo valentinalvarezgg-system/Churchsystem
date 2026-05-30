@@ -3,6 +3,8 @@ import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
+import { ConfirmModal } from '../components/Modal.jsx'
+import { toast } from '../components/Toast.jsx'
 
 export default function MiPerfil() {
   const navigate = useNavigate()
@@ -12,6 +14,9 @@ export default function MiPerfil() {
   const [tab, setTab]         = useState('datos')
   const [backupInfo, setBackupInfo] = useState(null)
   const [awaitingCode, setAwaitingCode] = useState(false)
+  const [deleteModal, setDeleteModal] = useState(false)
+  const [deletePass, setDeletePass]   = useState('')
+  const [deleting, setDeleting]       = useState(false)
 
   useEffect(()=>{
     apiFetch('/mi-perfil').then(p=>{ setPerfil(p); setForm(f=>({...f,nombre:p.nombre||''})) }).catch(()=>{})
@@ -114,8 +119,58 @@ export default function MiPerfil() {
               <div style={{marginTop:16}}><button type="submit" className="btn btn-primary" data-tip="Guardar la configuración">Guardar cambios</button></div>
             </form>
           </div>
+
+          {/* Zona de peligro — requerido por Apple App Store guideline 5.1.1 */}
+          <div className="card" style={{marginTop:16,border:'1px solid var(--c-danger,#DC2626)',borderRadius:'var(--r)'}}>
+            <div style={{padding:'14px 18px',borderBottom:'1px solid var(--c-danger,#DC2626)'}}>
+              <span style={{fontSize:12,fontWeight:700,textTransform:'uppercase',letterSpacing:.4,color:'var(--c-danger,#DC2626)'}}>Zona de peligro</span>
+            </div>
+            <div style={{padding:'16px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+              <div>
+                <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>Eliminar cuenta</div>
+                <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Esta acción es permanente. Tus datos se eliminarán en 30 días.</div>
+              </div>
+              <button className="btn btn-sm" style={{flexShrink:0,color:'var(--c-danger,#DC2626)',border:'1px solid var(--c-danger,#DC2626)',background:'transparent'}} onClick={()=>setDeleteModal(true)}>
+                Eliminar mi cuenta
+              </button>
+            </div>
+          </div>
         </div>
       </main>
+
+      <ConfirmModal
+        open={deleteModal}
+        onClose={()=>{setDeleteModal(false);setDeletePass('')}}
+        onConfirm={async()=>{
+          if (!deletePass) return
+          setDeleting(true)
+          try {
+            await apiFetch('/mi-perfil/cuenta',{method:'DELETE',body:JSON.stringify({password:deletePass})})
+            localStorage.clear()
+            window.location.href='/login'
+          } catch(e) { toast.error(e.message) }
+          setDeleting(false)
+        }}
+        title="Eliminar cuenta permanentemente"
+        message=""
+        confirmLabel={deleting?'Eliminando…':'Eliminar cuenta'}
+        cancelLabel="Cancelar"
+        danger
+        loading={deleting}
+      >
+        <p style={{fontSize:14,color:'var(--text-2)',marginBottom:12,lineHeight:1.5}}>
+          Esta acción <strong>no se puede deshacer</strong>. Tus datos, historial y configuración serán eliminados.
+        </p>
+        <label style={{fontSize:13,color:'var(--text-muted)',display:'block',marginBottom:6}}>Ingresá tu contraseña para confirmar:</label>
+        <input
+          className="form-input"
+          type="password"
+          placeholder="Tu contraseña actual"
+          value={deletePass}
+          onChange={e=>setDeletePass(e.target.value)}
+          autoComplete="current-password"
+        />
+      </ConfirmModal>
     </div>
   )
 }
