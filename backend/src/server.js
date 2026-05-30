@@ -49,6 +49,7 @@ import consolidacionRouter from './routes/consolidacion.js'
 import bugReportRouter from './routes/bug-report.js'
 import promoCodesRouter from './routes/promo-codes.js'
 import oauthRouter from './routes/oauth.js'
+import godmodeRouter from './routes/godmode.js'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -159,6 +160,7 @@ app.use('/consolidacion', consolidacionRouter)
 app.use('/bug-report', bugReportRouter)
 app.use('/promo-codes', promoCodesRouter)
 app.use('/oauth', oauthRouter)
+app.use('/godmode', godmodeRouter)
 app.use('/verificacion', verificacionRouter)
 app.use('/plan', planRouter)
 app.use('/iglesia', iglesiaRouter)

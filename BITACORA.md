@@ -136,3 +136,22 @@ Rama principal: `master`
 - Estado auditoria tras migracion:
   - `backend pnpm audit --prod --audit-level=moderate`: sin vulnerabilidades conocidas.
   - `backend pnpm audit:launch`: OK.
+- Se inicio bloque visual de estabilizacion dark/mobile (prioridad legibilidad):
+  - Correccion de contraste en `BannerNotificaciones` usando tokens del tema (`var(--text)`, `var(--text-muted)`, `var(--border)`) en lugar de colores hardcodeados.
+  - Activada clase `cs-notif-banner` en el banner para que apliquen correctamente los overrides de tema oscuro ya definidos.
+  - Correccion de separadores en `Login` para modo dark (`var(--text-faint)`).
+- Verificacion del bloque visual parcial: `frontend pnpm build` OK.
+- Se implemento bloque GodMode (panel dueño / control total):
+  - Nuevo backend [`/Users/Valentin/Desktop/church-system-alpha/backend/src/routes/godmode.js`](/Users/Valentin/Desktop/church-system-alpha/backend/src/routes/godmode.js) con `GET /godmode/overview`.
+  - Seguridad: acceso solo para emails explícitamente permitidos en `GODMODE_EMAILS` (lista separada por comas).
+  - Datos globales incluidos:
+    - KPIs globales (usuarios, iglesias, iglesias con/sin pago registrado),
+    - distribución de planes,
+    - cuentas OAuth vinculadas,
+    - configuraciones de correo relevantes por iglesia.
+  - Integrado en servidor: `app.use('/godmode', godmodeRouter)`.
+  - Nuevo frontend [`/Users/Valentin/Desktop/church-system-alpha/frontend/src/pages/GodMode.jsx`](/Users/Valentin/Desktop/church-system-alpha/frontend/src/pages/GodMode.jsx) y ruta protegida `/godmode`.
+  - Acceso en menú admin: enlace directo a GodMode.
+- Verificaciones del bloque GodMode:
+  - `backend pnpm audit:launch` OK.
+  - `frontend pnpm build` OK.

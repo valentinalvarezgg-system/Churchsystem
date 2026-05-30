@@ -38,6 +38,7 @@ const GestionPermisos  = lazy(() => import('./pages/GestionPermisos.jsx'))
 const Users            = lazy(() => import('./pages/Users.jsx'))
 const Historial        = lazy(() => import('./pages/Historial.jsx'))
 const PromoCodes       = lazy(() => import('./pages/PromoCodes.jsx'))
+const GodMode          = lazy(() => import('./pages/GodMode.jsx'))
 
 const ALL   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF','LIDER']
 const MID   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF']
@@ -142,6 +143,7 @@ export default function App() {
           <Route path="/permisos"      element={<ProtectedRoute roles={ADMIN} element={<GestionPermisos />} />} />
           <Route path="/users"         element={<ProtectedRoute roles={ADMIN} element={<Users />} />} />
           <Route path="/promo-codes"   element={<ProtectedRoute roles={ADMIN} element={<PromoCodes />} />} />
+          <Route path="/godmode"       element={<ProtectedRoute roles={ADMIN} element={<GodMode />} />} />
           <Route path="/historial"     element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="historial"><Historial /></UpgradeGate>} />} />
           <Route path="*"              element={<Navigate to="/" replace />} />
         </Routes>
