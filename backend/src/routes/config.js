@@ -52,6 +52,9 @@ function emailDiagnostics(cfg = {}) {
   const expectedDomains = ['churchsystem.com.ar', 'send.churchsystem.com.ar']
   const renderVars = [
     'RESEND_API_KEY',
+    'RESEND_INBOUND_SECRET',
+    'OWNER_REPORTS_EMAIL',
+    'SUPPORT_EMAIL',
     'EMAIL_FROM',
     'BASE_URL',
     'FRONTEND_URL',
@@ -69,6 +72,7 @@ function emailDiagnostics(cfg = {}) {
   const missing = renderVars.filter(k => !process.env[k])
   const warnings = []
   if (!process.env.RESEND_API_KEY && !cfg.resend_key) warnings.push('Falta RESEND_API_KEY en Render o Resend API Key en Configuracion.')
+  if (!process.env.RESEND_INBOUND_SECRET) warnings.push('Falta RESEND_INBOUND_SECRET para recibir emails inbound de Resend.')
   if (!fromEmail) warnings.push('Falta EMAIL_FROM con un remitente valido.')
   if (domain && !expectedDomains.includes(domain)) warnings.push(`El remitente usa ${domain}; verificar que ese dominio este validado en Resend.`)
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) warnings.push('Google OAuth no tiene todas las variables en Render.')
