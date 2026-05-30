@@ -5,13 +5,39 @@ import BusquedaGlobal from './BusquedaGlobal.jsx'
 import { useNotificaciones } from '../hooks/useNotificaciones.js'
 import Icons from './Icons.jsx'
 
-const BOTTOM_LINKS = [
-  { to: '/',           icon: 'Dashboard', key: 'home',   exact: true  },
-  { to: '/personas',   icon: 'Users', key: 'people', exact: false },
-  { to: '/asistencia', icon: 'Attendance', key: 'attendance',exact:false },
-  { to: '/alertas',    icon: 'Comunicados', key: 'alerts',  exact: false },
-  { to: '/menu',       icon: 'Settings',  key: 'menu',     exact: false, isMenu: true },
-]
+const BOTTOM_LINKS_BY_ROLE = {
+  LIDER: [
+    { to: '/', icon: 'Dashboard', key: 'home', exact: true },
+    { to: '/personas', icon: 'Users', key: 'people', exact: false },
+    { to: '/grupos', icon: 'Groups', key: 'groups', exact: false },
+    { to: '/mensajes', icon: 'Messages', key: 'messages', exact: false },
+    { to: '/menu', icon: 'Settings', key: 'menu', exact: false, isMenu: true },
+  ],
+  DEFAULT: [
+    { to: '/', icon: 'Dashboard', key: 'home', exact: true },
+    { to: '/personas', icon: 'Users', key: 'people', exact: false },
+    { to: '/asistencia', icon: 'Attendance', key: 'attendance', exact: false },
+    { to: '/alertas', icon: 'Comunicados', key: 'alerts', exact: false },
+    { to: '/menu', icon: 'Settings', key: 'menu', exact: false, isMenu: true },
+  ],
+}
+
+const RAIL_LINKS_BY_ROLE = {
+  LIDER: [
+    { to: '/', icon: <Icons.Dashboard />, exact: true },
+    { to: '/personas', icon: <Icons.Users />, exact: false },
+    { to: '/grupos', icon: <Icons.Groups />, exact: false },
+    { to: '/mensajes', icon: <Icons.Messages />, exact: false },
+  ],
+  DEFAULT: [
+    { to: '/', icon: <Icons.Dashboard />, exact: true },
+    { to: '/personas', icon: <Icons.Users />, exact: false },
+    { to: '/asistencia', icon: <Icons.Attendance />, exact: false },
+    { to: '/alertas', icon: <Icons.Comunicados />, exact: false, badgeKey: 'alerts' },
+    { to: '/mensajes', icon: <Icons.Messages />, exact: false },
+    { to: '/checkin', icon: <Icons.CheckIn />, exact: false },
+  ],
+}
 
 const I18N = {
   es: {
@@ -115,6 +141,9 @@ export default function Menu() {
   const isMid   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF'].includes(rol)
   const isAudit = ['PASTOR_GENERAL','CONSOLIDACION'].includes(rol)
   const initials = (user?.nombre || user?.email || '?').slice(0,1).toUpperCase()
+  const isLider = rol === 'LIDER'
+  const bottomLinks = isLider ? BOTTOM_LINKS_BY_ROLE.LIDER : BOTTOM_LINKS_BY_ROLE.DEFAULT
+  const railLinks = isLider ? RAIL_LINKS_BY_ROLE.LIDER : RAIL_LINKS_BY_ROLE.DEFAULT
 
   // Nombre de la página actual para el header mobile
   const PAGE_NAMES = {
@@ -122,11 +151,11 @@ export default function Menu() {
     '/asistencia': tt('attendance'), '/checkin': tt('checkin'),
     '/calendario': tt('calendar'), '/discipulado': tt('discipleship'),
     '/consolidacion': tt('consolidation'), '/mensajes': tt('messages'),
-    '/alertas': tt('alerts'), '/finanzas': tt('finances'),
+    '/alertas': tt('alerts'),
     '/reportes': tt('reports'), '/excel-ia': tt('excel'),
     '/asistente-ia': tt('assistant'), '/configuracion': tt('settings'),
     '/users': tt('users'), '/permisos': tt('permissions'),
-    '/historial': tt('history'), '/oracion': tt('prayer'),
+    '/historial': tt('history'),
     '/comunicados': tt('communications'), '/mi-perfil': tt('profile'),
     '/eventos': tt('events'),
   }
@@ -206,7 +235,6 @@ export default function Menu() {
             {lnk('/checkin',     <Icons.CheckIn />, tt('checkin'))}
             {lnk('/calendario',  <Icons.Calendar />, tt('calendar'))}
             {lnk('/eventos',     <Icons.Calendar />, tt('events'))}
-            {lnk('/oracion',     <Icons.Prayer />,   tt('prayer'))}
             {lnk('/discipulado', <Icons.Discipleship />,  tt('discipleship'))}
             {isAudit && lnk('/consolidacion', <Icons.Users />, tt('consolidation'))}
           </>}
@@ -261,7 +289,7 @@ export default function Menu() {
 
       {/* ── Bottom Navigation (solo mobile < 1024px) ─────────── */}
       <nav className="bottom-nav">
-        {BOTTOM_LINKS.map(link => {
+        {bottomLinks.map(link => {
           const IconComponent = Icons[link.icon]
           if (link.isMenu) {
             return (
@@ -291,25 +319,17 @@ export default function Menu() {
 
       {/* ── Icon Rail (landscape mobile solamente) ─────────────── */}
       <nav className="landscape-rail">
-        {[
-          { to: '/',            icon: '📊', exact: true  },
-          { to: '/personas',    icon: '👥', exact: false },
-          { to: '/asistencia',  icon: '📅', exact: false },
-          { to: '/alertas',     icon: '🔔', exact: false, badge: alertCount },
-          { to: '/mensajes',    icon: '💬', exact: false },
-          { to: '/checkin',     icon: '📱', exact: false },
-          { to: '/finanzas',    icon: '💰', exact: false },
-          { to: '/oracion',     icon: '🙏', exact: false },
-        ].map(link => {
+        {railLinks.map(link => {
           const isActive = link.exact
             ? location.pathname === link.to
             : location.pathname.startsWith(link.to)
+          const badge = link.badgeKey === 'alerts' ? alertCount : 0
           return (
             <NavLink key={link.to} to={link.to}
               className={'landscape-rail-item' + (isActive ? ' active' : '')}>
               {link.icon}
-              {link.badge > 0 && (
-                <span className="landscape-rail-badge">{link.badge > 9 ? '9+' : link.badge}</span>
+              {badge > 0 && (
+                <span className="landscape-rail-badge">{badge > 9 ? '9+' : badge}</span>
               )}
             </NavLink>
           )

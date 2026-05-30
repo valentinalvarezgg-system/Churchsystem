@@ -343,7 +343,7 @@ export default function Dashboard() {
                         return (
                           <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
                             {(m.nuevos || 0) > 0 && (
-                              <span style={{ fontSize:9, color: esUltimo ? 'var(--primary)' : 'var(--text-faint)', fontWeight:700 }}>
+                              <span style={{ fontSize:9, color: esUltimo ? 'var(--primary)' : 'var(--text-muted)', fontWeight:700 }}>
                                 {m.nuevos}
                               </span>
                             )}
@@ -353,7 +353,7 @@ export default function Dashboard() {
                               borderRadius:'3px 3px 0 0',
                               transition:'height .4s ease',
                             }} />
-                            <span style={{ fontSize:9, color:'var(--text-faint)', writingMode:'initial' }}>
+                            <span style={{ fontSize:9, color:'var(--text-muted)', writingMode:'initial' }}>
                               {(m.mes || '').slice(5)}
                             </span>
                           </div>
@@ -371,7 +371,6 @@ export default function Dashboard() {
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {[
                 { lbl:txt('consolidation'), val: t.consolidacionActiva || 0, icon:'⊕', path:'/consolidacion', warn: t.consolidacionActiva > 0 },
-                { lbl:txt('activePrayer'), val: t.oracionesActivas  || 0, icon:'◇', path:'/oracion',       ok:   t.oracionesActivas > 0 },
                 { lbl:txt('noTracking'), val: t.sinSeguimiento    || 0, icon:'≡', path:'/alertas',       danger: t.sinSeguimiento > 0 },
               ].map(s => (
                 <div key={s.lbl} onClick={() => navigate(s.path)}

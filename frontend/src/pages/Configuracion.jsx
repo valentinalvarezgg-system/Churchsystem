@@ -374,7 +374,7 @@ export default function Configuracion() {
                 <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',marginBottom:20,borderRadius:'var(--r)',background:config.twilio_configurado?'#F0FDF4':'#FFFBEB',border:`1px solid ${config.twilio_configurado?'#86EFAC':'#FDE68A'}`}}>
                   <span style={{fontSize:20}}>{config.twilio_configurado?'✓':'⚠'}</span>
                   <div>
-                    <div style={{fontSize:13,fontWeight:600,color:config.twilio_configurado?'#15803D':'#92400E'}}>{config.twilio_configurado?'Twilio activo':'Sin configurar — modo demo'}</div>
+                    <div style={{fontSize:13,fontWeight:600,color:config.twilio_configurado?'var(--c-success)':'var(--c-warning)'}}>{config.twilio_configurado?'Twilio activo':'Sin configurar — modo demo'}</div>
                     <div style={{fontSize:11,color:'var(--text-muted)'}}>{config.twilio_configurado?'Los mensajes se envían por WhatsApp real':'Los mensajes se registran pero no se envían'}</div>
                   </div>
                   <a href="https://console.twilio.com" target="_blank" rel="noreferrer" style={{marginLeft:'auto',fontSize:12,color:'var(--primary)',fontWeight:600,whiteSpace:'nowrap'}}>Ir a Twilio →</a>
@@ -448,7 +448,7 @@ export default function Configuracion() {
                 <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',marginBottom:20,borderRadius:'var(--r)',background:config.email_configurado?'#F0FDF4':'#FFFBEB',border:`1px solid ${config.email_configurado?'#86EFAC':'#FDE68A'}`}}>
                   <span style={{fontSize:20}}>{config.email_configurado?'✓':'⚠'}</span>
                   <div>
-                    <div style={{fontSize:13,fontWeight:600,color:config.email_configurado?'#15803D':'#92400E'}}>{config.email_configurado?'Email activo — Resend configurado':'Sin configurar — modo demo'}</div>
+                    <div style={{fontSize:13,fontWeight:600,color:config.email_configurado?'var(--c-success)':'var(--c-warning)'}}>{config.email_configurado?'Email activo — Resend configurado':'Sin configurar — modo demo'}</div>
                     <div style={{fontSize:11,color:'var(--text-muted)'}}>{config.email_configurado?'Los emails se envían realmente':'Los mensajes se guardan pero no se envían'}</div>
                   </div>
                   <a href="https://resend.com" target="_blank" rel="noreferrer" style={{marginLeft:'auto',fontSize:12,color:'var(--primary)',fontWeight:600,whiteSpace:'nowrap'}}>Ir a Resend →</a>
@@ -660,7 +660,7 @@ export default function Configuracion() {
         <div style={{marginTop:12,padding:'12px 16px',background:'rgba(245,158,11,0.08)',
           border:'1px solid rgba(245,158,11,0.2)',borderRadius:12,fontSize:12,
           color:'var(--text-muted)',lineHeight:1.6}}>
-          <strong style={{color:'#f59e0b'}}>⚠ Beta v2.6.0:</strong>{' '}
+          <strong style={{color:'var(--c-warning)'}}>⚠ Beta v2.6.0:</strong>{' '}
           Plataforma en etapa beta. Algunas funciones pueden cambiar o fallar.
           Para baja o exportación de datos:{' '}
           <a href="mailto:legal@churchsystem.com.ar" style={{color:'var(--primary)'}}>legal@churchsystem.com.ar</a>

@@ -1,6 +1,6 @@
 # Church System Alpha — Gestión Pastoral Inteligente
 
-Sistema integral de gestión para iglesias evangélicas. Stack: Node.js/Express + SQLite + React/Vite.
+Sistema integral de gestión para iglesias evangélicas. Stack actual: Node.js/Express + PostgreSQL (Neon) + React/Vite.
 
 ## 🚀 Inicio Rápido
 
@@ -23,16 +23,75 @@ pnpm dev
 **Acceso:** http://localhost:4000  
 **Admin:** admin@iglesia.com / admin123
 
+## 🧰 Integración local (VS Code + Docker + Termius)
+
+### VS Code (workspace operativo)
+
+Este repo ya incluye:
+
+- `.vscode/tasks.json`
+- `.vscode/launch.json`
+
+Tareas recomendadas:
+
+- `backend: dev`
+- `backend: audit launch`
+- `frontend: dev`
+- `frontend: build`
+- `docker: up`
+- `docker: down`
+
+Debug recomendado:
+
+- `Backend: Node (server.js)`
+- `Frontend: Chrome (Vite 5173)`
+- `App completa (backend + frontend)`
+
+### Docker (entorno reproducible)
+
+El proyecto incluye `docker-compose.yml` con:
+
+- `postgres` (local)
+- `backend`
+- `frontend`
+
+Comandos:
+
+```bash
+docker compose up -d --build
+docker compose ps
+docker compose logs -f backend
+docker compose down
+```
+
+Para variables locales usar `.env.docker` como base.
+
+### Termius (operación remota)
+
+Uso recomendado de perfiles:
+
+- `church-dev`
+- `church-staging`
+- `church-prod`
+
+Checklist de operación segura:
+
+1. Verificar rama y commit desplegado.
+2. Ejecutar `backend pnpm audit:launch`.
+3. Revisar estado de servicio (Render) y salud `GET /health`.
+4. Registrar cambios operativos en el runbook del equipo.
+
 ## 📦 Estructura
 
 ```
 church-system-alpha/
+├── .vscode/          # Tasks + Debug local
 ├── backend/          # Node.js + Express + SQLite
 │   ├── src/
 │   │   ├── routes/   # Endpoints API
 │   │   ├── lib/      # DB y utilities
 │   │   └── server.js
-│   └── church.db     # SQLite database
+│   └── src/          # API + middlewares + lib
 ├── frontend/         # React + Vite
 │   ├── src/
 │   │   ├── components/
@@ -118,14 +177,7 @@ Botón flotante "?" en esquina inferior derecha. Reportes enviados a `soporte@ch
 
 ## 📊 Database
 
-SQLite en `/backend/church.db`. Tablas principales:
-
-- `users` — Usuarios y roles
-- `personas` — Miembros y visitantes
-- `grupos` — Células/grupos pequeños
-- `cultos` — Eventos y asistencia
-- `seguimientos` — Tracking contactos
-- `promo_codes` — Códigos promocionales
+PostgreSQL (Neon en producción). Esquema y migraciones en `backend/prisma/`.
 
 ## 🛡️ Backups (Neon + Export Diario)
 

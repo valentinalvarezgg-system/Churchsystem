@@ -25,11 +25,9 @@ const Asistencia       = lazy(() => import('./pages/Asistencia.jsx'))
 const Calendario       = lazy(() => import('./pages/Calendario.jsx'))
 const Mensajes         = lazy(() => import('./pages/Mensajes.jsx'))
 const Alertas          = lazy(() => import('./pages/Alertas.jsx'))
-const Finanzas         = lazy(() => import('./pages/Finanzas.jsx'))
 const Reportes         = lazy(() => import('./pages/Reportes.jsx'))
 const Discipulado      = lazy(() => import('./pages/Discipulado.jsx'))
 const Consolidacion    = lazy(() => import('./pages/Consolidacion.jsx'))
-const Oracion          = lazy(() => import('./pages/Oracion.jsx'))
 const Comunicados      = lazy(() => import('./pages/Comunicados.jsx'))
 const Eventos          = lazy(() => import('./pages/Eventos.jsx'))
 const ExcelIA          = lazy(() => import('./pages/ExcelIA.jsx'))
@@ -130,11 +128,11 @@ export default function App() {
           <Route path="/eventos"       element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="calendario"><Eventos /></UpgradeGate>} />} />
           <Route path="/mensajes"      element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="mensajes"><Mensajes /></UpgradeGate>} />} />
           <Route path="/alertas"       element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="alertas"><Alertas /></UpgradeGate>} />} />
-          <Route path="/finanzas"      element={<ProtectedRoute roles={AUDIT} element={<Finanzas />} />} />
           <Route path="/reportes"      element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="reportes"><Reportes /></UpgradeGate>} />} />
           <Route path="/discipulado"   element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="discipulado"><Discipulado /></UpgradeGate>} />} />
           <Route path="/consolidacion" element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="consolidacion"><Consolidacion /></UpgradeGate>} />} />
-          <Route path="/oracion"       element={<ProtectedRoute roles={ALL}   element={<Oracion />} />} />
+          <Route path="/finanzas"      element={<Navigate to="/" replace />} />
+          <Route path="/oracion"       element={<Navigate to="/" replace />} />
           <Route path="/comunicados"   element={<ProtectedRoute roles={MID}   element={<Comunicados />} />} />
           <Route path="/checkin"       element={<ProtectedRoute roles={MID}   element={<CheckInAdmin />} />} />
           <Route path="/excel-ia"      element={<ProtectedRoute roles={MID}   element={<ExcelIA />} />} />

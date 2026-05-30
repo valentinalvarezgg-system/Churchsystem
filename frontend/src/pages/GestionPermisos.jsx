@@ -10,13 +10,11 @@ const MODULOS = [
   { key:'calendario',    label:'Calendario',      desc:'Ver y crear eventos' },
   { key:'mensajes',      label:'Mensajería',      desc:'Enviar mensajes' },
   { key:'alertas',       label:'Alertas',         desc:'Ver alertas pastorales' },
-  { key:'finanzas',      label:'Finanzas',        desc:'Registrar ofrendas' },
   { key:'reportes',      label:'Reportes',        desc:'Generar reportes' },
   { key:'discipulado',   label:'Discipulado',     desc:'Seguimiento espiritual' },
   { key:'seguimiento',   label:'Seguimiento',     desc:'Notas pastorales' },
   { key:'historial',     label:'Historial',       desc:'Auditoría' },
   { key:'consolidacion', label:'Consolidación',   desc:'Nuevos miembros' },
-  { key:'oracion',       label:'Oración',         desc:'Peticiones' },
   { key:'comunicados',   label:'Comunicados',     desc:'Novedades internas' },
 ]
 

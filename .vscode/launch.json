@@ -1,0 +1,37 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Backend: Node (server.js)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "program": "${workspaceFolder}/backend/src/server.js",
+      "runtimeExecutable": "node",
+      "envFile": "${workspaceFolder}/backend/.env",
+      "env": {
+        "NODE_ENV": "development",
+        "PORT": "4000"
+      },
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "name": "Frontend: Chrome (Vite 5173)",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend/src"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "App completa (backend + frontend)",
+      "configurations": [
+        "Backend: Node (server.js)",
+        "Frontend: Chrome (Vite 5173)"
+      ]
+    }
+  ]
+}

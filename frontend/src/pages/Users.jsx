@@ -47,22 +47,45 @@ export default function Users() {
           <button className="btn btn-primary" onClick={()=>openModal()}>+ Nuevo usuario</button>
         </div>
         <div className="card" style={{padding:0, overflowX:'auto'}}>
-          <table style={{minWidth:500}}>
-            <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Culto</th><th>Estado</th><th>Acciones</th></tr></thead>
-            <tbody>{users.map(u=>(
-              <tr key={u.id}>
-                <td><strong>{u.nombre||'—'}</strong></td>
-                <td style={{color:'var(--text-muted)'}}>{u.email}</td>
-                <td><span className={`rol-badge rol-${u.rol}`}>{u.rol}</span></td>
-                <td style={{fontSize:12}}>{u.cultoDia||'—'}</td>
-                <td><span className={`badge ${u.activo?'badge-activo':'badge-inactivo'}`}>{u.activo?'Activo':'Inactivo'}</span></td>
-                <td style={{display:'flex',gap:6}}>
-                  <button className="btn btn-ghost btn-sm" onClick={()=>openModal(u)}>Editar</button>
-                  <button className={`btn btn-sm ${u.activo?'btn-danger':'btn-primary'}`} onClick={()=>toggle(u)}>{u.activo?'Desactivar':'Activar'}</button>
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
+          <div className="mobile-list">
+            {users.map(u => (
+              <article key={`m-${u.id}`} className="mobile-person-card">
+                <div className="mobile-person-main">
+                  <div className="mobile-person-info">
+                    <strong>{u.nombre || '—'}</strong>
+                    <span>{u.email}</span>
+                  </div>
+                  <span className={`badge ${u.activo ? 'badge-activo' : 'badge-inactivo'}`}>{u.activo ? 'Activo' : 'Inactivo'}</span>
+                </div>
+                <div className="mobile-person-meta">
+                  <span className={`rol-badge rol-${u.rol}`}>{u.rol}</span>
+                  <span>{u.cultoDia || 'Sin culto'}</span>
+                </div>
+                <div style={{display:'flex',gap:8,marginTop:10}}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => openModal(u)}>Editar</button>
+                  <button className={`btn btn-sm ${u.activo ? 'btn-danger' : 'btn-primary'}`} onClick={() => toggle(u)}>{u.activo ? 'Desactivar' : 'Activar'}</button>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="table-responsive">
+            <table style={{minWidth:500}}>
+              <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Culto</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody>{users.map(u=>(
+                <tr key={u.id}>
+                  <td><strong>{u.nombre||'—'}</strong></td>
+                  <td style={{color:'var(--text-muted)'}}>{u.email}</td>
+                  <td><span className={`rol-badge rol-${u.rol}`}>{u.rol}</span></td>
+                  <td style={{fontSize:12}}>{u.cultoDia||'—'}</td>
+                  <td><span className={`badge ${u.activo?'badge-activo':'badge-inactivo'}`}>{u.activo?'Activo':'Inactivo'}</span></td>
+                  <td style={{display:'flex',gap:6}}>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>openModal(u)}>Editar</button>
+                    <button className={`btn btn-sm ${u.activo?'btn-danger':'btn-primary'}`} onClick={()=>toggle(u)}>{u.activo?'Desactivar':'Activar'}</button>
+                  </td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
         </div>
         {modal && (
           <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>

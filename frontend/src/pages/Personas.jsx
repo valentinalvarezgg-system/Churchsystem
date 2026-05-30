@@ -234,7 +234,7 @@ export default function Personas() {
                     <td style={{whiteSpace:'nowrap'}}>
                       <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /></button>
                       <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /></button>
-                      {canDelete&&<button className="btn btn-ghost btn-sm" onClick={()=>handleDelete(p.id,p.nombre)} style={{color:'var(--c-error)'}}><Icons.Delete /></button>}
+                      {canDelete&&<button className="btn btn-ghost btn-sm" onClick={()=>handleDelete(p.id,p.nombre)} style={{color:'var(--c-danger)'}}><Icons.Delete /></button>}
                     </td>
                   </tr>
                 ))
