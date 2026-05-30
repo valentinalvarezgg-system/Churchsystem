@@ -3,6 +3,7 @@ import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
+import { toast } from '../components/Toast.jsx'
 
 const ESTADOS = ['PRIMER_CONTACTO','EN_PROCESO','COMPLETADA','TRANSFERIDA']
 const ECOLOR  = { PRIMER_CONTACTO:'#D97706', EN_PROCESO:'#2563EB', COMPLETADA:'#16A34A', TRANSFERIDA:'#64748B' }
@@ -71,7 +72,7 @@ export default function Consolidacion() {
         return { ...m, pasos: JSON.stringify(pasos) }
       })
       load()
-    } catch(e) { alert(e.message) }
+    } catch(e) { toast.error(e.message) }
   }
 
   const porEstado = e => stats?.porEstado?.find(s => s.estado===e)?.total || 0

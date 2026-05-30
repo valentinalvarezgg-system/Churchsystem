@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
+import { ConfirmModal } from '../components/Modal.jsx'
+import { toast } from '../components/Toast.jsx'
 
 const MODULOS = [
   { key:'personas',      label:'Personas',       desc:'Ver y editar miembros' },
@@ -33,6 +35,7 @@ export default function GestionPermisos() {
   const [cambios, setCambios]     = useState(false)
   const [msg, setMsg]             = useState(null)
   const [loading, setLoading]     = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
 
   useEffect(()=>{
     apiFetch('/users').then(u=>setUsuarios((u||[]).filter(u=>u.rol!=='PASTOR_GENERAL'))).catch(()=>{})
@@ -55,9 +58,8 @@ export default function GestionPermisos() {
     setLoading(false)
   }
 
-  async function resetear() {
-    if (!confirm(`¿Resetear permisos de ${selUser.nombre||selUser.email} a los defaults de su rol?`)) return
-    setLoading(true)
+  async function ejecutarReset() {
+    setConfirmReset(false); setLoading(true)
     try { await apiFetch(`/permisos/${selUser.id}/reset`,{method:'POST'}); await seleccionar(selUser); setMsg({type:'success',text:'Reseteado al rol'}) }
     catch(e) { setMsg({type:'error',text:e.message}) }
     setLoading(false)
@@ -73,7 +75,7 @@ export default function GestionPermisos() {
         <div className="page-header">
           <div><h1 className="page-title"><Icons.Shield /> Gestión de permisos</h1><p style={{fontSize:13,color:'var(--text-muted)',marginTop:2}}>Asigná qué puede ver y editar cada integrante</p></div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'260px 1fr',gap:16,alignItems:'start'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16,alignItems:'start'}}>
           <div className="card" style={{padding:0, overflowX:'auto'}}>
             <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',fontSize:12,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.4}}>Equipo ({usuarios.length})</div>
             {usuarios.length===0 ? <div className="empty" style={{padding:24}}><p>Sin usuarios</p></div>
@@ -94,7 +96,7 @@ export default function GestionPermisos() {
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:10}}>
                   <div><h2 style={{fontSize:17,fontWeight:700,margin:0}}>{selUser.nombre||selUser.email}</h2><p style={{fontSize:12,color:'var(--text-muted)',margin:'4px 0 0'}}>Rol: <strong style={{color:ROL_COLOR[selUser.rol]||'var(--text-muted)'}}>{selUser.rol}</strong></p></div>
                   <div style={{display:'flex',gap:8}}>
-                    <button className="btn btn-ghost btn-sm" data-tip="Resetear permisos al nivel por defecto del rol" onClick={resetear} disabled={loading}>↩ Resetear</button>
+                    <button className="btn btn-ghost btn-sm" data-tip="Resetear permisos al nivel por defecto del rol" onClick={()=>setConfirmReset(true)} disabled={loading}>↩ Resetear</button>
                     <button className="btn btn-primary" onClick={guardar} disabled={!cambios||loading}>{loading?'Guardando...':cambios?'💾 Guardar':'Sin cambios'}</button>
                   </div>
                 </div>
@@ -127,6 +129,12 @@ export default function GestionPermisos() {
           }
         </div>
       </main>
+      <ConfirmModal
+        open={confirmReset} onClose={()=>setConfirmReset(false)} onConfirm={ejecutarReset}
+        title="¿Resetear permisos?"
+        message={`Se resetearán los permisos de ${selUser?.nombre||selUser?.email||''} a los defaults de su rol.`}
+        confirmLabel="Resetear" cancelLabel="Cancelar"
+      />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
+import { toast } from '../components/Toast.jsx'
 
 const ETAPAS = ['NUEVO_CREYENTE','CONSOLIDADO','DISCIPULO','LIDER','MINISTRO']
 const MATERIALES = ['BIBLIA_BASICA','CONSOLIDACION_1','CONSOLIDACION_2','DISCIPULADO_1','DISCIPULADO_2','MINISTERIO']
@@ -40,15 +41,15 @@ export default function Discipulado() {
   }
 
   async function cambiarEtapa(id, etapa) {
-    try { await apiFetch(`/discipulado/${id}`,{method:'PUT',body:JSON.stringify({estadoEspiritual:etapa})}); load() } catch(e){alert(e.message)}
+    try { await apiFetch(`/discipulado/${id}`,{method:'PUT',body:JSON.stringify({estadoEspiritual:etapa})}); load() } catch(e){toast.error(e.message)}
   }
 
   async function toggleCheck(campo, valor, id) {
-    try { await apiFetch(`/discipulado/${id}`,{method:'PUT',body:JSON.stringify({[campo]:valor?0:1})}); load() } catch(e){alert(e.message)}
+    try { await apiFetch(`/discipulado/${id}`,{method:'PUT',body:JSON.stringify({[campo]:valor?0:1})}); load() } catch(e){toast.error(e.message)}
   }
 
   async function toggleMaterial(material, completado) {
-    try { await apiFetch(`/discipulado/${modal.id}/materiales/${material}`,{method:'PUT',body:JSON.stringify({completado:completado?0:1})}); setMateriales(await apiFetch(`/discipulado/${modal.id}/materiales`)||[]); load() } catch(e){alert(e.message)}
+    try { await apiFetch(`/discipulado/${modal.id}/materiales/${material}`,{method:'PUT',body:JSON.stringify({completado:completado?0:1})}); setMateriales(await apiFetch(`/discipulado/${modal.id}/materiales`)||[]); load() } catch(e){toast.error(e.message)}
   }
 
   return (
@@ -79,39 +80,60 @@ export default function Discipulado() {
           <input name="h" className="input input-search" placeholder="Buscar..." value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}}/>
           <button className="btn btn-ghost" data-tip="Quitar todos los filtros activos" onClick={()=>{setFiltroEtapa('');setSearch('');setPage(1)}}>Limpiar</button>
         </div>
-        <div className="card" style={{padding:0, overflowX:'auto'}}>
+        <div className="card" style={{padding:0}}>
           {data.length===0 ? <div className="empty"><div className="empty-icon"><Icons.Discipleship /></div><p>Sin resultados</p></div>
-            : <table style={{minWidth:500}}>
-                <thead><tr><th>Persona</th><th>Etapa</th><th>Bautismos</th><th>Materiales</th><th>Acciones</th></tr></thead>
-                <tbody>{data.map(p=>(
-                  <tr key={p.id}>
-                    <td><strong className="persona-link" data-tip="Ver perfil completo" onClick={()=>navigate(`/personas/${p.id}`)}>{p.nombre} {p.apellido}</strong>{p.liderNombre&&<div style={{fontSize:11,color:'var(--text-muted)'}}><Icons.Profile /> {p.liderNombre}</div>}</td>
-                    <td>
-                      <select name="estadoEspiritual" value={p.estadoEspiritual||'NUEVO_CREYENTE'} onChange={e=>cambiarEtapa(p.id,e.target.value)}
-                        style={{padding:'3px 8px',border:`1.5px solid ${ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}`,borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer',outline:'none',background:ETAPA_BG[p.estadoEspiritual]||'var(--c-info-bg)',color:ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}}>
-                        {ETAPAS.map(e=><option key={e} value={e}>{e.replace(/_/g,' ')}</option>)}
-                      </select>
-                    </td>
-                    <td>
-                      <div style={{display:'flex',gap:8}}>
-                        <label style={{display:'flex',gap:4,alignItems:'center',fontSize:12,cursor:'pointer',textTransform:'none',letterSpacing:0,fontWeight:400,color:'var(--text)'}}>
-                          <input name="bautizadoAgua" type="checkbox" checked={!!p.bautizadoAgua} onChange={()=>toggleCheck('bautizadoAgua',p.bautizadoAgua,p.id)} style={{accentColor:'var(--primary)'}}/> 💧
-                        </label>
-                        <label style={{display:'flex',gap:4,alignItems:'center',fontSize:12,cursor:'pointer',textTransform:'none',letterSpacing:0,fontWeight:400,color:'var(--text)'}}>
-                          <input name="bautizadoEspiritu" type="checkbox" checked={!!p.bautizadoEspiritu} onChange={()=>toggleCheck('bautizadoEspiritu',p.bautizadoEspiritu,p.id)} style={{accentColor:'var(--c-purple)'}}/> 🕊️
-                        </label>
+            : <>
+                <div className="mobile-list">
+                  {data.map(p=>(
+                    <div key={p.id} className="mobile-person-card">
+                      <div className="mobile-person-main">
+                        <strong className="persona-link" onClick={()=>navigate(`/personas/${p.id}`)}>{p.nombre} {p.apellido}</strong>
+                        <span style={{padding:'2px 8px',borderRadius:10,fontSize:11,fontWeight:700,background:ETAPA_BG[p.estadoEspiritual]||'var(--c-info-bg)',color:ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}}>{(p.estadoEspiritual||'NUEVO_CREYENTE').replace(/_/g,' ')}</span>
                       </div>
-                    </td>
-                    <td>
-                      <div style={{display:'flex',alignItems:'center',gap:6}}>
-                        <div style={{width:60,height:6,background:'var(--bg-2)',borderRadius:3,overflow:'hidden'}}><div style={{width:`${(Number(p.materialesCompletados)||0)/MATERIALES.length*100}%`,height:'100%',background:'var(--c-success)'}}/></div>
-                        <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.materialesCompletados||0}/{MATERIALES.length}</span>
+                      <div className="mobile-person-meta">
+                        {p.liderNombre && <span style={{fontSize:11,color:'var(--text-muted)'}}><Icons.Profile /> {p.liderNombre}</span>}
+                        <span style={{fontSize:11,color:'var(--text-muted)'}}>
+                          {p.bautizadoAgua?'💧 ':''}{p.bautizadoEspiritu?'🕊️ ':''}{p.materialesCompletados||0}/{MATERIALES.length} materiales
+                        </span>
                       </div>
-                    </td>
-                    <td><button className="btn btn-ghost btn-sm" data-tip="Ver y actualizar el progreso de discipulado" onClick={()=>abrirModal(p)}>Ver progreso</button></td>
-                  </tr>
-                ))}</tbody>
-              </table>
+                      <button className="btn btn-ghost btn-sm" style={{marginTop:6,width:'100%'}} onClick={()=>abrirModal(p)}>Ver progreso</button>
+                    </div>
+                  ))}
+                </div>
+                <div className="table-responsive">
+                  <table style={{minWidth:500}}>
+                    <thead><tr><th>Persona</th><th>Etapa</th><th>Bautismos</th><th>Materiales</th><th>Acciones</th></tr></thead>
+                    <tbody>{data.map(p=>(
+                      <tr key={p.id}>
+                        <td><strong className="persona-link" data-tip="Ver perfil completo" onClick={()=>navigate(`/personas/${p.id}`)}>{p.nombre} {p.apellido}</strong>{p.liderNombre&&<div style={{fontSize:11,color:'var(--text-muted)'}}><Icons.Profile /> {p.liderNombre}</div>}</td>
+                        <td>
+                          <select name="estadoEspiritual" value={p.estadoEspiritual||'NUEVO_CREYENTE'} onChange={e=>cambiarEtapa(p.id,e.target.value)}
+                            style={{padding:'3px 8px',border:`1.5px solid ${ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}`,borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer',outline:'none',background:ETAPA_BG[p.estadoEspiritual]||'var(--c-info-bg)',color:ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}}>
+                            {ETAPAS.map(e=><option key={e} value={e}>{e.replace(/_/g,' ')}</option>)}
+                          </select>
+                        </td>
+                        <td>
+                          <div style={{display:'flex',gap:8}}>
+                            <label style={{display:'flex',gap:4,alignItems:'center',fontSize:12,cursor:'pointer',textTransform:'none',letterSpacing:0,fontWeight:400,color:'var(--text)'}}>
+                              <input name="bautizadoAgua" type="checkbox" checked={!!p.bautizadoAgua} onChange={()=>toggleCheck('bautizadoAgua',p.bautizadoAgua,p.id)} style={{accentColor:'var(--primary)'}}/> 💧
+                            </label>
+                            <label style={{display:'flex',gap:4,alignItems:'center',fontSize:12,cursor:'pointer',textTransform:'none',letterSpacing:0,fontWeight:400,color:'var(--text)'}}>
+                              <input name="bautizadoEspiritu" type="checkbox" checked={!!p.bautizadoEspiritu} onChange={()=>toggleCheck('bautizadoEspiritu',p.bautizadoEspiritu,p.id)} style={{accentColor:'var(--c-purple)'}}/> 🕊️
+                            </label>
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <div style={{width:60,height:6,background:'var(--bg-2)',borderRadius:3,overflow:'hidden'}}><div style={{width:`${(Number(p.materialesCompletados)||0)/MATERIALES.length*100}%`,height:'100%',background:'var(--c-success)'}}/></div>
+                            <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.materialesCompletados||0}/{MATERIALES.length}</span>
+                          </div>
+                        </td>
+                        <td><button className="btn btn-ghost btn-sm" data-tip="Ver y actualizar el progreso de discipulado" onClick={()=>abrirModal(p)}>Ver progreso</button></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              </>
           }
         </div>
         {pages>1&&<div className="pagination"><span className="pag-info">Pág {page}/{pages} · {total}</span><button className="pag-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}>←</button><button className="pag-btn" disabled={page===pages} onClick={()=>setPage(p=>p+1)}>→</button></div>}

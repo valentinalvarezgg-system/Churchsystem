@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
+import { ConfirmModal } from '../components/Modal.jsx'
+import { toast } from '../components/Toast.jsx'
 
 const TIPOS = ['WHATSAPP', 'EMAIL']
 
@@ -28,6 +30,7 @@ export default function Mensajes() {
   const [config, setConfig]     = useState({})
   const [editPlantilla, setEditPlantilla] = useState(null)
   const [showNewP, setShowNewP] = useState(false)
+  const [confirmBorrarId, setConfirmBorrarId] = useState(null)
   const [newP, setNewP]         = useState({ nombre: '', tipo: 'WHATSAPP', contenido: '' })
   const [form, setForm]         = useState({
     tipo: 'WHATSAPP', personaId: '', grupoId: '', estado: '',
@@ -107,13 +110,16 @@ export default function Mensajes() {
       setPlantillas(p || [])
       setNewP({ nombre: '', tipo: 'WHATSAPP', contenido: '' })
       setShowNewP(false); setEditPlantilla(null)
-    } catch (err) { alert(err.message) }
+    } catch (err) { toast.error(err.message) }
   }
 
-  async function borrarPlantilla(id) {
-    if (!confirm('¿Eliminar plantilla?')) return
-    await apiFetch(`/mensajes/plantillas/${id}`, { method: 'DELETE' })
-    setPlantillas(p => p.filter(x => x.id !== id))
+  async function borrarPlantilla() {
+    if (!confirmBorrarId) return
+    try {
+      await apiFetch(`/mensajes/plantillas/${confirmBorrarId}`, { method: 'DELETE' })
+      setPlantillas(p => p.filter(x => x.id !== confirmBorrarId))
+    } catch (err) { toast.error(err.message) }
+    setConfirmBorrarId(null)
   }
 
   const todasPlantillas = [...PLANTILLAS_DEFAULT, ...plantillas]
@@ -304,7 +310,7 @@ export default function Mensajes() {
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => { setTab('enviar'); f('mensaje', p.contenido); f('tipo', p.tipo) }}>Usar</button>
                   {!String(p.id).startsWith('d') && (
-                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => borrarPlantilla(p.id)}>✕</button>
+                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmBorrarId(p.id)}>✕</button>
                   )}
                 </div>
               </div>
@@ -368,6 +374,12 @@ export default function Mensajes() {
           </div>
         )}
       </main>
+      <ConfirmModal
+        open={!!confirmBorrarId} onClose={()=>setConfirmBorrarId(null)} onConfirm={borrarPlantilla}
+        title="¿Eliminar plantilla?" danger
+        message="Esta plantilla será eliminada permanentemente."
+        confirmLabel="Eliminar" cancelLabel="Cancelar"
+      />
     </div>
   )
 }
