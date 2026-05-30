@@ -235,3 +235,49 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Uso:
   - `cd backend`
   - `RESEND_INBOUND_SECRET=... BASE_URL=https://churchsystem.com.ar ./scripts/smoke-resend-inbound.sh`
+
+---
+
+## Runbook — Deploy 2.7 (anti-drift)
+
+Objetivo: evitar desalineación entre `master`, Render y Mac/Cloudflare.
+
+### Regla madre
+- **Un dominio productivo = una fuente de tráfico activa**.
+- Para `churchsystem.com.ar`, elegir solo una:
+  1. Render (recomendado producción), o
+  2. Mac + Cloudflare Tunnel (modo operador/local).
+- Nunca alternar ambas sin registrar cambio de modo en bitácora.
+
+### Checklist de deploy (10 pasos)
+1. `git pull` y validar que `master` local = `origin/master`.
+2. Confirmar build local:
+   - `cd frontend && pnpm build`
+   - `cd backend && pnpm audit:launch`
+3. Confirmar que no hay cambios sin commit (`git status` limpio).
+4. Verificar variables críticas en Render backend:
+   - `JWT_SECRET`, `DATABASE_URL`, `BASE_URL`, `FRONTEND_URL`, `PUBLIC_URL`
+   - `RESEND_API_KEY`, `RESEND_INBOUND_SECRET`, `OWNER_REPORTS_EMAIL`, `SUPPORT_EMAIL`
+5. Forzar deploy manual de backend y frontend en Render (si no auto-dispara).
+6. Revisar logs de backend:
+   - no debe aparecer `Configuracion insegura para arrancar`
+   - no debe haber crash loop
+7. Verificar endpoint:
+   - `GET /health` => `{ "status":"ok" }`
+8. Validar app:
+   - login
+   - navegación `/app`
+   - al menos 1 pantalla de cada núcleo (Personas, Asistencia, Mensajes, Configuración)
+9. Validar correo:
+   - salida: `POST /config/email-test` (desde UI Configuración)
+   - inbound: `backend/scripts/smoke-resend-inbound.sh`
+10. Registrar en bitácora:
+   - commit desplegado,
+   - fuente activa de dominio (Render o Cloudflare),
+   - resultado del smoke.
+
+### Modo de operación (declaración obligatoria)
+- `MODO_RENDER_PROD`: dominio resuelto a Render.
+- `MODO_CLOUDFLARE_LOCAL`: dominio/túnel apuntando a Mac.
+
+Antes de cualquier troubleshooting de deploy, declarar modo vigente en bitácora.
