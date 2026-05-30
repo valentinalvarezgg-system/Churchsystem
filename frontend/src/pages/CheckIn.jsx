@@ -221,25 +221,29 @@ export default function CheckInAdmin() {
               </div>
 
               {/* Info de red */}
-              <div style={{
-                margin:'0 0 16px', padding:'10px 14px',
-                background: qrData.isPublic ? 'rgba(22,163,74,0.08)' : 'var(--c-warning-bg)',
-                borderRadius:'var(--r)',
-                border: `1px solid ${qrData.isPublic ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.25)'}`,
-                textAlign:'left'
-              }}>
-                <p style={{fontSize:11, fontWeight:700, color: qrData.isPublic ? 'var(--c-success)' : 'var(--c-warning)', textTransform:'uppercase', letterSpacing:.4, marginBottom:4}}>
-                  {qrData.isPublic ? '🌐 Acceso público' : '⚠ Acceso local'}
-                </p>
-                <p style={{fontSize:12, color:'var(--text-2)', wordBreak:'break-all', fontFamily:'monospace'}}>
-                  {qrData.url}
-                </p>
-                <p style={{fontSize:11, marginTop:4, color: qrData.isPublic ? 'var(--c-success)' : 'var(--c-warning)'}}>
-                  {qrData.isPublic
-                    ? '✓ Funciona desde cualquier red y datos móviles'
-                    : 'Solo funciona en la misma WiFi. Configurá FRONTEND_URL en Render para acceso público.'}
-                </p>
-              </div>
+              {(() => {
+                const isTempTunnel = qrData.url?.includes('trycloudflare.com')
+                const bg    = qrData.isPublic && !isTempTunnel ? 'rgba(22,163,74,0.08)' : 'var(--c-warning-bg)'
+                const bdr   = qrData.isPublic && !isTempTunnel ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.25)'
+                const color = qrData.isPublic && !isTempTunnel ? 'var(--c-success)' : 'var(--c-warning)'
+                const label = !qrData.isPublic
+                  ? '⚠ Solo WiFi local'
+                  : isTempTunnel
+                  ? '⚠ URL temporal (Cloudflare)'
+                  : '🌐 Acceso público'
+                const msg = !qrData.isPublic
+                  ? 'Solo funciona en la misma red WiFi. Para acceso público configurá FRONTEND_URL en Render.'
+                  : isTempTunnel
+                  ? 'Este link expira cuando se cierra el túnel. Regenerá el QR después de cada reinicio, o usá la URL de producción (churchsystem.com.ar).'
+                  : '✓ Funciona desde cualquier red y datos móviles'
+                return (
+                  <div style={{margin:'0 0 16px',padding:'10px 14px',background:bg,borderRadius:'var(--r)',border:`1px solid ${bdr}`,textAlign:'left'}}>
+                    <p style={{fontSize:11,fontWeight:700,color,textTransform:'uppercase',letterSpacing:.4,marginBottom:4}}>{label}</p>
+                    <p style={{fontSize:12,color:'var(--text-2)',wordBreak:'break-all',fontFamily:'monospace',marginBottom:4}}>{qrData.url}</p>
+                    <p style={{fontSize:11,color}}>{msg}</p>
+                  </div>
+                )
+              })()}
 
               {/* Botones */}
               <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:8}}>
