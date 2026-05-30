@@ -120,19 +120,18 @@
       Alertas, Asistencia, Calendario, Comunicados, Consolidacion, Discipulado,
       GestionPermisos, Mensajes, Perfil, Users. (**Completado** — ninguna página usa
       `window.alert()` ni `window.confirm()` en el frontend.)
-- [ ] Estados de *loading / empty / error* consistentes en todas las páginas.
+- [x] ~~Estados de *loading / empty / error* en todas las páginas~~ — Grupos, Comunicados,
+      Consolidacion, Discipulado, Oracion, Finanzas, Calendario, Asistencia.
+- [ ] Comunicados: tabla de cards en mobile (actualmente lista, funciona en mobile).
 
 ### P3 — Backend / limpieza
-- [ ] Consolidar loggers: 6 rutas crean su propio `pino` y se saltan la redacción
-      de secretos de `lib/logger.js` (auth.js, bug-report.js, mercadopago.js,
-      notificaciones.js, oauth.js, registro.js).
-- [ ] Defaults inseguros: `QR_SECRET` (default débil en checkin.js), `frontUrl`
-      fallback `localhost:4000` en oauth.js, `PUBLIC_URL` fallback a prod en mercadopago.js.
+- [x] ~~Consolidar loggers~~ — auth.js, bug-report.js, mercadopago.js, notificaciones.js,
+      oauth.js, registro.js ahora usan `lib/logger.js` con redacción de secretos.
+- [x] ~~Defaults inseguros~~ — `QR_SECRET` usa `randomBytes` al inicio si no está en env;
+      `frontUrl` fallback `localhost:4000` eliminado de oauth.js.
 - [x] ~~Completar `backend/.env.example`~~ (hecho, sesión 2026-05-30)
-- [ ] `server.js`: el regex `isApi` no cubre `/mi-perfil`, `/excel-ia`,
-      `/registro` ni `/checkin` completo → un 404 en esas rutas devuelve HTML
-      en vez de JSON.
-- [ ] Evaluar quitar dependencia `zod` (no se usa en ningún archivo).
+- [x] ~~`server.js`: regex `isApi` no cubría `/mi-perfil`, `/excel-ia`, `/godmode`~~ — corregido.
+- [x] ~~Quitar dependencia `zod`~~ — eliminada de `backend/package.json`.
 - [ ] Revisar exports muertos: `billing.js` (currencyForCountry, formatMoney,
       publicBillingContext), `plan.js` (getModulosPlan), `auth.js`
       (requireRole alias, requirePermiso, requireTenant), `security.js`
@@ -141,6 +140,17 @@
 ---
 
 ## 📝 Bitácora de cambios (más reciente arriba)
+
+### 2026-05-30 (sesión 4) — Claude
+- **Loading/error states JSX** en 8 páginas: Grupos, Comunicados, Consolidacion, Discipulado,
+  Oracion, Finanzas, Calendario, Asistencia — spinner + error alert visibles al usuario.
+- **Consolidacion catch** corregido: `catch {}` → `catch(e) { setError(e.message) }`.
+- **Loggers consolidados**: 6 rutas (auth, registro, oauth, bug-report, mercadopago, notificaciones)
+  ahora importan `lib/logger.js` con redacción de secretos en lugar de crear pino local.
+- **Seguridad**: `QR_SECRET` usa `randomBytes(32)` por defecto; `localhost:4000` eliminado
+  de oauth.js; `zod` sin uso eliminado de backend/package.json.
+- **Comunicados**: label de destinatarios visible en la card cuando no es TODOS.
+- Build OK. Pushed a `master`.
 
 ### 2026-05-30 (sesión 3) — Claude
 - **Migración Neon ejecutada:** tablas `Evento`, `Oracion`, `OracionApoyo`, `Consolidacion`,
