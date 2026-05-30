@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
-import * as XLSX from 'xlsx'
+import XLSX from '../lib/xlsx-safe.js'
 
 const router = Router()
 
@@ -85,7 +85,7 @@ router.get('/personas', requireAuth, async (req, res) => {
     ['Estado', 'Cantidad'], ...stats.map(s => [s.estado, Number(s.total)])
   ]), 'Resumen')
 
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  const buf = await XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   res.setHeader('Content-Disposition', `attachment; filename="membresia-${Date.now()}.xlsx"`)
   res.send(buf)
@@ -128,7 +128,7 @@ router.get('/asistencia/:cultoId', requireAuth, async (req, res) => {
   ws['!cols'] = COLS
   XLSX.utils.book_append_sheet(wb, ws, culto.nombre.slice(0, 31))
 
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  const buf = await XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   res.setHeader('Content-Disposition', `attachment; filename="asistencia-${culto.fecha}.xlsx"`)
   res.send(buf)
@@ -267,7 +267,7 @@ router.get('/seguimientos', requireAuth, async (req, res) => {
   const ws = XLSX.utils.json_to_sheet(rows)
   ws['!cols'] = [{ wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 50 }, { wch: 14 }, { wch: 18 }, { wch: 20 }]
   XLSX.utils.book_append_sheet(wb, ws, 'Seguimientos')
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  const buf = await XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   res.setHeader('Content-Disposition', 'attachment; filename="seguimientos.xlsx"')
   res.send(buf)
@@ -302,7 +302,7 @@ router.get('/excel/personas', requireAuth, async (req, res) => {
   const ws = XLSX.utils.aoa_to_sheet(sheetData)
   ws['!cols'] = [{ wch: 4 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 5 }, { wch: 3 }, { wch: 22 }, { wch: 10 }, { wch: 28 }]
   XLSX.utils.book_append_sheet(wb, ws, 'MEMBRESÍA')
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  const buf = await XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   res.setHeader('Content-Disposition', `attachment; filename="membresia-${new Date().toISOString().slice(0, 10)}.xlsx"`)
   res.send(buf)

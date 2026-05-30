@@ -128,3 +128,11 @@ Rama principal: `master`
   - Frontend: sin vulnerabilidades conocidas.
   - Backend: persiste riesgo alto en `xlsx` (advisories GHSA-4r6h-8v6p-xvw6 y GHSA-5pgg-2g8v-p4x9) sin parche estable en el paquete actual; mitigado por limites de entrada y pendiente de migracion de libreria Excel.
 - Verificacion post-bloque: `backend pnpm audit:launch` OK.
+- Se completo migracion de seguridad Excel:
+  - Eliminado uso de `xlsx` en rutas backend (`import`, `export`, `excel_ia`, `finanzas`).
+  - Incorporado wrapper interno [`backend/src/lib/xlsx-safe.js`](/Users/Valentin/Desktop/church-system-alpha/backend/src/lib/xlsx-safe.js) sobre `exceljs` para mantener compatibilidad de endpoints sin romper contrato.
+  - Dependencias actualizadas: removido `xlsx`, agregado `exceljs`.
+  - Override de `uuid` a `^11.1.1` para resolver advisory transitivo moderado en auditoria.
+- Estado auditoria tras migracion:
+  - `backend pnpm audit --prod --audit-level=moderate`: sin vulnerabilidades conocidas.
+  - `backend pnpm audit:launch`: OK.

@@ -3,7 +3,7 @@ import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { ensureOperationalTenantDataSynced } from '../lib/core-sync.js'
 import { requireAuth, requireRol } from '../middlewares/auth.js'
 import { registrar } from '../utils/auditoria.js'
-import * as XLSX from 'xlsx'
+import XLSX from '../lib/xlsx-safe.js'
 
 const router = Router()
 
@@ -159,7 +159,7 @@ router.get('/export', requireAuth, async (req, res) => {
   )
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Finanzas')
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  const buf = await XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   res.setHeader('Content-Disposition', 'attachment; filename=\"finanzas.xlsx\"')
   res.send(buf)

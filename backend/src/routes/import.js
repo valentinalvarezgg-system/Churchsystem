@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { pgExec, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { registrar } from '../utils/auditoria.js'
-import * as XLSX from 'xlsx'
+import XLSX from '../lib/xlsx-safe.js'
 
 const router = Router()
 const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024
@@ -22,7 +22,7 @@ router.post('/preview', requireAuth, (req, res) => {
   const { file } = req.body || {}
   if (!file) return res.status(400).json({ error: 'Archivo requerido (base64)' })
   try {
-    const wb = XLSX.read(decodeBase64Excel(file), { type: 'buffer', dense: true })
+    const wb = await XLSX.read(decodeBase64Excel(file), { type: 'buffer', dense: true })
     if (!wb?.SheetNames?.length) return res.status(400).json({ error: 'Excel sin hojas' })
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' })
     if (rows.length > MAX_IMPORT_ROWS) return res.status(413).json({ error: `Demasiadas filas (máx ${MAX_IMPORT_ROWS})` })
@@ -48,7 +48,7 @@ router.post('/personas', requireAuth, async (req, res) => {
   }
 
   try {
-    const wb = XLSX.read(decodeBase64Excel(file), { type: 'buffer', dense: true })
+    const wb = await XLSX.read(decodeBase64Excel(file), { type: 'buffer', dense: true })
     if (!wb?.SheetNames?.length) return res.status(400).json({ error: 'Excel sin hojas' })
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' })
     if (rows.length > MAX_IMPORT_ROWS) return res.status(413).json({ error: `Demasiadas filas (máx ${MAX_IMPORT_ROWS})` })

@@ -5,7 +5,7 @@ import { Router } from 'express'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { registrar } from '../utils/auditoria.js'
-import * as XLSX from 'xlsx'
+import XLSX from '../lib/xlsx-safe.js'
 
 const router = Router()
 
@@ -74,7 +74,7 @@ router.post('/analizar', requireAuth, async (req, res) => {
 
   try {
     let wb
-    try { wb = XLSX.read(Buffer.from(file, 'base64'), { type: 'buffer' }) }
+    try { wb = await XLSX.read(Buffer.from(file, 'base64'), { type: 'buffer' }) }
     catch (_) { return res.status(400).json({ error: 'El archivo no es un Excel válido (.xlsx).' }) }
 
     if (!wb.SheetNames?.length) return res.status(400).json({ error: 'El archivo Excel no tiene hojas de datos.' })
@@ -135,7 +135,7 @@ router.post('/importar', requireAuth, async (req, res) => {
 
   try {
     let wb
-    try { wb = XLSX.read(Buffer.from(file, 'base64'), { type: 'buffer' }) }
+    try { wb = await XLSX.read(Buffer.from(file, 'base64'), { type: 'buffer' }) }
     catch (_) { return res.status(400).json({ error: 'El archivo no es un Excel válido.' }) }
 
     const sheetKey = hojaSeleccionada ?? elegirHoja(wb)
@@ -377,7 +377,7 @@ router.post('/exportar', requireAuth, async (req, res) => {
     ...stats.map(s => [s.estado, Number(s.total)]),
   ]), 'Resumen')
 
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  const buf = await XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}-${new Date().toISOString().slice(0, 10)}.xlsx"`)
   res.send(buf)
