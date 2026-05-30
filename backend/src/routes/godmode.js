@@ -41,6 +41,32 @@ function userPayload(user) {
   }
 }
 
+async function ensureGodModeUserFromEnv(inputEmail = '') {
+  const envEmail = String(process.env.GODMODE_USER_EMAIL || '').trim().toLowerCase()
+  const envPassword = String(process.env.GODMODE_USER_PASSWORD || '').trim()
+  if (!envEmail || !envPassword) return null
+  if (inputEmail && inputEmail !== envEmail) return null
+
+  const exists = await pgOne(
+    'SELECT * FROM "User" WHERE lower("email")=lower($1) AND "deletedAt" IS NULL LIMIT 1',
+    [envEmail]
+  )
+  if (exists) return exists
+
+  const hash = await bcrypt.hash(envPassword, 12)
+  const created = await pgOne(
+    `INSERT INTO "User"
+      ("email","password","nombre","apellido","activo","emailVerificado","iglesiaId","rolId","createdAt","updatedAt",
+       "rol","plan","pais","divisa","idioma","iglesia")
+     VALUES
+      ($1,$2,'Owner','GodMode',true,true,NULL,NULL,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,
+       'GODMODE','GODMODE','AR','USD','es','GodMode')
+     RETURNING *`,
+    [envEmail, hash]
+  )
+  return created
+}
+
 async function issueSession(req, user) {
   const payload = userPayload(user)
   const accessToken = signAccessToken(payload)
@@ -55,15 +81,42 @@ async function issueSession(req, user) {
 router.post('/login', async (req, res) => {
   const { email = '', password = '' } = req.body || {}
   if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' })
-  const user = await pgOne(
+
+  const normalizedEmail = String(email).toLowerCase().trim()
+  let user = await pgOne(
     'SELECT * FROM "User" WHERE lower("email")=lower($1) AND "activo"=true AND "deletedAt" IS NULL LIMIT 1',
-    [String(email).toLowerCase()]
+    [normalizedEmail]
   )
-  if (!user || user.rol !== 'GODMODE') return res.status(401).json({ error: 'Credenciales inválidas' })
-  const ok = await bcrypt.compare(password, user.password || '')
+  if (!user) user = await ensureGodModeUserFromEnv(normalizedEmail)
+  if (!user || user.rol !== 'GODMODE') {
+    const hasEnv = !!String(process.env.GODMODE_USER_EMAIL || '').trim() && !!String(process.env.GODMODE_USER_PASSWORD || '').trim()
+    return res.status(401).json({
+      error: hasEnv
+        ? 'Credenciales inválidas'
+        : 'GodMode no configurado en servidor (faltan GODMODE_USER_EMAIL y GODMODE_USER_PASSWORD).',
+    })
+  }
+
+  const ok = await bcrypt.compare(String(password), user.password || '')
   if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' })
   const session = await issueSession(req, user)
   return res.json(session)
+})
+
+router.get('/login-status', async (_req, res) => {
+  const envEmail = String(process.env.GODMODE_USER_EMAIL || '').trim().toLowerCase()
+  const envPassword = String(process.env.GODMODE_USER_PASSWORD || '').trim()
+  const dbUser = envEmail
+    ? await pgOne('SELECT "id","email","rol","activo" FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [envEmail])
+    : null
+  return res.json({
+    ok: true,
+    envConfigured: !!envEmail && !!envPassword,
+    envEmail: envEmail || null,
+    dbUserExists: !!dbUser,
+    dbUserRole: dbUser?.rol || null,
+    dbUserActive: dbUser?.activo ?? null,
+  })
 })
 
 router.get('/overview', requireAuth, requireGodMode, async (_req, res) => {
