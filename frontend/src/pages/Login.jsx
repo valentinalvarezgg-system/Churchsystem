@@ -36,6 +36,12 @@ const S = {
     background:'linear-gradient(135deg,#6B5CFF,#4845D2)',
     color:'white', border:'none', borderRadius:12,
     cursor:'pointer', transition:'all .2s', letterSpacing:.3 },
+  btnContent: { display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8 },
+  btnSpinner: {
+    width: 14, height: 14, borderRadius: '50%',
+    border: '2px solid rgba(255,255,255,0.35)', borderTopColor: 'white',
+    animation: 'csSpin 0.8s linear infinite',
+  },
   divider: { display:'flex', alignItems:'center', gap:12, margin:'20px 0' },
   divLine: { flex:1, height:1, background:'rgba(255,255,255,0.07)' },
   divText: { fontSize:12, color:'#475569', fontWeight:500 },
@@ -133,6 +139,7 @@ export default function Login() {
 
   return (
     <div style={S.bg}>
+      <style>{'@keyframes csSpin{to{transform:rotate(360deg)}}'}</style>
       <div style={S.orb1} />
       <div style={S.orb2} />
 
@@ -209,7 +216,10 @@ export default function Login() {
           </div>
           <button type="submit" disabled={loading}
             style={{...S.btnPrimary, opacity: loading ? .7 : 1}}>
-            {loading ? t('submitting') : t('submit')}
+            <span style={S.btnContent}>
+              {loading && <span style={S.btnSpinner} />}
+              <span>{loading ? t('submitting') : t('submit')}</span>
+            </span>
           </button>
         </form>
 
