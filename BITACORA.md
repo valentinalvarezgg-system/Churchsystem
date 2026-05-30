@@ -89,36 +89,37 @@
   `getApiUrl()` en Asistencia, ExcelIA y CheckIn.
 - **Robustez móvil base:** safe-area insets, tap-highlight, `touch-action`,
   `overscroll-behavior`, breakpoints por orientación, modales bottom-sheet.
+- **App Store (iOS):** Capacitor configurado, QR scanner nativo implementado,
+  eliminación de cuenta en-app (guideline 5.1.1), manifest.json corregido.
+  Ver `APPSTORE.md` para el proceso completo de publicación.
 
 ---
 
 ## 🗺️ Pendientes / Roadmap (por prioridad)
 
 ### P0 — Deploy / infraestructura (bloquea funciones nuevas)
-- [ ] **Ejecutar la migración SQL** `backend/prisma/migrations/20260529200000_community_features_pg/migration.sql`
-      en Neon. Crea las tablas `Evento`, `Oracion`, `OracionApoyo`, `Consolidacion`,
-      `DiscipuladoProg`, `Familiar`, `ContactoExtra`, `VisitaOrigen`. **Sin esto,
-      `/eventos`, `/oracion`, `/comunicados`, `/consolidacion` y `/discipulado`
-      fallan en producción.**
+- [x] ~~Ejecutar migración SQL en Neon~~ — tablas `Evento`, `Oracion`, `OracionApoyo`,
+      `Consolidacion`, `DiscipuladoProg`, `Familiar`, `ContactoExtra`, `VisitaOrigen`
+      creadas el 2026-05-30.
+- [ ] Configurar `DATABASE_URL` en Render (Environment Variables) si no está seteada.
 - [ ] Confirmar auto-deploy de Render desde `master`.
 
 ### P1 — Móvil (90% de los clientes) 🔥 PRIORIDAD ESPECIAL
-- [ ] Auditar **todas** las páginas con `<table>` y agregar vista alternativa en
-      cards (`.mobile-list`) donde falte. Revisar: Grupos, Finanzas, Reportes,
-      Discipulado, Consolidacion, Comunicados, Oracion, Eventos, Users,
-      PromoCodes, GestionPermisos, Historial.
-- [ ] `bottom-nav` y `landscape-rail` (en `Menu.jsx`): los links son fijos y
-      pueden no aplicar al rol `LIDER`. Hacerlos **role-aware**.
+- [x] ~~Vista móvil en cards para Finanzas, Discipulado~~ (`.mobile-list` + `.table-responsive`)
+- [x] ~~Role-aware sidebar para rol `LIDER`~~ — sección propia con Personas/Grupos/Mensajes.
+- [ ] Auditar páginas con `<table>` pendientes: Grupos, Reportes, Consolidacion,
+      Comunicados, Oracion, Eventos, Users, PromoCodes, GestionPermisos, Historial.
+      (Historial y Reportes ya tienen vista móvil.)
 - [ ] Formularios largos (Perfil, Registro, Configuracion): verificar 1 columna,
       inputs ≥44px y teclado que no tape campos en iOS.
 - [ ] Probar el flujo **público de CheckIn (QR)** en un móvil real.
 - [ ] Verificar safe-area (notch / home-bar) en todas las pantallas `fixed`.
 
 ### P2 — UI/UX
-- [ ] Reemplazar los ~30 `alert()`/`confirm()` nativos por Toast/Modal. Páginas
-      afectadas: Alertas, Asistencia, Calendario, CheckIn, Comunicados,
-      Consolidacion, Discipulado, Eventos, Finanzas, GestionPermisos, Grupos,
-      Mensajes, Oracion, Perfil, Personas, Users.
+- [x] ~~`alert()`/`confirm()` reemplazados por toast/ConfirmModal en TODAS las páginas~~
+      Alertas, Asistencia, Calendario, Comunicados, Consolidacion, Discipulado,
+      GestionPermisos, Mensajes, Perfil, Users. (**Completado** — ninguna página usa
+      `window.alert()` ni `window.confirm()` en el frontend.)
 - [ ] Estados de *loading / empty / error* consistentes en todas las páginas.
 
 ### P3 — Backend / limpieza
@@ -127,12 +128,10 @@
       notificaciones.js, oauth.js, registro.js).
 - [ ] Defaults inseguros: `QR_SECRET` (default débil en checkin.js), `frontUrl`
       fallback `localhost:4000` en oauth.js, `PUBLIC_URL` fallback a prod en mercadopago.js.
-- [ ] Completar `backend/.env.example`: `DATABASE_URL`, `OPENAI_API_KEY`,
-      `QR_SECRET`, `CORS_ORIGINS`, `APPLE_REDIRECT_URI`, `PG_POOL_MAX`.
+- [x] ~~Completar `backend/.env.example`~~ (hecho, sesión 2026-05-30)
 - [ ] `server.js`: el regex `isApi` no cubre `/mi-perfil`, `/excel-ia`,
       `/registro` ni `/checkin` completo → un 404 en esas rutas devuelve HTML
       en vez de JSON.
-- [ ] `server.js`: doble llamada a `cargarConfigEnv()`.
 - [ ] Evaluar quitar dependencia `zod` (no se usa en ningún archivo).
 - [ ] Revisar exports muertos: `billing.js` (currencyForCountry, formatMoney,
       publicBillingContext), `plan.js` (getModulosPlan), `auth.js`
@@ -143,7 +142,32 @@
 
 ## 📝 Bitácora de cambios (más reciente arriba)
 
-### 2026-05-30 — Claude
+### 2026-05-30 (sesión 3) — Claude
+- **Migración Neon ejecutada:** tablas `Evento`, `Oracion`, `OracionApoyo`, `Consolidacion`,
+  `DiscipuladoProg`, `Familiar`, `ContactoExtra`, `VisitaOrigen` creadas en producción.
+- **`alert()`/`confirm()` eliminados en todas las páginas**: GestionPermisos, Mensajes,
+  Consolidacion, Discipulado, Perfil — todos usan `toast` / `ConfirmModal` ahora.
+- **Vista móvil Discipulado**: cards `.mobile-list` + tabla `.table-responsive`.
+- **GestionPermisos**: grilla `260px 1fr` → `repeat(auto-fit,minmax(260px,1fr))` (responsive).
+- **Perfil**: bug `setPersona` corregido → `load()`; botón ✕ para eliminar foto;
+  ConfirmModals para quitar familiar, eliminar contacto y eliminar foto.
+- **LIDER sidebar**: sección propia con Personas / Grupos / Mensajes (antes vacío en desktop).
+
+### 2026-05-30 (sesión 2) — Claude — App Store
+- **Capacitor nativo**: `frontend/capacitor.config.ts` con config iOS completa
+  (scheme, backgroundColor, limitsNavigationsToAppBoundDomains, plugins).
+- **QR scanner nativo** (`QRScannerNativo.jsx`): botón visible solo en iOS/Android
+  nativo; usa `@capacitor-mlkit/barcode-scanning` con dynamic import para no
+  romper en web; navega internamente a CheckInPublico si el QR es de la app.
+- **Capacitor deps** en `package.json` + scripts `cap:sync`, `cap:ios`, `ios`.
+- **Eliminación de cuenta** (Apple guideline 5.1.1): UI en MiPerfil + endpoint
+  `DELETE /mi-perfil/cuenta` con confirmación por contraseña.
+- **manifest.json** corregido: `start_url: "/app/"`, `scope: "/app/"`, iconos
+  separados por `any`/`maskable`.
+- **`APPSTORE.md`**: guía paso a paso completa para publicar en App Store.
+- `alert()` reemplazado por `toast.error()` en CheckIn.jsx (era el último).
+
+### 2026-05-30 (sesión 1) — Claude
 - Creados `.github/copilot-instructions.md`, `AGENTS.md` y `CLAUDE.md`
   para continuidad entre herramientas IA.
 - `BITACORA.md` actualizada con fecha y estado de hoy.

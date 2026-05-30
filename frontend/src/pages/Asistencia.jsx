@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser, getApiUrl } from '../services/api.js'
+import { ConfirmModal } from '../components/Modal.jsx'
+import { toast } from '../components/Toast.jsx'
 
 const DIAS_REGULARES = ['LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO']
 const CULTOS_ESPECIALES = ['Oración','Mujeres','Sanos por la Palabra','Pre-Adolescentes','Adolescentes','Jóvenes','Jóvenes Adultos','Escuelita']
@@ -19,6 +21,7 @@ export default function Asistencia() {
   const [modal, setModal]         = useState(false)
   const [form, setForm]           = useState({ nombre:'', fecha:new Date().toISOString().slice(0,10), cultoDia:'DOMINGO', cultoTurno:0, observaciones:'', esEspecial:false, nombreEspecial:'', horario:'18hs' })
   const [msg, setMsg]             = useState(null)
+  const [confirmDelCulto, setConfirmDelCulto] = useState(null)
 
   async function loadCultos() {
     try { setCultos(await apiFetch('/cultos') || []) } catch {}
@@ -56,13 +59,15 @@ export default function Asistencia() {
     try {
       await apiFetch('/cultos', { method:'POST', body:JSON.stringify({...form, cultoTurno:Number(form.cultoTurno)||0}) })
       setModal(false); loadCultos()
-    } catch(e) { alert(e.message) }
+    } catch(e) { toast.error(e.message) }
   }
 
-  async function eliminarCulto(id) {
-    if (!confirm('¿Eliminar este culto y su asistencia?')) return
-    try { await apiFetch(`/cultos/${id}`,{method:'DELETE'}); setSelected(null); setDetalle(null); loadCultos() }
-    catch(e) { alert(e.message) }
+  async function eliminarCulto() {
+    if (!confirmDelCulto) return
+    try {
+      await apiFetch(`/cultos/${confirmDelCulto}`,{method:'DELETE'})
+      setConfirmDelCulto(null); setSelected(null); setDetalle(null); loadCultos()
+    } catch(e) { toast.error(e.message) }
   }
 
   const cultoActual = cultos.find(c=>Number(c.id)===Number(selected))
@@ -104,7 +109,7 @@ export default function Asistencia() {
                       {canManage && <>
                         <button className="btn btn-primary btn-sm" onClick={guardar} disabled={saving}>{saving?'Guardando...':'💾 Guardar'}</button>
                         <button className="btn btn-ghost btn-sm" data-tip="Descargar planilla Excel con la asistencia" onClick={()=>window.open(`${getApiUrl()}/export/asistencia/${selected}?token=${localStorage.getItem("token")}`,"_blank")}>↑ Exportar</button>
-                        <button className="btn btn-danger btn-sm" data-tip="Eliminar este culto y su registro de asistencia" onClick={()=>eliminarCulto(selected)}>Eliminar</button>
+                        <button className="btn btn-danger btn-sm" data-tip="Eliminar este culto y su registro de asistencia" onClick={()=>setConfirmDelCulto(selected)}>Eliminar</button>
                       </>}
                     </div>
                   </div>
@@ -191,6 +196,12 @@ export default function Asistencia() {
           </div>
         )}
       </main>
+      <ConfirmModal
+        open={!!confirmDelCulto} onClose={()=>setConfirmDelCulto(null)} onConfirm={eliminarCulto}
+        title="¿Eliminar culto?" danger
+        message="Se eliminará el culto y todo su registro de asistencia. Esta acción es permanente."
+        confirmLabel="Eliminar" cancelLabel="Cancelar"
+      />
     </div>
   )
 }

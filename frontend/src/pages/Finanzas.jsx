@@ -235,53 +235,56 @@ export default function Finanzas() {
           </span>
         </div>
 
-        {/* Tabla */}
-        <div className="card" style={{padding:0, overflowX:'auto'}}>
+        {/* Tabla / Cards */}
+        <div className="card" style={{padding:0}}>
           {data.length === 0
             ? <div className="empty"><div className="empty-icon"><Icons.Finance /></div><p>Sin registros para los filtros seleccionados</p></div>
-            : <table style={{minWidth:500}}>
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Tipo</th>
-                    <th>Monto</th>
-                    <th>Culto</th>
-                    <th>Descripción</th>
-                    <th>Registrado por</th>
-                    {isAdmin && <th></th>}
-                  </tr>
-                </thead>
-                <tbody>
+            : <>
+                <div className="mobile-list">
                   {data.map(r => (
-                    <tr key={r.id}>
-                      <td style={{fontSize:13,fontWeight:500,color:'var(--text)'}}>{r.fecha}</td>
-                      <td>
-                        <span style={{
-                          padding:'3px 10px', borderRadius:12, fontSize:11, fontWeight:700,
-                          background: TIPO_COLOR[r.tipo]+'18',
-                          color: TIPO_COLOR[r.tipo]
-                        }}>
+                    <article key={`m-${r.id}`} className="mobile-person-card">
+                      <div className="mobile-person-main">
+                        <div className="mobile-person-info">
+                          <strong style={{color:'var(--c-green-dark)',fontSize:16}}>{fmtMoney(r.monto, currency)}</strong>
+                          <span style={{fontSize:11,color:'var(--text-muted)'}}>{r.fecha} · {r.autorNombre||'—'}</span>
+                        </div>
+                        <span style={{padding:'3px 10px',borderRadius:12,fontSize:11,fontWeight:700,background:TIPO_COLOR[r.tipo]+'18',color:TIPO_COLOR[r.tipo],flexShrink:0}}>
                           {TIPO_ICON[r.tipo]} {r.tipo}
                         </span>
-                      </td>
-                      <td style={{fontWeight:800, color:'var(--c-green-dark)', fontSize:14}}>
-                        {fmtMoney(r.monto, currency)}
-                      </td>
-                      <td style={{fontSize:12,color:'var(--text-muted)'}}>{r.cultoNombre||'—'}</td>
-                      <td style={{fontSize:12,maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                        {r.descripcion||'—'}
-                      </td>
-                      <td style={{fontSize:11,color:'var(--text-muted)'}}>{r.autorNombre||'—'}</td>
-                      {isAdmin && (
-                        <td>
-                          <button className="btn btn-danger btn-xs" data-tip="Eliminar registro"
-                            onClick={() => setConfirmDel(r.id)}>✕</button>
-                        </td>
+                      </div>
+                      {(r.cultoNombre||r.descripcion) && (
+                        <div className="mobile-person-meta">
+                          {r.cultoNombre && <span>{r.cultoNombre}</span>}
+                          {r.descripcion && <span>{r.descripcion}</span>}
+                        </div>
                       )}
-                    </tr>
+                      {isAdmin && <div style={{marginTop:8}}><button className="btn btn-danger btn-sm" onClick={() => setConfirmDel(r.id)}>Eliminar</button></div>}
+                    </article>
                   ))}
-                </tbody>
-              </table>
+                </div>
+                <div className="table-responsive">
+                  <table style={{minWidth:500}}>
+                    <thead><tr>
+                      <th>Fecha</th><th>Tipo</th><th>Monto</th>
+                      <th>Culto</th><th>Descripción</th><th>Registrado por</th>
+                      {isAdmin && <th></th>}
+                    </tr></thead>
+                    <tbody>
+                      {data.map(r => (
+                        <tr key={r.id}>
+                          <td style={{fontSize:13,fontWeight:500,color:'var(--text)'}}>{r.fecha}</td>
+                          <td><span style={{padding:'3px 10px',borderRadius:12,fontSize:11,fontWeight:700,background:TIPO_COLOR[r.tipo]+'18',color:TIPO_COLOR[r.tipo]}}>{TIPO_ICON[r.tipo]} {r.tipo}</span></td>
+                          <td style={{fontWeight:800,color:'var(--c-green-dark)',fontSize:14}}>{fmtMoney(r.monto, currency)}</td>
+                          <td style={{fontSize:12,color:'var(--text-muted)'}}>{r.cultoNombre||'—'}</td>
+                          <td style={{fontSize:12,maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.descripcion||'—'}</td>
+                          <td style={{fontSize:11,color:'var(--text-muted)'}}>{r.autorNombre||'—'}</td>
+                          {isAdmin && <td><button className="btn btn-danger btn-xs" data-tip="Eliminar registro" onClick={() => setConfirmDel(r.id)}>✕</button></td>}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
           }
         </div>
 

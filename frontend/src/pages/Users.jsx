@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
+import { toast } from '../components/Toast.jsx'
 
 const ROLES  = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF','LIDER']
 const CULTOS = ['','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO']
@@ -33,7 +34,7 @@ export default function Users() {
 
   async function toggle(u) {
     try { await apiFetch(`/users/${u.id}`,{method:'PUT',body:JSON.stringify({activo:u.activo?0:1})}); load() }
-    catch (e) { alert(e.message) }
+    catch (e) { toast.error(e.message) }
   }
 
   const f = (k,v) => setForm(prev=>({...prev,[k]:v}))

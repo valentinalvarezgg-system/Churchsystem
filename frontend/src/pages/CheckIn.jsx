@@ -3,6 +3,8 @@ import Icons from '../components/Icons.jsx'
 import { useParams } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getApiUrl } from '../services/api.js'
+import { toast } from '../components/Toast.jsx'
+import QRScannerNativo from '../components/QRScannerNativo.jsx'
 
 // ── Pantalla pública — lo que ve el miembro al escanear el QR ────────────────
 export function CheckInPublico() {
@@ -122,7 +124,7 @@ export default function CheckInAdmin() {
   async function generarQR(cultoId) {
     setLoading(true); setQrData(null); setCopied(false)
     try { setQrData(await apiFetch(`/checkin/token/${cultoId}`)) }
-    catch(e) { alert(e.message) }
+    catch(e) { toast.error(e.message) }
     setLoading(false)
   }
 
@@ -167,6 +169,8 @@ export default function CheckInAdmin() {
             </p>
           </div>
         </div>
+
+        <QRScannerNativo style={{ marginBottom: 16 }} />
 
         <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:16, alignItems:'start'}}>
 
@@ -272,7 +276,7 @@ export default function CheckInAdmin() {
               ['1', 'Creá el culto', 'En la sección Asistencia'],
               ['2', 'Generá el QR', 'Aparece aquí en pantalla'],
               ['3', 'Mostralo en la entrada', 'Imprimilo o proyectalo'],
-              ['4', 'Los miembros escanean', 'Con la cámara del celular — sin app'],
+              ['4', 'Los miembros escanean', 'Con la app nativa o la cámara del celular'],
             ].map(([num, title, desc]) => (
               <div key={num} style={{textAlign:'center', padding:'14px 10px', background:'var(--bg)', borderRadius:'var(--r)', border:'1px solid var(--border)'}}>
                 <div style={{fontSize:24, marginBottom:6}}>{num}</div>

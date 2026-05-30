@@ -112,4 +112,32 @@ router.put('/', requireAuth, wrap(async (req, res) => {
   return res.json({ ok: true })
 }))
 
+// Apple App Store guideline 5.1.1 — account deletion required in-app
+router.delete('/cuenta', requireAuth, wrap(async (req, res) => {
+  const userId = req.user.id
+  const { password } = req.body || {}
+  if (!password) return res.status(400).json({ error: 'Ingresá tu contraseña para confirmar.' })
+
+  const user = await pgOne('SELECT "password" FROM "User" WHERE "id"=$1 AND "deletedAt" IS NULL', [userId])
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' })
+
+  const ok = await bcrypt.compare(password, user.password)
+  if (!ok) return res.status(401).json({ error: 'Contraseña incorrecta.' })
+
+  await pgExec(
+    'UPDATE "User" SET "deletedAt"=CURRENT_TIMESTAMP, "activo"=false, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$1',
+    [userId]
+  )
+
+  await sendNotificationEmail({
+    to: req.user.email,
+    subject: 'Cuenta eliminada — Church System',
+    title: 'Tu cuenta fue eliminada',
+    intro: 'Tus datos serán eliminados en los próximos 30 días.',
+    lines: ['Si fue un error, contactá a soporte@churchsystem.com.ar dentro de 48 horas.'],
+  }).catch(() => {})
+
+  return res.json({ ok: true })
+}))
+
 export default router
