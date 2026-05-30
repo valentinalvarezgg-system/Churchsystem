@@ -176,13 +176,13 @@ export default function Personas() {
         </div>
 
         {/* Filtros */}
-        <div className="mobile-filter-bar" style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
-          <input type="text" placeholder="⊙ Buscar..." value={search} onChange={e=>setSearch(e.target.value)} className="form-input" style={{maxWidth:240}} />
-          <select value={estadoF} onChange={e=>setEstadoF(e.target.value)} className="form-input" style={{width:140}}>
+        <div className="mobile-filter-bar" style={{display:'grid',gap:10,marginBottom:16,gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))'}}>
+          <input type="text" placeholder="⊙ Buscar..." value={search} onChange={e=>setSearch(e.target.value)} className="form-input" style={{maxWidth:'100%'}} />
+          <select value={estadoF} onChange={e=>setEstadoF(e.target.value)} className="form-input" style={{width:'100%'}}>
             <option value="">Todos</option>
             {ESTADOS.map(e=><option key={e} value={e}>{e}</option>)}
           </select>
-          <select value={grupoF} onChange={e=>setGrupoF(e.target.value)} className="form-input" style={{width:160}}>
+          <select value={grupoF} onChange={e=>setGrupoF(e.target.value)} className="form-input" style={{width:'100%'}}>
             <option value="">Todos los grupos</option>
             {grupos.map(g=><option key={g.id} value={g.id}>{g.nombre}</option>)}
           </select>
@@ -253,7 +253,7 @@ export default function Personas() {
         {/* Modal CRUD */}
         {modal&&<Modal open={!!modal} onClose={()=>setModal(null)} title={modal==='edit'?'Editar persona':'Nueva persona'} size="lg"
           footer={<><button className="btn btn-ghost" onClick={()=>setModal(null)}>Cancelar</button><button className="btn btn-primary" onClick={handleSave}>Guardar</button></>}>
-          <form onSubmit={handleSave} style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:16}}>
+          <form onSubmit={handleSave} style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16}}>
             <div className="form-group"><label>Nombre *</label><input name="input_76" type="text" required value={form.nombre} onChange={e=>f('nombre',e.target.value)}/></div>
             <div className="form-group"><label>Apellido</label><input name="input_77" type="text" value={form.apellido} onChange={e=>f('apellido',e.target.value)}/></div>
             <div className="form-group"><label>Email</label><input name="input_78" type="email" value={form.email} onChange={e=>f('email',e.target.value)}/></div>
@@ -269,7 +269,7 @@ export default function Personas() {
         {/* Modal Seguimiento */}
         {segModal&&<Modal open={!!segModal} onClose={()=>setSegModal(null)} title={`Seguimiento: ${segModal.nombre}`} size="md">
           <form onSubmit={handleAddSeg} style={{marginBottom:20}}>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12,marginBottom:12}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12,marginBottom:12}}>
               <div className="form-group"><label>Tipo</label><select name="select_24" value={segForm.tipo} onChange={e=>sf('tipo',e.target.value)}>{TIPOS_SEG.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
               <div className="form-group"><label>Próximo contacto</label><input name="input_81" type="date" value={segForm.proximoContacto} onChange={e=>sf('proximoContacto',e.target.value)}/></div>
               <div className="form-group" style={{gridColumn:'1/-1'}}><label>Nota</label><textarea name="textarea_2" value={segForm.nota} onChange={e=>sf('nota',e.target.value)} rows={2}/></div>

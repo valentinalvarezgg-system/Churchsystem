@@ -215,3 +215,33 @@ Rama principal: `master`
     - layout principal cambia de `300px 1fr` a `auto-fit/minmax` para mejor comportamiento tablet/mobile.
 - Verificación del bloque:
   - `frontend pnpm build` OK.
+
+## 2026-05-30 — Barrido visual release (Comunicados, Mensajes, Configuracion, Dashboard)
+
+- `Comunicados.jsx`
+  - padding y acción de “Archivar” ajustados para evitar quiebres en cards angostas.
+- `Mensajes.jsx`
+  - tabs mobile migrados a grid adaptable.
+  - header de plantillas y acciones de formulario con `wrap/grid` para no superponer botones.
+- `Configuracion.jsx`
+  - shell principal de 2 columnas rígidas migrado a `auto-fit/minmax` para mejorar tablet/mobile.
+- `Dashboard.jsx`
+  - quick actions reforzadas con `minmax(0,1fr)` y altura mínima de botón para consistencia.
+- Verificación del bloque:
+  - `frontend pnpm build` OK.
+
+## 2026-05-30 — Barrido visual release (Alertas, Reportes, Asistencia, Personas)
+
+- `Alertas.jsx`
+  - Tabs principales pasan de `repeat(5,1fr)` a `auto-fit/minmax(120px,1fr)` para evitar compresión extrema y solapes.
+  - Barra de acciones masivas ahora usa `flexWrap` para mantener botones legibles en mobile.
+- `Reportes.jsx`
+  - Header de filtros/acciones reforzado con `justifyContent: flex-end` y `flexWrap` en el selector de período para eliminar encimado.
+- `Asistencia.jsx`
+  - Shell principal migra de `280px 1fr` a `auto-fit/minmax(280px,1fr)` para mejorar tablet y celular.
+  - Barra de búsqueda/acción dentro del detalle ahora envuelve correctamente en pantallas angostas.
+- `Personas.jsx`
+  - Filtros migrados de fila flexible a grid adaptable (`auto-fit/minmax(180px,1fr)`), quitando anchos fijos.
+  - Formulario CRUD y formulario de seguimiento pasan a `auto-fit/minmax(220px,1fr)` para prevenir cortes de campos.
+- Verificación del bloque:
+  - `frontend pnpm build` OK.

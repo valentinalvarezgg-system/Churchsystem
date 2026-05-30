@@ -111,7 +111,7 @@ export default function Alertas() {
         </div>
 
         {/* Tabs */}
-        <div className="alerts-tabs-grid" style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:20}}>
+        <div className="alerts-tabs-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:10,marginBottom:20}}>
           {TABS.map(t => (
             <div key={t.key} onClick={() => setTab(t.key)}
               style={{
@@ -134,7 +134,7 @@ export default function Alertas() {
 
         {/* Acciones masivas */}
         {current.length > 0 && (
-          <div className="bulk-actions-bar" style={{display:'flex',gap:10,alignItems:'center',marginBottom:12,padding:'10px 14px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
+          <div className="bulk-actions-bar" style={{display:'flex',gap:10,alignItems:'center',marginBottom:12,padding:'10px 14px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)',flexWrap:'wrap'}}>
             <label style={{display:'flex',alignItems:'center',gap:7,cursor:'pointer',fontSize:13,fontWeight:500,color:'var(--text)',textTransform:'none',letterSpacing:0}}>
               <input type="checkbox" name="seleccionarTodos"
                 checked={current.every(p => seleccionados.includes(p.personaId||p.id))}

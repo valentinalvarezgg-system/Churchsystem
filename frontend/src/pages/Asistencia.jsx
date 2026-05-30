@@ -75,7 +75,7 @@ export default function Asistencia() {
           <h1 className="page-title"><Icons.Attendance /> Asistencia a cultos</h1>
           {canManage && <button className="btn btn-primary" data-tip="Crear un nuevo registro de culto" onClick={()=>setModal(true)}>+ Nuevo culto</button>}
         </div>
-        <div className="attendance-shell" style={{display:'grid', gridTemplateColumns:'280px 1fr', gap:16, alignItems:'start'}}>
+        <div className="attendance-shell" style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:16, alignItems:'start'}}>
           <div className="card attendance-cultos" style={{padding:0, overflowX:'auto'}}>
             <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',fontSize:12,fontWeight:600,color:'var(--text-muted)'}}>CULTOS ({cultos.length})</div>
             {cultos.length===0 ? <div className="empty" style={{padding:30}}><p>Sin cultos</p></div>
@@ -109,7 +109,7 @@ export default function Asistencia() {
                     </div>
                   </div>
                   {msg && <div style={{margin:'0 16px',marginTop:10}}><div className={`alert alert-${msg.type}`}>{msg.text}</div></div>}
-                  <div style={{padding:'10px 16px',borderBottom:'1px solid var(--border)',display:'flex',gap:10}}>
+                  <div style={{padding:'10px 16px',borderBottom:'1px solid var(--border)',display:'flex',gap:10,flexWrap:'wrap'}}>
                     <input name="h" className="input input-search" placeholder="Buscar..." value={search} onChange={e=>setSearch(e.target.value)} />
                     {detalle && <button className="btn btn-ghost btn-sm" onClick={()=>setPresentes(p=>p.size===detalle.personas.length?new Set():new Set((detalle?.personas || []).map(x=>Number(x.id))))}>{presentes.size===detalle.personas?.length?'Desmarcar todos':'Marcar todos'}</button>}
                   </div>

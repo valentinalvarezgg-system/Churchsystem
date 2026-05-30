@@ -73,11 +73,11 @@ export default function Reportes() {
               {tipo === 'semanal' ? `Semana ${r?.periodo?.desde || '...'} → ${r?.periodo?.hasta || '...'}` : `Mes ${mes}`}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {tipo === 'mensual' && (
               <input name="mes" type="month" className="input" value={mes} onChange={e => setMes(e.target.value)} style={{ width: 140 }} />
             )}
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               {[['semanal', 'Esta semana'], ['mensual', 'Mensual']].map(([k, l]) => (
                 <button key={k} onClick={() => setTipo(k)} className={tipo === k ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}>{l}</button>
               ))}
