@@ -116,3 +116,15 @@ Rama principal: `master`
   - Score consolidado (ej: `5/6`) para priorizar cierre de pendientes antes de publicar.
   - UI en Suscripcion ahora muestra tarjeta "Readiness de lanzamiento" con estado y detalle por check.
 - Verificaciones del bloque de readiness: `backend pnpm audit:launch` OK y `frontend pnpm build` OK.
+- Se ejecuto bloque de seguridad de dependencias:
+  - Corregido registry npm local a `https://registry.npmjs.org/` (audit funcional).
+  - Eliminado `sql.js` residual de `backend/package.json` y lockfile.
+  - Endurecida importacion Excel en `import.js`:
+    - validacion base64 estricta,
+    - limite real de 5MB,
+    - validacion de hojas existentes,
+    - limite de filas (`MAX_IMPORT_ROWS=5000`) para reducir superficie DoS/ReDoS.
+- Estado auditoria:
+  - Frontend: sin vulnerabilidades conocidas.
+  - Backend: persiste riesgo alto en `xlsx` (advisories GHSA-4r6h-8v6p-xvw6 y GHSA-5pgg-2g8v-p4x9) sin parche estable en el paquete actual; mitigado por limites de entrada y pendiente de migracion de libreria Excel.
+- Verificacion post-bloque: `backend pnpm audit:launch` OK.
