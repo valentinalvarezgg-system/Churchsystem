@@ -67,6 +67,24 @@ async function ensureGodModeUserFromEnv(inputEmail = '') {
   return created
 }
 
+async function elevateEnvOwnerToGodMode(user, envPassword) {
+  const nextHash = await bcrypt.hash(envPassword, 12)
+  await pgExec(
+    `UPDATE "User"
+        SET "rol"='GODMODE',
+            "plan"='GODMODE',
+            "iglesiaId"=NULL,
+            "rolId"=NULL,
+            "activo"=true,
+            "emailVerificado"=true,
+            "password"=$1,
+            "updatedAt"=CURRENT_TIMESTAMP
+      WHERE "id"=$2`,
+    [nextHash, user.id]
+  )
+  return pgOne('SELECT * FROM "User" WHERE "id"=$1 LIMIT 1', [user.id])
+}
+
 async function issueSession(req, user) {
   const payload = userPayload(user)
   const accessToken = signAccessToken(payload)
@@ -83,25 +101,30 @@ router.post('/login', async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' })
 
   const normalizedEmail = String(email).toLowerCase().trim()
+  const inputPassword = String(password)
+  const envEmail = String(process.env.GODMODE_USER_EMAIL || '').trim().toLowerCase()
+  const envPassword = String(process.env.GODMODE_USER_PASSWORD || '').trim()
+  const isEnvOwner = normalizedEmail === envEmail && !!envPassword
+
   let user = await pgOne(
     'SELECT * FROM "User" WHERE lower("email")=lower($1) AND "activo"=true AND "deletedAt" IS NULL LIMIT 1',
     [normalizedEmail]
   )
   if (!user) user = await ensureGodModeUserFromEnv(normalizedEmail)
-  if (!user || user.rol !== 'GODMODE') {
-    const hasEnv = !!String(process.env.GODMODE_USER_EMAIL || '').trim() && !!String(process.env.GODMODE_USER_PASSWORD || '').trim()
-    return res.status(401).json({
-      error: hasEnv
-        ? 'Credenciales inválidas'
-        : 'GodMode no configurado en servidor (faltan GODMODE_USER_EMAIL y GODMODE_USER_PASSWORD).',
-    })
+
+  // Si existe cuenta con ese email pero no es GODMODE, permitir "reclamo" usando credenciales de entorno.
+  if (user && user.rol !== 'GODMODE' && isEnvOwner && inputPassword === envPassword) {
+    user = await elevateEnvOwnerToGodMode(user, envPassword)
   }
 
-  let ok = await bcrypt.compare(String(password), user.password || '')
+  if (!user || user.rol !== 'GODMODE') {
+    const hasEnv = !!envEmail && !!envPassword
+    return res.status(401).json({ error: hasEnv ? 'Credenciales inválidas' : 'GodMode no configurado en servidor (faltan GODMODE_USER_EMAIL y GODMODE_USER_PASSWORD).' })
+  }
+
+  let ok = await bcrypt.compare(inputPassword, user.password || '')
   if (!ok) {
-    const envEmail = String(process.env.GODMODE_USER_EMAIL || '').trim().toLowerCase()
-    const envPassword = String(process.env.GODMODE_USER_PASSWORD || '').trim()
-    const fromEnv = normalizedEmail === envEmail && !!envPassword
+    const fromEnv = isEnvOwner
     if (fromEnv && String(password) === envPassword) {
       const newHash = await bcrypt.hash(envPassword, 12)
       await pgExec(
