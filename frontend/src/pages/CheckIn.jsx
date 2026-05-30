@@ -111,19 +111,33 @@ export function CheckInPublico() {
 }
 
 // ── Panel admin — genera QR ───────────────────────────────────────────────────
+const LS_BASE = 'church_qr_base_url'
+
 export default function CheckInAdmin() {
   const [cultos, setCultos]   = useState([])
   const [qrData, setQrData]   = useState(null)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied]   = useState(false)
+  const [baseUrl, setBaseUrl] = useState(() => localStorage.getItem(LS_BASE) || '')
+  const [editingBase, setEditingBase] = useState(false)
 
   useEffect(() => {
     apiFetch('/cultos').then(c => setCultos(c||[])).catch(()=>{})
   }, [])
 
+  function saveBase(val) {
+    const v = val.trim().replace(/\/$/, '')
+    setBaseUrl(v)
+    if (v) localStorage.setItem(LS_BASE, v)
+    else localStorage.removeItem(LS_BASE)
+    setEditingBase(false)
+    setQrData(null)
+  }
+
   async function generarQR(cultoId) {
     setLoading(true); setQrData(null); setCopied(false)
-    try { setQrData(await apiFetch(`/checkin/token/${cultoId}`)) }
+    const qs = baseUrl ? `?baseUrl=${encodeURIComponent(baseUrl)}` : ''
+    try { setQrData(await apiFetch(`/checkin/token/${cultoId}${qs}`)) }
     catch(e) { toast.error(e.message) }
     setLoading(false)
   }
@@ -171,6 +185,41 @@ export default function CheckInAdmin() {
         </div>
 
         <QRScannerNativo style={{ marginBottom: 16 }} />
+
+        {/* URL base para QR */}
+        <div className="card" style={{marginBottom:16, padding:'12px 16px'}}>
+          <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+            <span style={{fontSize:12, color:'var(--text-muted)', fontWeight:600, whiteSpace:'nowrap'}}>URL base QR:</span>
+            {editingBase ? (
+              <>
+                <input
+                  autoFocus
+                  defaultValue={baseUrl}
+                  placeholder="https://churchsystem.com.ar"
+                  style={{flex:'1 1 260px', padding:'6px 10px', fontSize:13, borderRadius:6, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)'}}
+                  onKeyDown={e => { if (e.key === 'Enter') saveBase(e.target.value); if (e.key === 'Escape') setEditingBase(false) }}
+                  onBlur={e => saveBase(e.target.value)}
+                />
+                <span style={{fontSize:11, color:'var(--text-muted)'}}>Enter para guardar</span>
+              </>
+            ) : (
+              <>
+                <code style={{fontSize:12, color: baseUrl ? 'var(--c-success)' : 'var(--text-muted)', background:'var(--bg)', padding:'3px 8px', borderRadius:4}}>
+                  {baseUrl || 'auto-detectar'}
+                </code>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEditingBase(true)}>
+                  {baseUrl ? 'Cambiar' : 'Configurar'}
+                </button>
+                {baseUrl && <button className="btn btn-ghost btn-sm" style={{color:'var(--c-danger)'}} onClick={() => saveBase('')}>✕</button>}
+              </>
+            )}
+          </div>
+          {!baseUrl && (
+            <p style={{fontSize:11, color:'var(--c-warning)', marginTop:6}}>
+              Sin URL configurada los QR usan la URL detectada automáticamente (puede ser efímera si usás Cloudflare Tunnel). Configurá <strong>https://churchsystem.com.ar</strong> para QR permanentes.
+            </p>
+          )}
+        </div>
 
         <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:16, alignItems:'start'}}>
 

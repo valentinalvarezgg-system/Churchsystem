@@ -27,10 +27,14 @@ router.get('/token/:cultoId', requireAuth, async (req, res) => {
 
   const t = token(culto.id)
   const ip = getLocalIP()
-  // Prioridad: env var explícita → HTTPS detectado por proxy (Cloudflare/Render) → IP local
+  // Prioridad: admin UI → env var → HTTPS auto-detectado (Cloudflare/Render) → IP local
+  const rawCustom = req.query.baseUrl
+  const customBase = rawCustom && /^https?:\/\/.+/.test(rawCustom)
+    ? rawCustom.replace(/\/$/, '')
+    : null
   const proto = req.headers['x-forwarded-proto'] || req.protocol
   const detectedBase = proto === 'https' ? `https://${req.get('host')}` : null
-  const publicBase = process.env.FRONTEND_URL || process.env.PUBLIC_URL || process.env.BASE_URL || detectedBase
+  const publicBase = customBase || process.env.FRONTEND_URL || process.env.PUBLIC_URL || process.env.BASE_URL || detectedBase
   const isPublic = !!publicBase
   const url = isPublic
     ? `${publicBase}/app/checkin/${culto.id}/${t}`
