@@ -2,13 +2,12 @@ import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
-import pino from 'pino'
+import logger from '../lib/logger.js'
 import { pgExec, pgOne } from '../lib/pg.js'
 import { getPlanPrice, normalizeCountry, normalizeLanguage, normalizePlan, PLANES } from '../lib/billing.js'
 import { sendNotificationEmail } from '../lib/email.js'
 
 const router = Router()
-const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
 
 const SECRET = () => {
   if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET no configurado')

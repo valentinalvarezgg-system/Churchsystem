@@ -1,11 +1,10 @@
 import { Router } from 'express'
 import jwt from 'jsonwebtoken'
-import pino from 'pino'
+import logger from '../lib/logger.js'
 import { pgExec, pgOne } from '../lib/pg.js'
 import { sendNotificationEmail } from '../lib/email.js'
 
 const router = Router()
-const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
 const SECRET     = () => {
   if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET no configurado')
   return process.env.JWT_SECRET
@@ -71,7 +70,7 @@ function signSession(user) {
   return jwt.sign(payload, SECRET(), { expiresIn: '8h' })
 }
 
-async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '', emailVerified = true, frontUrl = process.env.FRONTEND_URL || process.env.BASE_URL || 'http://localhost:4000' }) {
+async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '', emailVerified = true, frontUrl = process.env.FRONTEND_URL || process.env.BASE_URL || '' }) {
   const normalizedEmail = String(email || '').toLowerCase()
   let user = await pgOne('SELECT * FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [normalizedEmail])
 

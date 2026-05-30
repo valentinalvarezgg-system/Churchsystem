@@ -1,11 +1,11 @@
 import { Router } from 'express'
-import { createHash } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
 import os from 'os'
 import { pgExec, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 
 const router = Router()
-const SECRET_QR = process.env.QR_SECRET || 'church-qr-2024'
+const SECRET_QR = process.env.QR_SECRET || randomBytes(32).toString('hex')
 const FRONTEND_PORT = process.env.FRONTEND_PORT || process.env.PORT || '4000'
 
 function getLocalIP() {

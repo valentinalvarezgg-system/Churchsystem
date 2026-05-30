@@ -1,11 +1,10 @@
 import { Router } from 'express'
 import webpush from 'web-push'
-import pino from 'pino'
+import logger from '../lib/logger.js'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 
 const router = Router()
-const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {

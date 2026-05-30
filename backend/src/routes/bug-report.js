@@ -1,10 +1,9 @@
 import { Router } from 'express'
-import pino from 'pino'
+import logger from '../lib/logger.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { sendSystemEmail } from '../lib/email.js'
 
 const router = Router()
-const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
 
 router.post('/', requireAuth, async (req, res) => {
   const { descripcion, url, userAgent } = req.body

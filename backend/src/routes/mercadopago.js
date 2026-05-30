@@ -8,13 +8,12 @@
  */
 import { Router }   from 'express'
 import https        from 'https'
-import pino from 'pino'
+import logger from '../lib/logger.js'
 import { requireAuth, requireRol } from '../middlewares/auth.js'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { applyDiscount, getPlanCatalog, getPlanPrice, normalizeCountry, normalizePlan, PLANES } from '../lib/billing.js'
 
 const router = Router()
-const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
 
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN || ''
 const MP_BASE         = 'https://api.mercadopago.com'

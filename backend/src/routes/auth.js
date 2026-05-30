@@ -2,14 +2,13 @@ import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
-import pino from 'pino'
+import logger from '../lib/logger.js'
 import { pgExec, pgOne } from '../lib/pg.js'
 import { registrar } from '../utils/auditoria.js'
 import { normalizeCountry, normalizeLanguage, normalizePlan } from '../lib/billing.js'
 import { sendNotificationEmail } from '../lib/email.js'
 
 const router = Router()
-const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
 const failed = new Map()
 const ACCESS_TTL = '15m'
 const REFRESH_DAYS = 30

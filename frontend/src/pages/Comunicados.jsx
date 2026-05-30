@@ -8,6 +8,7 @@ import { toast } from '../components/Toast.jsx'
 const TIPOS = ['GENERAL','URGENTE','PASTORAL','MINISTERIO','EVENTO','OTRO']
 const TCOLOR = {GENERAL:'#2563EB',URGENTE:'#DC2626',PASTORAL:'#16A34A',MINISTERIO:'#7C3AED',EVENTO:'#D97706',OTRO:'#64748B'}
 const TBG    = {GENERAL:'#DBEAFE',URGENTE:'#FEE2E2',PASTORAL:'#DCFCE7',MINISTERIO:'#EDE9FE',EVENTO:'#FEF3C7',OTRO:'#F3F4F6'}
+const DEST_LABEL = {TODOS:'Todos',PASTOR_GENERAL:'Pastores',PASTOR_CULTO:'Pastor culto',CONSOLIDACION:'Consolidación',STAFF:'Staff',LIDER:'Líderes'}
 
 export default function Comunicados() {
   const user = getUser()
@@ -64,6 +65,7 @@ export default function Comunicados() {
                         {c.fijado?<span style={{fontSize:11,fontWeight:700,color:'var(--c-warning)'}}>📌 FIJADO</span>:null}
                         <span style={{padding:'2px 8px',borderRadius:3,fontSize:11,fontWeight:600,background:TBG[c.tipo],color:TCOLOR[c.tipo]}}>{c.tipo}</span>
                         <span style={{fontSize:11,color:'var(--text-muted)'}}>{c.createdAt?.slice(0,10)} · {c.autorNombre}</span>
+                        {c.destinatarios&&c.destinatarios!=='TODOS'&&<span style={{fontSize:10,padding:'1px 6px',borderRadius:3,background:'var(--bg-2)',color:'var(--text-muted)'}}>→ {DEST_LABEL[c.destinatarios]||c.destinatarios}</span>}
                       </div>
                       <h3 style={{fontSize:15,fontWeight:700,margin:'0 0 6px'}}>{c.titulo}</h3>
                       <p style={{fontSize:13,color:'var(--text-muted)',margin:0,lineHeight:1.6,overflow:'hidden',maxHeight:expandido===c.id?'none':'3.2em'}}>{c.contenido}</p>
