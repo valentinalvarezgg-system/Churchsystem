@@ -98,30 +98,28 @@
 ## 🗺️ Pendientes / Roadmap (por prioridad)
 
 ### P0 — Deploy / infraestructura (bloquea funciones nuevas)
-- [ ] **Ejecutar la migración SQL** `backend/prisma/migrations/20260529200000_community_features_pg/migration.sql`
-      en Neon. Crea las tablas `Evento`, `Oracion`, `OracionApoyo`, `Consolidacion`,
-      `DiscipuladoProg`, `Familiar`, `ContactoExtra`, `VisitaOrigen`. **Sin esto,
-      `/eventos`, `/oracion`, `/comunicados`, `/consolidacion` y `/discipulado`
-      fallan en producción.**
+- [x] ~~Ejecutar migración SQL en Neon~~ — tablas `Evento`, `Oracion`, `OracionApoyo`,
+      `Consolidacion`, `DiscipuladoProg`, `Familiar`, `ContactoExtra`, `VisitaOrigen`
+      creadas el 2026-05-30.
+- [ ] Configurar `DATABASE_URL` en Render (Environment Variables) si no está seteada.
 - [ ] Confirmar auto-deploy de Render desde `master`.
 
 ### P1 — Móvil (90% de los clientes) 🔥 PRIORIDAD ESPECIAL
-- [ ] Auditar **todas** las páginas con `<table>` y agregar vista alternativa en
-      cards (`.mobile-list`) donde falte. Revisar: Grupos, Finanzas, Reportes,
-      Discipulado, Consolidacion, Comunicados, Oracion, Eventos, Users,
-      PromoCodes, GestionPermisos, Historial.
-- [ ] `bottom-nav` y `landscape-rail` (en `Menu.jsx`): los links son fijos y
-      pueden no aplicar al rol `LIDER`. Hacerlos **role-aware**.
+- [x] ~~Vista móvil en cards para Finanzas, Discipulado~~ (`.mobile-list` + `.table-responsive`)
+- [x] ~~Role-aware sidebar para rol `LIDER`~~ — sección propia con Personas/Grupos/Mensajes.
+- [ ] Auditar páginas con `<table>` pendientes: Grupos, Reportes, Consolidacion,
+      Comunicados, Oracion, Eventos, Users, PromoCodes, GestionPermisos, Historial.
+      (Historial y Reportes ya tienen vista móvil.)
 - [ ] Formularios largos (Perfil, Registro, Configuracion): verificar 1 columna,
       inputs ≥44px y teclado que no tape campos en iOS.
 - [ ] Probar el flujo **público de CheckIn (QR)** en un móvil real.
 - [ ] Verificar safe-area (notch / home-bar) en todas las pantallas `fixed`.
 
 ### P2 — UI/UX
-- [ ] Reemplazar los `alert()`/`confirm()` nativos restantes por Toast/Modal. Páginas
-      afectadas: Alertas, Asistencia, Calendario, Comunicados,
-      Consolidacion, Discipulado, GestionPermisos, Mensajes, Users.
-      (Ya migrados: Personas, Grupos, Finanzas, Eventos, Oracion, CheckIn, MiPerfil)
+- [x] ~~`alert()`/`confirm()` reemplazados por toast/ConfirmModal en TODAS las páginas~~
+      Alertas, Asistencia, Calendario, Comunicados, Consolidacion, Discipulado,
+      GestionPermisos, Mensajes, Perfil, Users. (**Completado** — ninguna página usa
+      `window.alert()` ni `window.confirm()` en el frontend.)
 - [ ] Estados de *loading / empty / error* consistentes en todas las páginas.
 
 ### P3 — Backend / limpieza
@@ -143,6 +141,17 @@
 ---
 
 ## 📝 Bitácora de cambios (más reciente arriba)
+
+### 2026-05-30 (sesión 3) — Claude
+- **Migración Neon ejecutada:** tablas `Evento`, `Oracion`, `OracionApoyo`, `Consolidacion`,
+  `DiscipuladoProg`, `Familiar`, `ContactoExtra`, `VisitaOrigen` creadas en producción.
+- **`alert()`/`confirm()` eliminados en todas las páginas**: GestionPermisos, Mensajes,
+  Consolidacion, Discipulado, Perfil — todos usan `toast` / `ConfirmModal` ahora.
+- **Vista móvil Discipulado**: cards `.mobile-list` + tabla `.table-responsive`.
+- **GestionPermisos**: grilla `260px 1fr` → `repeat(auto-fit,minmax(260px,1fr))` (responsive).
+- **Perfil**: bug `setPersona` corregido → `load()`; botón ✕ para eliminar foto;
+  ConfirmModals para quitar familiar, eliminar contacto y eliminar foto.
+- **LIDER sidebar**: sección propia con Personas / Grupos / Mensajes (antes vacío en desktop).
 
 ### 2026-05-30 (sesión 2) — Claude — App Store
 - **Capacitor nativo**: `frontend/capacitor.config.ts` con config iOS completa
