@@ -289,22 +289,27 @@ export default function Menu() {
         <div className="sidebar-footer">
           <div style={{ display:'grid', gap:6, marginBottom:8 }}>
             <label style={{ fontSize:11, color:'var(--text-faint)' }}>Región</label>
-            <div style={{ display:'grid', gridTemplateColumns:'34px 1fr 72px', gap:6, alignItems:'center' }}>
-              <div
-                title={ctx.country}
-                style={{
-                  width: 28, height: 20, overflow: 'hidden', borderRadius: 3,
-                  border: '1px solid var(--border)', justifySelf: 'center', background: 'var(--surface)',
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 72px', gap:6, alignItems:'center' }}>
+              <div style={{ position:'relative' }}>
+                <div style={{
+                  position:'absolute', left:8, top:'50%', transform:'translateY(-50%)',
+                  width:22, height:16, overflow:'hidden', borderRadius:2,
+                  border:'1px solid var(--border)', pointerEvents:'none', background:'var(--surface)',
                 }}>
-                <img
-                  src={`https://flagcdn.com/w80/${String(ctx.country || 'ar').toLowerCase()}.png`}
-                  alt={ctx.country}
-                  style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
-                />
-              </div>
-              <select className="form-input" value={ctx.country} onChange={e => updateCountry(e.target.value)} style={{ minHeight:24, padding:'2px 8px' }}>
+                  <img
+                    src={`https://flagcdn.com/w80/${String(ctx.country || 'ar').toLowerCase()}.png`}
+                    alt={ctx.country}
+                    style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
+                  />
+                </div>
+                <select
+                  className="form-input"
+                  value={ctx.country}
+                  onChange={e => updateCountry(e.target.value)}
+                  style={{ minHeight:24, padding:'2px 8px 2px 36px' }}>
                 {COUNTRY_OPTIONS.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
-              </select>
+                </select>
+              </div>
               <select className="form-input" value={ctx.lang} onChange={e => { const next = { ...ctx, lang: e.target.value }; setCtx(next); setStoredContext(next); window.location.reload() }} style={{ minHeight:24, padding:'2px 8px' }}>
                 <option value="es">ES</option>
                 <option value="pt">PT</option>
