@@ -34,6 +34,7 @@ export default function Eventos() {
 
   const [eventos, setEventos]   = useState([])
   const [loading, setLoading]   = useState(true)
+  const [error, setError]       = useState(null)
   const [modal, setModal]       = useState(false)
   const [editando, setEditando] = useState(null)
   const [form, setForm]         = useState({ titulo:'', tipo:'EVENTO', fecha:hoy, hora:'', lugar:'', descripcion:'', todoElDia:false })
@@ -42,15 +43,14 @@ export default function Eventos() {
   const [confirmDel, setConfirmDel] = useState(null)
 
   const load = useCallback(async () => {
-    setLoading(true)
+    setLoading(true); setError(null)
     try {
       let url = '/eventos'
       if (filtro === 'proximos') url += `?desde=${hoy}&hasta=${en90}`
       else if (filtro === 'pasados') url += `?desde=2000-01-01&hasta=${hoy}`
       else url += `?desde=2000-01-01&hasta=2099-12-31`
-      const data = await apiFetch(url)
-      setEventos(data || [])
-    } catch {}
+      setEventos(await apiFetch(url) || [])
+    } catch(e) { setError(e.message) }
     setLoading(false)
   }, [filtro])
 
@@ -117,6 +117,10 @@ export default function Eventos() {
 
         {loading ? (
           <div className="empty"><div className="spinner-sm" /></div>
+        ) : error ? (
+          <div className="alert alert-error" style={{margin:'0 0 16px'}}>
+            {error} <button className="btn btn-ghost btn-sm" style={{marginLeft:12}} onClick={load}>Reintentar</button>
+          </div>
         ) : eventos.length === 0 ? (
           <div className="empty">
             <div className="empty-icon"><Icons.Calendar /></div>

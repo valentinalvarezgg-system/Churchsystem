@@ -134,13 +134,26 @@ export default function Grupos() {
               </div>
               <div className="modal-body">
                 <p style={{marginBottom:14,color:'var(--text-muted)',fontSize:13}}>{detalle.miembros?.length||0} miembro(s)</p>
-                {detalle.miembros?.length>0
-                  ? <div className="table-responsive"><table style={{minWidth:500}}><thead><tr><th>Nombre</th><th>Teléfono</th><th>Estado</th></tr></thead>
-                      <tbody>{(detalle?.miembros || []).map(m=>(
-                        <tr key={m.id}><td><span className="persona-link" data-tip="Ver perfil completo" onClick={()=>navigate(`/personas/${m.id}`)}>{m.nombre} {m.apellido}</span></td><td>{m.telefono||'—'}</td>
-                          <td><span className={`badge badge-${m.estado?.toLowerCase()}`}>{m.estado}</span></td>
-                        </tr>))}</tbody></table></div>
-                  : <div className="empty"><p>Sin miembros asignados</p></div>}
+                {detalle.miembros?.length>0 ? <>
+                  {/* Vista desktop: tabla */}
+                  <div className="table-responsive-mobile-hide table-responsive"><table style={{minWidth:500}}><thead><tr><th>Nombre</th><th>Teléfono</th><th>Estado</th></tr></thead>
+                    <tbody>{(detalle?.miembros || []).map(m=>(
+                      <tr key={m.id}><td><span className="persona-link" onClick={()=>navigate(`/personas/${m.id}`)}>{m.nombre} {m.apellido}</span></td><td>{m.telefono||'—'}</td>
+                        <td><span className={`badge badge-${m.estado?.toLowerCase()}`}>{m.estado}</span></td>
+                      </tr>))}</tbody></table></div>
+                  {/* Vista mobile: cards */}
+                  <div className="members-mobile-list">
+                    {(detalle?.miembros || []).map(m=>(
+                      <div key={m.id} className="member-card-mobile">
+                        <div style={{flex:1}}>
+                          <div className="member-name persona-link" onClick={()=>navigate(`/personas/${m.id}`)}>{m.nombre} {m.apellido}</div>
+                          <div className="member-meta">{m.telefono||'Sin teléfono'}</div>
+                        </div>
+                        <span className={`badge badge-${m.estado?.toLowerCase()}`}>{m.estado}</span>
+                      </div>
+                    ))}
+                  </div>
+                </> : <div className="empty"><p>Sin miembros asignados</p></div>}
               </div>
             </div>
           </div>
