@@ -301,7 +301,7 @@ export default function Configuracion() {
             <p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>{catActiva?.label} · {secActiva?.label}</p>
           </div>
         </div>
-        <div className="settings-shell" style={{display:'grid',gridTemplateColumns:'220px 1fr',gap:16,alignItems:'start'}}>
+        <div className="settings-shell" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16,alignItems:'start'}}>
 
           {/* Sidebar */}
           <nav className="card settings-nav" style={{padding:6}}>

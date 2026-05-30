@@ -41,7 +41,7 @@ export default function Comunicados() {
         {data.length===0 ? <div className="empty"><div className="empty-icon"><Icons.Comunicados /></div><p>Sin comunicados</p></div>
           : <div style={{display:'flex',flexDirection:'column',gap:10}}>
               {data.map(c=>(
-                <div key={c.id} className="card" style={{padding:'16px 20px',borderLeft:`3px solid ${TCOLOR[c.tipo]||'#2563EB'}`}}>
+                <div key={c.id} className="card" style={{padding:'16px',borderLeft:`3px solid ${TCOLOR[c.tipo]||'#2563EB'}`}}>
                   <div style={{display:'flex',gap:12,alignItems:'flex-start',justifyContent:'space-between'}}>
                     <div style={{flex:1}}>
                       <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:6,flexWrap:'wrap'}}>
@@ -53,7 +53,7 @@ export default function Comunicados() {
                       <p style={{fontSize:13,color:'var(--text-muted)',margin:0,lineHeight:1.6,overflow:'hidden',maxHeight:expandido===c.id?'none':'3.2em'}}>{c.contenido}</p>
                       {c.contenido?.length>120&&<button onClick={()=>setExpandido(expandido===c.id?null:c.id)} style={{background:'none',border:'none',color:'var(--primary)',fontSize:12,cursor:'pointer',padding:'4px 0',fontWeight:600}}>{expandido===c.id?'Ver menos ↑':'Ver más ↓'}</button>}
                     </div>
-                    {(c.userId===user?.id||user?.rol==='PASTOR_GENERAL')&&<button className="btn btn-ghost btn-sm" data-tip="Archivar este comunicado (no se elimina)" onClick={()=>archivar(c.id)} style={{flexShrink:0,color:'var(--text-muted)'}}>Archivar</button>}
+                    {(c.userId===user?.id||user?.rol==='PASTOR_GENERAL')&&<button className="btn btn-ghost btn-sm" data-tip="Archivar este comunicado (no se elimina)" onClick={()=>archivar(c.id)} style={{flexShrink:0,color:'var(--text-muted)',minWidth:88}}>Archivar</button>}
                   </div>
                 </div>
               ))}

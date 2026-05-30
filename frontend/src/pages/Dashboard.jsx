@@ -293,7 +293,7 @@ export default function Dashboard() {
           {/* Acceso rápido */}
           <div className="card">
             <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>⚡ {txt('quick')}</h3>
-            <div className="quick-actions-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.isPhone && ori.portrait ? 2 : ori.cols4},1fr)`, gap: ori.isPhone ? 7 : 7 }}>
+            <div className="quick-actions-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.isPhone && ori.portrait ? 2 : ori.cols4},minmax(0,1fr))`, gap: ori.isPhone ? 7 : 7 }}>
               {[
                 { icon:'○', label:copy.actions[0][0], desc:copy.actions[0][1], path:'/personas',     color:'#2563EB' },
                 { icon:'✓', label:copy.actions[1][0], desc:copy.actions[1][1], path:'/asistencia',   color:'#16A34A' },
@@ -309,7 +309,7 @@ export default function Dashboard() {
                     padding:'12px 14px', borderRadius:10, cursor:'pointer',
                     background:'var(--bg)', border:'1px solid var(--border)',
                     fontSize:12, fontWeight:600, color:'var(--text-2)',
-                    transition:'all .15s', textAlign:'left',
+                    transition:'all .15s', textAlign:'left', minHeight: 88,
                   }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = a.color; e.currentTarget.style.color = a.color }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)' }}>

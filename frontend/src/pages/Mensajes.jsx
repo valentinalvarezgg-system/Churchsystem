@@ -141,7 +141,7 @@ export default function Mensajes() {
           </div>
         </div>
 
-        <div className="mobile-tabs" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <div className="mobile-tabs" style={{ display: 'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap: 8, marginBottom: 20 }}>
           {[['enviar', '✉ Enviar'], ['plantillas', 'Plantillas'], ['historial', '≡ Historial']].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={tab === k ? 'btn btn-primary' : 'btn btn-ghost'}>{l}</button>
           ))}
@@ -261,7 +261,7 @@ export default function Mensajes() {
         {/* ── PLANTILLAS ── */}
         {tab === 'plantillas' && (
           <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 10, flexWrap: 'wrap' }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Plantillas personalizadas</h3>
               <button className="btn btn-primary btn-sm" onClick={() => { setShowNewP(true); setEditPlantilla(null); setNewP({ nombre: '', tipo: 'WHATSAPP', contenido: '' }) }}>+ Nueva</button>
             </div>
@@ -281,7 +281,7 @@ export default function Mensajes() {
                     <textarea name="contenido" className="form-input" style={{ minHeight: 80 }} required value={newP.contenido} onChange={e => setNewP(p => ({ ...p, contenido: e.target.value }))} />
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns:'repeat(auto-fit,minmax(100px,1fr))', gap: 8, marginTop: 10 }}>
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowNewP(false); setEditPlantilla(null) }}>Cancelar</button>
                   <button type="submit" className="btn btn-primary btn-sm">Guardar</button>
                 </div>
