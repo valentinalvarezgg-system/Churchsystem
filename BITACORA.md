@@ -155,3 +155,11 @@ Rama principal: `master`
 - Verificaciones del bloque GodMode:
   - `backend pnpm audit:launch` OK.
   - `frontend pnpm build` OK.
+- Se implemento bloque de configuracion de mails (operacion dueño):
+  - GodMode ahora expone estado de inbox central (`OWNER_REPORTS_EMAIL`) y soporte (`SUPPORT_EMAIL`) en `GET /godmode/overview`.
+  - Nuevo endpoint `POST /godmode/mail-test` para enviar prueba directa al inbox dueño desde la plataforma.
+  - `bug-report` ahora reenvia a ambos destinos (owner + soporte) para centralizar incidencias.
+  - UI GodMode incorpora tarjeta "Inbox central" con botón "Enviar prueba" para validación operativa inmediata.
+- Verificaciones del bloque mail:
+  - `backend pnpm audit:launch` OK.
+  - `frontend pnpm build` OK.

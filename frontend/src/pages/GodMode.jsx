@@ -14,10 +14,21 @@ function Kpi({ label, value }) {
 export default function GodMode() {
   const [data, setData] = useState(null)
   const [err, setErr] = useState('')
+  const [mailMsg, setMailMsg] = useState('')
 
   useEffect(() => {
     apiFetch('/godmode/overview').then(setData).catch(e => setErr(e.message))
   }, [])
+
+  async function sendMailTest() {
+    setMailMsg('')
+    try {
+      const r = await apiFetch('/godmode/mail-test', { method: 'POST' })
+      setMailMsg(r?.ok ? `Prueba enviada a ${r.ownerInbox}` : 'No se pudo enviar prueba')
+    } catch (e) {
+      setMailMsg(e.message)
+    }
+  }
 
   return (
     <div className="layout"><Menu />
@@ -39,6 +50,17 @@ export default function GodMode() {
               <Kpi label="Iglesias" value={data.kpis.totalChurches} />
               <Kpi label="Con pago" value={data.kpis.paidChurches} />
               <Kpi label="Sin pago" value={data.kpis.unpaidChurches} />
+            </div>
+
+            <div className="card">
+              <h3 style={{ marginBottom: 10 }}>Inbox central</h3>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>
+                {data.mailboxHint?.ownerInboxConfigured
+                  ? `Owner inbox: ${data.mailboxHint.ownerInbox}`
+                  : 'OWNER_REPORTS_EMAIL no está configurado todavía.'}
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={sendMailTest}>Enviar prueba</button>
+              {!!mailMsg && <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-2)' }}>{mailMsg}</div>}
             </div>
 
             <div className="card">

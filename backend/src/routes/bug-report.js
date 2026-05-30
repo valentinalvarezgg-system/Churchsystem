@@ -11,8 +11,11 @@ router.post('/', requireAuth, async (req, res) => {
   const { email, nombre, iglesia } = req.user
 
   try {
+    const ownerInbox = String(process.env.OWNER_REPORTS_EMAIL || '').trim()
+    const supportInbox = String(process.env.SUPPORT_EMAIL || 'soporte@churchsystem.com.ar').trim()
+    const recipients = [ownerInbox, supportInbox].filter(Boolean)
     const result = await sendSystemEmail({
-      to: ['soporte@churchsystem.com.ar'],
+      to: recipients,
       subject: `🐛 Bug Report - ${iglesia || 'Usuario'}`,
       html: `
         <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
