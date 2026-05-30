@@ -27,7 +27,7 @@ export async function requireAuth(req, res, next) {
     )
     if (!u) return res.status(401).json({ error: 'Usuario no encontrado' })
     if (!u.activo) return res.status(403).json({ error: 'Cuenta desactivada' })
-    if (!u.iglesiaId) return res.status(403).json({ error: 'Usuario sin tenant asignado' })
+    if (!u.iglesiaId && u.rol !== 'GODMODE') return res.status(403).json({ error: 'Usuario sin tenant asignado' })
     if (u.expira && new Date(u.expira) < new Date()) {
       return res.status(403).json({ error: 'Suscripción expirada' })
     }
@@ -44,7 +44,7 @@ export async function requireAuth(req, res, next) {
       divisa: u.divisa || payload.divisa || 'ARS',
       idioma: u.idioma || payload.idioma || 'es',
     }
-    req.iglesia_id = Number(u.iglesiaId)
+    req.iglesia_id = Number(u.iglesiaId || 0)
     req.token = token
     return next()
   } catch (err) {

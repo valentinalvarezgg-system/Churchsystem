@@ -50,7 +50,7 @@ const I18N = {
     discipleship:'Discipulado', consolidation:'Consolidación', messages:'Mensajería', alerts:'Alertas',
     reports:'Reportes', finances:'Finanzas', excel:'Excel + IA', assistant:'Asistente IA', users:'Usuarios',
     promo:'Promo Codes', permissions:'Permisos', history:'Historial', settings:'Configuración',
-    prayer:'Oración', events:'Eventos', profile:'Mi perfil', pageProfile:'Perfil', menu:'Menú', godmode:'GodMode',
+    prayer:'Oración', events:'Eventos', profile:'Mi perfil', pageProfile:'Perfil', menu:'Menú',
   },
   pt: {
     smart:'Gestão Pastoral Inteligente', openMenu:'Abrir menu', search:'Buscar', notifications:'Notificações',
@@ -62,7 +62,7 @@ const I18N = {
     discipleship:'Discipulado', consolidation:'Consolidação', messages:'Mensagens', alerts:'Alertas',
     reports:'Relatórios', finances:'Finanças', excel:'Excel + IA', assistant:'Assistente IA', users:'Usuários',
     promo:'Promo Codes', permissions:'Permissões', history:'Histórico', settings:'Configuração',
-    prayer:'Oração', events:'Eventos', profile:'Meu perfil', pageProfile:'Perfil', menu:'Menu', godmode:'GodMode',
+    prayer:'Oração', events:'Eventos', profile:'Meu perfil', pageProfile:'Perfil', menu:'Menu',
   },
   en: {
     smart:'Smart Pastoral Management', openMenu:'Open menu', search:'Search', notifications:'Notifications',
@@ -74,7 +74,7 @@ const I18N = {
     discipleship:'Discipleship', consolidation:'Follow-up', messages:'Messaging', alerts:'Alerts',
     reports:'Reports', finances:'Finances', excel:'Excel + AI', assistant:'AI Assistant', users:'Users',
     promo:'Promo Codes', permissions:'Permissions', history:'History', settings:'Settings',
-    prayer:'Prayer', events:'Events', profile:'My profile', pageProfile:'Profile', menu:'Menu', godmode:'GodMode',
+    prayer:'Prayer', events:'Events', profile:'My profile', pageProfile:'Profile', menu:'Menu',
   },
 }
 
@@ -259,7 +259,6 @@ export default function Menu() {
             {lnk('/permisos',      <Icons.Shield />,  tt('permissions'))}
             {lnk('/historial',     <Icons.History />, tt('history'))}
             {lnk('/configuracion', <Icons.Settings />,  tt('settings'))}
-            {lnk('/godmode',       <Icons.Shield />,    tt('godmode'))}
           </>}
         </nav>
 

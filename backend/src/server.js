@@ -252,9 +252,30 @@ async function seedAdmin() {
   logger.info('Usuario admin seed creado en PostgreSQL')
 }
 
+async function seedGodModeUser() {
+  const email = String(process.env.GODMODE_USER_EMAIL || '').trim().toLowerCase()
+  const password = String(process.env.GODMODE_USER_PASSWORD || '').trim()
+  if (!email || !password) return
+  const exists = await pgOne('SELECT id FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [email])
+  if (exists) return
+  const hash = await bcrypt.hash(password, 12)
+  await pgOne(
+    `INSERT INTO "User"
+      ("email","password","nombre","apellido","activo","emailVerificado","iglesiaId","rolId","createdAt","updatedAt",
+       "rol","plan","pais","divisa","idioma","iglesia")
+     VALUES
+      ($1,$2,'Owner','GodMode',true,true,NULL,NULL,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,
+       'GODMODE','GODMODE','AR','USD','es','GodMode')
+     RETURNING id`,
+    [email, hash]
+  )
+  logger.info({ email }, 'Usuario GODMODE creado')
+}
+
 await cargarConfigEnv()
 
 seedAdmin().then(async () => {
+  await seedGodModeUser()
   await cargarConfigEnv()
   app.listen(PORT, '0.0.0.0', () => {
     const localIP = Object.values(os.networkInterfaces()).flat()

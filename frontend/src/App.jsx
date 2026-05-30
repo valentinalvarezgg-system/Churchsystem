@@ -39,6 +39,7 @@ const Users            = lazy(() => import('./pages/Users.jsx'))
 const Historial        = lazy(() => import('./pages/Historial.jsx'))
 const PromoCodes       = lazy(() => import('./pages/PromoCodes.jsx'))
 const GodMode          = lazy(() => import('./pages/GodMode.jsx'))
+const GodModeLogin     = lazy(() => import('./pages/GodModeLogin.jsx'))
 
 const ALL   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF','LIDER']
 const MID   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF']
@@ -116,6 +117,7 @@ export default function App() {
           <Route path="/terminos"   element={<Terminos />} />
           <Route path="/privacidad" element={<Privacidad />} />
           <Route path="/faq"        element={<FAQ />} />
+          <Route path="/vault-login" element={<GodModeLogin />} />
 
           {/* App — rutas protegidas */}
           <Route path="/"              element={<ProtectedRoute roles={ALL}   element={<Dashboard />} />} />
@@ -143,7 +145,7 @@ export default function App() {
           <Route path="/permisos"      element={<ProtectedRoute roles={ADMIN} element={<GestionPermisos />} />} />
           <Route path="/users"         element={<ProtectedRoute roles={ADMIN} element={<Users />} />} />
           <Route path="/promo-codes"   element={<ProtectedRoute roles={ADMIN} element={<PromoCodes />} />} />
-          <Route path="/godmode"       element={<ProtectedRoute roles={ADMIN} element={<GodMode />} />} />
+          <Route path="/vault"         element={<ProtectedRoute roles={['GODMODE']} element={<GodMode />} />} />
           <Route path="/historial"     element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="historial"><Historial /></UpgradeGate>} />} />
           <Route path="*"              element={<Navigate to="/" replace />} />
         </Routes>
