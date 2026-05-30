@@ -54,6 +54,12 @@ const app = express()
 const PORT = process.env.PORT || 4000
 const launchEnv = requireLaunchEnvironment()
 for (const warning of launchEnv.warnings) logger.warn({ warning }, 'Launch environment warning')
+const LEGAL_HIDE_FINANZAS_ORACION = (() => {
+  if (typeof process.env.LEGAL_HIDE_FINANZAS_ORACION === 'string') {
+    return process.env.LEGAL_HIDE_FINANZAS_ORACION.toLowerCase() === 'true'
+  }
+  return process.env.NODE_ENV === 'production'
+})()
 
 const originEnv = [
   ...(process.env.CORS_ORIGINS || '').split(','),
@@ -99,6 +105,12 @@ app.use('/auth/login', rateLimit({
 }))
 app.use('/ia', rateLimit({ windowMs: 60 * 1000, max: 20, message: { error: 'Límite de IA.' } }))
 
+function blockLegalModule(req, res, next) {
+  if (!LEGAL_HIDE_FINANZAS_ORACION) return next()
+  logger.warn({ path: req.path, method: req.method }, 'Legal module temporarily disabled')
+  return res.status(404).json({ error: 'Ruta no encontrada' })
+}
+
 app.get('/health', async (_req, res) => {
   try {
     await pgOne('SELECT 1 AS status')
@@ -128,7 +140,7 @@ app.use('/export', exportRouter)
 app.use('/perfil', perfilRouter)
 app.use('/ia', iaRouter)
 app.use('/config', configRouter)
-app.use('/finanzas', finanzasRouter)
+app.use('/finanzas', blockLegalModule, finanzasRouter)
 app.use('/eventos', eventosRouter)
 app.use('/reportes', reportesRouter)
 app.use('/discipulado', discipuladoRouter)
@@ -141,7 +153,7 @@ app.use('/notificaciones', notificacionesRouter)
 app.use('/registro', registroRouter)
 app.use('/mp', mpRouter)
 app.use('/checkin', checkinRouter)
-app.use('/oracion', oracionRouter)
+app.use('/oracion', blockLegalModule, oracionRouter)
 app.use('/comunicados', comunicadosRouter)
 app.use('/consolidacion', consolidacionRouter)
 app.use('/bug-report', bugReportRouter)
