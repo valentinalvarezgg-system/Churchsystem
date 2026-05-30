@@ -30,16 +30,6 @@ export function sanitizeBody(req, _res, next) {
   next()
 }
 
-export function requireJSON(req, res, next) {
-  if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-    const ct = req.headers['content-type'] || ''
-    if (!ct.includes('application/json') && !ct.includes('multipart/form-data')) {
-      return res.status(415).json({ error: 'Content-Type debe ser application/json' })
-    }
-  }
-  next()
-}
-
 export function securityLogger(req, res, next) {
   res.on('finish', () => {
     if ([401, 403, 429].includes(res.statusCode)) {
@@ -55,20 +45,6 @@ export function securityLogger(req, res, next) {
     }
   })
   next()
-}
-
-export function validate(schema) {
-  return (req, res, next) => {
-    const r = schema.safeParse(req.body)
-    if (!r.success) {
-      return res.status(400).json({
-        error: 'Datos inválidos',
-        detalle: r.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
-      })
-    }
-    req.body = r.data
-    next()
-  }
 }
 
 export function errorHandler(err, req, res, _next) {

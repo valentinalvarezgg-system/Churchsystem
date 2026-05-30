@@ -57,14 +57,6 @@ export async function requireAuth(req, res, next) {
   }
 }
 
-export function requireTenant(req, res, next) {
-  const requested = Number(req.params.iglesia_id || req.body?.iglesia_id || req.query?.iglesia_id || req.iglesia_id)
-  if (!requested || requested !== Number(req.user?.iglesiaId)) {
-    return res.status(403).json({ error: 'Sin acceso a esta iglesia' })
-  }
-  next()
-}
-
 export function requireRol(...roles) {
   return (req, res, next) => {
     if (!req.user?.rol || !roles.includes(req.user.rol)) {
@@ -75,23 +67,3 @@ export function requireRol(...roles) {
   }
 }
 
-export const requireRole = requireRol
-
-export function requirePermiso(modulo, nivelMinimo = 1) {
-  return async (req, res, next) => {
-    if (req.user?.rol === 'PASTOR_GENERAL') return next()
-    try {
-      const permiso = await pgOne(
-        'SELECT * FROM "Permiso" WHERE "userId"=$1 AND "iglesiaId"=$2 LIMIT 1',
-        [req.user.id, req.user.iglesiaId]
-      )
-      if (!permiso) return next()
-      if (Number(permiso[modulo] ?? 0) < nivelMinimo) {
-        return res.status(403).json({ error: `Sin acceso a ${modulo}` })
-      }
-    } catch (err) {
-      logger.warn({ err: err.message, modulo }, 'Permission check skipped')
-    }
-    return next()
-  }
-}

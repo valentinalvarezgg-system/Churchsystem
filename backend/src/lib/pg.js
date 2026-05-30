@@ -32,10 +32,6 @@ pool.on('error', err => {
   logger.error({ err: err?.message }, 'PostgreSQL pool error')
 })
 
-export async function pgQuery(text, params = []) {
-  return pool.query(text, params)
-}
-
 export async function pgOne(text, params = []) {
   const result = await pool.query(text, params)
   return result.rows[0] || null
@@ -51,7 +47,4 @@ export async function pgExec(text, params = []) {
   return { rowCount: result.rowCount }
 }
 
-export async function closePgPool() {
-  await pool.end()
-}
 

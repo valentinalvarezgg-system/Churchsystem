@@ -32,6 +32,3 @@ export function requirePlan(modulo) {
   }
 }
 
-export function getModulosPlan(plan) {
-  return PLANES[plan]?.modulos || PLANES.LIDER.modulos
-}
