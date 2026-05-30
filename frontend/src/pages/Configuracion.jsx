@@ -54,6 +54,7 @@ function SuscripcionTab() {
   const [loading, setLoading]   = React.useState(false)
   const [msg, setMsg]           = React.useState(null)
   const [billingCtx, setBillingCtx] = React.useState(getStoredContext())
+  const [diag, setDiag] = React.useState(null)
 
   React.useEffect(() => {
     Promise.all([
@@ -69,6 +70,7 @@ function SuscripcionTab() {
       }
       setBillingCtx(ctx)
       apiFetch(`/mp/planes?country=${ctx.country}&lang=${ctx.lang}`).then(setPlanes).catch(() => {})
+      apiFetch('/config/commercial-diagnostics').then(setDiag).catch(() => {})
     })
   }, [])
 
@@ -100,6 +102,11 @@ function SuscripcionTab() {
             <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:2 }}>
               {estado.enTrial ? `Vence: ${estado.trialFin}` : estado.suscVence ? `Renovación: ${estado.suscVence}` : 'Activá un plan para continuar'}
             </div>
+            {!!estado.planPendiente && (
+              <div style={{ fontSize:11, color:'var(--c-warning)', marginTop:6, fontWeight:600 }}>
+                Pago pendiente para plan {estado.planPendiente}. Se activa automáticamente al aprobarse.
+              </div>
+            )}
           </div>
           <div style={{ flex:1, minWidth:160, padding:'14px 16px', borderRadius:'var(--r-lg)', background:'var(--c-info-bg)', border:'1px solid var(--c-info-brd)' }}>
             <div style={{ fontSize:22, marginBottom:4 }}>📦</div>
@@ -110,6 +117,27 @@ function SuscripcionTab() {
           </div>
         </div>
       </div>
+
+      {/* Diagnóstico comercial */}
+      {diag && (
+        <div className="card" style={{ padding:'20px 24px' }}>
+          <h3 style={{ fontSize:14, fontWeight:700, marginBottom:14 }}>Diagnóstico comercial</h3>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))', gap:10 }}>
+            {(diag.checks || []).map(c => (
+              <div key={c.key} style={{
+                padding:'10px 12px',
+                borderRadius:'var(--r)',
+                border:`1px solid ${c.ok ? 'var(--c-success-brd)' : 'var(--c-warning-brd)'}`,
+                background: c.ok ? 'var(--c-success-bg)' : 'var(--c-warning-bg)',
+              }}>
+                <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:.4, color:'var(--text-muted)' }}>{c.key}</div>
+                <div style={{ fontSize:13, fontWeight:700, color:c.ok ? 'var(--c-success)' : 'var(--c-warning)' }}>{c.ok ? 'OK' : 'Pendiente'}</div>
+                <div style={{ fontSize:12, color:'var(--text-2)', marginTop:2 }}>{c.detail}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Planes */}
       <div className="card" style={{ padding:'20px 24px' }}>

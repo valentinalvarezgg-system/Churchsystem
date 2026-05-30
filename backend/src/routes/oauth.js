@@ -21,6 +21,30 @@ function resolveFrontUrl(req) {
   return process.env.FRONTEND_URL || resolveBaseUrl(req)
 }
 
+function normalizeHttpUrl(raw = '') {
+  try {
+    const u = new URL(String(raw || '').trim())
+    if (!['http:', 'https:'].includes(u.protocol)) return null
+    return `${u.protocol}//${u.host}`
+  } catch {
+    return null
+  }
+}
+
+function safeBaseUrl(req) {
+  const normalized = normalizeHttpUrl(resolveBaseUrl(req))
+  if (!normalized) return null
+  if (process.env.NODE_ENV === 'production' && normalized.startsWith('http://')) return null
+  return normalized
+}
+
+function safeFrontUrl(req) {
+  const normalized = normalizeHttpUrl(resolveFrontUrl(req))
+  if (!normalized) return null
+  if (process.env.NODE_ENV === 'production' && normalized.startsWith('http://')) return null
+  return normalized
+}
+
 function decodeJwtPayload(token = '') {
   try {
     const payload = token.split('.')[1]
@@ -94,9 +118,11 @@ async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '',
 // ── Google OAuth ─────────────────────────────────────────────────────────────
 router.get('/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID
-  if (!clientId) return res.redirect(`${resolveFrontUrl(req)}/app/login?error=oauth_not_configured`)
+  const front = safeFrontUrl(req)
+  const base = safeBaseUrl(req)
+  if (!clientId || !front || !base) return res.redirect(`${resolveFrontUrl(req)}/app/login?error=oauth_not_configured`)
 
-  const redirectUri = `${resolveBaseUrl(req)}/oauth/google/callback`
+  const redirectUri = `${base}/oauth/google/callback`
   const params = new URLSearchParams({
     client_id:     clientId,
     redirect_uri:  redirectUri,
@@ -110,13 +136,15 @@ router.get('/google', (req, res) => {
 
 router.get('/google/callback', async (req, res) => {
   const { code } = req.query
-  if (!code) return res.redirect(`${resolveFrontUrl(req)}/app/login?error=no_code`)
+  const front = safeFrontUrl(req) || resolveFrontUrl(req)
+  const base = safeBaseUrl(req)
+  if (!code) return res.redirect(`${front}/app/login?error=no_code`)
 
   try {
     const clientId     = process.env.GOOGLE_CLIENT_ID
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-    const redirectUri  = `${resolveBaseUrl(req)}/oauth/google/callback`
-    if (!clientId || !clientSecret) return res.redirect(`${resolveFrontUrl(req)}/app/login?error=oauth_not_configured`)
+    const redirectUri  = base ? `${base}/oauth/google/callback` : null
+    if (!clientId || !clientSecret || !redirectUri) return res.redirect(`${front}/app/login?error=oauth_not_configured`)
 
     // Intercambiar code por tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -127,7 +155,7 @@ router.get('/google/callback', async (req, res) => {
     const tokens = await tokenRes.json()
     if (!tokens.access_token) {
       logger.error({ tokens, status: tokenRes.status }, 'OAuth error')
-      return res.redirect(`${resolveFrontUrl(req)}/app/login?error=no_token`)
+      return res.redirect(`${front}/app/login?error=no_token`)
     }
 
     // Obtener info del usuario
@@ -135,7 +163,7 @@ router.get('/google/callback', async (req, res) => {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     })
     const info = await infoRes.json()
-    if (!info.email) return res.redirect(`${resolveFrontUrl(req)}/app/login?error=oauth_failed`)
+    if (!info.email) return res.redirect(`${front}/app/login?error=oauth_failed`)
 
     const user = await findOrCreateOAuthUser({
       provider: 'google',
@@ -143,17 +171,17 @@ router.get('/google/callback', async (req, res) => {
       email: info.email,
       nombre: info.name || info.given_name || '',
       emailVerified: true,
-      frontUrl: resolveFrontUrl(req),
+      frontUrl: front,
     })
 
-    if (!user.activo) return res.redirect(`${resolveFrontUrl(req)}/app/login?error=account_disabled`)
+    if (!user.activo) return res.redirect(`${front}/app/login?error=account_disabled`)
 
     const token = signSession(user)
-    res.redirect(`${resolveFrontUrl(req)}/app/login?token=${token}`)
+    res.redirect(`${front}/app/login?token=${token}`)
 
   } catch(err) {
     logger.error({ err: err?.message }, 'OAuth Google error')
-    res.redirect(`${resolveFrontUrl(req)}/app/login?error=oauth_failed`)
+    res.redirect(`${front}/app/login?error=oauth_failed`)
   }
 })
 
@@ -176,10 +204,13 @@ function appleClientSecret() {
 
 router.get('/apple', (req, res) => {
   const clientId = process.env.APPLE_CLIENT_ID
+  const front = safeFrontUrl(req)
+  const base = safeBaseUrl(req)
   if (!clientId || !appleClientSecret())
     return res.redirect(`${resolveFrontUrl(req)}/app/login?error=apple_not_configured`)
 
-  const redirectUri = process.env.APPLE_REDIRECT_URI || `${resolveBaseUrl(req)}/oauth/apple/callback`
+  const redirectUri = process.env.APPLE_REDIRECT_URI || (base ? `${base}/oauth/apple/callback` : '')
+  if (!front || !redirectUri) return res.redirect(`${resolveFrontUrl(req)}/app/login?error=apple_not_configured`)
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -192,15 +223,15 @@ router.get('/apple', (req, res) => {
 
 router.post('/apple/callback', async (req, res) => {
   const { code, id_token } = req.body || {}
-  const frontUrl = resolveFrontUrl(req)
-  const baseUrl = resolveBaseUrl(req)
+  const frontUrl = safeFrontUrl(req) || resolveFrontUrl(req)
+  const baseUrl = safeBaseUrl(req)
   if (!code && !id_token) return res.redirect(`${frontUrl}/app/login?error=no_code`)
 
   try {
     const clientId = process.env.APPLE_CLIENT_ID
     const clientSecret = appleClientSecret()
-    const redirectUri = process.env.APPLE_REDIRECT_URI || `${baseUrl}/oauth/apple/callback`
-    if (!clientId || !clientSecret) return res.redirect(`${frontUrl}/app/login?error=apple_not_configured`)
+    const redirectUri = process.env.APPLE_REDIRECT_URI || (baseUrl ? `${baseUrl}/oauth/apple/callback` : '')
+    if (!clientId || !clientSecret || !redirectUri) return res.redirect(`${frontUrl}/app/login?error=apple_not_configured`)
 
     let idToken = id_token
     if (code) {

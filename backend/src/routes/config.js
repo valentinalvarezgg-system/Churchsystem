@@ -93,6 +93,53 @@ function emailDiagnostics(cfg = {}) {
   }
 }
 
+function commercialDiagnostics(cfg = {}) {
+  const mpConfigured = !!process.env.MP_ACCESS_TOKEN
+  const publicUrlRaw = String(process.env.PUBLIC_URL || '').trim()
+  const frontUrlRaw = String(process.env.FRONTEND_URL || '').trim()
+  const baseUrlRaw = String(process.env.BASE_URL || '').trim()
+  const oauthGoogleConfigured = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+  const oauthAppleConfigured = !!(
+    process.env.APPLE_CLIENT_ID &&
+    process.env.APPLE_TEAM_ID &&
+    process.env.APPLE_KEY_ID &&
+    process.env.APPLE_PRIVATE_KEY
+  )
+  const mpCurrency = String(cfg.divisa || cfg.currency || cfg.pais || 'ARS').toUpperCase()
+  const promoCode = String(cfg.promoCode || '').trim().toUpperCase()
+  const baseUrl = String(process.env.BASE_URL || '').trim()
+  const expectedGoogleCallback = baseUrl ? `${baseUrl}/oauth/google/callback` : ''
+  const expectedAppleCallback = String(process.env.APPLE_REDIRECT_URI || '').trim() || (baseUrl ? `${baseUrl}/oauth/apple/callback` : '')
+  const checks = [
+    { key: 'mp_access_token', ok: mpConfigured, detail: mpConfigured ? 'Configurado' : 'Falta MP_ACCESS_TOKEN' },
+    { key: 'public_url', ok: !!publicUrlRaw, detail: publicUrlRaw || 'Falta PUBLIC_URL' },
+    { key: 'frontend_url', ok: !!frontUrlRaw, detail: frontUrlRaw || 'Falta FRONTEND_URL' },
+    { key: 'base_url', ok: !!baseUrlRaw, detail: baseUrlRaw || 'Falta BASE_URL' },
+    { key: 'google_oauth', ok: oauthGoogleConfigured, detail: oauthGoogleConfigured ? 'Google OAuth OK' : 'Google OAuth incompleto' },
+    { key: 'apple_oauth', ok: oauthAppleConfigured, detail: oauthAppleConfigured ? 'Apple Sign-In OK' : 'Apple Sign-In incompleto' },
+    { key: 'email_sender', ok: !!(cfg.resend_key || process.env.RESEND_API_KEY), detail: cfg.resend_key || process.env.RESEND_API_KEY ? 'Email saliente OK' : 'Email saliente incompleto' },
+  ]
+  return {
+    ok: checks.every(c => c.ok),
+    checks,
+    billing: {
+      currentPlan: cfg.plan || 'GENERAL',
+      pendingPlan: cfg.plan_pendiente || '',
+      suscripcionActiva: cfg.suscripcion_activa === '1',
+      suscripcionVence: cfg.suscripcion_vence || '',
+      trialFin: cfg.trial_fin || '',
+      currencyHint: mpCurrency,
+      promoCode: promoCode || null,
+    },
+    oauth: {
+      expectedGoogleCallback,
+      expectedAppleCallback,
+      frontLoginUrl: frontUrlRaw ? `${frontUrlRaw}/app/login` : '',
+    },
+    checkedAt: new Date().toISOString(),
+  }
+}
+
 router.get('/', requireAuth, wrap(async (req, res) => {
   const cfg = await readTenantConfig(req.user.iglesiaId || 0)
   const { twilio_token, anthropic_key, openai_key, groq_key, resend_key, ...safe } = cfg
@@ -112,6 +159,11 @@ router.get('/', requireAuth, wrap(async (req, res) => {
 router.get('/email-diagnostics', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res) => {
   const cfg = await readTenantConfig(req.user.iglesiaId || 0)
   return res.json(emailDiagnostics(cfg))
+}))
+
+router.get('/commercial-diagnostics', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res) => {
+  const cfg = await readTenantConfig(req.user.iglesiaId || 0)
+  return res.json(commercialDiagnostics(cfg))
 }))
 
 router.post('/email-test', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res) => {
