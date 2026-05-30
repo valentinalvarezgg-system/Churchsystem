@@ -197,7 +197,7 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Criterio de salida: 0 estados inconsistentes detectables en flujo principal.
 
 ## EN CURSO
-- Ninguno. Último bloque cerrado: `v2.8/block-03`.
+- Ninguno. Último bloque cerrado: `v2.8/block-04`.
 
 ## Versión actual: **v2.8** (inicio 2026-05-30)
 
@@ -216,7 +216,7 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 | Alertas push | 85% | ✅ |
 | Calendario/Eventos | 70% | 🟡 |
 | IA pastoral | 60% | 🟡 |
-| Comercial/pagos | 80% | ✅ |
+| Comercial/pagos | 90% | ✅ MP+Stripe+PayPal+Transferencia |
 | Configuración | 85% | ✅ |
 | GodMode | 80% | ✅ |
 | Mobile/responsive | 88% | ✅ cards en todas las páginas |
@@ -492,11 +492,73 @@ Las CSS classes `.mobile-list`, `.mobile-person-card`, `.mobile-person-avatar`, 
 
 **Build:** ✅ 1639 módulos, 0 errores, nuevo chunk `i18n-Cp11g3uG.js` (1.73 kB)
 
+### 2026-05-30 — v2.8/block-04 (sistema de pagos multi-método + planes STARTER/PRO/MAX) — Claude
+
+**Motivación:** El usuario quiere realizar tests de cobro y necesita expandir los medios de pago disponibles y simplificar de 5 a 3 planes.
+
+**Cambios aplicados:**
+
+**Planes — de 5 a 3:**
+| Nuevo | Ex-equivalente | Personas | USD |
+|-------|---------------|----------|-----|
+| STARTER | LIDER + CULTO | 300 | USD 29 |
+| PRO | CONSOLIDACION + ADMINISTRACION | 1000 | USD 59 |
+| MAX | GENERAL | ilimitadas | USD 99 |
+
+- `backend/src/lib/billing.js`: reemplazados PLANES; LEGACY_PLAN_MAP mantiene compatibilidad con JWTs vivos (LIDER/CULTO → STARTER, CONSOLIDACION/ADMINISTRACION → PRO, GENERAL → MAX)
+- `backend/src/middlewares/plan.js`: PLANES con 3 claves; middleware `requirePlan` incluye mapeo legacy para JWTs existentes
+
+**Nuevas rutas de pago:**
+- `backend/src/routes/stripe.js`:
+  - `POST /stripe/crear-sesion` → Stripe Checkout hosted, retorna `url`
+  - `POST /stripe/webhook` → verifica firma, activa suscripción en `checkout.session.completed`
+  - Raw body para webhook montado antes del JSON parser global
+- `backend/src/routes/paypal.js`:
+  - `POST /paypal/crear-orden` → PayPal Orders API v2, retorna `approveUrl`
+  - `GET /paypal/capturar?token=&plan=&iglesiaId=` → captura pago aprobado
+- `backend/src/routes/transferencia.js`:
+  - `POST /transferencia/solicitar` → registra solicitud pendiente, retorna datos bancarios
+  - `GET /transferencia/datos-bancarios` → retorna CBU/alias/titular configurados vía env vars
+
+**GodMode — gestión de transferencias:**
+- `GET /godmode/transferencias` → lista transferencias con `transferencia_solicitada='1'`
+- `POST /godmode/transferencias/aprobar` → activa suscripción para la iglesia indicada
+
+**Variables de entorno nuevas (Render):**
+```
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
+PAYPAL_ENV=sandbox     # o live
+TRANSFERENCIA_BANCO=Banco Galicia
+TRANSFERENCIA_ALIAS=churchsystem.mp
+TRANSFERENCIA_CBU=...
+TRANSFERENCIA_TITULAR=Church System SAS
+TRANSFERENCIA_CUIT=...
+```
+
+**Frontend:**
+- `UpgradeGate.jsx`: LABELS, ORDER, MOD_PLAN actualizados a STARTER/PRO/MAX con alias legacy
+- `usePlan.js`: FALLBACK con 3 nuevas claves; normaliza plan legacy al cargar
+- `Configuracion.jsx` — tab Suscripción: selector de medio de pago (tarjetas grid 2×2):
+  - MercadoPago (Argentina/LATAM)
+  - Stripe (tarjeta internacional, USD)
+  - PayPal (cuenta PayPal, USD)
+  - Transferencia (bancaria, 24hs)
+  - Botón de suscripción adapta flujo según método seleccionado
+  - Panel de datos bancarios aparece solo si se elige transferencia y se registra la solicitud
+
+**Build:** ✅ OK — `pnpm build` 3.16s, 0 errores.  
+**Pushed:** `0d8d1fa`
+
 ### Pendientes conocidos v2.8
 - `QR_SECRET` en Render: si no está seteado, los QR se invalidan en cada redeploy
 - Mac: `git pull + restart backend` para ver cambios en modo local
+- Render: agregar variables de Stripe/PayPal/Transferencia antes de hacer tests reales
 - Próximas páginas i18n: Configuracion, Reportes, Eventos, Discipulado (72% → 85%)
 - Próximo P1: estadísticas por culto en Asistencia (tendencias, ausencias)
+- Módulos por plan aún tentativos — pendiente definición del usuario de permisos exactos por STARTER/PRO/MAX
 
 ---
 
