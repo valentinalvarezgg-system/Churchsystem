@@ -272,6 +272,16 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
   "⚠ Acceso local" (amarillo) con mensaje de configuración si no.
 - `frontend pnpm build` ✅ OK. Pushed a `master`.
 
+### 2026-05-30 — v2.7-beta/block-04 (security + dead code) — Claude
+- **`fix(security)`**: exports de Excel/PDF ya no exponen JWT en la URL.
+  `Reportes.jsx`, `Asistencia.jsx`, `Finanzas.jsx` usan `fetch + blob` con `Authorization: Bearer`.
+- **`refactor(backend)`**: eliminados exports muertos (nunca importados):
+  `requireTenant`, `requireRole`, `requirePermiso` (auth.js),
+  `requireJSON`, `validate` (security.js), `pgQuery`, `closePgPool` (pg.js),
+  `getModulosPlan` (plan.js). También actualizado `pnpm-lock.yaml` (zod ya removido).
+- `frontend pnpm build` ✅ OK. `backend pnpm audit:launch` ✅ OK (env vars ausentes en dev, OK en prod).
+- Pushed a `master` (`9b0c823`, `6317d18`).
+
 ---
 
 ## Runbook — Deploy 2.7 (anti-drift)
