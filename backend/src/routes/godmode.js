@@ -47,6 +47,17 @@ async function ensureGodModeUserFromEnv(inputEmail = '') {
   if (!envEmail || !envPassword) return null
   if (inputEmail && inputEmail !== envEmail) return null
 
+  const role = await pgOne(
+    `INSERT INTO "Rol" ("codigo","nombre","createdAt","updatedAt")
+     VALUES ('GODMODE','GodMode',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+     ON CONFLICT ("codigo") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP
+     RETURNING id`
+  )
+  const iglesia = await pgOne(
+    'INSERT INTO "Iglesia" ("nombre","token","createdAt","updatedAt") VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT ("token") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP RETURNING id',
+    ['GodMode', 'GODMODE-ROOT']
+  ).catch(() => pgOne('SELECT "id" FROM "Iglesia" WHERE "token"=$1 LIMIT 1', ['GODMODE-ROOT']))
+
   const exists = await pgOne(
     'SELECT * FROM "User" WHERE lower("email")=lower($1) AND "deletedAt" IS NULL LIMIT 1',
     [envEmail]
@@ -59,28 +70,38 @@ async function ensureGodModeUserFromEnv(inputEmail = '') {
       ("email","password","nombre","apellido","activo","emailVerificado","iglesiaId","rolId","createdAt","updatedAt",
        "rol","plan","pais","divisa","idioma","iglesia")
      VALUES
-      ($1,$2,'Owner','GodMode',true,true,NULL,NULL,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,
+      ($1,$2,'Owner','GodMode',true,true,$3,$4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,
        'GODMODE','GODMODE','AR','USD','es','GodMode')
      RETURNING *`,
-    [envEmail, hash]
+    [envEmail, hash, iglesia.id, role.id]
   )
   return created
 }
 
 async function elevateEnvOwnerToGodMode(user, envPassword) {
+  const role = await pgOne(
+    `INSERT INTO "Rol" ("codigo","nombre","createdAt","updatedAt")
+     VALUES ('GODMODE','GodMode',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+     ON CONFLICT ("codigo") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP
+     RETURNING id`
+  )
+  const iglesia = await pgOne(
+    'INSERT INTO "Iglesia" ("nombre","token","createdAt","updatedAt") VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT ("token") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP RETURNING id',
+    ['GodMode', 'GODMODE-ROOT']
+  ).catch(() => pgOne('SELECT "id" FROM "Iglesia" WHERE "token"=$1 LIMIT 1', ['GODMODE-ROOT']))
   const nextHash = await bcrypt.hash(envPassword, 12)
   await pgExec(
     `UPDATE "User"
         SET "rol"='GODMODE',
             "plan"='GODMODE',
-            "iglesiaId"=NULL,
-            "rolId"=NULL,
+            "iglesiaId"=$1,
+            "rolId"=$2,
             "activo"=true,
             "emailVerificado"=true,
-            "password"=$1,
+            "password"=$3,
             "updatedAt"=CURRENT_TIMESTAMP
-      WHERE "id"=$2`,
-    [nextHash, user.id]
+      WHERE "id"=$4`,
+    [iglesia.id, role.id, nextHash, user.id]
   )
   return pgOne('SELECT * FROM "User" WHERE "id"=$1 LIMIT 1', [user.id])
 }

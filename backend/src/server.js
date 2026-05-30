@@ -268,18 +268,44 @@ async function seedGodModeUser() {
   const email = String(process.env.GODMODE_USER_EMAIL || '').trim().toLowerCase()
   const password = String(process.env.GODMODE_USER_PASSWORD || '').trim()
   if (!email || !password) return
+  const role = await pgOne(
+    `INSERT INTO "Rol" ("codigo","nombre","createdAt","updatedAt")
+     VALUES ('GODMODE','GodMode',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+     ON CONFLICT ("codigo") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP
+     RETURNING id`
+  )
+  const iglesia = await pgOne(
+    'INSERT INTO "Iglesia" ("nombre","token","createdAt","updatedAt") VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT ("token") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP RETURNING id',
+    ['GodMode', 'GODMODE-ROOT']
+  ).catch(() => pgOne('SELECT "id" FROM "Iglesia" WHERE "token"=$1 LIMIT 1', ['GODMODE-ROOT']))
+
   const exists = await pgOne('SELECT id FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [email])
-  if (exists) return
+  if (exists) {
+    await pgOne(
+      `UPDATE "User"
+         SET "rol"='GODMODE',
+             "plan"='GODMODE',
+             "activo"=true,
+             "emailVerificado"=true,
+             "rolId"=$1,
+             "iglesiaId"=$2,
+             "updatedAt"=CURRENT_TIMESTAMP
+       WHERE "id"=$3
+       RETURNING id`,
+      [role.id, iglesia.id, exists.id]
+    )
+    return
+  }
   const hash = await bcrypt.hash(password, 12)
   await pgOne(
     `INSERT INTO "User"
       ("email","password","nombre","apellido","activo","emailVerificado","iglesiaId","rolId","createdAt","updatedAt",
        "rol","plan","pais","divisa","idioma","iglesia")
      VALUES
-      ($1,$2,'Owner','GodMode',true,true,NULL,NULL,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,
+      ($1,$2,'Owner','GodMode',true,true,$3,$4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,
        'GODMODE','GODMODE','AR','USD','es','GodMode')
      RETURNING id`,
-    [email, hash]
+    [email, hash, iglesia.id, role.id]
   )
   logger.info({ email }, 'Usuario GODMODE creado')
 }
