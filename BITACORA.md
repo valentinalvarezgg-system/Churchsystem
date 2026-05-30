@@ -253,6 +253,7 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
   - `Reportes.jsx` + `backend/routes/reportes.js`: agregado reporte general por semana, mes, bimestre, trimestre, cuatrimestre, semestre y anual.
   - `usePlan.js`, `middlewares/plan.js`, `UpgradeGate.jsx`: `promo-codes` removido de planes comerciales regulares.
   - `frontend/index.html` + `frontend/public/sw.js`: PWA limitada a `/app/`; service worker legado con scope `/` se auto-desregistra para no interceptar la landing.
+  - `landing/index.html`: corregido solapamiento del badge hero y quiebre del nav en pantallas medianas; badge actualizado a `v2.7 beta`.
 - Decisiones:
   - Finanzas y Oración permanecen en código, pero siguen ocultos/bloqueados por decisión legal.
   - Landing + traducción total quedan como siguiente bloque dedicado para evitar mezclar copy/i18n masivo con cambios funcionales.

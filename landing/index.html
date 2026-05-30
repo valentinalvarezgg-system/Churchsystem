@@ -17,7 +17,7 @@
     .orb-1{width:600px;height:600px;background:var(--primary);top:-200px;right:-100px}
     .orb-2{width:400px;height:400px;background:#06B6D4;bottom:10%;left:-100px}
     nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:18px 40px;background:rgba(10,14,26,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
-    .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-family:'Sora',sans-serif;font-weight:700;font-size:18px}
+    .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-family:'Sora',sans-serif;font-weight:700;font-size:18px;white-space:nowrap}
     .logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary-d));display:flex;align-items:center;justify-content:center;flex-shrink:0}
     .nav-links{display:flex;gap:32px}
     .nav-links a{color:var(--text-2);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
@@ -26,11 +26,11 @@
     .nav-select{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 10px;font:600 12px 'Inter',sans-serif;outline:none}
     .nav-select:disabled{opacity:1;cursor:not-allowed}
     .nav-select option{background:#111827;color:#F1F5F9}
-    .nav-cta{background:var(--primary);color:white;text-decoration:none;padding:9px 20px;border-radius:10px;font-size:14px;font-weight:600;transition:opacity .2s}
+    .nav-cta{background:var(--primary);color:white;text-decoration:none;padding:9px 20px;border-radius:10px;font-size:14px;font-weight:600;transition:opacity .2s;white-space:nowrap}
     .nav-cta:hover{opacity:.85}
     .hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:120px 24px 80px;text-align:center}
     .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(107,92,255,.15);border:1px solid rgba(107,92,255,.3);border-radius:100px;padding:6px 16px;font-size:13px;font-weight:600;color:#A78BFA;margin-bottom:28px;animation:fadeUp .6s ease both}
-    .hero-badge span{width:6px;height:6px;border-radius:50%;background:#A78BFA;display:inline-block}
+    .hero-badge .badge-dot{width:6px;height:6px;border-radius:50%;background:#A78BFA;display:inline-block;flex:0 0 6px}
     .hero-title{font-family:'Sora',sans-serif;font-size:clamp(38px,6vw,70px);font-weight:800;line-height:1.1;letter-spacing:-2px;margin-bottom:24px;animation:fadeUp .6s .1s ease both}
     .hero-title em{font-style:normal;background:linear-gradient(135deg,var(--primary),#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
     .hero-sub{font-size:clamp(16px,2vw,19px);color:var(--text-2);max-width:560px;margin:0 auto 40px;line-height:1.7;animation:fadeUp .6s .2s ease both}
@@ -87,7 +87,8 @@
     .footer-links a{color:var(--muted);text-decoration:none;font-size:13px;transition:color .2s}
     .footer-links a:hover{color:var(--text)}
     @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-    @media(max-width:768px){nav{padding:14px 20px}.nav-links{display:none}.nav-controls{display:none}.hero{padding:100px 20px 60px}.hero-stats{gap:24px}section{padding:60px 20px}.cta-section{padding:48px 24px;margin:0 16px 60px}footer{flex-direction:column;align-items:flex-start;padding:32px 20px}}
+    @media(max-width:1100px){nav{padding:14px 20px}.nav-links{display:none}.nav-controls{display:none}.hero{padding:100px 20px 60px}.hero-stats{gap:24px}section{padding:60px 20px}.cta-section{padding:48px 24px;margin:0 16px 60px}footer{flex-direction:column;align-items:flex-start;padding:32px 20px}}
+    @media(max-width:480px){.nav-cta{padding:8px 12px;font-size:13px}.nav-logo{font-size:16px}.hero-ctas{flex-direction:column}.btn-primary,.btn-ghost{width:100%;text-align:center}}
   </style>
 </head>
 <body>
@@ -141,7 +142,7 @@
 </nav>
 
 <section class="hero">
-  <div class="hero-badge"><span></span> <span data-i18n="badge">v2.6.0 · Pre-Release disponible</span></div>
+  <div class="hero-badge"><span class="badge-dot"></span> <span data-i18n="badge">v2.7 beta · Pre-Release disponible</span></div>
   <h1 class="hero-title"><span data-i18n="heroTitleA">Gestioná tu iglesia</span><br><em data-i18n="heroTitleB">de forma inteligente</em></h1>
   <p class="hero-sub" data-i18n="heroSub">Una plataforma integral para iglesias evangélicas. Personas, asistencia, seguimientos, grupos, reportes y más — en un solo lugar.</p>
   <div class="hero-ctas">
@@ -356,9 +357,9 @@ const PRICES = {
   GENERAL:{USD:120,ARS:120000,BRL:600,CLP:112000,COP:480000,MXN:2250,PEN:440,UYU:4800}
 }
 const TEXT = {
-  es:{navFeatures:'Funciones',navModules:'Módulos',navPricing:'Precios',navHow:'¿Cómo funciona?',login:'Ingresar →',badge:'v2.6.0 · Pre-Release disponible',heroTitleA:'Gestioná tu iglesia',heroTitleB:'de forma inteligente',heroSub:'Una plataforma integral para iglesias evangélicas. Personas, asistencia, seguimientos, grupos, reportes y más — en un solo lugar.',startFree:'Empezar gratis →',enterPlatform:'Ingresar a la plataforma',createFree:'Crear cuenta gratis →',perMonth:'/mes',planStartFree:'Empezar gratis',planStartNow:'Comenzar ahora',talkSales:'Hablar con ventas',popular:'Más popular'},
-  pt:{navFeatures:'Recursos',navModules:'Módulos',navPricing:'Preços',navHow:'Como funciona?',login:'Entrar →',badge:'v2.6.0 · Pre-Release disponível',heroTitleA:'Gerencie sua igreja',heroTitleB:'de forma inteligente',heroSub:'Uma plataforma completa para igrejas evangélicas. Pessoas, presença, acompanhamento, grupos, relatórios e mais em um só lugar.',startFree:'Começar grátis →',enterPlatform:'Entrar na plataforma',createFree:'Criar conta grátis →',perMonth:'/mês',planStartFree:'Começar grátis',planStartNow:'Começar agora',talkSales:'Falar com vendas',popular:'Mais popular'},
-  en:{navFeatures:'Features',navModules:'Modules',navPricing:'Pricing',navHow:'How it works',login:'Sign in →',badge:'v2.6.0 · Pre-release available',heroTitleA:'Manage your church',heroTitleB:'intelligently',heroSub:'An all-in-one platform for churches: people, attendance, follow-up, groups, reports, and more in one place.',startFree:'Start free →',enterPlatform:'Enter platform',createFree:'Create free account →',perMonth:'/mo',planStartFree:'Start free',planStartNow:'Start now',talkSales:'Talk to sales',popular:'Most popular'}
+  es:{navFeatures:'Funciones',navModules:'Módulos',navPricing:'Precios',navHow:'¿Cómo funciona?',login:'Ingresar →',badge:'v2.7 beta · Pre-Release disponible',heroTitleA:'Gestioná tu iglesia',heroTitleB:'de forma inteligente',heroSub:'Una plataforma integral para iglesias evangélicas. Personas, asistencia, seguimientos, grupos, reportes y más — en un solo lugar.',startFree:'Empezar gratis →',enterPlatform:'Ingresar a la plataforma',createFree:'Crear cuenta gratis →',perMonth:'/mes',planStartFree:'Empezar gratis',planStartNow:'Comenzar ahora',talkSales:'Hablar con ventas',popular:'Más popular'},
+  pt:{navFeatures:'Recursos',navModules:'Módulos',navPricing:'Preços',navHow:'Como funciona?',login:'Entrar →',badge:'v2.7 beta · Pre-Release disponível',heroTitleA:'Gerencie sua igreja',heroTitleB:'de forma inteligente',heroSub:'Uma plataforma completa para igrejas evangélicas. Pessoas, presença, acompanhamento, grupos, relatórios e mais em um só lugar.',startFree:'Começar grátis →',enterPlatform:'Entrar na plataforma',createFree:'Criar conta grátis →',perMonth:'/mês',planStartFree:'Começar grátis',planStartNow:'Começar agora',talkSales:'Falar com vendas',popular:'Mais popular'},
+  en:{navFeatures:'Features',navModules:'Modules',navPricing:'Pricing',navHow:'How it works',login:'Sign in →',badge:'v2.7 beta · Pre-release available',heroTitleA:'Manage your church',heroTitleB:'intelligently',heroSub:'An all-in-one platform for churches: people, attendance, follow-up, groups, reports, and more in one place.',startFree:'Start free →',enterPlatform:'Enter platform',createFree:'Create free account →',perMonth:'/mo',planStartFree:'Start free',planStartNow:'Start now',talkSales:'Talk to sales',popular:'Most popular'}
 }
 const params = new URLSearchParams(location.search)
 const countrySelect = document.getElementById('countrySelect')
