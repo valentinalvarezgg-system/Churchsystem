@@ -4,6 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import CamaraFoto from '../components/CamaraFoto.jsx'
 import { apiFetch, getUser } from '../services/api.js'
+import { ConfirmModal } from '../components/Modal.jsx'
+import { toast } from '../components/Toast.jsx'
 
 const TIPOS_SEG    = ['CONTACTO','VISITA','LLAMADA','REUNION','ORACION','MENSAJE','OTRO']
 const ESTADOS      = ['ACTIVO','INACTIVO','VISITANTE','NUEVO']
@@ -76,6 +78,9 @@ export default function Perfil() {
   // Contacto extra
   const [ctModal, setCtModal]   = useState(false)
   const [ctForm, setCtForm]     = useState({ tipo:'WHATSAPP_ALT', valor:'', descripcion:'', principal:0 })
+  const [confirmRemoveFam, setConfirmRemoveFam] = useState(null)
+  const [confirmRemoveCt, setConfirmRemoveCt]   = useState(null)
+  const [confirmElimFoto, setConfirmElimFoto]   = useState(false)
   // Origen
   const [origenEdit, setOrigenEdit] = useState(false)
   const [origenForm, setOrigenForm] = useState({ traidoPorId:'', traidoPorNombre:'', cultoNombre:'', fecha:'', notas:'' })
@@ -153,29 +158,31 @@ export default function Perfil() {
     try {
       await apiFetch(`/perfil/${id}/familiar`, { method:'POST', body:JSON.stringify({ familiarId, relacion:famRelacion }) })
       setFamModal(false); setFamSearch(''); setFamResults([]); load()
-    } catch(e) { alert(e.message) }
+    } catch(e) { toast.error(e.message) }
   }
 
-  async function removeFamiliar(fid) {
-    if (!confirm('¿Quitar este familiar?')) return
-    try { await apiFetch(`/perfil/${id}/familiar/${fid}`, { method:'DELETE' }); load() } catch(e) { alert(e.message) }
+  async function removeFamiliar() {
+    if (!confirmRemoveFam) return
+    try { await apiFetch(`/perfil/${id}/familiar/${confirmRemoveFam}`, { method:'DELETE' }); load() } catch(e) { toast.error(e.message) }
+    setConfirmRemoveFam(null)
   }
 
   async function addContacto(e) {
     e.preventDefault()
     try { await apiFetch(`/perfil/${id}/contacto`, { method:'POST', body:JSON.stringify(ctForm) }); setCtModal(false); setCtForm({ tipo:'WHATSAPP_ALT', valor:'', descripcion:'', principal:0 }); load() }
-    catch(e) { alert(e.message) }
+    catch(e) { toast.error(e.message) }
   }
 
-  async function removeContacto(cid) {
-    if (!confirm('¿Eliminar este contacto?')) return
-    try { await apiFetch(`/perfil/${id}/contacto/${cid}`, { method:'DELETE' }); load() } catch(e) { alert(e.message) }
+  async function removeContacto() {
+    if (!confirmRemoveCt) return
+    try { await apiFetch(`/perfil/${id}/contacto/${confirmRemoveCt}`, { method:'DELETE' }); load() } catch(e) { toast.error(e.message) }
+    setConfirmRemoveCt(null)
   }
 
   async function saveOrigen(e) {
     e.preventDefault()
     try { await apiFetch(`/perfil/${id}/origen`, { method:'POST', body:JSON.stringify(origenForm) }); setOrigenEdit(false); load() }
-    catch(e) { alert(e.message) }
+    catch(e) { toast.error(e.message) }
   }
 
   async function subirFoto(base64) {
@@ -191,10 +198,9 @@ export default function Perfil() {
   }
 
   async function eliminarFoto() {
-    if (!confirm('¿Eliminar la foto de referencia?')) return
-    await apiFetch(`/perfil/${id}/foto`, { method: 'DELETE' })
-    setPersona(p => ({ ...p, fotoUrl: '' }))
-    setMsg({ type: 'success', text: '📷 Foto eliminada' })
+    setConfirmElimFoto(false)
+    try { await apiFetch(`/perfil/${id}/foto`, { method: 'DELETE' }); load(); setMsg({ type: 'success', text: 'Foto eliminada' }) }
+    catch(e) { toast.error(e.message) }
   }
 
   if (loading) return <div className="layout"><Menu /><main className="main"><div className="empty"><p>Cargando...</p></div></main></div>
@@ -248,6 +254,20 @@ export default function Perfil() {
                     }}>
                     📷
                   </button>
+                  {persona.fotoUrl && (
+                    <button
+                      onClick={() => setConfirmElimFoto(true)}
+                      data-tip="Eliminar foto de referencia"
+                      style={{
+                        position: 'absolute', top: -4, right: -4,
+                        width: 20, height: 20, borderRadius: '50%',
+                        background: 'var(--danger)', border: '2px solid var(--surface)',
+                        color: 'var(--surface)', fontSize: 10, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                      ✕
+                    </button>
+                  )}
                 </div>
               </div>
               <h2 style={{ fontSize:17, fontWeight:800, margin:'0 0 2px', letterSpacing:'-0.3px' }}>{persona.nombre} {persona.apellido}</h2>
@@ -407,7 +427,7 @@ export default function Perfil() {
                               {f.estado && <span className={`badge badge-${f.estado.toLowerCase()}`} style={{ marginLeft:6 }}>{f.estado}</span>}
                             </div>
                           </div>
-                          <button onClick={() => removeFamiliar(f.id)}
+                          <button onClick={() => setConfirmRemoveFam(f.id)}
                             style={{ background:'none', border:'none', cursor:'pointer', fontSize:14, color:'var(--text-muted)', padding:'2px 4px', borderRadius:'var(--r)', flexShrink:0 }}>✕</button>
                         </div>
                       ))}
@@ -494,7 +514,7 @@ export default function Perfil() {
                           {c.descripcion && <div style={{ fontSize:11, color:'var(--text-muted)' }}>{c.descripcion}</div>}
                         </div>
                         {c.principal ? <span style={{ fontSize:10, padding:'2px 6px', background:'var(--c-info-bg)', color:'var(--c-info)', borderRadius:3, fontWeight:600 }}>Principal</span> : null}
-                        <button onClick={() => removeContacto(c.id)}
+                        <button onClick={() => setConfirmRemoveCt(c.id)}
                           style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', fontSize:14, flexShrink:0 }}>✕</button>
                       </div>
                     )
@@ -789,6 +809,21 @@ export default function Perfil() {
           onCerrar={() => setShowCamara(false)}
         />
       )}
+      <ConfirmModal
+        open={!!confirmRemoveFam} onClose={()=>setConfirmRemoveFam(null)} onConfirm={removeFamiliar}
+        title="¿Quitar familiar?" message="Se quitará el vínculo familiar. No elimina el perfil de la persona."
+        confirmLabel="Quitar" cancelLabel="Cancelar"
+      />
+      <ConfirmModal
+        open={!!confirmRemoveCt} onClose={()=>setConfirmRemoveCt(null)} onConfirm={removeContacto}
+        title="¿Eliminar contacto?" message="Se eliminará este medio de contacto del perfil."
+        confirmLabel="Eliminar" cancelLabel="Cancelar" danger
+      />
+      <ConfirmModal
+        open={confirmElimFoto} onClose={()=>setConfirmElimFoto(false)} onConfirm={eliminarFoto}
+        title="¿Eliminar foto?" message="Se eliminará la foto de referencia facial de esta persona."
+        confirmLabel="Eliminar" cancelLabel="Cancelar" danger
+      />
     </div>
   )
 }
