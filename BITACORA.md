@@ -1,12 +1,34 @@
 # BITÁCORA — Church System
 
 Última actualización: 2026-05-30  
-Versión actual: **v2.6 (estable técnica)**  
+Versión base oficial: **v2.7-beta.0 (baseline)**  
+Versión previa consolidada: **v2.6.x (estable técnica)**  
 Rama oficial: **master**
 
 ## Propósito
 Este documento es la única fuente de verdad operativa del proyecto.  
 Todo cambio (Claude/Codex/Copilot/humano) debe registrarse aquí para evitar solapamientos.
+
+## Baseline oficial v2.7 (definitivo)
+
+Este baseline combina:
+1. El estado técnico real del repositorio (`master` + commits recientes).
+2. El contexto operativo/comercial entregado por el dueño del proyecto.
+3. Una unificación de reglas para evitar divergencias entre herramientas.
+
+### Aclaraciones de verdad técnica (importante)
+- La base activa del core backend está consolidada sobre **PostgreSQL/Neon**.
+- Existen archivos legacy de SQLite en el repo para compatibilidad/histórico, pero **no** son la fuente principal para evolución 2.7.
+- El dominio productivo de referencia es `https://churchsystem.com.ar`.
+- La ruta de release es `master` + bloques cerrados con evidencia.
+- Módulos `Finanzas` y `Oración` siguen en código pero permanecen **ocultos** por decisión legal/comercial.
+
+### Estado de producto al iniciar 2.7-beta
+- Plataforma operativa en web/mobile con foco en iglesias (multi-tenant).
+- Core comercial activo (planes, cobro, diagnósticos, readiness).
+- GodMode activo para operación dueña.
+- Integración Resend de salida operativa y webhook inbound implementado.
+- Grandes avances responsive ya aplicados; queda fase de pulido de glitches.
 
 ---
 
@@ -139,6 +161,17 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 
 ---
 
+## Reglas de sincronización entre herramientas (Claude/Codex/Copilot)
+
+1. **No doble verdad:** solo `BITACORA.md` define estado.
+2. **No bloque paralelo sin declaración previa:** antes de tocar código, registrar `EN CURSO`.
+3. **No “resumen inventario” fuera de bitácora:** cualquier resumen externo se valida contra commits.
+4. **No cierre sin pruebas mínimas:** `frontend build` + `backend audit:launch`.
+5. **No push parcial de bloque:** el bloque se sube completo o se marca `BLOCKED`.
+6. **No secretos en commits/bitácora/chat técnico:** si se filtran, rotación obligatoria y nota de seguridad.
+
+---
+
 ## Historial de bloques (consolidado)
 
 ### v2.6 — Bloques principales completados
@@ -163,3 +196,5 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Alcance: loading/empty/error/retry en Dashboard, Personas, Asistencia, Mensajes, Reportes, Configuración.
 - Criterio de salida: 0 estados inconsistentes detectables en flujo principal.
 
+## EN CURSO
+- `v2.7-beta/block-01` — UX States Unification + cierre de glitches de navegación/carga.
