@@ -31,6 +31,9 @@ COPY --chown=nodejs:nodejs src ./src
 COPY --chown=nodejs:nodejs prisma ./prisma
 COPY --chown=nodejs:nodejs prisma.config.ts ./
 
+# Ensure runtime-writable upload folders exist for non-root user
+RUN mkdir -p /app/uploads/fotos && chown -R nodejs:nodejs /app/uploads
+
 # Switch to non-root user
 USER nodejs
 
