@@ -28,6 +28,8 @@ export default function Mensajes() {
   const [msg, setMsg]           = useState(null)
   const [sending, setSending]   = useState(false)
   const [config, setConfig]     = useState({})
+  const [loadingBase, setLoadingBase] = useState(true)
+  const [errorBase, setErrorBase] = useState(null)
   const [editPlantilla, setEditPlantilla] = useState(null)
   const [showNewP, setShowNewP] = useState(false)
   const [confirmBorrarId, setConfirmBorrarId] = useState(null)
@@ -37,12 +39,26 @@ export default function Mensajes() {
     mensaje: '', modo: 'individual', asunto: 'Mensaje pastoral'
   })
 
-  useEffect(() => {
-    apiFetch('/grupos').then(g => setGrupos(g || [])).catch(() => {})
-    apiFetch('/personas?limit=400').then(r => setPersonas(r?.data || [])).catch(() => {})
-    apiFetch('/mensajes/plantillas').then(p => setPlantillas(p || [])).catch(() => {})
-    apiFetch('/config').then(c => setConfig(c || {})).catch(() => {})
+  const loadBase = useCallback(async () => {
+    setLoadingBase(true); setErrorBase(null)
+    try {
+      const [g, p, pl, c] = await Promise.all([
+        apiFetch('/grupos'),
+        apiFetch('/personas?limit=400'),
+        apiFetch('/mensajes/plantillas'),
+        apiFetch('/config'),
+      ])
+      setGrupos(g || [])
+      setPersonas(p?.data || [])
+      setPlantillas(pl || [])
+      setConfig(c || {})
+    } catch (e) {
+      setErrorBase(e.message || 'No se pudo cargar mensajería')
+    }
+    setLoadingBase(false)
   }, [])
+
+  useEffect(() => { loadBase() }, [loadBase])
 
   const loadHistorial = useCallback(async () => {
     try {
@@ -146,6 +162,14 @@ export default function Mensajes() {
             </p>
           </div>
         </div>
+
+        {errorBase && (
+          <div className="alert alert-error" style={{marginBottom:12, display:'flex', justifyContent:'space-between', alignItems:'center', gap:10}}>
+            <span>{errorBase}</span>
+            <button className="btn btn-ghost btn-sm" onClick={loadBase}>Reintentar</button>
+          </div>
+        )}
+        {loadingBase && <div className="empty" style={{marginBottom:12}}><p>Cargando mensajería...</p></div>}
 
         <div className="mobile-tabs" style={{ display: 'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap: 8, marginBottom: 20 }}>
           {[['enviar', '✉ Enviar'], ['plantillas', 'Plantillas'], ['historial', '≡ Historial']].map(([k, l]) => (

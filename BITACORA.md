@@ -198,3 +198,21 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 
 ## EN CURSO
 - `v2.7-beta/block-01` — UX States Unification + cierre de glitches de navegación/carga.
+
+## Historial de bloques 2.7 beta
+
+### 2026-05-30 — v2.7-beta/block-01 (parcial, BLOCKED técnico)
+- Objetivo: unificar estados `loading / empty / error / retry` en 6 pantallas críticas.
+- Cambios aplicados:
+  - `Dashboard.jsx`: agregado estado de error con CTA de reintento.
+  - `Personas.jsx`: agregado `error` de carga + alerta con botón `Reintentar`.
+  - `Mensajes.jsx`: carga base unificada (`loadBase`) con `loadingBase` + `errorBase` + `Reintentar`.
+  - `Reportes.jsx`: alerta de error con acción de reintento.
+  - `Configuracion.jsx`: manejo explícito de `loadError` y vista de retry.
+- Verificaciones:
+  - `backend pnpm audit:launch` ✅ OK.
+  - `frontend pnpm build` ❌ BLOCKED por dependencia externa no resuelta en web:
+    - `@capacitor-mlkit/barcode-scanning` desde `frontend/src/components/QRScannerNativo.jsx`.
+- Decisión:
+  - El bloque funcional quedó implementado.
+  - Próximo micro-bloque: resolver compatibilidad de build web para módulo Capacitor sin romper iOS nativo.

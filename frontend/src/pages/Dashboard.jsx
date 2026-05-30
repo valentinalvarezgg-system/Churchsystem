@@ -98,7 +98,7 @@ export default function Dashboard() {
   const navigate   = useNavigate()
   const user       = getUser()
   const ori = useOrientation()
-  const { data: stats, loading } = useRealtimeQuery('stats', () => apiFetch('/stats'), [], { intervalMs: 10000 })
+  const { data: stats, loading, error } = useRealtimeQuery('stats', () => apiFetch('/stats'), [], { intervalMs: 10000 })
   const lang = (localStorage.getItem('church_lang') || user?.idioma || getStoredContext().lang || 'es').slice(0, 2)
   const copy = DASH_I18N[lang] || DASH_I18N.es
   const txt = key => copy[key] || DASH_I18N.es[key] || key
@@ -114,6 +114,18 @@ export default function Dashboard() {
           {Array(6).fill(0).map((_,i) => (
             <div key={i} style={{ height:88, borderRadius:12, background:'var(--bg-2)', animation:'pulse 1.5s ease-in-out infinite', animationDelay:`${i*0.1}s` }} />
           ))}
+        </div>
+      </main>
+    </div>
+  )
+
+  if (error) return (
+    <div className="layout"><Menu />
+      <main className="main">
+        <div className="empty">
+          <div className="empty-icon"><Icons.Dashboard /></div>
+          <p>No se pudo cargar el dashboard.</p>
+          <button className="btn btn-ghost btn-sm" onClick={() => window.location.reload()}>Reintentar</button>
         </div>
       </main>
     </div>

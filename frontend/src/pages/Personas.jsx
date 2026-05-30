@@ -42,6 +42,7 @@ export default function Personas() {
   const [modal, setModal]       = useState(null)
   const [form, setForm]         = useState(EMPTY)
   const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState(null)
   const [segModal, setSegModal] = useState(null)
   const [segList, setSegList]   = useState([])
   const [segForm, setSegForm]   = useState({tipo:'CONTACTO',nota:'',proximoContacto:''})
@@ -60,7 +61,7 @@ export default function Personas() {
   const [confirmDelSeg, setConfirmDelSeg] = useState(null) // id de seguimiento
 
   const load = useCallback(async () => {
-    setLoading(true)
+    setLoading(true); setError(null)
     try {
       const p = new URLSearchParams({page, limit:20})
       if (search) p.set('search', search)
@@ -68,7 +69,7 @@ export default function Personas() {
       if (grupoF)  p.set('grupoId', grupoF)
       const res = await apiFetch(`/personas?${p}`)
       setData(res.data||[]); setTotal(res.total||0); setPages(res.pages||1)
-    } catch (e) { toast.error(e.message) }
+    } catch (e) { setError(e.message); toast.error(e.message) }
     setLoading(false)
   }, [page, search, estadoF, grupoF])
 
@@ -191,6 +192,13 @@ export default function Personas() {
           </select>
           <button className="btn btn-ghost btn-sm" onClick={()=>{setSearch('');setEstadoF('');setGrupoF('');setPage(1)}}>✕ Limpiar</button>
         </div>
+
+        {error && (
+          <div className="alert alert-error" style={{marginBottom:12, display:'flex', justifyContent:'space-between', alignItems:'center', gap:10}}>
+            <span>{error}</span>
+            <button className="btn btn-ghost btn-sm" onClick={load}>Reintentar</button>
+          </div>
+        )}
 
         <div className="mobile-list">
           {loading ? (

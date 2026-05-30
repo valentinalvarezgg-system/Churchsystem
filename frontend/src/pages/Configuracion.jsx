@@ -201,8 +201,10 @@ export default function Configuracion() {
   const [collapsed, setCollapsed]   = useState({})
   const [emailDiag, setEmailDiag]   = useState(null)
   const [testingEmail, setTestingEmail] = useState(false)
+  const [loadError, setLoadError] = useState(null)
 
   useEffect(() => {
+    setLoadError(null)
     Promise.all([
       apiFetch('/config').catch(() => ({})),
       apiFetch('/backup/info').catch(() => null),
@@ -244,6 +246,9 @@ export default function Configuracion() {
       })
       setBackupInfo(b)
       setEmailDiag(diag)
+      setLoading(false)
+    }).catch((e) => {
+      setLoadError(e.message || 'No se pudo cargar configuración')
       setLoading(false)
     })
   }, [])
@@ -290,6 +295,15 @@ export default function Configuracion() {
   const secActiva = CATEGORIAS.flatMap(c => c.secciones).find(s => s.key === sec)
 
   if (loading) return <div className="layout"><Menu /><main className="main"><div className="empty"><p>Cargando...</p></div></main></div>
+  if (loadError) return (
+    <div className="layout"><Menu /><main className="main">
+      <div className="empty">
+        <div className="empty-icon"><Icons.Settings /></div>
+        <p>{loadError}</p>
+        <button className="btn btn-ghost btn-sm" onClick={() => window.location.reload()}>Reintentar</button>
+      </div>
+    </main></div>
+  )
 
   return (
     <div className="layout"><Menu />

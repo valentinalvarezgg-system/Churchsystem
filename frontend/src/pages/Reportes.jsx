@@ -91,7 +91,12 @@ export default function Reportes() {
         </div>
 
         {loading && <div className="empty"><p>Generando reporte...</p></div>}
-        {error && <div className="alert alert-error" style={{marginBottom:16}}>{error.message}</div>}
+        {error && (
+          <div className="alert alert-error" style={{marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center', gap:10}}>
+            <span>{error.message}</span>
+            <button className="btn btn-ghost btn-sm" onClick={() => window.location.reload()}>Reintentar</button>
+          </div>
+        )}
 
         {r && (
           <div id="reporte-contenido">
