@@ -1,10 +1,16 @@
 // Church System Service Worker v2 — Cache + Push Notifications
-const VERSION    = 'church-v3'
+const VERSION    = 'church-v4-app-scope'
 const CACHE_NAME = `church-system-${VERSION}`
+const SCOPE_PATH = new URL(self.registration.scope).pathname
+const IS_ROOT_SCOPE = SCOPE_PATH === '/'
 
-const PRECACHE = ['/', '/login', '/manifest.json']
+const PRECACHE = ['/app/', '/app/login', '/app/manifest.json']
 
 self.addEventListener('install', e => {
+  if (IS_ROOT_SCOPE) {
+    e.waitUntil(self.skipWaiting())
+    return
+  }
   e.waitUntil(
     caches.open(CACHE_NAME)
       .then(c => c.addAll(PRECACHE))
@@ -13,6 +19,14 @@ self.addEventListener('install', e => {
 })
 
 self.addEventListener('activate', e => {
+  if (IS_ROOT_SCOPE) {
+    e.waitUntil(
+      caches.keys()
+        .then(keys => Promise.all(keys.filter(k => k.startsWith('church-system-')).map(k => caches.delete(k))))
+        .then(() => self.registration.unregister())
+    )
+    return
+  }
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
@@ -21,11 +35,14 @@ self.addEventListener('activate', e => {
 })
 
 self.addEventListener('fetch', e => {
+  if (IS_ROOT_SCOPE) return
   if (e.request.method !== 'GET') return
   if (!e.request.url.startsWith(self.location.origin)) return
-  const url = e.request.url
-  if (url.includes('/auth/') || url.includes('/personas') ||
-      url.includes('/checkin/') || url.includes(':4000')) return
+  const url = new URL(e.request.url)
+  if (!url.pathname.startsWith('/app/')) return
+  const href = e.request.url
+  if (href.includes('/auth/') || href.includes('/personas') ||
+      href.includes('/checkin/') || href.includes(':4000')) return
 
   e.respondWith(
     fetch(e.request)
@@ -50,10 +67,10 @@ self.addEventListener('push', e => {
 
   const options = {
     body: data.body || '',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: '/app/icon-192.png',
+    badge: '/app/icon-192.png',
     vibrate: [200, 100, 200],
-    data: { url: data.url || '/' },
+    data: { url: data.url || '/app/' },
     actions: data.actions || [],
     tag: data.tag || 'church-system',
     renotify: true,
@@ -69,7 +86,7 @@ self.addEventListener('push', e => {
 // ── Notification click ──────────────────────────────────────
 self.addEventListener('notificationclick', e => {
   e.notification.close()
-  const url = e.notification.data?.url || '/'
+  const url = e.notification.data?.url || '/app/'
 
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })

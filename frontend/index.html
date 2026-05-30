@@ -32,8 +32,15 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' })
-            .catch(() => {})
+          navigator.serviceWorker.getRegistrations()
+            .then(registrations => Promise.all(registrations.map(reg => {
+              try {
+                const scopePath = new URL(reg.scope).pathname
+                if (scopePath === '/') return reg.unregister()
+              } catch {}
+              return Promise.resolve(false)
+            })))
+            .finally(() => navigator.serviceWorker.register('/app/sw.js', { scope: '/app/' }).catch(() => {}))
         })
       }
     </script>
