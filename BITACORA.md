@@ -197,7 +197,7 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Criterio de salida: 0 estados inconsistentes detectables en flujo principal.
 
 ## EN CURSO
-- Ninguno. Último bloque cerrado: `v2.7-beta/block-05`.
+- Ninguno. Último bloque cerrado: `v2.7-beta/block-06`.
 
 ## Historial de bloques 2.7 beta
 
@@ -341,10 +341,36 @@ cd frontend && pnpm build
 | `backend/middlewares/plan.js` | Eliminado `getModulosPlan` | ✅ |
 | `backend/pnpm-lock.yaml` | Sincronizado (zod ya removido) | ✅ |
 
+### 2026-05-30 — v2.7-beta/block-06 (fix deploy Render — dist commiteado) — Claude
+
+**Problema raíz identificado:** `frontend/dist/` estaba en `.gitignore`. Render clonaba el repo pero no encontraba el `dist` construido, y su build command no incluía `pnpm build` del frontend. El frontend viejo (o ningún frontend) se servía.
+
+**Cambios aplicados:**
+- `.gitignore`: `!frontend/dist/` — permite commitear el build del frontend
+- `render.yaml`: define build command correcto para futuros deploys automáticos:
+  ```
+  buildCommand: cd ../frontend && pnpm install && pnpm build && cd ../backend && pnpm install
+  startCommand: node src/server.js
+  ```
+- `frontend/dist/` (44 archivos): build actual con TODO el código v2.7-beta incluido
+- Commit `b77fc82` pushed a `master` → Render auto-redeploy disparado
+
+**Para deploy correcto en el futuro:**
+```bash
+cd frontend && pnpm build
+git add frontend/dist/
+git commit -am "deploy: ..."
+git push
+```
+
+**Verificaciones:**
+- Build ✅ — 44 assets + index.html + sw.js en dist
+- `git push` exitoso → Render recibe commit con dist completo ✅
+
 ### Pendientes conocidos
-- Mac necesita `git pull + pnpm build + restart backend` para ver cambios del panel CheckIn
 - `QR_SECRET` en Render: si no está seteado, los QR se invalidan en cada redeploy (recomendado setear en Render env vars)
 - Páginas con tablas sin vista mobile: Grupos, Consolidacion, Comunicados, Reportes, Oracion, Eventos (fase A sigue pendiente para algunas)
+- Mac: `git pull + pnpm build + restart backend` para ver cambios en modo local
 
 ---
 
