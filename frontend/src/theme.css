@@ -519,6 +519,10 @@ td {
     scroll-snap-align: start;
   }
 
+  .page-actions > * {
+    min-width: 0;
+  }
+
   .template-list,
   .messages-mobile-history {
     gap: 10px !important;
@@ -670,6 +674,12 @@ td {
   .cs-modal-box div[style*="grid-template-columns"] {
     grid-template-columns: 1fr !important;
   }
+
+  .table-responsive table,
+  .attendance-table-wrap table {
+    min-width: 100% !important;
+    width: 100%;
+  }
 }
 
 @media (max-width: 379px) {
@@ -686,6 +696,12 @@ td {
   .mobile-person-main .badge {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .quick-actions-grid,
+  .alerts-tabs-grid,
+  .mobile-filter-bar {
+    grid-template-columns: 1fr !important;
   }
 }
 
