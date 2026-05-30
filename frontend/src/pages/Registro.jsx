@@ -5,6 +5,7 @@ import { apiFetch, decodeJwt, getApiUrl, getStoredContext, syncContextFromUser }
 import { toast } from '../components/Toast.jsx'
 import EmailVerificacion from '../components/EmailVerificacion.jsx'
 import { TokenIglesiaInput } from '../components/TokenIglesia.jsx'
+import { authCopy } from '../utils/i18n-auth.js'
 
 const API_BASE = getApiUrl()
 const COUNTRIES = [
@@ -190,6 +191,7 @@ const label = {
 // ── Stepper ───────────────────────────────────────────────────────────────────
 const STEPS = ['Plan', 'Cuenta', 'Verificar', 'Listo']
 function Stepper({ paso, labels=STEPS }) {
+  const isNarrow = typeof window !== 'undefined' && window.innerWidth < 520
   return (
     <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:32}}>
       {labels.map((l, i) => {
@@ -208,6 +210,7 @@ function Stepper({ paso, labels=STEPS }) {
                 fontSize:12, fontWeight: active?700:400,
                 color: done?c.ok : active?c.text : c.muted,
                 whiteSpace:'nowrap',
+                display: isNarrow ? 'none' : 'inline',
               }}>{l}</span>
             </div>
             {i < 3 && (
@@ -411,7 +414,7 @@ export default function Registro() {
       <div style={{
         width:'100%', maxWidth:cardW,
         background:c.surf, backdropFilter:'blur(24px)',
-        borderRadius:24, padding: paso===0 ? '36px 36px' : '40px 36px',
+        borderRadius:24, padding: paso===0 ? '24px 18px' : '28px 18px',
         border:`1px solid ${c.border}`,
         boxShadow:'0 30px 60px -12px rgba(0,0,0,0.6)',
         transition:'max-width .4s ease',
@@ -435,7 +438,7 @@ export default function Registro() {
 
             <div style={{
               display:'grid',
-              gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))',
+              gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))',
               gap:12,
               marginBottom:22,
               background:'rgba(15,23,42,.55)',
@@ -472,7 +475,7 @@ export default function Registro() {
             {/* Grid de planes */}
             <div style={{
               display:'grid',
-              gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))',
+              gridTemplateColumns:'repeat(auto-fit, minmax(145px, 1fr))',
               gap:12, marginBottom:28,
             }}>
               {PLANES.map(plan => {
@@ -547,7 +550,7 @@ export default function Registro() {
 
             <p style={{textAlign:'center', fontSize:13, color:c.muted, marginTop:16}}>
               {t('already')}{' '}
-              <a href="/app/login" style={{color:c.pri, fontWeight:600, textDecoration:'none'}}>{t('signIn')}</a>
+              <a href="/app/login" style={{color:c.pri, fontWeight:600, textDecoration:'none'}}>{authCopy(lang).register.signIn}</a>
             </p>
           </>
         )}
@@ -590,7 +593,7 @@ export default function Registro() {
 
             {/* Form */}
             <form onSubmit={handleRegistro} style={{display:'flex', flexDirection:'column', gap:13}}>
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:12}}>
                 <div>
                   <label style={label}>{t('firstName')}</label>
                   <input type="text" required value={form.nombre} placeholder="Juan"

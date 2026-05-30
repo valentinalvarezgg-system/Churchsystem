@@ -1,0 +1,91 @@
+export const AUTH_I18N = {
+  es: {
+    login: {
+      subtitle: 'Gestión Pastoral Inteligente',
+      divider: 'o ingresá con email',
+      password: 'Contraseña',
+      submit: 'Iniciar sesión →',
+      submitting: 'Ingresando...',
+      noAccount: '¿No tenés cuenta?',
+      signup: 'Crear cuenta',
+      terms: 'Términos',
+      privacy: 'Privacidad',
+      ok: 'Sesión iniciada correctamente',
+      invalid: 'Email o contraseña incorrectos',
+      authError: 'Error de autenticación',
+      errors: {
+        no_code: 'No se recibió autorización',
+        no_token: 'No se pudo obtener token',
+        oauth_failed: 'Error en autenticación',
+        oauth_not_configured: 'OAuth no configurado',
+        apple_not_configured: 'Apple Sign-In no configurado',
+        account_disabled: 'Cuenta desactivada',
+      },
+    },
+    register: {
+      signIn: 'Iniciar sesión',
+      signup: 'Crear cuenta',
+    },
+  },
+  pt: {
+    login: {
+      subtitle: 'Gestão Pastoral Inteligente',
+      divider: 'ou entre com email',
+      password: 'Senha',
+      submit: 'Entrar →',
+      submitting: 'Entrando...',
+      noAccount: 'Ainda não tem conta?',
+      signup: 'Criar conta',
+      terms: 'Termos',
+      privacy: 'Privacidade',
+      ok: 'Sessão iniciada com sucesso',
+      invalid: 'Email ou senha incorretos',
+      authError: 'Erro de autenticação',
+      errors: {
+        no_code: 'Autorização não recebida',
+        no_token: 'Não foi possível obter o token',
+        oauth_failed: 'Erro na autenticação',
+        oauth_not_configured: 'OAuth não configurado',
+        apple_not_configured: 'Apple Sign-In não configurado',
+        account_disabled: 'Conta desativada',
+      },
+    },
+    register: {
+      signIn: 'Entrar',
+      signup: 'Criar conta',
+    },
+  },
+  en: {
+    login: {
+      subtitle: 'Smart Pastoral Management',
+      divider: 'or sign in with email',
+      password: 'Password',
+      submit: 'Sign in →',
+      submitting: 'Signing in...',
+      noAccount: 'No account yet?',
+      signup: 'Create account',
+      terms: 'Terms',
+      privacy: 'Privacy',
+      ok: 'Session started successfully',
+      invalid: 'Email or password is incorrect',
+      authError: 'Authentication error',
+      errors: {
+        no_code: 'Authorization was not received',
+        no_token: 'Could not obtain token',
+        oauth_failed: 'Authentication failed',
+        oauth_not_configured: 'OAuth is not configured',
+        apple_not_configured: 'Apple Sign-In is not configured',
+        account_disabled: 'Account disabled',
+      },
+    },
+    register: {
+      signIn: 'Sign in',
+      signup: 'Create account',
+    },
+  },
+}
+
+export function authCopy(lang = 'es') {
+  const l = String(lang || 'es').slice(0, 2)
+  return AUTH_I18N[l] || AUTH_I18N.es
+}

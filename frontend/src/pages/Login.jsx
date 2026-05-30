@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, getApiUrl, getStoredContext, decodeJwt, syncContextFromUser } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
+import { authCopy } from '../utils/i18n-auth.js'
 
 const S = {
   bg: { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
@@ -51,30 +52,6 @@ const S = {
 }
 
 const API_BASE = getApiUrl()
-const I18N = {
-  es: {
-    subtitle:'Gestión Pastoral Inteligente', divider:'o ingresá con email', password:'Contraseña',
-    submit:'Ingresar →', submitting:'Ingresando...', noAccount:'¿No tenés cuenta?', signup:'Registrate',
-    terms:'Términos', privacy:'Privacidad', ok:'Sesión iniciada correctamente',
-    invalid:'Email o contraseña incorrectos', authError:'Error de autenticación',
-    errors:{ no_code:'No se recibió autorización', no_token:'No se pudo obtener token', oauth_failed:'Error en autenticación', oauth_not_configured:'OAuth no configurado', apple_not_configured:'Apple Sign-In no configurado', account_disabled:'Cuenta desactivada' },
-  },
-  pt: {
-    subtitle:'Gestão Pastoral Inteligente', divider:'ou entre com email', password:'Senha',
-    submit:'Entrar →', submitting:'Entrando...', noAccount:'Ainda não tem conta?', signup:'Cadastre-se',
-    terms:'Termos', privacy:'Privacidade', ok:'Sessão iniciada com sucesso',
-    invalid:'Email ou senha incorretos', authError:'Erro de autenticação',
-    errors:{ no_code:'Autorização não recebida', no_token:'Não foi possível obter o token', oauth_failed:'Erro na autenticação', oauth_not_configured:'OAuth não configurado', apple_not_configured:'Apple Sign-In não configurado', account_disabled:'Conta desativada' },
-  },
-  en: {
-    subtitle:'Smart Pastoral Management', divider:'or sign in with email', password:'Password',
-    submit:'Sign in →', submitting:'Signing in...', noAccount:'No account yet?', signup:'Sign up',
-    terms:'Terms', privacy:'Privacy', ok:'Session started successfully',
-    invalid:'Email or password is incorrect', authError:'Authentication error',
-    errors:{ no_code:'Authorization was not received', no_token:'Could not obtain token', oauth_failed:'Authentication failed', oauth_not_configured:'OAuth is not configured', apple_not_configured:'Apple Sign-In is not configured', account_disabled:'Account disabled' },
-  },
-}
-
 export default function Login() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -86,7 +63,8 @@ export default function Login() {
   const [showPass, setShowPass]   = useState(false)
   const [hoverGoogle, setHG]      = useState(false)
   const [hoverApple, setHA]       = useState(false)
-  const t = key => I18N[lang]?.[key] || I18N.es[key] || key
+  const copy = authCopy(lang).login
+  const t = key => copy[key] || key
   const ctxQuery = new URLSearchParams({
     country: searchParams.get('country') || storedContext.country || 'AR',
     currency: searchParams.get('currency') || storedContext.currency || 'ARS',
@@ -117,11 +95,11 @@ export default function Login() {
             syncContextFromUser(decoded)
           }
         }
-        toast.success((I18N[lang] || I18N.es).ok)
+        toast.success(copy.ok)
         navigate('/')
       } else if (error) {
-        const msgs = (I18N[lang] || I18N.es).errors
-        toast.error(msgs[error] || (I18N[lang] || I18N.es).authError)
+        const msgs = copy.errors || {}
+        toast.error(msgs[error] || copy.authError)
       }
     }
     handleOAuthReturn()
@@ -230,9 +208,9 @@ export default function Login() {
 
         <div style={S.footerLinks}>
           <a href="/app/faq" style={S.footerLink}>FAQ</a>
-          <span style={{color:'#1E293B'}}>·</span>
+          <span style={{color:'var(--text-faint)'}}>·</span>
           <a href="/app/terminos" style={S.footerLink}>{t('terms')}</a>
-          <span style={{color:'#1E293B'}}>·</span>
+          <span style={{color:'var(--text-faint)'}}>·</span>
           <a href="/app/privacidad" style={S.footerLink}>{t('privacy')}</a>
         </div>
       </div>

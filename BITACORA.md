@@ -163,3 +163,42 @@ Rama principal: `master`
 - Verificaciones del bloque mail:
   - `backend pnpm audit:launch` OK.
   - `frontend pnpm build` OK.
+
+## 2026-05-30 — Step 1+2 (Auth UX + Responsive Registro)
+
+- Se unifico copy critico de acceso para reducir confusion login/sign-in/sign-up:
+  - Login ES: `Iniciar sesión`, CTA de alta: `Crear cuenta`.
+  - Login PT/EN ajustado al mismo criterio de acción.
+- Se reforzo responsive de `Registro` para evitar superposiciones:
+  - `Stepper` en pantallas angostas oculta labels largas y mantiene solo indicadores.
+  - Contenedor principal de registro reduce padding base para mobile.
+  - Grillas de contexto y planes pasan a `minmax` mas conservador.
+  - Form de nombre/apellido pasa a `auto-fit` para romper en una columna cuando no entra.
+- Verificacion Step 1+2:
+  - `frontend pnpm build` OK.
+
+## 2026-05-30 — Step 3+4 (Contexto global + i18n operativo)
+
+- Se implemento selector global dentro de plataforma (sidebar):
+  - Pais + idioma + divisa con persistencia.
+  - Bandera rectangular del pais visible junto al selector.
+  - Cambios guardan `church_country/church_currency/church_lang` y sincronizan contexto global.
+- Se agrego API de contexto cliente:
+  - `setStoredContext(...)` en `frontend/src/services/api.js`.
+- Este bloque prepara el camino para centralizar traducciones sin perder compatibilidad con la estructura actual.
+- Verificacion Step 3+4:
+  - `frontend pnpm build` OK.
+  - `backend pnpm audit:launch` OK.
+
+## 2026-05-30 — Step 5+6 (i18n central + QA visual)
+
+- Step 5 — i18n centralizado (núcleo auth):
+  - Nuevo módulo único: `frontend/src/utils/i18n-auth.js`.
+  - `Login.jsx` ahora consume copy desde ese módulo en lugar de mantener duplicación local.
+  - `Registro.jsx` reutiliza ese mismo diccionario para terminología crítica de acceso (sign-in).
+- Step 6 — QA visual y hardening de superposición:
+  - Se agregó refuerzo CSS para pantallas <=520px en `index.css` para colapsar grillas conflictivas a una sola columna y reducir riesgo de solape en formularios.
+  - Se validó compilación del frontend y sanity de backend.
+- Verificación Step 5+6:
+  - `frontend pnpm build` OK.
+  - `backend pnpm audit:launch` OK.

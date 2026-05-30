@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { getUser, apiFetch } from '../services/api.js'
+import { getUser, apiFetch, getStoredContext, setStoredContext } from '../services/api.js'
 import BusquedaGlobal from './BusquedaGlobal.jsx'
 import { useNotificaciones } from '../hooks/useNotificaciones.js'
 import Icons from './Icons.jsx'
@@ -88,8 +88,19 @@ export default function Menu() {
   const { suscrito, suscribir, permiso, soportado } = useNotificaciones()
   const [alertCount, setAlertCount] = useState(0)
   const [dark, setDark]           = useState(() => localStorage.getItem('theme') === 'dark')
+  const [ctx, setCtx] = useState(getStoredContext())
   const lang = (localStorage.getItem('church_lang') || user?.idioma || 'es').slice(0, 2)
   const tt = key => I18N[lang]?.[key] || I18N.es[key] || key
+  const COUNTRY_OPTIONS = [
+    { code:'AR', label:'Argentina', currency:'ARS', lang:'es' },
+    { code:'BR', label:'Brasil', currency:'BRL', lang:'pt' },
+    { code:'CL', label:'Chile', currency:'CLP', lang:'es' },
+    { code:'CO', label:'Colombia', currency:'COP', lang:'es' },
+    { code:'MX', label:'Mexico', currency:'MXN', lang:'es' },
+    { code:'PE', label:'Peru', currency:'PEN', lang:'es' },
+    { code:'UY', label:'Uruguay', currency:'UYU', lang:'es' },
+    { code:'US', label:'United States', currency:'USD', lang:'en' },
+  ]
 
   // Cerrar sidebar al cambiar de ruta
   useEffect(() => { setOpen(false) }, [location.pathname])
@@ -126,6 +137,14 @@ export default function Menu() {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     navigate('/login')
+  }
+
+  function updateCountry(code) {
+    const c = COUNTRY_OPTIONS.find(x => x.code === code) || COUNTRY_OPTIONS[0]
+    const next = { ...ctx, country: c.code, currency: c.currency, lang: c.lang }
+    setCtx(next)
+    setStoredContext(next)
+    window.location.reload()
   }
 
   const lnk = (to, icon, label, end=false, badge=0) => (
@@ -263,6 +282,24 @@ export default function Menu() {
         </nav>
 
         <div className="sidebar-footer">
+          <div style={{ display:'grid', gap:6, marginBottom:8 }}>
+            <label style={{ fontSize:11, color:'var(--text-faint)' }}>Región</label>
+            <div style={{ display:'grid', gridTemplateColumns:'56px 1fr 78px', gap:6 }}>
+              <img
+                src={`https://flagcdn.com/w80/${String(ctx.country || 'ar').toLowerCase()}.png`}
+                alt={ctx.country}
+                style={{ width:'100%', height:24, objectFit:'cover', borderRadius:4, border:'1px solid var(--border)' }}
+              />
+              <select className="form-input" value={ctx.country} onChange={e => updateCountry(e.target.value)} style={{ minHeight:24, padding:'2px 8px' }}>
+                {COUNTRY_OPTIONS.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+              </select>
+              <select className="form-input" value={ctx.lang} onChange={e => { const next = { ...ctx, lang: e.target.value }; setCtx(next); setStoredContext(next); window.location.reload() }} style={{ minHeight:24, padding:'2px 8px' }}>
+                <option value="es">ES</option>
+                <option value="pt">PT</option>
+                <option value="en">EN</option>
+              </select>
+            </div>
+          </div>
           <div className="sidebar-user" onClick={() => navigate('/mi-perfil')}>
             <div className="sidebar-user-avatar">{initials}</div>
             <div className="sidebar-user-info">

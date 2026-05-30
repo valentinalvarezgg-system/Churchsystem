@@ -34,7 +34,7 @@ export default function BannerNotificaciones() {
   }
 
   return (
-    <div style={{
+    <div className="cs-notif-banner" style={{
       position: 'fixed',
       top: 80,
       left: '50%',
@@ -42,10 +42,10 @@ export default function BannerNotificaciones() {
       zIndex: 9998,
       maxWidth: 420,
       width: 'calc(100% - 32px)',
-      background: 'rgba(255, 255, 255, 0.85)',
+      background: 'color-mix(in srgb, var(--surface) 90%, transparent)',
       backdropFilter: 'blur(12px) saturate(180%)',
       WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-      border: '1px solid rgba(0, 0, 0, 0.1)',
+      border: '1px solid var(--border)',
       borderRadius: 16,
       boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
       padding: '16px 20px',
@@ -56,10 +56,10 @@ export default function BannerNotificaciones() {
     }}>
       <span style={{ fontSize: 28, flexShrink: 0 }}>🔔</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#111' }}>
+        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
           ¿Activar notificaciones?
         </p>
-        <p style={{ margin: '2px 0 0', fontSize: 13, color: '#666' }}>
+        <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
           Recibí alertas de seguimientos vencidos y cumpleaños.
         </p>
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -67,13 +67,13 @@ export default function BannerNotificaciones() {
             onClick={handleCerrar}
             disabled={activando}
             style={{
-              background: 'rgba(0, 0, 0, 0.04)',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
+              background: 'var(--bg-2)',
+              border: '1px solid var(--border)',
               borderRadius: 8,
               padding: '6px 14px',
               fontSize: 13,
               fontWeight: 500,
-              color: '#444',
+              color: 'var(--text-2)',
               cursor: activando ? 'not-allowed' : 'pointer',
               transition: 'all 0.15s',
             }}
@@ -119,12 +119,12 @@ export default function BannerNotificaciones() {
           padding: 4,
           fontSize: 18,
           lineHeight: 1,
-          color: '#999',
+          color: 'var(--text-faint)',
           transition: 'color 0.15s',
           flexShrink: 0,
         }}
-        onMouseEnter={e => !activando && (e.currentTarget.style.color = '#333')}
-        onMouseLeave={e => e.currentTarget.style.color = '#999'}
+        onMouseEnter={e => !activando && (e.currentTarget.style.color = 'var(--text)')}
+        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}
       >
         ×
       </button>

@@ -116,6 +116,15 @@ export function getStoredContext() {
   }
 }
 
+export function setStoredContext({ lang, country, currency, promo } = {}) {
+  if (lang) localStorage.setItem('church_lang', String(lang).slice(0, 2))
+  if (country) localStorage.setItem('church_country', String(country).toUpperCase())
+  if (currency) localStorage.setItem('church_currency', String(currency).toUpperCase())
+  if (promo !== undefined) localStorage.setItem('church_promo', String(promo || ''))
+  document.documentElement.lang = localStorage.getItem('church_lang') || 'es'
+  emitDataChanged({ source: 'context-selector' })
+}
+
 export function decodeJwt(token) {
   try {
     const part = token.split('.')[1]
