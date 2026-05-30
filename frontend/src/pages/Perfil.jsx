@@ -227,7 +227,7 @@ export default function Perfil() {
 
         {msg && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
 
-        <div style={{ display:'grid', gridTemplateColumns:'300px 1fr', gap:16, alignItems:'start' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:16, alignItems:'start' }}>
 
           {/* Columna izquierda — card de persona */}
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>

@@ -238,7 +238,7 @@ export default function CheckInAdmin() {
               </div>
 
               {/* Botones */}
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8}}>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:8}}>
                 <button className="btn btn-primary btn-sm" onClick={copiar}
                   data-tip="Copiar link para compartir por WhatsApp">
                   {copied ? '✓ Copiado' : '≡ Copiar link'}

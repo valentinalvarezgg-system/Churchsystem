@@ -202,3 +202,16 @@ Rama principal: `master`
 - Verificación Step 5+6:
   - `frontend pnpm build` OK.
   - `backend pnpm audit:launch` OK.
+
+## 2026-05-30 — Barrido visual release (pantallas críticas)
+
+- Se realizó hardening responsive en pantallas con mayor riesgo de solapamiento:
+  - `SetupWizard.jsx`:
+    - grids fijos (`1fr 1fr`) migrados a `auto-fit/minmax` en formularios y acciones finales.
+    - footer de acciones migrado a layout adaptable para evitar botones encimados.
+  - `CheckIn.jsx`:
+    - acciones de QR (`copiar/imprimir/probar`) pasan de 3 columnas rígidas a grid flexible.
+  - `Perfil.jsx`:
+    - layout principal cambia de `300px 1fr` a `auto-fit/minmax` para mejor comportamiento tablet/mobile.
+- Verificación del bloque:
+  - `frontend pnpm build` OK.

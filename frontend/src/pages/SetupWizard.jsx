@@ -153,7 +153,7 @@ export default function SetupWizard({ onCompleto }) {
                     value={config.pastor_nombre}
                     onChange={e => f('pastor_nombre', e.target.value)} />
                 </Field>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
                   <Field label="Teléfono">
                     <input name="telefono_iglesia" style={inputStyle} type="tel"
                       placeholder="11 1234-5678"
@@ -290,7 +290,7 @@ export default function SetupWizard({ onCompleto }) {
                   Podés empezar cargando personas, grupos y cultos.
                 </p>
                 <div style={{
-                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, textAlign: 'left',
+                  display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 8, textAlign: 'left',
                   marginBottom: 8,
                 }}>
                   {[
@@ -324,7 +324,7 @@ export default function SetupWizard({ onCompleto }) {
           <div style={{
             padding: '16px 28px',
             borderTop: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 10, alignItems: 'center',
           }}>
             <button onClick={() => setPaso(p => Math.max(0, p - 1))}
               disabled={paso === 0}
@@ -337,7 +337,7 @@ export default function SetupWizard({ onCompleto }) {
               ← Atrás
             </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
               {paso < PASOS.length - 1 && paso !== 2 && (
                 <button onClick={() => setPaso(p => p + 1)}
                   style={{
