@@ -223,17 +223,21 @@ export default function CheckInAdmin() {
               {/* Info de red */}
               <div style={{
                 margin:'0 0 16px', padding:'10px 14px',
-                background:'var(--primary-soft)', borderRadius:'var(--r)',
-                border:'1px solid rgba(37,99,235,0.15)', textAlign:'left'
+                background: qrData.isPublic ? 'rgba(22,163,74,0.08)' : 'var(--c-warning-bg)',
+                borderRadius:'var(--r)',
+                border: `1px solid ${qrData.isPublic ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.25)'}`,
+                textAlign:'left'
               }}>
-                <p style={{fontSize:11, fontWeight:700, color:'var(--primary)', textTransform:'uppercase', letterSpacing:.4, marginBottom:4}}>
-                  <Icons.CheckIn /> Acceso desde celular
+                <p style={{fontSize:11, fontWeight:700, color: qrData.isPublic ? 'var(--c-success)' : 'var(--c-warning)', textTransform:'uppercase', letterSpacing:.4, marginBottom:4}}>
+                  {qrData.isPublic ? '🌐 Acceso público' : '⚠ Acceso local'}
                 </p>
                 <p style={{fontSize:12, color:'var(--text-2)', wordBreak:'break-all', fontFamily:'monospace'}}>
                   {qrData.url}
                 </p>
-                <p style={{fontSize:11, color:'var(--text-muted)', marginTop:4}}>
-                  IP: {qrData.ip} — misma red WiFi
+                <p style={{fontSize:11, marginTop:4, color: qrData.isPublic ? 'var(--c-success)' : 'var(--c-warning)'}}>
+                  {qrData.isPublic
+                    ? '✓ Funciona desde cualquier red y datos móviles'
+                    : 'Solo funciona en la misma WiFi. Configurá FRONTEND_URL en Render para acceso público.'}
                 </p>
               </div>
 

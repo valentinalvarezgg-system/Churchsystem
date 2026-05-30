@@ -27,11 +27,12 @@ router.get('/token/:cultoId', requireAuth, async (req, res) => {
 
   const t = token(culto.id)
   const ip = getLocalIP()
-  const publicUrl = process.env.PUBLIC_URL
-  const url = publicUrl
-    ? `${publicUrl}/app/checkin/${culto.id}/${t}`
+  const publicBase = process.env.FRONTEND_URL || process.env.PUBLIC_URL || process.env.BASE_URL
+  const isPublic = !!publicBase
+  const url = isPublic
+    ? `${publicBase}/app/checkin/${culto.id}/${t}`
     : `http://${ip}:${FRONTEND_PORT}/app/checkin/${culto.id}/${t}`
-  res.json({ token: t, url, culto, ip })
+  res.json({ token: t, url, culto, ip, isPublic })
 })
 
 router.get('/info/:cultoId/:tok', async (req, res) => {
