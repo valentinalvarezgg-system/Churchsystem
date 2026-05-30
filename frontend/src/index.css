@@ -1815,8 +1815,9 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* ── F. Mobile list / card alternativas ─────────────────────────────────── */
 /* Por defecto: desktop muestra tabla, oculta alternativas mobile */
-.mobile-list         { display: none; }
-.members-mobile-list { display: none; }
+.mobile-list          { display: none; }
+.members-mobile-list  { display: none; }
+.alerts-mobile-list   { display: none; }
 
 /* En móvil (<768px): mostrar mobile-list, ocultar tabla */
 @media (max-width: 767px) {
@@ -1934,6 +1935,56 @@ tbody tr:last-child td { border-bottom: none; }
   /* Tabla en modal: ocultar en mobile, mostrar alternativa de cards */
   .table-responsive-mobile-hide { display: none !important; }
   .members-mobile-list          { display: flex; flex-direction: column; }
+
+  /* ── Alertas mobile ─────────────────────────────────────────── */
+  .alerts-mobile-list { display: flex; flex-direction: column; }
+  .alerts-mobile-list + .table-responsive { display: none; }
+
+  .alert-mobile-card {
+    padding:       14px 16px;
+    border-bottom: 1px solid var(--border);
+    background:    var(--surface);
+  }
+  .alert-mobile-card.selected { background: var(--primary-soft, rgba(59,130,246,.08)); }
+  .alert-mobile-card:last-child { border-bottom: none; }
+
+  .alert-mobile-check {
+    display:     flex;
+    align-items: center;
+    gap:         8px;
+    font-size:   12px;
+    color:       var(--text-muted);
+    margin-bottom: 8px;
+    cursor:      pointer;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+  .alert-mobile-check input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+
+  .alert-mobile-main {
+    display:        flex;
+    flex-direction: column;
+    gap:            3px;
+    width:          100%;
+    background:     transparent;
+    border:         none;
+    padding:        0;
+    text-align:     left;
+    cursor:         pointer;
+    margin-bottom:  8px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .alert-mobile-main strong { font-size: 14px; font-weight: 700; color: var(--text); }
+  .alert-mobile-main span   { font-size: 12px; color: var(--text-muted); }
+  .alert-mobile-main small  { font-size: 11px; color: var(--text-muted); }
+
+  .alert-mobile-actions {
+    display:  flex;
+    gap:      8px;
+    flex-wrap: wrap;
+  }
+  .alert-mobile-actions .btn { flex: 1; min-width: 80px; }
 }
 
 @media (max-width: 640px) {

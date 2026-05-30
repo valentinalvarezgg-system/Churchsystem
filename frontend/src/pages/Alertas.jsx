@@ -10,6 +10,7 @@ export default function Alertas() {
   const navigate   = useNavigate()
   const [data, setData]       = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
   const [tab, setTab]         = useState('sinAsistir')
   const [enviando, setEnviando] = useState(null)
   const [msgEnvio, setMsgEnvio] = useState({})
@@ -21,7 +22,7 @@ export default function Alertas() {
   useEffect(() => {
     apiFetch('/alertas')
       .then(d => { setData(d); setLoading(false) })
-      .catch(() => setLoading(false))
+      .catch(e => { setError(e.message); setLoading(false) })
   }, [])
 
   useEffect(() => { setSeleccionados([]) }, [tab])
@@ -77,7 +78,19 @@ export default function Alertas() {
   if (loading) return (
     <div className="layout"><Menu />
       <main className="main">
-        <div className="empty"><div className="empty-icon"><Icons.Comunicados /></div><p>Analizando la congregación...</p></div>
+        <div className="empty"><div className="spinner-sm" /><p style={{marginTop:12,color:'var(--text-muted)'}}>Analizando la congregación...</p></div>
+      </main>
+    </div>
+  )
+
+  if (error) return (
+    <div className="layout"><Menu />
+      <main className="main">
+        <div className="page-header"><h1 className="page-title"><Icons.Comunicados /> Alertas pastorales</h1></div>
+        <div className="alert alert-error" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}>
+          <span>{error}</span>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setError(null); setLoading(true); apiFetch('/alertas').then(d=>{setData(d);setLoading(false)}).catch(e=>{setError(e.message);setLoading(false)}) }}>Reintentar</button>
+        </div>
       </main>
     </div>
   )

@@ -14,15 +14,19 @@ export default function Historial() {
   const [page, setPage]       = useState(1)
   const [entidad, setEntidad] = useState('')
   const [accion, setAccion]   = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
   const load = useCallback(async () => {
+    setLoading(true); setError(null)
     try {
       const p = new URLSearchParams({page,limit:50})
       if (entidad) p.set('entidad',entidad)
       if (accion)  p.set('accion',accion)
       const res = await apiFetch(`/historial?${p}`)
       setData(res.data||[]); setTotal(res.total||0); setPages(res.pages||1)
-    } catch {}
+    } catch(e) { setError(e.message) }
+    setLoading(false)
   }, [page,entidad,accion])
 
   useEffect(() => { load() }, [load])
@@ -45,8 +49,16 @@ export default function Historial() {
           </select>
           <button className="btn btn-ghost" onClick={()=>{setEntidad('');setAccion('');setPage(1)}}>Limpiar</button>
         </div>
+        {error && (
+          <div className="alert alert-error" style={{marginBottom:12,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}>
+            <span>{error}</span>
+            <button className="btn btn-ghost btn-sm" onClick={load}>Reintentar</button>
+          </div>
+        )}
         <div className="card" style={{padding:0, overflowX:'auto'}}>
-          {data.length===0
+          {loading
+            ? <div className="empty"><div className="spinner-sm" /></div>
+            : data.length===0
             ? <div className="empty"><div className="empty-icon"><Icons.History /></div><p>Sin registros</p></div>
             : <>
                 <div className="mobile-list">
