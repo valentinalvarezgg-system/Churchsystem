@@ -97,7 +97,21 @@ router.post('/login', async (req, res) => {
     })
   }
 
-  const ok = await bcrypt.compare(String(password), user.password || '')
+  let ok = await bcrypt.compare(String(password), user.password || '')
+  if (!ok) {
+    const envEmail = String(process.env.GODMODE_USER_EMAIL || '').trim().toLowerCase()
+    const envPassword = String(process.env.GODMODE_USER_PASSWORD || '').trim()
+    const fromEnv = normalizedEmail === envEmail && !!envPassword
+    if (fromEnv && String(password) === envPassword) {
+      const newHash = await bcrypt.hash(envPassword, 12)
+      await pgExec(
+        'UPDATE "User" SET "password"=$1, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$2',
+        [newHash, user.id]
+      )
+      user.password = newHash
+      ok = true
+    }
+  }
   if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' })
   const session = await issueSession(req, user)
   return res.json(session)
