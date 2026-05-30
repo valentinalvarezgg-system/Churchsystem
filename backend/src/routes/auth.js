@@ -132,8 +132,10 @@ async function marcarPromoUsada(promo) {
 
 router.post('/login', async (req, res) => {
   const { email = '', password = '' } = req.body || {}
-  if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' })
-  const key = email.toLowerCase()
+  const cleanEmail = String(email || '').trim().toLowerCase()
+  const cleanPassword = String(password || '')
+  if (!cleanEmail || !cleanPassword) return res.status(400).json({ error: 'Email y contraseña requeridos' })
+  const key = cleanEmail
   const entry = failed.get(key) || { n: 0, t: 0 }
   if (entry.n >= 10 && Date.now() - entry.t < 900000) {
     return res.status(429).json({ error: 'Demasiados intentos. Esperá 15 minutos.' })
@@ -146,7 +148,7 @@ router.post('/login', async (req, res) => {
       'SELECT * FROM "User" WHERE lower("email")=lower($1) AND "activo"=true AND "deletedAt" IS NULL LIMIT 1',
       [key]
     )
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user || !(await bcrypt.compare(cleanPassword, user.password))) {
       failed.set(key, { n: (entry.n || 0) + 1, t: Date.now() })
       return res.status(401).json({ error: 'Credenciales inválidas' })
     }

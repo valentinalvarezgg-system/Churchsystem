@@ -107,9 +107,19 @@ export default function Login() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (loading) return
+    const formData = new FormData(e.currentTarget)
+    const nextEmail = String(formData.get('email') || email || '').trim().toLowerCase()
+    const nextPassword = String(formData.get('password') || password || '')
+    if (!nextEmail || !nextPassword) {
+      toast.error('Completá email y contraseña para ingresar.')
+      return
+    }
+    setEmail(nextEmail)
+    setPassword(nextPassword)
     setLoading(true)
     try {
-      const res = await apiFetch('/auth/login', { method:'POST', body:JSON.stringify({ email, password }) })
+      const res = await apiFetch('/auth/login', { method:'POST', body:JSON.stringify({ email: nextEmail, password: nextPassword }) })
       localStorage.setItem('token', res.token)
       localStorage.setItem('user', JSON.stringify(res.user))
       syncContextFromUser(res.user)
@@ -171,7 +181,8 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           <div style={{marginBottom:14}}>
             <label style={S.label}>Email</label>
-            <input type="email" required disabled={loading} value={email}
+            <input name="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false}
+              type="email" required disabled={loading} value={email}
               onChange={e=>setEmail(e.target.value)} placeholder="vos@iglesia.com"
               style={S.input}
               onFocus={e=>e.target.style.borderColor='#6B5CFF'}
@@ -180,7 +191,8 @@ export default function Login() {
           <div style={{marginBottom:22, position:'relative'}}>
             <label style={S.label}>{t('password')}</label>
             <div style={{position:'relative'}}>
-              <input type={showPass?'text':'password'} required disabled={loading} value={password}
+              <input name="password" autoComplete="current-password"
+                type={showPass?'text':'password'} required disabled={loading} value={password}
                 onChange={e=>setPassword(e.target.value)} placeholder="••••••••"
                 style={{...S.input, paddingRight:44}}
                 onFocus={e=>e.target.style.borderColor='#6B5CFF'}

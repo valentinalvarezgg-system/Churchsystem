@@ -68,16 +68,20 @@ export async function apiFetch(path, options = {}) {
   const url   = `${API}${path}`
   const method = (options.method || 'GET').toUpperCase()
   const lang = localStorage.getItem('church_lang')
-
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(lang ? { 'Accept-Language': lang } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {})
-    }
-  })
+  let res
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(lang ? { 'Accept-Language': lang } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {})
+      }
+    })
+  } catch {
+    throw new Error('No se pudo conectar con el servidor. Revisá tu conexión e intentá nuevamente.')
+  }
 
   if (res.status === 401) {
     localStorage.removeItem('token')
@@ -86,7 +90,9 @@ export async function apiFetch(path, options = {}) {
     return
   }
 
-  const data = await res.json()
+  const raw = await res.text()
+  let data = {}
+  try { data = raw ? JSON.parse(raw) : {} } catch { data = { error: raw || `Error ${res.status}` } }
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
     emitDataChanged({ path, method })
