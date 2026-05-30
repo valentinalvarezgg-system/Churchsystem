@@ -3,6 +3,8 @@ import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
+import { ConfirmModal } from '../components/Modal.jsx'
+import { toast } from '../components/Toast.jsx'
 
 const CULTOS = ['','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO']
 const EMPTY  = {nombre:'',cultoDia:'',cultoTurno:0,liderId:'',descripcion:''}
@@ -17,6 +19,7 @@ export default function Grupos() {
   const [detalle, setDetalle] = useState(null)
   const [form, setForm]       = useState(EMPTY)
   const [msg, setMsg]         = useState(null)
+  const [confirmDel, setConfirmDel] = useState(null) // {id, nombre}
 
   async function load() { try { setGrupos(await apiFetch('/grupos')||[]) } catch {} }
   useEffect(() => {
@@ -41,9 +44,10 @@ export default function Grupos() {
     } catch (e) { setMsg({type:'error',text:e.message}) }
   }
 
-  async function handleDelete(id,nombre) {
-    if (!confirm(`¿Eliminar "${nombre}"? Sus personas quedarán sin grupo.`)) return
-    try { await apiFetch(`/grupos/${id}`,{method:'DELETE'}); load() } catch (e) { alert(e.message) }
+  async function handleDelete() {
+    if (!confirmDel) return
+    try { await apiFetch(`/grupos/${confirmDel.id}`,{method:'DELETE'}); setConfirmDel(null); load(); toast.success('Grupo eliminado') }
+    catch (e) { toast.error(e.message) }
   }
 
   const f = (k,v) => setForm(prev=>({...prev,[k]:v}))
@@ -72,7 +76,7 @@ export default function Grupos() {
               {g.descripcion && <p style={{fontSize:12,marginTop:6,color:'var(--text-muted)'}}>{g.descripcion}</p>}
               <div style={{marginTop:14,display:'flex',gap:8}} onClick={e=>e.stopPropagation()}>
                 <button className="btn btn-ghost btn-sm" data-tip="Editar nombre, día y líder del grupo" onClick={()=>openModal(g)}>Editar</button>
-                {canDelete && <button className="btn btn-danger btn-sm" data-tip="Eliminar este grupo permanentemente" onClick={()=>handleDelete(g.id,g.nombre)}>Eliminar</button>}
+                {canDelete && <button className="btn btn-danger btn-sm" data-tip="Eliminar este grupo permanentemente" onClick={()=>setConfirmDel({id:g.id,nombre:g.nombre})}>Eliminar</button>}
               </div>
             </div>
           ))}
@@ -131,6 +135,12 @@ export default function Grupos() {
           </div>
         )}
       </main>
+      <ConfirmModal
+        open={!!confirmDel} onClose={()=>setConfirmDel(null)} onConfirm={handleDelete}
+        title="¿Eliminar grupo?" danger
+        message={confirmDel ? `"${confirmDel.nombre}" será eliminado. Sus miembros quedarán sin grupo.` : ''}
+        confirmLabel="Eliminar" cancelLabel="Cancelar"
+      />
     </div>
   )
 }

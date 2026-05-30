@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser, getApiUrl, getStoredContext } from '../services/api.js'
+import { ConfirmModal } from '../components/Modal.jsx'
+import { toast } from '../components/Toast.jsx'
 
 const TIPOS = ['DIEZMO','OFRENDA','ESPECIAL','PRIMER_FRUTOS','MISION','OTRO']
 const TIPO_COLOR = {
@@ -64,6 +66,7 @@ export default function Finanzas() {
   const [modal, setModal]     = useState(false)
   const [form, setForm]       = useState(EMPTY)
   const [msg, setMsg]         = useState(null)
+  const [confirmDel, setConfirmDel] = useState(null)
   const [view, setView]       = useState('tabla')  // tabla | graficos
   const [currency, setCurrency] = useState(getStoredContext().currency || 'ARS')
 
@@ -107,10 +110,10 @@ export default function Finanzas() {
     } catch(err) { setMsg({type:'error', text: err.message}) }
   }
 
-  async function eliminar(id) {
-    if (!confirm('¿Eliminar este registro?')) return
-    try { await apiFetch(`/finanzas/${id}`, {method:'DELETE'}); load() }
-    catch(e) { alert(e.message) }
+  async function eliminar() {
+    if (!confirmDel) return
+    try { await apiFetch(`/finanzas/${confirmDel}`, {method:'DELETE'}); setConfirmDel(null); load(); toast.success('Registro eliminado') }
+    catch(e) { toast.error(e.message) }
   }
 
   const totalGeneral = porTipo.reduce((a,b) => a + Number(b.subtotal||0), 0)
@@ -272,7 +275,7 @@ export default function Finanzas() {
                       {isAdmin && (
                         <td>
                           <button className="btn btn-danger btn-xs" data-tip="Eliminar registro"
-                            onClick={() => eliminar(r.id)}>✕</button>
+                            onClick={() => setConfirmDel(r.id)}>✕</button>
                         </td>
                       )}
                     </tr>
@@ -350,6 +353,12 @@ export default function Finanzas() {
         )}
 
       </main>
+      <ConfirmModal
+        open={!!confirmDel} onClose={()=>setConfirmDel(null)} onConfirm={eliminar}
+        title="¿Eliminar registro?" danger
+        message="Este movimiento financiero será eliminado permanentemente."
+        confirmLabel="Eliminar" cancelLabel="Cancelar"
+      />
     </div>
   )
 }

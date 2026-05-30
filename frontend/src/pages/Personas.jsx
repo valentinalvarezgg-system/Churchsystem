@@ -3,7 +3,7 @@ import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
-import Modal from '../components/Modal.jsx'
+import Modal, { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
 
 const ESTADOS = ['ACTIVO','INACTIVO','VISITANTE','NUEVO']
@@ -56,6 +56,7 @@ export default function Personas() {
   const [resultado, setResultado] = useState(null)
   const [preview, setPreview] = useState(null)
   const [importLoading, setImportLoading] = useState(false)
+  const [confirmDel, setConfirmDel] = useState(null) // {id, nombre}
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -85,12 +86,12 @@ export default function Personas() {
     } catch (e) { toast.error(e.message) }
   }
 
-  async function handleDelete(id, nombre) {
-    if (!confirm(`¿Eliminar a ${nombre}?`)) return
-    try { 
-      await apiFetch(`/personas/${id}`,{method:'DELETE'})
-      toast.success('Persona eliminada')
-      load() 
+  async function handleDelete() {
+    if (!confirmDel) return
+    try {
+      await apiFetch(`/personas/${confirmDel.id}`,{method:'DELETE'})
+      toast.success(`${confirmDel.nombre} eliminado`)
+      setConfirmDel(null); load()
     } catch (e) { toast.error(e.message) }
   }
 
@@ -110,7 +111,7 @@ export default function Personas() {
   }
 
   async function deleteSeg(id) {
-    if (!confirm('¿Eliminar esta nota?')) return
+    if (!window.confirm('¿Eliminar esta nota de seguimiento?')) return
     try { 
       await apiFetch(`/seguimiento/${id}`,{method:'DELETE'})
       setSegList(await apiFetch(`/seguimiento/${segModal.id}`) || [])
@@ -211,7 +212,7 @@ export default function Personas() {
               <div className="mobile-person-actions">
                 <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /> Seguimiento</button>
                 <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /> Editar</button>
-                {canDelete&&<button className="btn btn-ghost btn-sm danger-action" onClick={()=>handleDelete(p.id,p.nombre)}><Icons.Delete /></button>}
+                {canDelete&&<button className="btn btn-ghost btn-sm danger-action" onClick={()=>setConfirmDel({id:p.id,nombre:`${p.nombre} ${p.apellido||''}`.trim()})}><Icons.Delete /></button>}
               </div>
             </article>
           ))}
@@ -234,7 +235,7 @@ export default function Personas() {
                     <td style={{whiteSpace:'nowrap'}}>
                       <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /></button>
                       <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /></button>
-                      {canDelete&&<button className="btn btn-ghost btn-sm" onClick={()=>handleDelete(p.id,p.nombre)} style={{color:'var(--c-danger)'}}><Icons.Delete /></button>}
+                      {canDelete&&<button className="btn btn-ghost btn-sm" onClick={()=>setConfirmDel({id:p.id,nombre:`${p.nombre} ${p.apellido||''}`.trim()})} style={{color:'var(--c-error)'}}><Icons.Delete /></button>}
                     </td>
                   </tr>
                 ))
@@ -359,7 +360,12 @@ export default function Personas() {
             <button className="btn btn-primary" onClick={()=>{setImportModal(false);resetImport()}} style={{marginTop:20}}>Cerrar</button>
           </div>}
         </Modal>
-
+        <ConfirmModal
+          open={!!confirmDel} onClose={()=>setConfirmDel(null)} onConfirm={handleDelete}
+          title="¿Eliminar persona?" danger
+          message={confirmDel ? `${confirmDel.nombre} será eliminado permanentemente del sistema.` : ''}
+          confirmLabel="Eliminar" cancelLabel="Cancelar"
+        />
       </main>
     </div>
   )

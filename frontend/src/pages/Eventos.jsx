@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
+import { ConfirmModal } from '../components/Modal.jsx'
+import { toast } from '../components/Toast.jsx'
 
 const TIPOS = ['EVENTO','REUNION','RETIRO','CONFERENCIA','CULTO_ESPECIAL','OTRO']
 const TCOLOR = { EVENTO:'#2563EB', REUNION:'#7C3AED', RETIRO:'#16A34A', CONFERENCIA:'#D97706', CULTO_ESPECIAL:'#DC2626', OTRO:'#64748B' }
@@ -37,6 +39,7 @@ export default function Eventos() {
   const [form, setForm]         = useState({ titulo:'', tipo:'EVENTO', fecha:hoy, hora:'', lugar:'', descripcion:'', todoElDia:false })
   const [filtro, setFiltro]     = useState('proximos') // proximos | todos | pasados
   const [msg, setMsg]           = useState(null)
+  const [confirmDel, setConfirmDel] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -80,10 +83,10 @@ export default function Eventos() {
     } catch(err) { setMsg({ type:'error', text:err.message }) }
   }
 
-  async function eliminar(id) {
-    if (!confirm('¿Eliminar este evento?')) return
-    try { await apiFetch(`/eventos/${id}`, { method:'DELETE' }); load() }
-    catch(e) { alert(e.message) }
+  async function eliminar() {
+    if (!confirmDel) return
+    try { await apiFetch(`/eventos/${confirmDel}`, { method:'DELETE' }); setConfirmDel(null); load(); toast.success('Evento eliminado') }
+    catch(e) { toast.error(e.message) }
   }
 
   const agrupadosPorMes = eventos.reduce((acc, ev) => {
@@ -161,7 +164,7 @@ export default function Eventos() {
                           {canManage && (
                             <div style={{display:'flex',gap:6,flexShrink:0}}>
                               <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(ev)}>✏️</button>
-                              <button className="btn btn-ghost btn-sm" style={{color:'var(--c-danger)'}} onClick={()=>eliminar(ev.id)}>🗑</button>
+                              <button className="btn btn-ghost btn-sm" style={{color:'var(--c-danger)'}} onClick={()=>setConfirmDel(ev.id)}>🗑</button>
                             </div>
                           )}
                         </div>
@@ -229,6 +232,12 @@ export default function Eventos() {
           </div>
         )}
       </main>
+      <ConfirmModal
+        open={!!confirmDel} onClose={()=>setConfirmDel(null)} onConfirm={eliminar}
+        title="¿Eliminar evento?" danger
+        message="Este evento será eliminado permanentemente."
+        confirmLabel="Eliminar" cancelLabel="Cancelar"
+      />
     </div>
   )
 }

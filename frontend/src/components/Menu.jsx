@@ -262,6 +262,7 @@ export default function Menu() {
             <div className="nav-section">{tt('management')}</div>
             {isMid   && lnk('/mensajes',  <Icons.Messages />, tt('messages'))}
             {isAudit && lnk('/alertas',   <Icons.Comunicados />, tt('alerts'), false, alertCount)}
+            {isAudit && lnk('/finanzas',  <Icons.Finance />, tt('finances'))}
             {isAudit && lnk('/reportes',  <Icons.Reports />, tt('reports'))}
           </>}
 

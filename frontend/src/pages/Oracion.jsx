@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
+import { ConfirmModal } from '../components/Modal.jsx'
+import { toast } from '../components/Toast.jsx'
 
 const ESTADOS = ['ACTIVA','RESPONDIDA','EN_ESPERA','ARCHIVADA']
 const ECOLOR  = { ACTIVA:'#2563EB', RESPONDIDA:'#16A34A', EN_ESPERA:'#D97706', ARCHIVADA:'#64748B' }
@@ -21,6 +23,7 @@ export default function Oracion() {
   const [form, setForm]     = useState({ titulo:'', descripcion:'', privado:0 })
   const [msg, setMsg]       = useState(null)
   const [apoyando, setApoyando] = useState(null)
+  const [confirmDel, setConfirmDel] = useState(null)
 
   const load = useCallback(async () => {
     const p = new URLSearchParams({ page, limit:12 })
@@ -42,13 +45,13 @@ export default function Oracion() {
 
   async function cambiarEstado(id, estado) {
     try { await apiFetch(`/oracion/${id}/estado`, { method:'PUT', body: JSON.stringify({estado}) }); load() }
-    catch(e) { alert(e.message) }
+    catch(e) { toast.error(e.message) }
   }
 
-  async function eliminar(id) {
-    if (!confirm('¿Eliminar esta petición?')) return
-    try { await apiFetch(`/oracion/${id}`, { method:'DELETE' }); load() }
-    catch(e) { alert(e.message) }
+  async function eliminar() {
+    if (!confirmDel) return
+    try { await apiFetch(`/oracion/${confirmDel}`, { method:'DELETE' }); setConfirmDel(null); load(); toast.success('Petición eliminada') }
+    catch(e) { toast.error(e.message) }
   }
 
   async function handleSave(e) {
@@ -170,7 +173,7 @@ export default function Oracion() {
                           {ESTADOS.map(s => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
                         </select>
                         <button className="btn btn-danger btn-xs" data-tip="Eliminar petición"
-                          onClick={() => eliminar(o.id)}>✕</button>
+                          onClick={() => setConfirmDel(o.id)}>✕</button>
                       </div>
                     )}
                   </div>
@@ -239,6 +242,12 @@ export default function Oracion() {
         )}
 
       </main>
+      <ConfirmModal
+        open={!!confirmDel} onClose={()=>setConfirmDel(null)} onConfirm={eliminar}
+        title="¿Eliminar petición?" danger
+        message="Esta petición de oración será eliminada permanentemente."
+        confirmLabel="Eliminar" cancelLabel="Cancelar"
+      />
     </div>
   )
 }

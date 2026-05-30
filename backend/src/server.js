@@ -276,7 +276,6 @@ await cargarConfigEnv()
 
 seedAdmin().then(async () => {
   await seedGodModeUser()
-  await cargarConfigEnv()
   app.listen(PORT, '0.0.0.0', () => {
     const localIP = Object.values(os.networkInterfaces()).flat()
       .find(n => n.family === 'IPv4' && !n.internal)?.address || '??'
