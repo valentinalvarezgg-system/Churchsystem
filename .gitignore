@@ -35,10 +35,10 @@ Thumbs.db
 *.cert
 backend/system_certs.pem
 
-# Build outputs
+# Build outputs — frontend/dist se commitea para deploy en Render
 dist/
 build/
-frontend/dist/
+!frontend/dist/
 *.log
 npm-debug.log*
 pnpm-debug.log*

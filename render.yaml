@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: church-system
+    env: node
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: cd ../frontend && pnpm install --no-frozen-lockfile && pnpm build && cd ../backend && pnpm install --no-frozen-lockfile
+    startCommand: node src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4000"
