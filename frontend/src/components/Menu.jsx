@@ -101,6 +101,7 @@ export default function Menu() {
     { code:'UY', label:'Uruguay', currency:'UYU', lang:'es' },
     { code:'US', label:'United States', currency:'USD', lang:'en' },
   ]
+  const selectedCountry = COUNTRY_OPTIONS.find(c => c.code === String(ctx.country || 'AR').toUpperCase()) || COUNTRY_OPTIONS[0]
 
   // Cerrar sidebar al cambiar de ruta
   useEffect(() => { setOpen(false) }, [location.pathname])
@@ -144,7 +145,6 @@ export default function Menu() {
     const next = { ...ctx, country: c.code, currency: c.currency, lang: c.lang }
     setCtx(next)
     setStoredContext(next)
-    window.location.reload()
   }
 
   const lnk = (to, icon, label, end=false, badge=0) => (
@@ -304,13 +304,14 @@ export default function Menu() {
                 </div>
                 <select
                   className="form-input"
+                  title={selectedCountry.label}
                   value={ctx.country}
                   onChange={e => updateCountry(e.target.value)}
                   style={{ minHeight:24, padding:'2px 8px 2px 36px' }}>
                 {COUNTRY_OPTIONS.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
                 </select>
               </div>
-              <select className="form-input" value={ctx.lang} onChange={e => { const next = { ...ctx, lang: e.target.value }; setCtx(next); setStoredContext(next); window.location.reload() }} style={{ minHeight:24, padding:'2px 8px' }}>
+              <select className="form-input" value={ctx.lang} onChange={e => { const next = { ...ctx, lang: e.target.value }; setCtx(next); setStoredContext(next) }} style={{ minHeight:24, padding:'2px 8px' }}>
                 <option value="es">ES</option>
                 <option value="pt">PT</option>
                 <option value="en">EN</option>

@@ -41,9 +41,9 @@ normalizeAppContext()
 
 export function syncContextFromUser(user) {
   if (!user) return
-  const nextLang = (user.idioma || localStorage.getItem('church_lang') || 'es').slice(0, 2)
-  const nextCountry = (user.pais || localStorage.getItem('church_country') || 'AR').toUpperCase()
-  const nextCurrency = (user.divisa || localStorage.getItem('church_currency') || 'ARS').toUpperCase()
+  const nextLang = (localStorage.getItem('church_lang') || user.idioma || 'es').slice(0, 2)
+  const nextCountry = (localStorage.getItem('church_country') || user.pais || 'AR').toUpperCase()
+  const nextCurrency = (localStorage.getItem('church_currency') || user.divisa || 'ARS').toUpperCase()
   localStorage.setItem('church_lang', nextLang)
   localStorage.setItem('church_country', nextCountry)
   localStorage.setItem('church_currency', nextCurrency)
