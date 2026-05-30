@@ -110,3 +110,9 @@ Rama principal: `master`
     - `mp_last_webhook_at`, `mp_last_webhook_payment_id`, `mp_last_webhook_status`
   - Objetivo: permitir validacion E2E de cobro sin depender de logs de infraestructura.
 - Verificaciones del bloque de trazabilidad: `backend pnpm audit:launch` OK y `frontend pnpm build` OK.
+- Se implemento bloque de readiness de lanzamiento:
+  - Nuevo endpoint `GET /config/launch-readiness` para evaluar go/no-go tecnico/comercial.
+  - Checks unificados: `JWT_SECRET`, `DATABASE_URL`, `BASE_URL`, `FRONTEND_URL`, estado comercial (MP/OAuth) y email saliente.
+  - Score consolidado (ej: `5/6`) para priorizar cierre de pendientes antes de publicar.
+  - UI en Suscripcion ahora muestra tarjeta "Readiness de lanzamiento" con estado y detalle por check.
+- Verificaciones del bloque de readiness: `backend pnpm audit:launch` OK y `frontend pnpm build` OK.

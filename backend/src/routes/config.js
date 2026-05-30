@@ -140,6 +140,26 @@ function commercialDiagnostics(cfg = {}) {
   }
 }
 
+function launchReadiness(cfg = {}) {
+  const commercial = commercialDiagnostics(cfg)
+  const email = emailDiagnostics(cfg)
+  const checks = [
+    { key: 'jwt_secret', ok: !!process.env.JWT_SECRET, detail: process.env.JWT_SECRET ? 'JWT_SECRET configurado' : 'Falta JWT_SECRET' },
+    { key: 'database_url', ok: String(process.env.DATABASE_URL || '').includes('sslmode=require'), detail: process.env.DATABASE_URL ? 'DATABASE_URL configurado' : 'Falta DATABASE_URL' },
+    { key: 'backend_url', ok: !!process.env.BASE_URL, detail: process.env.BASE_URL || 'Falta BASE_URL' },
+    { key: 'frontend_url', ok: !!process.env.FRONTEND_URL, detail: process.env.FRONTEND_URL || 'Falta FRONTEND_URL' },
+    { key: 'commercial', ok: commercial.ok, detail: commercial.ok ? 'Cobro y OAuth OK' : 'Cobro/OAuth incompleto' },
+    { key: 'email', ok: email.ok, detail: email.ok ? 'Email saliente OK' : 'Email saliente incompleto' },
+  ]
+  const passed = checks.filter(c => c.ok).length
+  return {
+    ok: checks.every(c => c.ok),
+    score: `${passed}/${checks.length}`,
+    checks,
+    checkedAt: new Date().toISOString(),
+  }
+}
+
 router.get('/', requireAuth, wrap(async (req, res) => {
   const cfg = await readTenantConfig(req.user.iglesiaId || 0)
   const { twilio_token, anthropic_key, openai_key, groq_key, resend_key, ...safe } = cfg
@@ -164,6 +184,11 @@ router.get('/email-diagnostics', requireAuth, requireRol('PASTOR_GENERAL'), wrap
 router.get('/commercial-diagnostics', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res) => {
   const cfg = await readTenantConfig(req.user.iglesiaId || 0)
   return res.json(commercialDiagnostics(cfg))
+}))
+
+router.get('/launch-readiness', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res) => {
+  const cfg = await readTenantConfig(req.user.iglesiaId || 0)
+  return res.json(launchReadiness(cfg))
 }))
 
 router.post('/email-test', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res) => {
