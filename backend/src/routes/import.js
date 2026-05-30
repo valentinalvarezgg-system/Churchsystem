@@ -18,7 +18,7 @@ function decodeBase64Excel(file) {
   return buf
 }
 
-router.post('/preview', requireAuth, (req, res) => {
+router.post('/preview', requireAuth, async (req, res) => {
   const { file } = req.body || {}
   if (!file) return res.status(400).json({ error: 'Archivo requerido (base64)' })
   try {
