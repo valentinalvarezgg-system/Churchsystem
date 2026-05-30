@@ -265,6 +265,13 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
   - Restart backend local (`MODO_CLOUDFLARE_LOCAL`) ✅ API cargó rutas nuevas.
   - Smoke API producción: login ✅, `/reportes/general?periodo=trimestre` ✅, `/cultos` ✅, `/personas` ✅.
 
+### 2026-05-30 — v2.7-beta/block-03b (QR URL pública + isPublic flag) — Claude
+- **`checkin.js`**: priorización `FRONTEND_URL > PUBLIC_URL > BASE_URL` antes de IP local.
+  URL usa `/app/checkin/` (correcto con `basename="/app"` del router). Retorna `isPublic: bool`.
+- **`CheckIn.jsx`**: banner "🌐 Acceso público" (verde) si `FRONTEND_URL` configurada,
+  "⚠ Acceso local" (amarillo) con mensaje de configuración si no.
+- `frontend pnpm build` ✅ OK. Pushed a `master`.
+
 ---
 
 ## Runbook — Deploy 2.7 (anti-drift)
