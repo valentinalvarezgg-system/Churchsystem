@@ -225,3 +225,13 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
   - `backend pnpm audit:launch` ✅ OK.
 - Estado:
   - Build 01 (UX states unification) queda técnicamente desbloqueado para continuar validación funcional.
+
+### 2026-05-30 — v2.7-beta/block-02 (conectividad correo E2E - soporte operativo)
+- Se agregó script de smoke test inbound para Resend:
+  - `backend/scripts/smoke-resend-inbound.sh`
+- Objetivo:
+  - validar en segundos `POST /webhooks/resend/inbound` con `RESEND_INBOUND_SECRET`,
+  - confirmar ruteo de alias `@churchsystem.com.ar` y trazas en logs (`Inbound email processed`).
+- Uso:
+  - `cd backend`
+  - `RESEND_INBOUND_SECRET=... BASE_URL=https://churchsystem.com.ar ./scripts/smoke-resend-inbound.sh`
