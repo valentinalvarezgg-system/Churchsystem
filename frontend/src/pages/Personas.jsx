@@ -5,6 +5,79 @@ import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
 import Modal, { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
+import { makeI18n } from '../lib/i18n.js'
+
+const PERS_I18N = {
+  es: { title:'Personas', importExcel:'Importar Excel', newPerson:'+ Nueva persona',
+        allStates:'Todos', allGroups:'Todos los grupos',
+        colName:'Nombre', colContact:'Contacto', colService:'Culto', colGroup:'Grupo',
+        loadingPeople:'Cargando personas...', noResults:'Sin resultados',
+        editPerson:'Editar persona', newPersonModal:'Nueva persona',
+        personCreated:'Persona creada', personUpdated:'Persona actualizada',
+        noEmail:'Sin email', noPhone:'Sin teléfono',
+        addTracking:'Agregar', trackingAdded:'Seguimiento agregado',
+        noTracking:'Sin seguimientos', noteDeleted:'Nota eliminada',
+        quickView:'Ficha rápida', openProfile:'Abrir perfil',
+        followUpTitle:'Seguimiento:', nextContact:'Próximo contacto', typeLabel:'Tipo', noteLabel:'Nota',
+        delPersonTitle:'¿Eliminar persona?', delPersonMsg:'será eliminado permanentemente del sistema.',
+        delNoteTitle:'¿Eliminar nota?', delNoteMsg:'Esta nota de seguimiento será eliminada permanentemente.',
+        birthdayLabel:'Nacimiento', joinDateLabel:'Fecha de ingreso', notesLabel:'Notas', noDateVal:'Sin dato',
+        dragExcel:'Arrastrá tu Excel', dragHint:'Columnas: nombre, apellido, email, telefono, etc.',
+        analyzing:'Analizando...', selectFile:'Seleccionar archivo',
+        skipDup:'Saltar duplicados', updateDup:'Actualizar',
+        importComplete:'Importación completa', importedPeople:'personas importadas',
+        updated:'actualizadas', duplicates:'duplicados', detected:'detectados.',
+        stepUpload:'Subir', stepMap:'Mapear', stepConfirm:'Confirmar',
+        confirmImport:'Confirmar importación', importing:'Importando...',
+        nextStep:'Siguiente →', prevStep:'← Volver',
+  },
+  pt: { title:'Pessoas', importExcel:'Importar Excel', newPerson:'+ Nova pessoa',
+        allStates:'Todos', allGroups:'Todos os grupos',
+        colName:'Nome', colContact:'Contato', colService:'Culto', colGroup:'Grupo',
+        loadingPeople:'Carregando pessoas...', noResults:'Sem resultados',
+        editPerson:'Editar pessoa', newPersonModal:'Nova pessoa',
+        personCreated:'Pessoa criada', personUpdated:'Pessoa atualizada',
+        noEmail:'Sem email', noPhone:'Sem telefone',
+        addTracking:'Adicionar', trackingAdded:'Acompanhamento adicionado',
+        noTracking:'Sem acompanhamentos', noteDeleted:'Nota excluída',
+        quickView:'Ficha rápida', openProfile:'Abrir perfil',
+        followUpTitle:'Acompanhamento:', nextContact:'Próximo contato', typeLabel:'Tipo', noteLabel:'Nota',
+        delPersonTitle:'Excluir pessoa?', delPersonMsg:'será excluído permanentemente do sistema.',
+        delNoteTitle:'Excluir nota?', delNoteMsg:'Esta nota de acompanhamento será excluída permanentemente.',
+        birthdayLabel:'Aniversário', joinDateLabel:'Data de ingresso', notesLabel:'Notas', noDateVal:'Sem dado',
+        dragExcel:'Arraste seu Excel', dragHint:'Colunas: nome, sobrenome, email, telefone, etc.',
+        analyzing:'Analisando...', selectFile:'Selecionar arquivo',
+        skipDup:'Pular duplicados', updateDup:'Atualizar',
+        importComplete:'Importação concluída', importedPeople:'pessoas importadas',
+        updated:'atualizadas', duplicates:'duplicados', detected:'detectados.',
+        stepUpload:'Enviar', stepMap:'Mapear', stepConfirm:'Confirmar',
+        confirmImport:'Confirmar importação', importing:'Importando...',
+        nextStep:'Próximo →', prevStep:'← Voltar',
+  },
+  en: { title:'People', importExcel:'Import Excel', newPerson:'+ New person',
+        allStates:'All', allGroups:'All groups',
+        colName:'Name', colContact:'Contact', colService:'Service', colGroup:'Group',
+        loadingPeople:'Loading people...', noResults:'No results',
+        editPerson:'Edit person', newPersonModal:'New person',
+        personCreated:'Person created', personUpdated:'Person updated',
+        noEmail:'No email', noPhone:'No phone',
+        addTracking:'Add', trackingAdded:'Follow-up added',
+        noTracking:'No follow-ups', noteDeleted:'Note deleted',
+        quickView:'Quick view', openProfile:'Open profile',
+        followUpTitle:'Follow-up:', nextContact:'Next contact', typeLabel:'Type', noteLabel:'Note',
+        delPersonTitle:'Delete person?', delPersonMsg:'will be permanently deleted from the system.',
+        delNoteTitle:'Delete note?', delNoteMsg:'This follow-up note will be permanently deleted.',
+        birthdayLabel:'Birthday', joinDateLabel:'Join date', notesLabel:'Notes', noDateVal:'No data',
+        dragExcel:'Drag your Excel', dragHint:'Columns: name, last name, email, phone, etc.',
+        analyzing:'Analyzing...', selectFile:'Select file',
+        skipDup:'Skip duplicates', updateDup:'Update',
+        importComplete:'Import complete', importedPeople:'people imported',
+        updated:'updated', duplicates:'duplicates', detected:'detected.',
+        stepUpload:'Upload', stepMap:'Map', stepConfirm:'Confirm',
+        confirmImport:'Confirm import', importing:'Importing...',
+        nextStep:'Next →', prevStep:'← Back',
+  },
+}
 
 const ESTADOS = ['ACTIVO','INACTIVO','VISITANTE','NUEVO']
 const CULTOS  = ['','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO']
@@ -25,6 +98,7 @@ const CAMPOS_SISTEMA = [
 ]
 
 export default function Personas() {
+  const t = makeI18n(PERS_I18N)
   const user = getUser()
   const isAdmin = ['PASTOR_GENERAL','CONSOLIDACION'].includes(user?.rol)
   const canDelete = user?.rol === 'PASTOR_GENERAL'
@@ -84,7 +158,7 @@ export default function Personas() {
     try {
       const url = modal === 'edit' ? `/personas/${form.id}` : '/personas'
       await apiFetch(url, { method: modal === 'edit' ? 'PUT' : 'POST', body: JSON.stringify(form) })
-      toast.success(modal === 'edit' ? 'Persona actualizada' : 'Persona creada')
+      toast.success(modal === 'edit' ? t('personUpdated') : t('personCreated'))
       setModal(null); load()
     } catch (e) { toast.error(e.message) }
   }
@@ -93,7 +167,7 @@ export default function Personas() {
     if (!confirmDel) return
     try {
       await apiFetch(`/personas/${confirmDel.id}`,{method:'DELETE'})
-      toast.success(`${confirmDel.nombre} eliminado`)
+      toast.success(`${confirmDel.nombre} ${t('delete').toLowerCase()}`)
       setConfirmDel(null); load()
     } catch (e) { toast.error(e.message) }
   }
@@ -109,7 +183,7 @@ export default function Personas() {
       await apiFetch('/seguimiento',{method:'POST',body:JSON.stringify({personaId:segModal.id,...segForm,proximoContacto:segForm.proximoContacto||null})})
       setSegList(await apiFetch(`/seguimiento/${segModal.id}`) || [])
       setSegForm({tipo:'CONTACTO',nota:'',proximoContacto:''})
-      toast.success('Seguimiento agregado')
+      toast.success(t('trackingAdded'))
     } catch (e) { toast.error(e.message) }
   }
 
@@ -118,7 +192,7 @@ export default function Personas() {
     try {
       await apiFetch(`/seguimiento/${confirmDelSeg}`,{method:'DELETE'})
       setSegList(await apiFetch(`/seguimiento/${segModal.id}`) || [])
-      toast.success('Nota eliminada')
+      toast.success(t('noteDeleted'))
     } catch (e) { toast.error(e.message) }
     setConfirmDelSeg(null)
   }
@@ -173,10 +247,10 @@ export default function Personas() {
       <Menu />
       <main className="main">
         <div className="page-header">
-          <h1 className="page-title"><Icons.Users /> Personas</h1>
+          <h1 className="page-title"><Icons.Users /> {t('title')}</h1>
           <div className="page-actions">
-            <button className="btn btn-ghost" onClick={()=>setImportModal(true)}>Importar Excel</button>
-            <button className="btn btn-primary" onClick={()=>{setModal('new');setForm(EMPTY)}}>+ Nueva persona</button>
+            <button className="btn btn-ghost" onClick={()=>setImportModal(true)}>{t('importExcel')}</button>
+            <button className="btn btn-primary" onClick={()=>{setModal('new');setForm(EMPTY)}}>{t('newPerson')}</button>
           </div>
         </div>
 
@@ -184,45 +258,45 @@ export default function Personas() {
         <div className="mobile-filter-bar" style={{display:'grid',gap:10,marginBottom:16,gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))'}}>
           <input type="text" placeholder="⊙ Buscar..." value={search} onChange={e=>setSearch(e.target.value)} className="form-input" style={{maxWidth:'100%'}} />
           <select value={estadoF} onChange={e=>setEstadoF(e.target.value)} className="form-input" style={{width:'100%'}}>
-            <option value="">Todos</option>
+            <option value="">{t('allStates')}</option>
             {ESTADOS.map(e=><option key={e} value={e}>{e}</option>)}
           </select>
           <select value={grupoF} onChange={e=>setGrupoF(e.target.value)} className="form-input" style={{width:'100%'}}>
-            <option value="">Todos los grupos</option>
+            <option value="">{t('allGroups')}</option>
             {grupos.map(g=><option key={g.id} value={g.id}>{g.nombre}</option>)}
           </select>
-          <button className="btn btn-ghost btn-sm" onClick={()=>{setSearch('');setEstadoF('');setGrupoF('');setPage(1)}}>✕ Limpiar</button>
+          <button className="btn btn-ghost btn-sm" onClick={()=>{setSearch('');setEstadoF('');setGrupoF('');setPage(1)}}>✕ {t('clear')}</button>
         </div>
 
         {error && (
           <div className="alert alert-error" style={{marginBottom:12, display:'flex', justifyContent:'space-between', alignItems:'center', gap:10}}>
             <span>{error}</span>
-            <button className="btn btn-ghost btn-sm" onClick={load}>Reintentar</button>
+            <button className="btn btn-ghost btn-sm" onClick={load}>{t('retry')}</button>
           </div>
         )}
 
         <div className="mobile-list">
           {loading ? (
-            <div className="mobile-empty">Cargando personas...</div>
+            <div className="mobile-empty">{t('loadingPeople')}</div>
           ) : data.length === 0 ? (
-            <div className="mobile-empty">Sin resultados</div>
+            <div className="mobile-empty">{t('noResults')}</div>
           ) : data.map(p => (
             <article className="mobile-person-card" key={p.id}>
               <button className="mobile-person-main" onClick={() => setPersonaPreview(p)}>
                 <div className="mobile-person-avatar">{(p.nombre || '?').slice(0,1).toUpperCase()}</div>
                 <div className="mobile-person-info">
                   <strong>{p.nombre} {p.apellido}</strong>
-                  <span>{p.email || p.telefono || 'Sin contacto'}</span>
+                  <span>{p.email || p.telefono || t('noContact')}</span>
                 </div>
                 <span className={`badge badge-${String(p.estado || '').toLowerCase()}`}>{p.estado}</span>
               </button>
               <div className="mobile-person-meta">
-                <span>{p.grupoNombre || 'Sin grupo'}</span>
-                <span>{p.cultoDia || 'Sin culto'}</span>
+                <span>{p.grupoNombre || t('noGroup')}</span>
+                <span>{p.cultoDia || t('noService')}</span>
               </div>
               <div className="mobile-person-actions">
-                <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /> Seguimiento</button>
-                <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /> Editar</button>
+                <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /> {t('followUpTitle').replace(':','')}</button>
+                <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /> {t('edit')}</button>
                 {canDelete&&<button className="btn btn-ghost btn-sm danger-action" onClick={()=>setConfirmDel({id:p.id,nombre:`${p.nombre} ${p.apellido||''}`.trim()})}><Icons.Delete /></button>}
               </div>
             </article>
@@ -232,10 +306,10 @@ export default function Personas() {
         {/* Tabla */}
         <div className="table-responsive">
           <table>
-            <thead><tr><th>Nombre</th><th>Contacto</th><th>Culto</th><th>Grupo</th><th>Estado</th><th></th></tr></thead>
+            <thead><tr><th>{t('colName')}</th><th>{t('colContact')}</th><th>{t('colService')}</th><th>{t('colGroup')}</th><th>{t('status')}</th><th></th></tr></thead>
             <tbody>
-              {loading ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>Cargando...</td></tr>
-                : data.length===0 ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>Sin resultados</td></tr>
+              {loading ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>{t('loading')}</td></tr>
+                : data.length===0 ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>{t('noResults')}</td></tr>
                 : data.map(p => (
                   <tr key={p.id}>
                     <td onClick={()=>setPersonaPreview(p)} style={{cursor:'pointer',fontWeight:600}}>{p.nombre} {p.apellido}</td>
@@ -257,22 +331,22 @@ export default function Personas() {
 
         {/* Paginación */}
         {pages>1&&<div className="mobile-pagination" style={{display:'flex',justifyContent:'center',gap:8,marginTop:20}}>
-          <button className="btn btn-ghost btn-sm" disabled={page===1} onClick={()=>setPage(p=>p-1)}>‹ Anterior</button>
-          <span style={{padding:'6px 12px',fontSize:13}}>Página {page} de {pages}</span>
-          <button className="btn btn-ghost btn-sm" disabled={page===pages} onClick={()=>setPage(p=>p+1)}>Siguiente ›</button>
+          <button className="btn btn-ghost btn-sm" disabled={page===1} onClick={()=>setPage(p=>p-1)}>‹ {t('prev').replace('← ','')}</button>
+          <span style={{padding:'6px 12px',fontSize:13}}>{t('page')} {page} {t('of')} {pages}</span>
+          <button className="btn btn-ghost btn-sm" disabled={page===pages} onClick={()=>setPage(p=>p+1)}>{t('next').replace(' →','')} ›</button>
         </div>}
 
         {/* Vista rápida de persona */}
         <Modal
           open={!!personaPreview}
           onClose={() => setPersonaPreview(null)}
-          title={personaPreview ? `${personaPreview.nombre || ''} ${personaPreview.apellido || ''}`.trim() || 'Persona' : 'Persona'}
-          subtitle="Ficha rápida"
+          title={personaPreview ? `${personaPreview.nombre || ''} ${personaPreview.apellido || ''}`.trim() || t('title') : t('title')}
+          subtitle={t('quickView')}
           size="md"
           footer={personaPreview && <>
-            <button className="btn btn-ghost" onClick={() => setPersonaPreview(null)}>Cerrar</button>
-            <button className="btn btn-ghost" onClick={() => { setForm(personaPreview); setModal('edit'); setPersonaPreview(null) }}>Editar</button>
-            <button className="btn btn-primary" onClick={() => navigate(`/personas/${personaPreview.id}`)}>Abrir perfil</button>
+            <button className="btn btn-ghost" onClick={() => setPersonaPreview(null)}>{t('close')}</button>
+            <button className="btn btn-ghost" onClick={() => { setForm(personaPreview); setModal('edit'); setPersonaPreview(null) }}>{t('edit')}</button>
+            <button className="btn btn-primary" onClick={() => navigate(`/personas/${personaPreview.id}`)}>{t('openProfile')}</button>
           </>}
         >
           {personaPreview && (
@@ -290,17 +364,17 @@ export default function Personas() {
                     {personaPreview.estado && <span className={`badge badge-${String(personaPreview.estado).toLowerCase()}`}>{personaPreview.estado}</span>}
                   </div>
                   <p style={{margin:'4px 0 0',fontSize:13,color:'var(--text-muted)'}}>
-                    {personaPreview.grupoNombre || 'Sin grupo'} · {personaPreview.cultoDia || 'Sin culto asignado'}
+                    {personaPreview.grupoNombre || t('noGroup')} · {personaPreview.cultoDia || t('noService')}
                   </p>
                 </div>
               </div>
 
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:10}}>
                 {[
-                  ['Email', personaPreview.email || 'Sin email'],
-                  ['Teléfono', personaPreview.telefono || 'Sin teléfono'],
-                  ['Fecha de ingreso', personaPreview.fechaIngreso || personaPreview.createdAt?.slice?.(0,10) || 'Sin dato'],
-                  ['Nacimiento', personaPreview.fechaNacimiento || 'Sin dato'],
+                  [t('colContact').split('/')[0] || 'Email', personaPreview.email || t('noEmail')],
+                  [t('phone'), personaPreview.telefono || t('noPhone')],
+                  [t('joinDateLabel'), personaPreview.fechaIngreso || personaPreview.createdAt?.slice?.(0,10) || t('noDateVal')],
+                  [t('birthdayLabel'), personaPreview.fechaNacimiento || t('noDateVal')],
                 ].map(([label, value]) => (
                   <div key={label} style={{padding:12,border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--bg)'}}>
                     <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:.3,color:'var(--text-faint)',fontWeight:700,marginBottom:4}}>{label}</div>
@@ -311,7 +385,7 @@ export default function Personas() {
 
               {personaPreview.notas && (
                 <div style={{padding:12,border:'1px solid var(--border)',borderRadius:'var(--r)',background:'var(--bg)'}}>
-                  <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:.3,color:'var(--text-faint)',fontWeight:700,marginBottom:6}}>Notas</div>
+                  <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:.3,color:'var(--text-faint)',fontWeight:700,marginBottom:6}}>{t('notesLabel')}</div>
                   <p style={{margin:0,fontSize:13,lineHeight:1.6,color:'var(--text-2)'}}>{personaPreview.notas}</p>
                 </div>
               )}
@@ -320,8 +394,8 @@ export default function Personas() {
         </Modal>
 
         {/* Modal CRUD */}
-        {modal&&<Modal open={!!modal} onClose={()=>setModal(null)} title={modal==='edit'?'Editar persona':'Nueva persona'} size="lg"
-          footer={<><button className="btn btn-ghost" onClick={()=>setModal(null)}>Cancelar</button><button className="btn btn-primary" onClick={handleSave}>Guardar</button></>}>
+        {modal&&<Modal open={!!modal} onClose={()=>setModal(null)} title={modal==='edit'?t('editPerson'):t('newPersonModal')} size="lg"
+          footer={<><button className="btn btn-ghost" onClick={()=>setModal(null)}>{t('cancel')}</button><button className="btn btn-primary" onClick={handleSave}>{t('save')}</button></>}>
           <form onSubmit={handleSave} style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16}}>
             <div className="form-group"><label>Nombre *</label><input name="input_76" type="text" required value={form.nombre} onChange={e=>f('nombre',e.target.value)}/></div>
             <div className="form-group"><label>Apellido</label><input name="input_77" type="text" value={form.apellido} onChange={e=>f('apellido',e.target.value)}/></div>
@@ -336,16 +410,16 @@ export default function Personas() {
         </Modal>}
 
         {/* Modal Seguimiento */}
-        {segModal&&<Modal open={!!segModal} onClose={()=>setSegModal(null)} title={`Seguimiento: ${segModal.nombre}`} size="md">
+        {segModal&&<Modal open={!!segModal} onClose={()=>setSegModal(null)} title={`${t('followUpTitle')} ${segModal.nombre}`} size="md">
           <form onSubmit={handleAddSeg} style={{marginBottom:20}}>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12,marginBottom:12}}>
-              <div className="form-group"><label>Tipo</label><select name="select_24" value={segForm.tipo} onChange={e=>sf('tipo',e.target.value)}>{TIPOS_SEG.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
-              <div className="form-group"><label>Próximo contacto</label><input name="input_81" type="date" value={segForm.proximoContacto} onChange={e=>sf('proximoContacto',e.target.value)}/></div>
-              <div className="form-group" style={{gridColumn:'1/-1'}}><label>Nota</label><textarea name="textarea_2" value={segForm.nota} onChange={e=>sf('nota',e.target.value)} rows={2}/></div>
+              <div className="form-group"><label>{t('typeLabel')}</label><select name="select_24" value={segForm.tipo} onChange={e=>sf('tipo',e.target.value)}>{TIPOS_SEG.map(tp=><option key={tp} value={tp}>{tp}</option>)}</select></div>
+              <div className="form-group"><label>{t('nextContact')}</label><input name="input_81" type="date" value={segForm.proximoContacto} onChange={e=>sf('proximoContacto',e.target.value)}/></div>
+              <div className="form-group" style={{gridColumn:'1/-1'}}><label>{t('noteLabel')}</label><textarea name="textarea_2" value={segForm.nota} onChange={e=>sf('nota',e.target.value)} rows={2}/></div>
             </div>
-            <button type="submit" className="btn btn-primary btn-sm">Agregar</button>
+            <button type="submit" className="btn btn-primary btn-sm">{t('addTracking')}</button>
           </form>
-          {segList.length===0?<p style={{textAlign:'center',color:'var(--text-muted)',padding:20}}>Sin seguimientos</p>:segList.map(s=>(
+          {segList.length===0?<p style={{textAlign:'center',color:'var(--text-muted)',padding:20}}>{t('noTracking')}</p>:segList.map(s=>(
             <div key={s.id} style={{padding:'12px 0',borderBottom:'1px solid var(--border)'}}>
               <div style={{display:'flex',justifyContent:'space-between'}}>
                 <div><span className="badge badge-secondary">{s.tipo}</span><small style={{marginLeft:8,color:'var(--text-muted)'}}>{s.createdAt?.slice(0,16).replace('T',' ')}</small></div>
@@ -374,9 +448,9 @@ export default function Personas() {
           {/* Paso 0: Subir */}
           {pasoImport===0&&<div style={{textAlign:'center',padding:'40px 20px',border:'2px dashed var(--border)',borderRadius:12}}>
             <div style={{fontSize:48,marginBottom:12}}><Icons.Reports /></div>
-            <h3 style={{fontSize:17,fontWeight:700,marginBottom:8}}>Arrastrá tu Excel</h3>
-            <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:16}}>Columnas: nombre, apellido, email, telefono, etc.</p>
-            <button className="btn btn-primary" onClick={()=>fileRef.current?.click()} disabled={importLoading}>{importLoading?'Analizando...':'Seleccionar archivo'}</button>
+            <h3 style={{fontSize:17,fontWeight:700,marginBottom:8}}>{t('dragExcel')}</h3>
+            <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:16}}>{t('dragHint')}</p>
+            <button className="btn btn-primary" onClick={()=>fileRef.current?.click()} disabled={importLoading}>{importLoading?t('analyzing'):t('selectFile')}</button>
             <input name="file_upload" ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFileImport} style={{display:'none'}}/>
           </div>}
 
@@ -385,7 +459,7 @@ export default function Personas() {
             <div style={{marginBottom:16,padding:12,background:'var(--bg)',borderRadius:8}}>
               <strong>{analisis.total} filas · {analisis.columnas?.length} columnas</strong>
               <div style={{display:'flex',gap:12,marginTop:8}}>
-                {[['saltar','Saltar duplicados'],['actualizar','Actualizar']].map(([v,l])=>(
+                {[['saltar',t('skipDup')],['actualizar',t('updateDup')]].map(([v,l])=>(
                   <label key={v} style={{display:'flex',gap:6,cursor:'pointer'}}>
                     <input name="radio_136" type="radio" checked={opDup===v} onChange={()=>setOpDup(v)}/>{l}
                   </label>
@@ -403,8 +477,8 @@ export default function Personas() {
               ))}
             </div>
             <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
-              <button className="btn btn-ghost" onClick={resetImport}>Cancelar</button>
-              <button className="btn btn-primary" onClick={handlePreviewImport} disabled={importLoading}>{importLoading?'Cargando...':'Siguiente →'}</button>
+              <button className="btn btn-ghost" onClick={resetImport}>{t('cancel')}</button>
+              <button className="btn btn-primary" onClick={handlePreviewImport} disabled={importLoading}>{importLoading?t('loading'):t('nextStep')}</button>
             </div>
           </div>}
 
@@ -413,32 +487,32 @@ export default function Personas() {
             <div className="alert alert-info" style={{marginBottom:16}}>✓ {preview.total} filas listas. {preview.duplicados||0} duplicados detectados.</div>
             {preview.muestra?.length>0&&<div className="table-responsive"><table><thead><tr>{Object.keys(preview.muestra[0]).map(k=><th key={k}>{k}</th>)}</tr></thead><tbody>{preview.muestra.map((r,i)=><tr key={i}>{Object.values(r).map((v,j)=><td key={j}>{v}</td>)}</tr>)}</tbody></table></div>}
             <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:16}}>
-              <button className="btn btn-ghost" onClick={()=>setPasoImport(1)}>← Volver</button>
-              <button className="btn btn-primary" onClick={handleConfirmImport} disabled={importLoading}>{importLoading?'Importando...':'Confirmar importación'}</button>
+              <button className="btn btn-ghost" onClick={()=>setPasoImport(1)}>{t('prevStep')}</button>
+              <button className="btn btn-primary" onClick={handleConfirmImport} disabled={importLoading}>{importLoading?t('importing'):t('confirmImport')}</button>
             </div>
           </div>}
 
           {/* Paso 3: Resultado */}
           {pasoImport===3&&resultado&&<div style={{textAlign:'center',padding:40}}>
             <div style={{fontSize:56,marginBottom:16}}><Icons.Attendance /></div>
-            <h3 style={{fontSize:20,fontWeight:700,marginBottom:8}}>Importación completa</h3>
+            <h3 style={{fontSize:20,fontWeight:700,marginBottom:8}}>{t('importComplete')}</h3>
             <p style={{fontSize:14,color:'var(--text-muted)'}}>
-              {resultado.importados} personas importadas · {resultado.actualizados||0} actualizadas · {resultado.duplicados||0} duplicados
+              {resultado.importados} {t('importedPeople')} · {resultado.actualizados||0} {t('updated')} · {resultado.duplicados||0} {t('duplicates')}
             </p>
-            <button className="btn btn-primary" onClick={()=>{setImportModal(false);resetImport()}} style={{marginTop:20}}>Cerrar</button>
+            <button className="btn btn-primary" onClick={()=>{setImportModal(false);resetImport()}} style={{marginTop:20}}>{t('close')}</button>
           </div>}
         </Modal>
         <ConfirmModal
           open={!!confirmDel} onClose={()=>setConfirmDel(null)} onConfirm={handleDelete}
-          title="¿Eliminar persona?" danger
-          message={confirmDel ? `${confirmDel.nombre} será eliminado permanentemente del sistema.` : ''}
-          confirmLabel="Eliminar" cancelLabel="Cancelar"
+          title={t('delPersonTitle')} danger
+          message={confirmDel ? `${confirmDel.nombre} ${t('delPersonMsg')}` : ''}
+          confirmLabel={t('delete')} cancelLabel={t('cancel')}
         />
         <ConfirmModal
           open={!!confirmDelSeg} onClose={()=>setConfirmDelSeg(null)} onConfirm={deleteSeg}
-          title="¿Eliminar nota?" danger
-          message="Esta nota de seguimiento será eliminada permanentemente."
-          confirmLabel="Eliminar" cancelLabel="Cancelar"
+          title={t('delNoteTitle')} danger
+          message={t('delNoteMsg')}
+          confirmLabel={t('delete')} cancelLabel={t('cancel')}
         />
       </main>
     </div>

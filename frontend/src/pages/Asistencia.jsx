@@ -4,6 +4,43 @@ import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser, getApiUrl } from '../services/api.js'
 import Modal, { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
+import { makeI18n } from '../lib/i18n.js'
+
+const ASIS_I18N = {
+  es: { title:'Asistencia a cultos', newService:'+ Nuevo culto', loadingServices:'Cargando cultos...',
+        noServices:'Sin cultos cargados', present:'presentes', openAttend:'Abrir asistencia',
+        loadingList:'Cargando listado...', saving:'Guardando...', export:'Exportar',
+        markAll:'Marcar todos', unmarkAll:'Desmarcar todos',
+        newServiceModal:'Nuevo culto', nameLabel:'Nombre *', dateLabel:'Fecha *',
+        typeLabel:'Tipo', regular:'Culto regular', special:'Culto especial',
+        dayLabel:'Día', timeLabel:'Horario', selectLabel:'Seleccioná...',
+        create:'Crear', delServiceTitle:'¿Eliminar culto?',
+        delServiceMsg:'Se eliminará el culto y todo su registro de asistencia. Esta acción es permanente.',
+        attendSaved:'Asistencia guardada:',
+  },
+  pt: { title:'Presença aos cultos', newService:'+ Novo culto', loadingServices:'Carregando cultos...',
+        noServices:'Sem cultos carregados', present:'presentes', openAttend:'Abrir presença',
+        loadingList:'Carregando lista...', saving:'Salvando...', export:'Exportar',
+        markAll:'Marcar todos', unmarkAll:'Desmarcar todos',
+        newServiceModal:'Novo culto', nameLabel:'Nome *', dateLabel:'Data *',
+        typeLabel:'Tipo', regular:'Culto regular', special:'Culto especial',
+        dayLabel:'Dia', timeLabel:'Horário', selectLabel:'Selecione...',
+        create:'Criar', delServiceTitle:'Excluir culto?',
+        delServiceMsg:'O culto e todo o seu registro de presença serão excluídos. Esta ação é permanente.',
+        attendSaved:'Presença salva:',
+  },
+  en: { title:'Service attendance', newService:'+ New service', loadingServices:'Loading services...',
+        noServices:'No services loaded', present:'present', openAttend:'Open attendance',
+        loadingList:'Loading list...', saving:'Saving...', export:'Export',
+        markAll:'Mark all', unmarkAll:'Unmark all',
+        newServiceModal:'New service', nameLabel:'Name *', dateLabel:'Date *',
+        typeLabel:'Type', regular:'Regular service', special:'Special service',
+        dayLabel:'Day', timeLabel:'Time', selectLabel:'Select...',
+        create:'Create', delServiceTitle:'Delete service?',
+        delServiceMsg:'The service and all its attendance records will be deleted. This action is permanent.',
+        attendSaved:'Attendance saved:',
+  },
+}
 
 const DIAS_REGULARES = ['LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO']
 const CULTOS_ESPECIALES = ['Oración','Mujeres','Sanos por la Palabra','Pre-Adolescentes','Adolescentes','Jóvenes','Jóvenes Adultos','Escuelita']
@@ -21,6 +58,7 @@ function fechaCorta(fecha) {
 }
 
 export default function Asistencia() {
+  const t = makeI18n(ASIS_I18N)
   const user = getUser()
   const canManage = ['PASTOR_GENERAL','PASTOR_CULTO'].includes(user?.rol)
   const [cultos, setCultos]       = useState([])
@@ -63,7 +101,7 @@ export default function Asistencia() {
     setSaving(true); setMsg(null)
     try {
       const res = await apiFetch(`/cultos/${selected}/asistencia`, { method:'POST', body:JSON.stringify({ presentes:[...presentes] }) })
-      setMsg({ type:'success', text:`Asistencia guardada: ${res.presentes} presentes` })
+      setMsg({ type:'success', text:`${t('attendSaved')} ${res.presentes} ${t('present')}` })
       loadCultos()
     } catch(e) { setMsg({ type:'error', text:e.message }) }
     setSaving(false)
@@ -107,20 +145,20 @@ export default function Asistencia() {
       <Menu />
       <main className="main">
         <div className="page-header">
-          <h1 className="page-title"><Icons.Attendance /> Asistencia a cultos</h1>
-          {canManage && <button className="btn btn-primary" data-tip="Crear un nuevo registro de culto" onClick={()=>setModal(true)}>+ Nuevo culto</button>}
+          <h1 className="page-title"><Icons.Attendance /> {t('title')}</h1>
+          {canManage && <button className="btn btn-primary" data-tip="Crear un nuevo registro de culto" onClick={()=>setModal(true)}>{t('newService')}</button>}
         </div>
         {loading ? (
-          <div className="empty"><p>Cargando cultos...</p></div>
+          <div className="empty"><p>{t('loadingServices')}</p></div>
         ) : error ? (
           <div className="alert alert-error" style={{marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center', gap:10}}>
             <span>{error}</span>
-            <button className="btn btn-ghost btn-sm" onClick={loadCultos}>Reintentar</button>
+            <button className="btn btn-ghost btn-sm" onClick={loadCultos}>{t('retry')}</button>
           </div>
         ) : cultosOrdenados.length === 0 ? (
           <div className="empty">
             <div className="empty-icon"><Icons.Attendance /></div>
-            <p>Sin cultos cargados</p>
+            <p>{t('noServices')}</p>
           </div>
         ) : (
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:14}}>
@@ -141,12 +179,12 @@ export default function Asistencia() {
                   <div>
                     <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',marginBottom:10}}>
                       <span style={{fontSize:11,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-faint)',fontWeight:800}}>{dia}</span>
-                      <span className="badge badge-activo">{c.presentes || 0} presentes</span>
+                      <span className="badge badge-activo">{c.presentes || 0} {t('present')}</span>
                     </div>
                     <div style={{fontSize:16,fontWeight:800,lineHeight:1.25,marginBottom:6}}>{c.nombre}</div>
                     <div style={{fontSize:12,color:'var(--text-muted)'}}>{fechaCorta(c.fecha)}</div>
                   </div>
-                  <div style={{fontSize:12,color:'var(--primary)',fontWeight:700}}>Abrir asistencia</div>
+                  <div style={{fontSize:12,color:'var(--primary)',fontWeight:700}}>{t('openAttend')}</div>
                 </button>
               )
             })}
@@ -169,9 +207,9 @@ export default function Asistencia() {
               </div>
               <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
                 {canManage && <>
-                  <button className="btn btn-primary btn-sm" onClick={guardar} disabled={saving || !detalle}>{saving ? 'Guardando...' : 'Guardar'}</button>
-                  <button className="btn btn-ghost btn-sm" data-tip="Descargar planilla Excel con la asistencia" onClick={async()=>{const t=localStorage.getItem('token');const r=await fetch(`${getApiUrl()}/export/asistencia/${selected}`,{headers:{Authorization:`Bearer ${t}`}});if(!r.ok)return;const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`asistencia-${selected}.xlsx`;a.click();URL.revokeObjectURL(u)}}>Exportar</button>
-                  <button className="btn btn-danger btn-sm" data-tip="Eliminar este culto y su registro de asistencia" onClick={()=>setConfirmDelCulto(selected)}>Eliminar</button>
+                  <button className="btn btn-primary btn-sm" onClick={guardar} disabled={saving || !detalle}>{saving ? t('saving') : t('save')}</button>
+                  <button className="btn btn-ghost btn-sm" data-tip="Descargar planilla Excel con la asistencia" onClick={async()=>{const tk=localStorage.getItem('token');const r=await fetch(`${getApiUrl()}/export/asistencia/${selected}`,{headers:{Authorization:`Bearer ${tk}`}});if(!r.ok)return;const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`asistencia-${selected}.xlsx`;a.click();URL.revokeObjectURL(u)}}>{t('export')}</button>
+                  <button className="btn btn-danger btn-sm" data-tip="Eliminar este culto y su registro de asistencia" onClick={()=>setConfirmDelCulto(selected)}>{t('delete')}</button>
                 </>}
               </div>
             </div>
@@ -180,13 +218,13 @@ export default function Asistencia() {
               <input name="h" className="input input-search" placeholder="Buscar persona..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:'1 1 220px'}} />
               {detalle && (
                 <button className="btn btn-ghost btn-sm" onClick={()=>setPresentes(p=>p.size===detalle.personas.length?new Set():new Set((detalle?.personas || []).map(x=>Number(x.id))))}>
-                  {presentes.size===detalle.personas?.length ? 'Desmarcar todos' : 'Marcar todos'}
+                  {presentes.size===detalle.personas?.length ? t('unmarkAll') : t('markAll')}
                 </button>
               )}
             </div>
 
             {!detalle ? (
-              <div className="empty"><p>Cargando listado...</p></div>
+              <div className="empty"><p>{t('loadingList')}</p></div>
             ) : (
               <div style={{padding:18}}>
                 <div className="attendance-mobile-list">
@@ -224,16 +262,16 @@ export default function Asistencia() {
         {modal && (
           <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(false)}>
             <div className="modal">
-              <div className="modal-header"><h3 className="modal-title">Nuevo culto</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>✕</button></div>
+              <div className="modal-header"><h3 className="modal-title">{t('newServiceModal')}</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>✕</button></div>
               <form onSubmit={crearCulto}>
                 <div className="modal-body">
                   <div className="form-grid">
-                    <div className="form-group full"><label>Nombre *</label><input name="nombre" className="form-input" value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} required placeholder={form.esEspecial ? form.nombreEspecial || "Oración" : `${form.cultoDia||"DOMINGO"} ${form.horario||"18hs"}`}/></div>
-                    <div className="form-group"><label>Fecha *</label><input name="fecha" className="form-input" type="date" value={form.fecha} onChange={e=>setForm(f=>({...f,fecha:e.target.value}))} required/></div>
+                    <div className="form-group full"><label>{t('nameLabel')}</label><input name="nombre" className="form-input" value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} required placeholder={form.esEspecial ? form.nombreEspecial || "Oración" : `${form.cultoDia||"DOMINGO"} ${form.horario||"18hs"}`}/></div>
+                    <div className="form-group"><label>{t('dateLabel')}</label><input name="fecha" className="form-input" type="date" value={form.fecha} onChange={e=>setForm(f=>({...f,fecha:e.target.value}))} required/></div>
                     <div className="form-group full">
-                      <label>Tipo</label>
+                      <label>{t('typeLabel')}</label>
                       <div style={{display:'flex',gap:8,marginBottom:10}}>
-                        {[['regular','Culto regular'],['especial','Culto especial']].map(([k,l])=>(
+                        {[['regular',t('regular')],['especial',t('special')]].map(([k,l])=>(
                           <label key={k} style={{display:'flex',gap:8,alignItems:'center',padding:'7px 12px',border:`1px solid ${!form.esEspecial===!(k==='especial')?'var(--primary)':'var(--border)'}`,borderRadius:'var(--r)',cursor:'pointer',fontSize:13,fontWeight:!form.esEspecial===!(k==='especial')?600:400,background:!form.esEspecial===!(k==='especial')?'var(--primary-soft)':'transparent'}}>
                             <input name="esEspecial" type="radio" checked={form.esEspecial===(k==='especial')} onChange={()=>setForm(f=>({...f,esEspecial:k==='especial',nombre:k==='especial'?f.nombreEspecial||'':`${f.cultoDia} ${f.horario}`}))} style={{accentColor:'var(--primary)'}}/>
                             {l}
@@ -242,25 +280,25 @@ export default function Asistencia() {
                       </div>
                       {!form.esEspecial ? (
                         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
-                          <div><label style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.4,display:'block',marginBottom:4}}>Día</label>
+                          <div><label style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.4,display:'block',marginBottom:4}}>{t('dayLabel')}</label>
                             <select name="cultoDia" className="form-input" value={form.cultoDia} onChange={e=>setForm(f=>({...f,cultoDia:e.target.value,nombre:`${e.target.value} ${f.horario}`}))}>
                               {DIAS_REGULARES.map(d=><option key={d} value={d}>{d}</option>)}
                             </select></div>
-                          <div><label style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.4,display:'block',marginBottom:4}}>Horario</label>
+                          <div><label style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.4,display:'block',marginBottom:4}}>{t('timeLabel')}</label>
                             <select name="horario" className="form-input" value={form.horario} onChange={e=>setForm(f=>({...f,horario:e.target.value,nombre:`${f.cultoDia} ${e.target.value}`}))}>
                               {HORARIOS.map(h=><option key={h} value={h}>{h}</option>)}
                             </select></div>
                         </div>
                       ) : (
                         <select name="nombreEspecial" className="form-input" value={form.nombreEspecial} onChange={e=>setForm(f=>({...f,nombreEspecial:e.target.value,nombre:e.target.value}))}>
-                          <option value="">Seleccioná...</option>
+                          <option value="">{t('selectLabel')}</option>
                           {CULTOS_ESPECIALES.map(c=><option key={c} value={c}>{c}</option>)}
                         </select>
                       )}
                     </div>
                   </div>
                 </div>
-                <div className="modal-footer"><button type="button" className="btn btn-ghost" onClick={()=>setModal(false)}>Cancelar</button><button type="submit" className="btn btn-primary">Crear</button></div>
+                <div className="modal-footer"><button type="button" className="btn btn-ghost" onClick={()=>setModal(false)}>{t('cancel')}</button><button type="submit" className="btn btn-primary">{t('create')}</button></div>
               </form>
             </div>
           </div>
@@ -268,9 +306,9 @@ export default function Asistencia() {
       </main>
       <ConfirmModal
         open={!!confirmDelCulto} onClose={()=>setConfirmDelCulto(null)} onConfirm={eliminarCulto}
-        title="¿Eliminar culto?" danger
-        message="Se eliminará el culto y todo su registro de asistencia. Esta acción es permanente."
-        confirmLabel="Eliminar" cancelLabel="Cancelar"
+        title={t('delServiceTitle')} danger
+        message={t('delServiceMsg')}
+        confirmLabel={t('delete')} cancelLabel={t('cancel')}
       />
     </div>
   )

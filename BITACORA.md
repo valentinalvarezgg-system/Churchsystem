@@ -197,7 +197,7 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Criterio de salida: 0 estados inconsistentes detectables en flujo principal.
 
 ## EN CURSO
-- Ninguno. Último bloque cerrado: `v2.8/block-01`.
+- Ninguno. Último bloque cerrado: `v2.8/block-03`.
 
 ## Versión actual: **v2.8** (inicio 2026-05-30)
 
@@ -219,17 +219,17 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 | Comercial/pagos | 80% | ✅ |
 | Configuración | 85% | ✅ |
 | GodMode | 80% | ✅ |
-| Mobile/responsive | 80% | 🟡 6 páginas sin card-view |
-| i18n | 40% | 🔴 solo auth+menu |
+| Mobile/responsive | 88% | ✅ cards en todas las páginas |
+| i18n | 72% | 🟡 6 páginas principales traducidas |
 | Testing | 20% | 🔴 prioridad baja aún |
 | Documentación | 80% | ✅ |
 | Deploy/operaciones | 92% | ✅ |
-| **PROMEDIO GLOBAL** | **73%** | |
+| **PROMEDIO GLOBAL** | **76%** | |
 
 ## P0 próximas builds
-1. Tablas → cards mobile (Grupos, Comunicados, Consolidacion, Eventos)
-2. Búsqueda avanzada con filtros en Personas
-3. Estado loading/error/vacío uniforme en 6 páginas pendientes
+1. i18n restante: Configuracion, Reportes, Eventos, Discipulado (72% → 85%)
+2. Estadísticas por culto en Asistencia (tendencias de ausencias)
+3. Búsqueda avanzada con filtros en Personas
 
 ## Historial de bloques 2.7 beta
 
@@ -465,11 +465,38 @@ Las CSS classes `.mobile-list`, `.mobile-person-card`, `.mobile-person-avatar`, 
 **Build:** ✅ OK  
 **Pushed:** `9c5885b`
 
+### Historial v2.8 (continuación)
+
+### 2026-05-30 — v2.8/block-02 (loading/error states — Alertas, Historial) — Claude
+- `Historial.jsx`: añadido `loading` (spinner) + `error` con Reintentar; `catch {}` → `catch(e) { setError(e.message) }`
+- `Alertas.jsx`: añadido `error` con pantalla dedicada; `catch {}` → `catch(e) { setError(e.message) }`
+- `index.css`: añadidas clases `.alerts-mobile-list`, `.alert-mobile-card`, `.alert-mobile-check`, `.alert-mobile-main`, `.alert-mobile-actions`
+- Build ✅ OK. Pushed `05903f0`.
+
+### 2026-05-30 — v2.8/block-03 (i18n de páginas internas: 40% → 70%) — Claude
+
+**Nueva utilidad compartida:**
+- `frontend/src/lib/i18n.js`: `COMMON` (30+ strings comunes es/pt/en) + `makeI18n(pageDef)` helper
+
+**Páginas actualizadas (es/pt/en):**
+| Página | Strings traducidos |
+|--------|-------------------|
+| `Historial.jsx` | título, filtros, encabezados tabla, paginación, estado vacío |
+| `Grupos.jsx` | título, botones, modal (crear/editar), formulario, tabla miembros, confirm delete |
+| `Personas.jsx` | título, filtros, tabla, card mobile, modales CRUD, seguimiento, import Excel IA |
+| `Asistencia.jsx` | título, cultos, modal nuevo culto, acciones, estados carga |
+| `Alertas.jsx` | título, tabs, badges críticas, acciones masivas, tabla, confirm modal |
+| `Mensajes.jsx` | título, tabs, formulario envío, plantillas, historial, tabla |
+
+**Resultado:** i18n de 40% (solo auth+dashboard) a ~72% (6 páginas principales traducidas)
+
+**Build:** ✅ 1639 módulos, 0 errores, nuevo chunk `i18n-Cp11g3uG.js` (1.73 kB)
+
 ### Pendientes conocidos v2.8
 - `QR_SECRET` en Render: si no está seteado, los QR se invalidan en cada redeploy
 - Mac: `git pull + restart backend` para ver cambios en modo local
-- Próximo P0: estado loading/error/vacío uniforme en Alertas e Historial (único faltante real ya que Eventos fue corregido)
-- Próximo P1: i18n de páginas internas (40% → objetivo 70%)
+- Próximas páginas i18n: Configuracion, Reportes, Eventos, Discipulado (72% → 85%)
+- Próximo P1: estadísticas por culto en Asistencia (tendencias, ausencias)
 
 ---
 

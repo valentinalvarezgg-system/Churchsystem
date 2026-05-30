@@ -4,6 +4,70 @@ import Menu from '../components/Menu.jsx'
 import { apiFetch, getUser } from '../services/api.js'
 import { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
+import { makeI18n } from '../lib/i18n.js'
+
+const MSG_I18N = {
+  es: { title:'Mensajería', notConfigured:'sin configurar',
+        tabSend:'✉ Enviar', tabTemplates:'Plantillas', tabHistory:'≡ Historial',
+        loadingMsg:'Cargando mensajería...', noMessages:'Sin mensajes aún',
+        newMessage:'Nuevo mensaje', sendMode:'Modo de envío', channel:'Canal',
+        individual:'Individual', mass:'Masivo',
+        emailSubject:'Asunto del email', recipient:'Destinatario',
+        selectPerson:'Seleccioná una persona...', sendTo:'Enviar a',
+        byGroup:'-- Por grupo --', byStatus:'-- Por estado --',
+        allCongregation:'Dejar ambos vacíos = toda la congregación · Estimado:',
+        people:'personas', message:'Mensaje', preview:'Vista previa',
+        sending:'Enviando...', sendMsg:'↑ Enviar mensaje', sendToAll:'↑ Enviar a todos',
+        quickTemplates:'Plantillas rápidas', noTemplatesFor:'Sin plantillas para',
+        customTemplates:'Plantillas personalizadas', newTemplate:'+ Nueva',
+        templateNote:'Las plantillas con 📌 son predeterminadas del sistema.',
+        templateName:'Nombre', templateType:'Tipo', content:'Contenido',
+        variables:'variables:', use:'Usar',
+        sentMessages:'Mensajes enviados', sent:'Enviado', error:'Error', noPerson:'Sin persona',
+        colChannel:'Canal', colPerson:'Persona', colDest:'Destino', colMsg:'Mensaje', colStatus:'Estado',
+        delTemplate:'¿Eliminar plantilla?', delTemplateMsg:'Esta plantilla será eliminada permanentemente.',
+  },
+  pt: { title:'Mensagens', notConfigured:'sem configuração',
+        tabSend:'✉ Enviar', tabTemplates:'Templates', tabHistory:'≡ Histórico',
+        loadingMsg:'Carregando mensagens...', noMessages:'Sem mensagens ainda',
+        newMessage:'Nova mensagem', sendMode:'Modo de envio', channel:'Canal',
+        individual:'Individual', mass:'Em massa',
+        emailSubject:'Assunto do email', recipient:'Destinatário',
+        selectPerson:'Selecione uma pessoa...', sendTo:'Enviar para',
+        byGroup:'-- Por grupo --', byStatus:'-- Por estado --',
+        allCongregation:'Deixar ambos vazios = toda a congregação · Estimado:',
+        people:'pessoas', message:'Mensagem', preview:'Pré-visualização',
+        sending:'Enviando...', sendMsg:'↑ Enviar mensagem', sendToAll:'↑ Enviar para todos',
+        quickTemplates:'Templates rápidos', noTemplatesFor:'Sem templates para',
+        customTemplates:'Templates personalizados', newTemplate:'+ Novo',
+        templateNote:'Os templates com 📌 são predefinidos do sistema.',
+        templateName:'Nome', templateType:'Tipo', content:'Conteúdo',
+        variables:'variáveis:', use:'Usar',
+        sentMessages:'Mensagens enviadas', sent:'Enviado', error:'Erro', noPerson:'Sem pessoa',
+        colChannel:'Canal', colPerson:'Pessoa', colDest:'Destino', colMsg:'Mensagem', colStatus:'Estado',
+        delTemplate:'Excluir template?', delTemplateMsg:'Este template será excluído permanentemente.',
+  },
+  en: { title:'Messaging', notConfigured:'not configured',
+        tabSend:'✉ Send', tabTemplates:'Templates', tabHistory:'≡ History',
+        loadingMsg:'Loading messaging...', noMessages:'No messages yet',
+        newMessage:'New message', sendMode:'Send mode', channel:'Channel',
+        individual:'Individual', mass:'Mass',
+        emailSubject:'Email subject', recipient:'Recipient',
+        selectPerson:'Select a person...', sendTo:'Send to',
+        byGroup:'-- By group --', byStatus:'-- By status --',
+        allCongregation:'Leave both empty = whole congregation · Estimated:',
+        people:'people', message:'Message', preview:'Preview',
+        sending:'Sending...', sendMsg:'↑ Send message', sendToAll:'↑ Send to all',
+        quickTemplates:'Quick templates', noTemplatesFor:'No templates for',
+        customTemplates:'Custom templates', newTemplate:'+ New',
+        templateNote:'Templates with 📌 are system defaults.',
+        templateName:'Name', templateType:'Type', content:'Content',
+        variables:'variables:', use:'Use',
+        sentMessages:'Sent messages', sent:'Sent', error:'Error', noPerson:'No person',
+        colChannel:'Channel', colPerson:'Person', colDest:'Destination', colMsg:'Message', colStatus:'Status',
+        delTemplate:'Delete template?', delTemplateMsg:'This template will be permanently deleted.',
+  },
+}
 
 const TIPOS = ['WHATSAPP', 'EMAIL']
 
@@ -15,6 +79,7 @@ const PLANTILLAS_DEFAULT = [
 ]
 
 export default function Mensajes() {
+  const t = makeI18n(MSG_I18N)
   const user = getUser()
   const canSend = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF'].includes(user?.rol)
 
@@ -151,13 +216,13 @@ export default function Mensajes() {
       <main className="main">
         <div className="page-header">
           <div>
-            <h1 className="page-title"><Icons.Messages /> Mensajería</h1>
+            <h1 className="page-title"><Icons.Messages /> {t('title')}</h1>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3, display: 'flex', gap: 10 }}>
               <span style={{ ...badgeColor('WHATSAPP'), padding: '2px 9px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
-                WhatsApp {twOk ? '✓' : '⚠ sin configurar'}
+                WhatsApp {twOk ? '✓' : `⚠ ${t('notConfigured')}`}
               </span>
               <span style={{ ...badgeColor('EMAIL'), padding: '2px 9px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
-                Email {emlOk ? '✓' : '⚠ sin configurar'}
+                Email {emlOk ? '✓' : `⚠ ${t('notConfigured')}`}
               </span>
             </p>
           </div>
@@ -166,13 +231,13 @@ export default function Mensajes() {
         {errorBase && (
           <div className="alert alert-error" style={{marginBottom:12, display:'flex', justifyContent:'space-between', alignItems:'center', gap:10}}>
             <span>{errorBase}</span>
-            <button className="btn btn-ghost btn-sm" onClick={loadBase}>Reintentar</button>
+            <button className="btn btn-ghost btn-sm" onClick={loadBase}>{t('retry')}</button>
           </div>
         )}
-        {loadingBase && <div className="empty" style={{marginBottom:12}}><p>Cargando mensajería...</p></div>}
+        {loadingBase && <div className="empty" style={{marginBottom:12}}><p>{t('loadingMsg')}</p></div>}
 
         <div className="mobile-tabs" style={{ display: 'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap: 8, marginBottom: 20 }}>
-          {[['enviar', '✉ Enviar'], ['plantillas', 'Plantillas'], ['historial', '≡ Historial']].map(([k, l]) => (
+          {[['enviar', t('tabSend')], ['plantillas', t('tabTemplates')], ['historial', t('tabHistory')]].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={tab === k ? 'btn btn-primary' : 'btn btn-ghost'}>{l}</button>
           ))}
         </div>
@@ -182,23 +247,23 @@ export default function Mensajes() {
           <div className="messages-compose-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
 
             <div className="card">
-              <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>Nuevo mensaje</h3>
+              <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>{t('newMessage')}</h3>
               {msg && <div className={`alert alert-${msg.type}`} style={{ marginBottom: 16 }}>{msg.text}</div>}
 
               <form onSubmit={handleEnviar}>
                 <div className="form-grid" style={{ marginBottom: 16 }}>
                   {/* Modo */}
                   <div className="form-group">
-                    <label>Modo de envío</label>
+                    <label>{t('sendMode')}</label>
                     <select name="modo" className="form-input" value={form.modo} onChange={e => f('modo', e.target.value)}>
-                      <option value="individual">Individual</option>
-                      <option value="masivo">Masivo</option>
+                      <option value="individual">{t('individual')}</option>
+                      <option value="masivo">{t('mass')}</option>
                     </select>
                   </div>
 
                   {/* Canal */}
                   <div className="form-group">
-                    <label>Canal</label>
+                    <label>{t('channel')}</label>
                     <select name="tipo" className="form-input" value={form.tipo} onChange={e => f('tipo', e.target.value)}>
                       <option value="WHATSAPP"><Icons.CheckIn /> WhatsApp{!twOk ? ' (sin config)' : ''}</option>
                       <option value="EMAIL">✉ Email{!emlOk ? ' (sin config)' : ''}</option>
@@ -208,7 +273,7 @@ export default function Mensajes() {
                   {/* Asunto — solo para email */}
                   {form.tipo === 'EMAIL' && (
                     <div className="form-group full">
-                      <label>Asunto del email</label>
+                      <label>{t('emailSubject')}</label>
                       <input name="asunto" className="form-input" value={form.asunto} onChange={e => f('asunto', e.target.value)} />
                     </div>
                   )}
@@ -216,9 +281,9 @@ export default function Mensajes() {
                   {/* Destinatario individual */}
                   {form.modo === 'individual' && (
                     <div className="form-group full">
-                      <label>Destinatario</label>
+                      <label>{t('recipient')}</label>
                       <select name="personaId" className="form-input" value={form.personaId} onChange={e => f('personaId', e.target.value)} required>
-                        <option value="">Seleccioná una persona...</option>
+                        <option value="">{t('selectPerson')}</option>
                         {personas.map(p => (
                           <option key={p.id} value={p.id}>{p.nombre} {p.apellido} — {p.telefono || p.email || '—'}</option>
                         ))}
@@ -229,26 +294,26 @@ export default function Mensajes() {
                   {/* Destinatario masivo */}
                   {form.modo === 'masivo' && (
                     <div className="form-group full">
-                      <label>Enviar a</label>
+                      <label>{t('sendTo')}</label>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 8 }}>
                         <select name="grupoId" className="form-input" value={form.grupoId} onChange={e => { f('grupoId', e.target.value); f('estado', '') }}>
-                          <option value="">-- Por grupo --</option>
+                          <option value="">{t('byGroup')}</option>
                           {grupos.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
                         </select>
                         <select name="estado" className="form-input" value={form.estado} onChange={e => { f('estado', e.target.value); f('grupoId', '') }}>
-                          <option value="">-- Por estado --</option>
+                          <option value="">{t('byStatus')}</option>
                           {['ACTIVO', 'VISITANTE', 'NUEVO', 'INACTIVO'].map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                        Dejar ambos vacíos = toda la congregación · Estimado: {contarDestinatarios()} personas
+                        {t('allCongregation')} {contarDestinatarios()} {t('people')}
                       </span>
                     </div>
                   )}
 
                   {/* Mensaje */}
                   <div className="form-group full">
-                    <label>Mensaje <span style={{ fontWeight: 400, fontSize: 11, color: 'var(--text-muted)' }}>variables: {'{nombre}'} {'{apellido}'} {'{grupo}'}</span></label>
+                    <label>{t('message')} <span style={{ fontWeight: 400, fontSize: 11, color: 'var(--text-muted)' }}>{t('variables')} {'{nombre}'} {'{apellido}'} {'{grupo}'}</span></label>
                     <textarea name="mensaje" className="form-input" style={{ minHeight: 100 }} required
                       value={form.mensaje} onChange={e => f('mensaje', e.target.value)}
                       placeholder="Hola {nombre}! Te escribimos desde la iglesia..." />
@@ -258,20 +323,20 @@ export default function Mensajes() {
                 {/* Preview */}
                 {form.mensaje && (
                   <div style={{ marginBottom: 16, padding: '12px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .4, color: 'var(--text-muted)', marginBottom: 6 }}>Vista previa</p>
+                    <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .4, color: 'var(--text-muted)', marginBottom: 6 }}>{t('preview')}</p>
                     <p style={{ fontSize: 13, color: 'var(--text-2)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{preview}</p>
                   </div>
                 )}
 
                 <button type="submit" className="btn btn-primary" disabled={sending}>
-                  {sending ? 'Enviando...' : form.modo === 'individual' ? '↑ Enviar mensaje' : `↑ Enviar a todos (${contarDestinatarios()})`}
+                  {sending ? t('sending') : form.modo === 'individual' ? t('sendMsg') : `${t('sendToAll')} (${contarDestinatarios()})`}
                 </button>
               </form>
             </div>
 
             {/* Plantillas lateral */}
             <div className="card">
-              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Plantillas rápidas</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>{t('quickTemplates')}</h3>
               <div className="template-list" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {todasPlantillas.filter(p => p.tipo === form.tipo).map(p => (
                   <div key={p.id} style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', cursor: 'pointer' }}
@@ -281,7 +346,7 @@ export default function Mensajes() {
                   </div>
                 ))}
                 {todasPlantillas.filter(p => p.tipo === form.tipo).length === 0 && (
-                  <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sin plantillas para {form.tipo}</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('noTemplatesFor')} {form.tipo}</p>
                 )}
               </div>
             </div>
@@ -292,34 +357,34 @@ export default function Mensajes() {
         {tab === 'plantillas' && (
           <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 10, flexWrap: 'wrap' }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Plantillas personalizadas</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => { setShowNewP(true); setEditPlantilla(null); setNewP({ nombre: '', tipo: 'WHATSAPP', contenido: '' }) }}>+ Nueva</button>
+              <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{t('customTemplates')}</h3>
+              <button className="btn btn-primary btn-sm" onClick={() => { setShowNewP(true); setEditPlantilla(null); setNewP({ nombre: '', tipo: 'WHATSAPP', contenido: '' }) }}>{t('newTemplate')}</button>
             </div>
 
             {showNewP && (
               <form className="mobile-inline-form" onSubmit={guardarPlantilla} style={{ marginBottom: 24, padding: 16, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                 <div className="form-grid">
-                  <div className="form-group"><label>Nombre</label><input name="nombre" className="form-input" value={newP.nombre} onChange={e => setNewP(p => ({ ...p, nombre: e.target.value }))} required /></div>
-                  <div className="form-group"><label>Tipo</label>
+                  <div className="form-group"><label>{t('templateName')}</label><input name="nombre" className="form-input" value={newP.nombre} onChange={e => setNewP(p => ({ ...p, nombre: e.target.value }))} required /></div>
+                  <div className="form-group"><label>{t('templateType')}</label>
                     <select name="tipo" className="form-input" value={newP.tipo} onChange={e => setNewP(p => ({ ...p, tipo: e.target.value }))}>
                       <option value="WHATSAPP"><Icons.CheckIn /> WhatsApp</option>
                       <option value="EMAIL">✉ Email</option>
                     </select>
                   </div>
                   <div className="form-group full">
-                    <label>Contenido <span style={{ fontWeight: 400, fontSize: 11, color: 'var(--text-muted)' }}>— variables: {'{nombre}'} {'{apellido}'}</span></label>
+                    <label>{t('content')} <span style={{ fontWeight: 400, fontSize: 11, color: 'var(--text-muted)' }}>— {t('variables')} {'{nombre}'} {'{apellido}'}</span></label>
                     <textarea name="contenido" className="form-input" style={{ minHeight: 80 }} required value={newP.contenido} onChange={e => setNewP(p => ({ ...p, contenido: e.target.value }))} />
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns:'repeat(auto-fit,minmax(100px,1fr))', gap: 8, marginTop: 10 }}>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowNewP(false); setEditPlantilla(null) }}>Cancelar</button>
-                  <button type="submit" className="btn btn-primary btn-sm">Guardar</button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowNewP(false); setEditPlantilla(null) }}>{t('cancel')}</button>
+                  <button type="submit" className="btn btn-primary btn-sm">{t('save')}</button>
                 </div>
               </form>
             )}
 
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-              Las plantillas con 📌 son predeterminadas del sistema. Las tuyas se muestran abajo.
+              {t('templateNote')}
             </p>
 
             {[...PLANTILLAS_DEFAULT, ...plantillas].map(p => (
@@ -332,7 +397,7 @@ export default function Mensajes() {
                   <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>{p.contenido}</p>
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                  <button className="btn btn-ghost btn-sm" onClick={() => { setTab('enviar'); f('mensaje', p.contenido); f('tipo', p.tipo) }}>Usar</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setTab('enviar'); f('mensaje', p.contenido); f('tipo', p.tipo) }}>{t('use')}</button>
                   {!String(p.id).startsWith('d') && (
                     <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmBorrarId(p.id)}>✕</button>
                   )}
@@ -346,7 +411,7 @@ export default function Mensajes() {
         {tab === 'historial' && (
           <div className="card messages-history-card" style={{ padding: 0 }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Mensajes enviados ({hTotal})</h3>
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>{t('sentMessages')} ({hTotal})</h3>
             </div>
             {historial.length > 0 && (
               <div className="messages-mobile-history">
@@ -355,10 +420,10 @@ export default function Mensajes() {
                     <div>
                       <span style={{ ...badgeColor(m.tipo), padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{m.tipo}</span>
                       {m.enviado
-                        ? <span className="badge badge-activo">Enviado</span>
-                        : <span className="badge badge-inactivo">Error</span>}
+                        ? <span className="badge badge-activo">{t('sent')}</span>
+                        : <span className="badge badge-inactivo">{t('error')}</span>}
                     </div>
-                    <strong>{m.personaNombre ? `${m.personaNombre} ${m.personaApellido || ''}` : 'Sin persona'}</strong>
+                    <strong>{m.personaNombre ? `${m.personaNombre} ${m.personaApellido || ''}` : t('noPerson')}</strong>
                     <p>{m.mensaje}</p>
                     <small>{m.destino} · {m.createdAt?.slice(0, 16).replace('T', ' ')}</small>
                   </article>
@@ -366,20 +431,20 @@ export default function Mensajes() {
               </div>
             )}
             {historial.length === 0
-              ? <div className="empty"><div className="empty-icon"><Icons.Messages /></div><p>Sin mensajes aún</p></div>
+              ? <div className="empty"><div className="empty-icon"><Icons.Messages /></div><p>{t('noMessages')}</p></div>
               : <div className="table-responsive"><table className="messages-history-table" style={{minWidth:500}}>
-                  <thead><tr><th>Canal</th><th>Persona</th><th>Destino</th><th>Mensaje</th><th>Estado</th><th>Fecha</th></tr></thead>
+                  <thead><tr><th>{t('colChannel')}</th><th>{t('colPerson')}</th><th>{t('colDest')}</th><th>{t('colMsg')}</th><th>{t('colStatus')}</th><th>{t('date')}</th></tr></thead>
                   <tbody>
                     {historial.map(m => (
                       <tr key={m.id}>
                         <td><span style={{ ...badgeColor(m.tipo), padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{m.tipo}</span></td>
-                        <td style={{ fontSize: 13 }}>{m.personaNombre ? `${m.personaNombre} ${m.personaApellido || ''}` : '—'}</td>
+                        <td style={{ fontSize: 13 }}>{m.personaNombre ? `${m.personaNombre} ${m.personaApellido || ''}` : t('noPerson')}</td>
                         <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{m.destino}</td>
                         <td style={{ maxWidth: 200, overflowX:'auto', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>{m.mensaje}</td>
                         <td>
                           {m.enviado
-                            ? <span className="badge badge-activo">Enviado</span>
-                            : <span className="badge badge-inactivo" title={m.error || ''}>Error</span>
+                            ? <span className="badge badge-activo">{t('sent')}</span>
+                            : <span className="badge badge-inactivo" title={m.error || ''}>{t('error')}</span>
                           }
                         </td>
                         <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.createdAt?.slice(0, 16).replace('T', ' ')}</td>
@@ -400,9 +465,9 @@ export default function Mensajes() {
       </main>
       <ConfirmModal
         open={!!confirmBorrarId} onClose={()=>setConfirmBorrarId(null)} onConfirm={borrarPlantilla}
-        title="¿Eliminar plantilla?" danger
-        message="Esta plantilla será eliminada permanentemente."
-        confirmLabel="Eliminar" cancelLabel="Cancelar"
+        title={t('delTemplate')} danger
+        message={t('delTemplateMsg')}
+        confirmLabel={t('delete')} cancelLabel={t('cancel')}
       />
     </div>
   )

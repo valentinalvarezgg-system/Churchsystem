@@ -5,8 +5,61 @@ import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
 import { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
+import { makeI18n } from '../lib/i18n.js'
+
+const ALERT_I18N = {
+  es: { title:'Alertas pastorales', subtitle:'Personas que necesitan atención',
+        analyzing:'Analizando la congregación...', critical:'críticas', total:'total',
+        noAttend:'Sin asistir', noFollowUp:'Sin seguimiento', visitors:'Visitantes',
+        overdue:'Vencidos', birthdays:'Cumpleaños',
+        noAlerts:'¡Sin alertas en esta categoría!', people:'personas',
+        selectAll:'Seleccionar todos', selected:'seleccionados', massWA:'WA masivo',
+        sending:'Enviando...', profile:'Perfil', whatsapp:'WhatsApp',
+        leader:'Líder', lastContact:'Último contacto', joined:'Ingresó',
+        type:'Tipo', expires:'Vencía', birthday:'Cumpleaños',
+        noAssigned:'sin asignar', never:'nunca', noDate:'sin fecha',
+        noName:'Sin nombre',
+        massTitle:'¿Enviar WhatsApp a {n} personas?',
+        massMsg:'Se enviará un mensaje de contacto pastoral a cada persona seleccionada.',
+        send:'Enviar', today:'¡Hoy!', inDays:'en {d}d',
+        colName:'Nombre', colPhone:'Teléfono', colActions:'Acciones',
+  },
+  pt: { title:'Alertas pastorais', subtitle:'Pessoas que precisam de atenção',
+        analyzing:'Analisando a congregação...', critical:'críticas', total:'total',
+        noAttend:'Sem presença', noFollowUp:'Sem acompanhamento', visitors:'Visitantes',
+        overdue:'Vencidos', birthdays:'Aniversários',
+        noAlerts:'Sem alertas nesta categoria!', people:'pessoas',
+        selectAll:'Selecionar todos', selected:'selecionados', massWA:'WA em massa',
+        sending:'Enviando...', profile:'Perfil', whatsapp:'WhatsApp',
+        leader:'Líder', lastContact:'Último contato', joined:'Ingresso',
+        type:'Tipo', expires:'Vencia', birthday:'Aniversário',
+        noAssigned:'sem atribuição', never:'nunca', noDate:'sem data',
+        noName:'Sem nome',
+        massTitle:'Enviar WhatsApp para {n} pessoas?',
+        massMsg:'Será enviada uma mensagem de contato pastoral para cada pessoa selecionada.',
+        send:'Enviar', today:'Hoje!', inDays:'em {d}d',
+        colName:'Nome', colPhone:'Telefone', colActions:'Ações',
+  },
+  en: { title:'Pastoral alerts', subtitle:'People who need attention',
+        analyzing:'Analyzing congregation...', critical:'critical', total:'total',
+        noAttend:'Not attending', noFollowUp:'No follow-up', visitors:'Visitors',
+        overdue:'Overdue', birthdays:'Birthdays',
+        noAlerts:'No alerts in this category!', people:'people',
+        selectAll:'Select all', selected:'selected', massWA:'Mass WA',
+        sending:'Sending...', profile:'Profile', whatsapp:'WhatsApp',
+        leader:'Leader', lastContact:'Last contact', joined:'Joined',
+        type:'Type', expires:'Expired', birthday:'Birthday',
+        noAssigned:'unassigned', never:'never', noDate:'no date',
+        noName:'No name',
+        massTitle:'Send WhatsApp to {n} people?',
+        massMsg:'A pastoral contact message will be sent to each selected person.',
+        send:'Send', today:'Today!', inDays:'in {d}d',
+        colName:'Name', colPhone:'Phone', colActions:'Actions',
+  },
+}
 
 export default function Alertas() {
+  const t = makeI18n(ALERT_I18N)
   const navigate   = useNavigate()
   const [data, setData]       = useState(null)
   const [loading, setLoading] = useState(true)
@@ -78,7 +131,7 @@ export default function Alertas() {
   if (loading) return (
     <div className="layout"><Menu />
       <main className="main">
-        <div className="empty"><div className="spinner-sm" /><p style={{marginTop:12,color:'var(--text-muted)'}}>Analizando la congregación...</p></div>
+        <div className="empty"><div className="spinner-sm" /><p style={{marginTop:12,color:'var(--text-muted)'}}>{t('analyzing')}</p></div>
       </main>
     </div>
   )
@@ -86,21 +139,21 @@ export default function Alertas() {
   if (error) return (
     <div className="layout"><Menu />
       <main className="main">
-        <div className="page-header"><h1 className="page-title"><Icons.Comunicados /> Alertas pastorales</h1></div>
+        <div className="page-header"><h1 className="page-title"><Icons.Comunicados /> {t('title')}</h1></div>
         <div className="alert alert-error" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}>
           <span>{error}</span>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setError(null); setLoading(true); apiFetch('/alertas').then(d=>{setData(d);setLoading(false)}).catch(e=>{setError(e.message);setLoading(false)}) }}>Reintentar</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setError(null); setLoading(true); apiFetch('/alertas').then(d=>{setData(d);setLoading(false)}).catch(e=>{setError(e.message);setLoading(false)}) }}>{t('retry')}</button>
         </div>
       </main>
     </div>
   )
 
   const TABS = [
-    { key:'sinAsistir',             icon:'🚨', label:'Sin asistir',     count:data?.sinAsistir?.total||0,              color:'var(--c-danger)',  bg:'var(--c-danger-bg)' },
-    { key:'sinSeguimiento',         icon:'⚠', label:'Sin seguimiento', count:data?.sinSeguimiento?.total||0,          color:'var(--c-warning)', bg:'var(--c-warning-bg)' },
-    { key:'visitantesSinConsolidar',icon:'⊕', label:'Visitantes',      count:data?.visitantesSinConsolidar?.total||0, color:'var(--c-info)',    bg:'var(--c-info-bg)' },
-    { key:'contactosVencidos',      icon:'✓', label:'Vencidos',        count:data?.contactosVencidos?.total||0,       color:'var(--c-purple)',  bg:'var(--c-purple-bg)' },
-    { key:'cumpleanosSemana',       icon:'🎂', label:'Cumpleaños',      count:data?.cumpleanosSemana?.total||0,        color:'var(--c-pink)',    bg:'var(--c-pink-bg)' },
+    { key:'sinAsistir',             icon:'🚨', label:t('noAttend'),     count:data?.sinAsistir?.total||0,              color:'var(--c-danger)',  bg:'var(--c-danger-bg)' },
+    { key:'sinSeguimiento',         icon:'⚠', label:t('noFollowUp'),   count:data?.sinSeguimiento?.total||0,          color:'var(--c-warning)', bg:'var(--c-warning-bg)' },
+    { key:'visitantesSinConsolidar',icon:'⊕', label:t('visitors'),     count:data?.visitantesSinConsolidar?.total||0, color:'var(--c-info)',    bg:'var(--c-info-bg)' },
+    { key:'contactosVencidos',      icon:'✓', label:t('overdue'),      count:data?.contactosVencidos?.total||0,       color:'var(--c-purple)',  bg:'var(--c-purple-bg)' },
+    { key:'cumpleanosSemana',       icon:'🎂', label:t('birthdays'),    count:data?.cumpleanosSemana?.total||0,        color:'var(--c-pink)',    bg:'var(--c-pink-bg)' },
   ]
   const current  = data?.[tab]?.data || []
   const tabInfo  = TABS.find(t => t.key === tab)
@@ -114,19 +167,19 @@ export default function Alertas() {
         {/* Header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title"><Icons.Comunicados /> Alertas pastorales</h1>
+            <h1 className="page-title"><Icons.Comunicados /> {t('title')}</h1>
             <p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>
-              Personas que necesitan atención
+              {t('subtitle')}
             </p>
           </div>
           <div className="page-actions">
             {criticas > 0 && (
               <span style={{background:'var(--c-danger-bg)',color:'var(--c-danger)',padding:'5px 14px',borderRadius:20,fontSize:13,fontWeight:700,border:'1px solid rgba(220,38,38,0.2)'}}>
-                🚨 {criticas} críticas
+                🚨 {criticas} {t('critical')}
               </span>
             )}
             <span style={{background:'var(--bg-2)',color:'var(--text-muted)',padding:'5px 12px',borderRadius:20,fontSize:13,border:'1px solid var(--border)'}}>
-              {totalAlertas} total
+              {totalAlertas} {t('total')}
             </span>
           </div>
         </div>
@@ -161,16 +214,16 @@ export default function Alertas() {
                 checked={current.every(p => seleccionados.includes(p.personaId||p.id))}
                 onChange={seleccionarTodos}
                 style={{width:16,height:16,cursor:'pointer',accentColor:'var(--primary)'}}/>
-              {seleccionados.length > 0 ? `${seleccionados.length} seleccionados` : 'Seleccionar todos'}
+              {seleccionados.length > 0 ? `${seleccionados.length} ${t('selected')}` : t('selectAll')}
             </label>
             {seleccionados.length > 0 && (
               <>
                 <button className="btn btn-ghost btn-sm" style={{color:'var(--c-success)',borderColor:'rgba(22,163,74,.3)'}}
                   onClick={enviarMasivo} disabled={enviandoMasivo}>
-                  {enviandoMasivo ? '… Enviando...' : `<Icons.Messages /> WA masivo (${seleccionados.length})`}
+                  {enviandoMasivo ? `… ${t('sending')}` : `✉ ${t('massWA')} (${seleccionados.length})`}
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setSeleccionados([])}>
-                  ✕ Limpiar
+                  ✕ {t('clear')}
                 </button>
               </>
             )}
@@ -185,11 +238,11 @@ export default function Alertas() {
           <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10,background:tabInfo?.bg}}>
             <span style={{fontSize:20}}>{tabInfo?.icon}</span>
             <h3 style={{margin:0,fontSize:14,fontWeight:700,color:tabInfo?.color}}>{tabInfo?.label}</h3>
-            <span style={{fontSize:12,color:'var(--text-muted)',marginLeft:4}}>— {current.length} personas</span>
+            <span style={{fontSize:12,color:'var(--text-muted)',marginLeft:4}}>— {current.length} {t('people')}</span>
           </div>
 
           {current.length === 0
-            ? <div className="empty"><div className="empty-icon"><Icons.Attendance /></div><p>¡Sin alertas en esta categoría!</p></div>
+            ? <div className="empty"><div className="empty-icon"><Icons.Attendance /></div><p>{t('noAlerts')}</p></div>
             : <>
               <div className="alerts-mobile-list">
                 {current.map((p, i) => {
@@ -217,13 +270,13 @@ export default function Alertas() {
                         <small>{meta}</small>
                       </button>
                       <div className="alert-mobile-actions">
-                        <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/personas/${pid}`)}>Perfil</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/personas/${pid}`)}>{t('profile')}</button>
                         {p.telefono && (
                           <button className="btn btn-sm"
                             style={{background:'rgba(22,163,74,.08)',color:'var(--c-success)',border:'1px solid rgba(22,163,74,.2)',fontWeight:600}}
                             disabled={enviando===pid}
                             onClick={() => enviarWA(pid, p.nombre)}>
-                            {enviando===pid ? 'Enviando...' : 'WhatsApp'}
+                            {enviando===pid ? t('sending') : t('whatsapp')}
                             {msgEnvio[pid] && <span style={{marginLeft:4}}>{msgEnvio[pid]}</span>}
                           </button>
                         )}
@@ -237,14 +290,14 @@ export default function Alertas() {
                 <thead>
                   <tr>
                     <th style={{width:32}}></th>
-                    <th>Nombre</th>
-                    <th>Teléfono</th>
-                    {tab==='sinAsistir'            && <><th>Líder</th></>}
-                    {tab==='sinSeguimiento'         && <><th>Último contacto</th><th>Líder</th></>}
-                    {tab==='visitantesSinConsolidar'&& <><th>Ingresó</th><th>Líder</th></>}
-                    {tab==='contactosVencidos'      && <><th>Tipo</th><th>Vencía</th></>}
-                    {tab==='cumpleanosSemana'        && <th>Cumpleaños</th>}
-                    <th>Acciones</th>
+                    <th>{t('colName')}</th>
+                    <th>{t('colPhone')}</th>
+                    {tab==='sinAsistir'            && <><th>{t('leader')}</th></>}
+                    {tab==='sinSeguimiento'         && <><th>{t('lastContact')}</th><th>{t('leader')}</th></>}
+                    {tab==='visitantesSinConsolidar'&& <><th>{t('joined')}</th><th>{t('leader')}</th></>}
+                    {tab==='contactosVencidos'      && <><th>{t('type')}</th><th>{t('expires')}</th></>}
+                    {tab==='cumpleanosSemana'        && <th>{t('birthday')}</th>}
+                    <th>{t('colActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -310,7 +363,7 @@ export default function Alertas() {
                         <td>
                           <div style={{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap'}}>
                             <button className="btn btn-ghost btn-xs" data-tip="Ver perfil"
-                              onClick={() => navigate(`/personas/${pid}`)}>Perfil</button>
+                              onClick={() => navigate(`/personas/${pid}`)}>{t('profile')}</button>
                             {p.telefono && (
                               <button className="btn btn-xs"
                                 style={{background:'rgba(22,163,74,.08)',color:'var(--c-success)',border:'1px solid rgba(22,163,74,.2)',fontWeight:600}}
@@ -337,9 +390,9 @@ export default function Alertas() {
         open={confirmMasivo}
         onClose={() => setConfirmMasivo(false)}
         onConfirm={ejecutarMasivo}
-        title={`¿Enviar WhatsApp a ${seleccionados.length} personas?`}
-        message="Se enviará un mensaje de contacto pastoral a cada persona seleccionada."
-        confirmLabel="Enviar" cancelLabel="Cancelar"
+        title={t('massTitle').replace('{n}', seleccionados.length)}
+        message={t('massMsg')}
+        confirmLabel={t('send')} cancelLabel={t('cancel')}
       />
     </div>
   )
