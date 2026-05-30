@@ -186,15 +186,12 @@ export default function Perfil() {
   }
 
   async function subirFoto(base64) {
-    const r = await apiFetch(`/perfil/${id}/foto`, {
-      method: 'POST',
-      body: JSON.stringify({ base64 })
-    })
-    if (r.ok) {
-      setPersona(p => ({ ...p, fotoUrl: r.fotoUrl }))
+    try {
+      const r = await apiFetch(`/perfil/${id}/foto`, { method: 'POST', body: JSON.stringify({ base64 }) })
       setShowCamara(false)
+      load()
       setMsg({ type: 'success', text: 'Foto guardada — disponible para reconocimiento facial' })
-    }
+    } catch(e) { toast.error(e.message) }
   }
 
   async function eliminarFoto() {

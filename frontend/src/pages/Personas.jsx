@@ -57,6 +57,7 @@ export default function Personas() {
   const [preview, setPreview] = useState(null)
   const [importLoading, setImportLoading] = useState(false)
   const [confirmDel, setConfirmDel] = useState(null) // {id, nombre}
+  const [confirmDelSeg, setConfirmDelSeg] = useState(null) // id de seguimiento
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -110,13 +111,14 @@ export default function Personas() {
     } catch (e) { toast.error(e.message) }
   }
 
-  async function deleteSeg(id) {
-    if (!window.confirm('¿Eliminar esta nota de seguimiento?')) return
-    try { 
-      await apiFetch(`/seguimiento/${id}`,{method:'DELETE'})
+  async function deleteSeg() {
+    if (!confirmDelSeg) return
+    try {
+      await apiFetch(`/seguimiento/${confirmDelSeg}`,{method:'DELETE'})
       setSegList(await apiFetch(`/seguimiento/${segModal.id}`) || [])
       toast.success('Nota eliminada')
     } catch (e) { toast.error(e.message) }
+    setConfirmDelSeg(null)
   }
 
   // Import Excel - paso 1: analizar
@@ -281,7 +283,7 @@ export default function Personas() {
             <div key={s.id} style={{padding:'12px 0',borderBottom:'1px solid var(--border)'}}>
               <div style={{display:'flex',justifyContent:'space-between'}}>
                 <div><span className="badge badge-secondary">{s.tipo}</span><small style={{marginLeft:8,color:'var(--text-muted)'}}>{s.createdAt?.slice(0,16).replace('T',' ')}</small></div>
-                <button className="btn btn-ghost btn-sm" onClick={()=>deleteSeg(s.id)}>×</button>
+                <button className="btn btn-ghost btn-sm" onClick={()=>setConfirmDelSeg(s.id)}>×</button>
               </div>
               <p style={{fontSize:13,margin:'8px 0 0'}}>{s.nota}</p>
             </div>
@@ -364,6 +366,12 @@ export default function Personas() {
           open={!!confirmDel} onClose={()=>setConfirmDel(null)} onConfirm={handleDelete}
           title="¿Eliminar persona?" danger
           message={confirmDel ? `${confirmDel.nombre} será eliminado permanentemente del sistema.` : ''}
+          confirmLabel="Eliminar" cancelLabel="Cancelar"
+        />
+        <ConfirmModal
+          open={!!confirmDelSeg} onClose={()=>setConfirmDelSeg(null)} onConfirm={deleteSeg}
+          title="¿Eliminar nota?" danger
+          message="Esta nota de seguimiento será eliminada permanentemente."
           confirmLabel="Eliminar" cancelLabel="Cancelar"
         />
       </main>

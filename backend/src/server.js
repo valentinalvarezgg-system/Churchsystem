@@ -185,7 +185,7 @@ if (fs.existsSync(distDir)) {
   app.use(express.static(distDir))
   app.get('*', (req, res) => {
     const isCheckinApi = /^\/checkin\/(token|info|registrar|descriptores)\//.test(req.path)
-    const isApi = isCheckinApi || /^\/(auth|personas|grupos|cultos|stats|alertas|mensajes|config|ia|fotos|export|finanzas|historial|reportes|discipulado|consolidacion|seguimiento|oracion|comunicados|eventos|backup|users|permisos|perfil|import|busqueda|mp|plan|oauth|verificacion|iglesia|notificaciones|promo-codes|bug-report)/.test(req.path)
+    const isApi = isCheckinApi || /^\/(auth|personas|grupos|cultos|stats|alertas|mensajes|config|ia|fotos|export|finanzas|historial|reportes|discipulado|consolidacion|seguimiento|oracion|comunicados|eventos|backup|users|permisos|perfil|import|busqueda|mp|plan|oauth|verificacion|iglesia|notificaciones|promo-codes|bug-report|mi-perfil|excel-ia|godmode)/.test(req.path)
     if (isApi) return res.status(404).json({ error: 'Ruta no encontrada' })
     return res.sendFile(path.join(distDir, 'index.html'))
   })
