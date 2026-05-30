@@ -216,3 +216,12 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Decisión:
   - El bloque funcional quedó implementado.
   - Próximo micro-bloque: resolver compatibilidad de build web para módulo Capacitor sin romper iOS nativo.
+
+### 2026-05-30 — v2.7-beta/block-01b (desbloqueo build web)
+- Se resolvió el bloqueo de compilación frontend por módulo nativo iOS:
+  - `frontend/vite.config.js` ahora externaliza `@capacitor-mlkit/barcode-scanning` en `rollupOptions.external`.
+- Resultado:
+  - `frontend pnpm build` ✅ OK.
+  - `backend pnpm audit:launch` ✅ OK.
+- Estado:
+  - Build 01 (UX states unification) queda técnicamente desbloqueado para continuar validación funcional.
