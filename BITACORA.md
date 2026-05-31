@@ -1067,6 +1067,9 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
     - `SSH_PRIVATE_KEY` (texto plano PEM/OpenSSH)
     - `SSH_PRIVATE_KEY_B64` (recomendado para evitar problemas de formato)
   - paso `Prepare SSH key` para reconstruir clave normalizada en runtime y pasarla a `appleboy/ssh-action`.
+  - normalización extra para `SSH_PRIVATE_KEY`:
+    - interpreta `\n` escapados (`printf '%b'`)
+    - elimina `\r` para evitar CRLF corrupto
 
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`

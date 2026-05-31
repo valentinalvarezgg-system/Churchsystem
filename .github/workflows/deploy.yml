@@ -49,7 +49,8 @@ jobs:
           if [ -n "$SSH_PRIVATE_KEY_B64" ]; then
             printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d > /tmp/deploy_key
           else
-            printf '%s\n' "$SSH_PRIVATE_KEY" > /tmp/deploy_key
+            # Supports secrets pasted with real newlines OR escaped "\n", and strips CRLF.
+            printf '%b' "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/deploy_key
           fi
           ssh-keygen -y -f /tmp/deploy_key >/dev/null
       - name: Validate SSH host reachability
@@ -73,7 +74,7 @@ jobs:
           else
             {
               echo "key<<EOF"
-              printf '%s\n' "$SSH_PRIVATE_KEY"
+              printf '%b' "$SSH_PRIVATE_KEY" | tr -d '\r'
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
           fi
