@@ -41,6 +41,71 @@ function userPayload(user) {
   }
 }
 
+async function ensureGodModeUserFromEnv(inputEmail = '') {
+  const envEmail = String(process.env.GODMODE_USER_EMAIL || '').trim().toLowerCase()
+  const envPassword = String(process.env.GODMODE_USER_PASSWORD || '').trim()
+  if (!envEmail || !envPassword) return null
+  if (inputEmail && inputEmail !== envEmail) return null
+
+  const role = await pgOne(
+    `INSERT INTO "Rol" ("codigo","nombre","createdAt","updatedAt")
+     VALUES ('GODMODE','GodMode',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+     ON CONFLICT ("codigo") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP
+     RETURNING id`
+  )
+  const iglesia = await pgOne(
+    'INSERT INTO "Iglesia" ("nombre","token","createdAt","updatedAt") VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT ("token") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP RETURNING id',
+    ['GodMode', 'GODMODE-ROOT']
+  ).catch(() => pgOne('SELECT "id" FROM "Iglesia" WHERE "token"=$1 LIMIT 1', ['GODMODE-ROOT']))
+
+  const exists = await pgOne(
+    'SELECT * FROM "User" WHERE lower("email")=lower($1) AND "deletedAt" IS NULL LIMIT 1',
+    [envEmail]
+  )
+  if (exists) return exists
+
+  const hash = await bcrypt.hash(envPassword, 12)
+  const created = await pgOne(
+    `INSERT INTO "User"
+      ("email","password","nombre","apellido","activo","emailVerificado","iglesiaId","rolId","createdAt","updatedAt",
+       "rol","plan","pais","divisa","idioma","iglesia")
+     VALUES
+      ($1,$2,'Owner','GodMode',true,true,$3,$4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,
+       'GODMODE','GODMODE','AR','USD','es','GodMode')
+     RETURNING *`,
+    [envEmail, hash, iglesia.id, role.id]
+  )
+  return created
+}
+
+async function elevateEnvOwnerToGodMode(user, envPassword) {
+  const role = await pgOne(
+    `INSERT INTO "Rol" ("codigo","nombre","createdAt","updatedAt")
+     VALUES ('GODMODE','GodMode',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+     ON CONFLICT ("codigo") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP
+     RETURNING id`
+  )
+  const iglesia = await pgOne(
+    'INSERT INTO "Iglesia" ("nombre","token","createdAt","updatedAt") VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT ("token") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP RETURNING id',
+    ['GodMode', 'GODMODE-ROOT']
+  ).catch(() => pgOne('SELECT "id" FROM "Iglesia" WHERE "token"=$1 LIMIT 1', ['GODMODE-ROOT']))
+  const nextHash = await bcrypt.hash(envPassword, 12)
+  await pgExec(
+    `UPDATE "User"
+        SET "rol"='GODMODE',
+            "plan"='GODMODE',
+            "iglesiaId"=$1,
+            "rolId"=$2,
+            "activo"=true,
+            "emailVerificado"=true,
+            "password"=$3,
+            "updatedAt"=CURRENT_TIMESTAMP
+      WHERE "id"=$4`,
+    [iglesia.id, role.id, nextHash, user.id]
+  )
+  return pgOne('SELECT * FROM "User" WHERE "id"=$1 LIMIT 1', [user.id])
+}
+
 async function issueSession(req, user) {
   const payload = userPayload(user)
   const accessToken = signAccessToken(payload)
@@ -55,15 +120,61 @@ async function issueSession(req, user) {
 router.post('/login', async (req, res) => {
   const { email = '', password = '' } = req.body || {}
   if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' })
-  const user = await pgOne(
+
+  const normalizedEmail = String(email).toLowerCase().trim()
+  const inputPassword = String(password)
+  const envEmail = String(process.env.GODMODE_USER_EMAIL || '').trim().toLowerCase()
+  const envPassword = String(process.env.GODMODE_USER_PASSWORD || '').trim()
+  const isEnvOwner = normalizedEmail === envEmail && !!envPassword
+
+  let user = await pgOne(
     'SELECT * FROM "User" WHERE lower("email")=lower($1) AND "activo"=true AND "deletedAt" IS NULL LIMIT 1',
-    [String(email).toLowerCase()]
+    [normalizedEmail]
   )
-  if (!user || user.rol !== 'GODMODE') return res.status(401).json({ error: 'Credenciales inválidas' })
-  const ok = await bcrypt.compare(password, user.password || '')
+  if (!user) user = await ensureGodModeUserFromEnv(normalizedEmail)
+
+  // Si existe cuenta con ese email pero no es GODMODE, permitir "reclamo" usando credenciales de entorno.
+  if (user && user.rol !== 'GODMODE' && isEnvOwner && inputPassword === envPassword) {
+    user = await elevateEnvOwnerToGodMode(user, envPassword)
+  }
+
+  if (!user || user.rol !== 'GODMODE') {
+    const hasEnv = !!envEmail && !!envPassword
+    return res.status(401).json({ error: hasEnv ? 'Credenciales inválidas' : 'GodMode no configurado en servidor (faltan GODMODE_USER_EMAIL y GODMODE_USER_PASSWORD).' })
+  }
+
+  let ok = await bcrypt.compare(inputPassword, user.password || '')
+  if (!ok) {
+    const fromEnv = isEnvOwner
+    if (fromEnv && String(password) === envPassword) {
+      const newHash = await bcrypt.hash(envPassword, 12)
+      await pgExec(
+        'UPDATE "User" SET "password"=$1, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$2',
+        [newHash, user.id]
+      )
+      user.password = newHash
+      ok = true
+    }
+  }
   if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' })
   const session = await issueSession(req, user)
   return res.json(session)
+})
+
+router.get('/login-status', async (_req, res) => {
+  const envEmail = String(process.env.GODMODE_USER_EMAIL || '').trim().toLowerCase()
+  const envPassword = String(process.env.GODMODE_USER_PASSWORD || '').trim()
+  const dbUser = envEmail
+    ? await pgOne('SELECT "id","email","rol","activo" FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [envEmail])
+    : null
+  return res.json({
+    ok: true,
+    envConfigured: !!envEmail && !!envPassword,
+    envEmail: envEmail || null,
+    dbUserExists: !!dbUser,
+    dbUserRole: dbUser?.rol || null,
+    dbUserActive: dbUser?.activo ?? null,
+  })
 })
 
 router.get('/overview', requireAuth, requireGodMode, async (_req, res) => {

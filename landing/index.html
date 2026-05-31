@@ -357,9 +357,70 @@ const PRICES = {
   GENERAL:{USD:120,ARS:120000,BRL:600,CLP:112000,COP:480000,MXN:2250,PEN:440,UYU:4800}
 }
 const TEXT = {
-  es:{navFeatures:'Funciones',navModules:'Módulos',navPricing:'Precios',navHow:'¿Cómo funciona?',login:'Ingresar →',badge:'v2.7 beta · Pre-Release disponible',heroTitleA:'Gestioná tu iglesia',heroTitleB:'de forma inteligente',heroSub:'Una plataforma integral para iglesias evangélicas. Personas, asistencia, seguimientos, grupos, reportes y más — en un solo lugar.',startFree:'Empezar gratis →',enterPlatform:'Ingresar a la plataforma',createFree:'Crear cuenta gratis →',perMonth:'/mes',planStartFree:'Empezar gratis',planStartNow:'Comenzar ahora',talkSales:'Hablar con ventas',popular:'Más popular'},
-  pt:{navFeatures:'Recursos',navModules:'Módulos',navPricing:'Preços',navHow:'Como funciona?',login:'Entrar →',badge:'v2.7 beta · Pre-Release disponível',heroTitleA:'Gerencie sua igreja',heroTitleB:'de forma inteligente',heroSub:'Uma plataforma completa para igrejas evangélicas. Pessoas, presença, acompanhamento, grupos, relatórios e mais em um só lugar.',startFree:'Começar grátis →',enterPlatform:'Entrar na plataforma',createFree:'Criar conta grátis →',perMonth:'/mês',planStartFree:'Começar grátis',planStartNow:'Começar agora',talkSales:'Falar com vendas',popular:'Mais popular'},
-  en:{navFeatures:'Features',navModules:'Modules',navPricing:'Pricing',navHow:'How it works',login:'Sign in →',badge:'v2.7 beta · Pre-release available',heroTitleA:'Manage your church',heroTitleB:'intelligently',heroSub:'An all-in-one platform for churches: people, attendance, follow-up, groups, reports, and more in one place.',startFree:'Start free →',enterPlatform:'Enter platform',createFree:'Create free account →',perMonth:'/mo',planStartFree:'Start free',planStartNow:'Start now',talkSales:'Talk to sales',popular:'Most popular'}
+  es:{
+    metaTitle:'Church System — Gestión Pastoral Inteligente',
+    metaDescription:'Church System — Software de gestión pastoral integral para iglesias evangélicas.',
+    navFeatures:'Funciones',navModules:'Módulos',navPricing:'Precios',navHow:'¿Cómo funciona?',login:'Ingresar →',
+    badge:'v2.7 beta · Pre-Release disponible',heroTitleA:'Gestioná tu iglesia',heroTitleB:'de forma inteligente',
+    heroSub:'Una plataforma integral para iglesias evangélicas. Personas, asistencia, seguimientos, grupos, reportes y más — en un solo lugar.',
+    startFree:'Empezar gratis →',enterPlatform:'Ingresar a la plataforma',createFree:'Crear cuenta gratis →',perMonth:'/mes',
+    planStartFree:'Empezar gratis',planStartNow:'Comenzar ahora',talkSales:'Hablar con ventas',popular:'Más popular',
+    heroStats:['Módulos activos','Planes disponibles','Hecho en Argentina','Config. requerida'],
+    sections:{featuresLabel:'Lo que podés hacer',featuresTitle:'Todo lo que tu iglesia\nnecesita en un lugar',featuresSub:'Desde el primer visitante hasta el informe pastoral mensual.',modulesLabel:'Módulos disponibles',modulesTitle:'22 módulos listos\npara usar',modulesSub:'Cada módulo pensado para el equipo pastoral. Sin capacitación técnica.',howLabel:'Simple desde el primer día',howTitle:'¿Cómo empezás?',pricingLabel:'Precios',pricingTitle:'Un plan para cada\ntamaño de iglesia',ctaLabel:'¿Listo para empezar?',ctaTitle:'Tu iglesia merece\nla mejor herramienta',ctaSub:'Registrate en menos de 2 minutos y empezá a usar Church System hoy.',ctaHasAccount:'Ya tengo cuenta'},
+    footer:{terms:'Términos',privacy:'Privacidad',login:'Ingresar'},
+    features:[
+      ['Gestión de personas','Registrá miembros, visitantes y personas de interés con perfil completo, historial familiar y estado espiritual.',['Búsqueda avanzada','Import Excel','Perfiles completos']],
+      ['Asistencia y cultos','Registrá cada culto y tomá asistencia manual o por QR. Estadísticas automáticas de participación.',['Check-in QR','Sin app extra','Historial']],
+      ['Seguimiento pastoral','Notas pastorales, próximos contactos y tipos de seguimiento. Nunca pierdas el hilo con ninguna persona.',['Tipos de contacto','Alertas vencidas','Historial']],
+      ['Grupos y células','Organizá la congregación en grupos. Asigná líderes, miembros y seguimiento por célula.',['Múltiples grupos','Líderes','Estadísticas']],
+      ['Reportes y estadísticas','Reportes semanales y mensuales con gráficos. Crecimiento, asistencia y consolidación de un vistazo.',['Vista ejecutiva','Gráficos','Exportable']],
+      ['Asistente con IA','Consultá datos de tu iglesia en lenguaje natural. Pedí informes y análisis sin saber programar.',['Lenguaje natural','Claude AI','Plan General']],
+      ['Excel + IA','Importá tu planilla existente. La IA mapea columnas automáticamente y carga todo sin error.',['Mapeo automático','.xlsx / .xls','Sin plantilla']],
+      ['Comunicados y alertas','Alertas automáticas de cumpleaños, seguimientos vencidos y visitantes sin consolidar.',['Alertas pastorales','Cumpleaños','Broadcast']],
+      ['Calendario de eventos','Creá y gestioná eventos. Exportá a Google Calendar o Apple Calendar con un click.',['Google Calendar','Apple Calendar','iCal .ics']]
+    ],
+    modules:['Dashboard principal','Vista ejecutiva IA','Gestión de personas','Grupos y células','Control de asistencia','Check-in QR','Calendario de eventos','Discipulado','Seguimiento pastoral','Consolidación','Alertas pastorales','Mensajería interna','Comunicados','Reportes semanales','Reportes mensuales','Gestión de usuarios','Permisos por rol','Historial de auditoría','Excel + IA','Asistente IA','Tokens de iglesia','Multi-iglesia'],
+    steps:[['Creás tu cuenta','Registrate con tu email. Verificación en segundos. Sin tarjeta de crédito.'],['Configurás tu iglesia','Nombre, pastor y un token único para compartir con tu equipo.'],['Invitás a tu equipo','Compartís el token y cada rol accede solo a lo que necesita.'],['Empezás a gestionar','Importá desde Excel o cargalos directo. En minutos estás operando.']],
+    planNames:['Líder','Culto','Consolidación','Administración','General'],
+    planDescs:['Para líderes de célula','Para equipos de culto','Para equipos pastorales','Para secretaría y admin','Para pastor general'],
+    planFeatures:[['Dashboard','Personas','Grupos','Check-in QR','Mi perfil'],['Todo lo de Líder','Asistencia','Calendario','Comunicados'],['Todo lo de Culto','Seguimiento pastoral','Consolidación','Alertas','Mensajería'],['Todo lo anterior','Reportes completos','Gestión de usuarios','Permisos y roles','Excel + IA'],['Acceso completo','Vista ejecutiva IA','Asistente IA','Multi-iglesia','Soporte prioritario']]
+  },
+  pt:{
+    metaTitle:'Church System — Gestão Pastoral Inteligente',
+    metaDescription:'Church System — Software completo de gestão pastoral para igrejas evangélicas.',
+    navFeatures:'Recursos',navModules:'Módulos',navPricing:'Preços',navHow:'Como funciona?',login:'Entrar →',
+    badge:'v2.7 beta · Pre-Release disponível',heroTitleA:'Gerencie sua igreja',heroTitleB:'de forma inteligente',
+    heroSub:'Uma plataforma completa para igrejas evangélicas. Pessoas, presença, acompanhamento, grupos, relatórios e mais em um só lugar.',
+    startFree:'Começar grátis →',enterPlatform:'Entrar na plataforma',createFree:'Criar conta grátis →',perMonth:'/mês',
+    planStartFree:'Começar grátis',planStartNow:'Começar agora',talkSales:'Falar com vendas',popular:'Mais popular',
+    heroStats:['Módulos ativos','Planos disponíveis','Feito na Argentina','Config. necessária'],
+    sections:{featuresLabel:'O que você pode fazer',featuresTitle:'Tudo que sua igreja\nprecisa em um só lugar',featuresSub:'Do primeiro visitante ao relatório pastoral mensal.',modulesLabel:'Módulos disponíveis',modulesTitle:'22 módulos prontos\npara usar',modulesSub:'Cada módulo pensado para a equipe pastoral. Sem treinamento técnico.',howLabel:'Simples desde o primeiro dia',howTitle:'Como começar?',pricingLabel:'Preços',pricingTitle:'Um plano para cada\ntamanho de igreja',ctaLabel:'Pronto para começar?',ctaTitle:'Sua igreja merece\na melhor ferramenta',ctaSub:'Cadastre-se em menos de 2 minutos e comece a usar Church System hoje.',ctaHasAccount:'Já tenho conta'},
+    footer:{terms:'Termos',privacy:'Privacidade',login:'Entrar'},
+    features:[['Gestão de pessoas','Cadastre membros, visitantes e pessoas de interesse com perfil completo, histórico familiar e estado espiritual.',['Busca avançada','Importar Excel','Perfis completos']],['Presença e cultos','Registre cada culto e marque presença manualmente ou por QR. Estatísticas automáticas de participação.',['Check-in QR','Sem app extra','Histórico']],['Acompanhamento pastoral','Notas pastorais, próximos contatos e tipos de acompanhamento. Nunca perca o vínculo com ninguém.',['Tipos de contato','Alertas vencidos','Histórico']],['Grupos e células','Organize a congregação em grupos. Defina líderes, membros e acompanhamento por célula.',['Múltiplos grupos','Líderes','Estatísticas']],['Relatórios e métricas','Relatórios semanais e mensais com gráficos. Crescimento, presença e consolidação em um painel.',['Visão executiva','Gráficos','Exportável']],['Assistente com IA','Consulte dados da sua igreja em linguagem natural. Peça relatórios e análises sem programar.',['Linguagem natural','Claude AI','Plano Geral']],['Excel + IA','Importe sua planilha existente. A IA mapeia colunas automaticamente e carrega tudo sem erro.',['Mapeamento automático','.xlsx / .xls','Sem modelo']],['Comunicados e alertas','Alertas automáticos de aniversários, acompanhamentos vencidos e visitantes sem consolidação.',['Alertas pastorais','Aniversários','Broadcast']],['Calendário de eventos','Crie e gerencie eventos. Exporte para Google Calendar ou Apple Calendar com um clique.',['Google Calendar','Apple Calendar','iCal .ics']]],
+    modules:['Dashboard principal','Visão executiva IA','Gestão de pessoas','Grupos e células','Controle de presença','Check-in QR','Calendário de eventos','Discipulado','Acompanhamento pastoral','Consolidação','Alertas pastorais','Mensagens internas','Comunicados','Relatórios semanais','Relatórios mensais','Gestão de usuários','Permissões por papel','Histórico de auditoria','Excel + IA','Assistente IA','Tokens da igreja','Multi-igreja'],
+    steps:[['Você cria sua conta','Cadastre-se com seu email. Verificação em segundos. Sem cartão de crédito.'],['Você configura sua igreja','Nome, pastor e um token único para compartilhar com sua equipe.'],['Você convida sua equipe','Compartilhe o token e cada papel acessa apenas o que precisa.'],['Você começa a gerir','Importe do Excel ou cadastre direto. Em minutos você já opera.']],
+    planNames:['Líder','Culto','Consolidação','Administração','Geral'],
+    planDescs:['Para líderes de célula','Para equipes de culto','Para equipes pastorais','Para secretaria e admin','Para pastor geral'],
+    planFeatures:[['Dashboard','Pessoas','Grupos','Check-in QR','Meu perfil'],['Tudo do Líder','Presença','Calendário','Comunicados'],['Tudo do Culto','Acompanhamento pastoral','Consolidação','Alertas','Mensagens'],['Tudo anterior','Relatórios completos','Gestão de usuários','Permissões e papéis','Excel + IA'],['Acesso completo','Visão executiva IA','Assistente IA','Multi-igreja','Suporte prioritário']]
+  },
+  en:{
+    metaTitle:'Church System — Smart Pastoral Management',
+    metaDescription:'Church System — End-to-end pastoral management software for evangelical churches.',
+    navFeatures:'Features',navModules:'Modules',navPricing:'Pricing',navHow:'How it works',login:'Sign in →',
+    badge:'v2.7 beta · Pre-release available',heroTitleA:'Manage your church',heroTitleB:'intelligently',
+    heroSub:'An all-in-one platform for churches: people, attendance, follow-up, groups, reports, and more in one place.',
+    startFree:'Start free →',enterPlatform:'Enter platform',createFree:'Create free account →',perMonth:'/mo',
+    planStartFree:'Start free',planStartNow:'Start now',talkSales:'Talk to sales',popular:'Most popular',
+    heroStats:['Active modules','Available plans','Built in Argentina','Setup required'],
+    sections:{featuresLabel:'What you can do',featuresTitle:'Everything your church\nneeds in one place',featuresSub:'From first-time visitor to monthly pastoral report.',modulesLabel:'Available modules',modulesTitle:'22 modules ready\nto use',modulesSub:'Every module designed for pastoral teams. No technical training required.',howLabel:'Simple from day one',howTitle:'How do you start?',pricingLabel:'Pricing',pricingTitle:'A plan for every\nchurch size',ctaLabel:'Ready to start?',ctaTitle:'Your church deserves\nthe best tool',ctaSub:'Sign up in less than 2 minutes and start using Church System today.',ctaHasAccount:'I already have an account'},
+    footer:{terms:'Terms',privacy:'Privacy',login:'Sign in'},
+    features:[['People management','Register members, visitors, and prospects with full profiles, family history, and spiritual status.',['Advanced search','Excel import','Complete profiles']],['Attendance and services','Track every service and take attendance manually or by QR. Automatic participation analytics.',['QR check-in','No extra app','History']],['Pastoral follow-up','Pastoral notes, next contacts, and follow-up types. Never lose track of a person again.',['Contact types','Overdue alerts','History']],['Groups and cells','Organize your congregation into groups. Assign leaders, members, and follow-up per cell.',['Multiple groups','Leaders','Analytics']],['Reports and analytics','Weekly and monthly reports with charts. Growth, attendance, and consolidation at a glance.',['Executive view','Charts','Exportable']],['AI assistant','Ask your church data in natural language. Get reports and analysis without coding.',['Natural language','Claude AI','General Plan']],['Excel + AI','Import your existing spreadsheet. AI maps columns automatically and loads everything safely.',['Auto mapping','.xlsx / .xls','No template']],['Announcements and alerts','Automatic alerts for birthdays, overdue follow-ups, and visitors not yet consolidated.',['Pastoral alerts','Birthdays','Broadcast']],['Events calendar','Create and manage events. Export to Google Calendar or Apple Calendar in one click.',['Google Calendar','Apple Calendar','iCal .ics']]],
+    modules:['Main dashboard','AI executive view','People management','Groups and cells','Attendance control','QR check-in','Events calendar','Discipleship','Pastoral follow-up','Consolidation','Pastoral alerts','Internal messaging','Announcements','Weekly reports','Monthly reports','User management','Role permissions','Audit log','Excel + AI','AI assistant','Church tokens','Multi-church'],
+    steps:[['Create your account','Sign up with your email. Verified in seconds. No credit card required.'],['Set up your church','Name, pastor, and a unique token to share with your team.'],['Invite your team','Share the token and each role sees only what it needs.'],['Start managing','Import from Excel or add directly. You are operational in minutes.']],
+    planNames:['Leader','Service','Consolidation','Administration','General'],
+    planDescs:['For cell leaders','For worship teams','For pastoral teams','For secretary and admin','For senior pastor'],
+    planFeatures:[['Dashboard','People','Groups','QR check-in','My profile'],['Everything in Leader','Attendance','Calendar','Announcements'],['Everything in Service','Pastoral follow-up','Consolidation','Alerts','Messaging'],['Everything above','Full reports','User management','Roles and permissions','Excel + AI'],['Full access','AI executive view','AI assistant','Multi-church','Priority support']]
+  }
 }
 const params = new URLSearchParams(location.search)
 const countrySelect = document.getElementById('countrySelect')
@@ -376,7 +437,11 @@ function context() {
 }
 function applyContext() {
   const ctx = context()
+  const copy = TEXT[ctx.lang] || TEXT.es
   document.documentElement.lang = ctx.lang
+  document.title = copy.metaTitle || TEXT.es.metaTitle
+  const metaDescription = document.querySelector('meta[name="description"]')
+  if (metaDescription) metaDescription.setAttribute('content', copy.metaDescription || TEXT.es.metaDescription)
   localStorage.setItem('church_country', ctx.country)
   localStorage.setItem('church_currency', ctx.currency)
   localStorage.setItem('church_lang', ctx.lang)
@@ -385,8 +450,79 @@ function applyContext() {
     if (TEXT[ctx.lang]?.[key]) el.textContent = TEXT[ctx.lang][key]
   })
   document.querySelectorAll('.plan-card.featured').forEach(card => {
-    card.dataset.popular = TEXT[ctx.lang]?.popular || TEXT.es.popular
+    card.dataset.popular = copy.popular || TEXT.es.popular
   })
+  document.querySelectorAll('.hero-stat .hero-stat-lbl').forEach((el, i) => {
+    if (copy.heroStats?.[i]) el.textContent = copy.heroStats[i]
+  })
+  const setText = (selector, value) => {
+    const el = document.querySelector(selector)
+    if (!el || !value) return
+    if (value.includes('\n')) {
+      const [lineA, lineB] = value.split('\n')
+      el.innerHTML = `${lineA}<br>${lineB}`
+      return
+    }
+    el.textContent = value
+  }
+  setText('#funciones .section-label', copy.sections?.featuresLabel)
+  setText('#funciones .section-title', copy.sections?.featuresTitle)
+  setText('#funciones .section-sub', copy.sections?.featuresSub)
+  setText('#modulos .section-label', copy.sections?.modulesLabel)
+  setText('#modulos .section-title', copy.sections?.modulesTitle)
+  setText('#modulos .section-sub', copy.sections?.modulesSub)
+  setText('#como-funciona .section-label', copy.sections?.howLabel)
+  setText('#como-funciona .section-title', copy.sections?.howTitle)
+  setText('#precios .section-label', copy.sections?.pricingLabel)
+  setText('#precios .section-title', copy.sections?.pricingTitle)
+  setText('.cta-section .section-label', copy.sections?.ctaLabel)
+  setText('.cta-section .section-title', copy.sections?.ctaTitle)
+  setText('.cta-section p', copy.sections?.ctaSub)
+  setText('.cta-section .btn-ghost', copy.sections?.ctaHasAccount)
+  const featureCards = document.querySelectorAll('#funciones .feature-card')
+  featureCards.forEach((card, idx) => {
+    const data = copy.features?.[idx]
+    if (!data) return
+    const [title, desc, tags] = data
+    const titleEl = card.querySelector('.feature-title')
+    const descEl = card.querySelector('.feature-desc')
+    if (titleEl) titleEl.textContent = title
+    if (descEl) descEl.textContent = desc
+    card.querySelectorAll('.tag').forEach((tagEl, tagIdx) => {
+      if (tags?.[tagIdx]) tagEl.textContent = tags[tagIdx]
+    })
+  })
+  document.querySelectorAll('#modulos .module-item').forEach((item, idx) => {
+    const value = copy.modules?.[idx]
+    if (!value) return
+    const dot = item.querySelector('.mdot')
+    if (!dot) return
+    item.innerHTML = ''
+    item.appendChild(dot)
+    item.appendChild(document.createTextNode(value))
+  })
+  document.querySelectorAll('#como-funciona .step').forEach((step, idx) => {
+    const value = copy.steps?.[idx]
+    if (!value) return
+    const [title, desc] = value
+    const titleEl = step.querySelector('.step-title')
+    const descEl = step.querySelector('.step-desc')
+    if (titleEl) titleEl.textContent = title
+    if (descEl) descEl.textContent = desc
+  })
+  document.querySelectorAll('#precios .plan-card').forEach((card, idx) => {
+    const planName = card.querySelector('.plan-name')
+    const planDesc = card.querySelector('.plan-desc')
+    if (planName && copy.planNames?.[idx]) planName.textContent = copy.planNames[idx]
+    if (planDesc && copy.planDescs?.[idx]) planDesc.textContent = copy.planDescs[idx]
+    card.querySelectorAll('.plan-features li').forEach((li, liIdx) => {
+      if (copy.planFeatures?.[idx]?.[liIdx]) li.textContent = copy.planFeatures[idx][liIdx]
+    })
+  })
+  const footerLinks = document.querySelectorAll('footer .footer-links a')
+  if (footerLinks[1]) footerLinks[1].textContent = copy.footer?.terms || TEXT.es.footer.terms
+  if (footerLinks[2]) footerLinks[2].textContent = copy.footer?.privacy || TEXT.es.footer.privacy
+  if (footerLinks[3]) footerLinks[3].textContent = copy.footer?.login || TEXT.es.footer.login
   document.querySelectorAll('.plan-card').forEach(card => {
     const plan = card.dataset.plan
     const value = PRICES[plan]?.[ctx.currency] || PRICES[plan]?.USD

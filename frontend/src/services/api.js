@@ -68,6 +68,7 @@ export async function apiFetch(path, options = {}) {
   const url   = `${API}${path}`
   const method = (options.method || 'GET').toUpperCase()
   const lang = localStorage.getItem('church_lang')
+  const skipAuthRedirect = options.skipAuthRedirect === true
   let res
   try {
     res = await fetch(url, {
@@ -83,7 +84,7 @@ export async function apiFetch(path, options = {}) {
     throw new Error('No se pudo conectar con el servidor. Revisá tu conexión e intentá nuevamente.')
   }
 
-  if (res.status === 401) {
+  if (res.status === 401 && !skipAuthRedirect) {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     window.location.href = '/app/login'
