@@ -1145,6 +1145,40 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
   - traducciones ES/PT/EN actualizadas para nuevos planes y mensajes clave.
   - footer versionado a `v2.8.2`.
 
+### Auditoría quirúrgica v2.8.2 (hoy) — 5 bloques críticos
+Fecha: 2026-05-31
+
+1) Login / OAuth
+- `POST /auth/login` (starter/pro/max): ✅
+- `GET /oauth/google`: ✅ redirige a Google con callback correcto.
+- GodMode login status: ✅ entorno configurado.
+
+2) Emails (bienvenida/verificación/reset)
+- `POST /auth/forgot-password`: ✅ responde correctamente.
+- Alta nueva (`/auth/registro`) + `/verificacion/enviar`: ✅ `Codigo enviado`.
+- Diagnóstico email (`/config/email-diagnostics`): ⚠️ faltan en entorno:
+  - `RESEND_INBOUND_SECRET`
+  - `OWNER_REPORTS_EMAIL`
+  - `SUPPORT_EMAIL`
+  - variables Apple OAuth (no bloquean demo email, sí Apple login completo).
+
+3) Pagos
+- Flujo operativo hoy para checkout: ✅ `POST /mp/crear-preferencia` devuelve `initPoint` válido de Mercado Pago.
+- Flujo alternativo `/subscriptions/create`: ⚠️ incompleto para uso inmediato (error `payer_email is required`).
+- Decisión para demo: usar `mp/crear-preferencia` como camino oficial 2.8.2.
+
+4) Aislamiento multi-tenant
+- Usuarios demo en iglesias distintas: ✅ (`iglesiaId` 46/47/48).
+- Prueba cruzada personas: ✅ aislamiento.
+- Prueba cruzada grupos/cultos: ✅ aislamiento (creación en Starter no visible en Pro).
+
+5) Deploy / operación
+- Estado real: app productiva online y usable (`/health` OK).
+- Riesgo abierto: workflow GitHub deploy por SSH sigue sensible a secreto/formato/red.
+- Recomendación operativa para demo inmediata:
+  - mantener publicación por runtime actual estable (cloud tunnel + servidor activo),
+  - tratar CI/CD SSH como hardening posterior, no bloqueante de prueba con pastores.
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:
