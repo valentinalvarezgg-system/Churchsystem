@@ -1,4 +1,4 @@
-# Church System — v2.7 beta
+# Church System — v2.8 beta
 
 Sistema integral de gestión pastoral para iglesias evangélicas.  
 Multi-tenant · SaaS · Mobile-first · Productivo en `churchsystem.com.ar`
@@ -277,6 +277,27 @@ Churchsystem/
 ---
 
 ## Deploy
+
+### Modo actual: Mac + Cloudflare Tunnel (`MODO_CLOUDFLARE_LOCAL`)
+
+El backend corre en la Mac gestionado por **launchd** y Cloudflare Tunnel expone `localhost:4000` como `churchsystem.com.ar`.
+
+**launchd** garantiza reinicio automático:
+- Si el proceso Node cae → se levanta solo en 10 segundos.
+- Si la Mac se reinicia → arranca automáticamente al loguear.
+- Plist: `~/Library/LaunchAgents/com.churchsystem.backend.plist`
+
+```bash
+# Reiniciar el backend manualmente si fuera necesario
+launchctl unload ~/Library/LaunchAgents/com.churchsystem.backend.plist
+launchctl load  ~/Library/LaunchAgents/com.churchsystem.backend.plist
+
+# Ver logs en vivo
+tail -f /tmp/church-back.log
+tail -f /tmp/church-back-err.log
+```
+
+### Si se vuelve a Render
 
 La rama `master` se auto-despliega en Render cuando se hace push.
 
