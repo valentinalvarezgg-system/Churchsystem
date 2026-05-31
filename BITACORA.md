@@ -1010,6 +1010,19 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
     - si falla por drift puntual, fallback automático a `pnpm install --no-frozen-lockfile`.
 - Objetivo: reducir caídas del pipeline por lockfile drift y warnings de runtime en transición de Actions.
 
+### Ajuste CI por `ERR_PNPM_IGNORED_BUILDS` (esbuild)
+- Incidente reportado:
+  - `build` fallando por `ERR_PNPM_IGNORED_BUILDS` vinculado a `esbuild`.
+- Corrección aplicada:
+  - se removió intento `--allow-scripts=all` en workflow (incompatible con `pnpm` actual del proyecto).
+  - se agregó política persistente en `frontend/.pnpmrc.yaml`:
+    - `onlyBuiltDependencies: [esbuild]`
+    - `strictDepBuilds: false`
+  - `deploy.yml` mantiene instalación con fallback lockfile sin flags incompatibles.
+- Resultado esperado:
+  - evitar salida por error duro de builds ignorados en CI.
+  - mantener instalación compatible entre entorno local y GitHub Actions.
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:
