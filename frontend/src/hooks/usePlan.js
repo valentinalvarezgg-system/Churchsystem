@@ -4,17 +4,22 @@ import { apiFetch, getUser } from '../services/api.js'
 const LEGACY = { LIDER:'STARTER', CULTO:'STARTER', CONSOLIDACION:'PRO', ADMINISTRACION:'PRO', GENERAL:'MAX' }
 
 const FALLBACK = {
-  STARTER:['dashboard','personas','grupos','perfil','checkin','asistencia','calendario','comunicados'],
+  STARTER:[
+    'dashboard','personas','grupos','perfil','checkin',
+    'comunicados','seguimiento','discipulado','analytics',
+  ],
   PRO:[
-    'dashboard','personas','grupos','perfil','checkin','asistencia','calendario','comunicados',
-    'seguimiento','consolidacion','alertas','mensajes','reportes','historial',
-    'users','permisos','configuracion','discipulado','excel-ia',
+    'dashboard','personas','grupos','perfil','checkin',
+    'comunicados','seguimiento','discipulado','analytics',
+    'asistencia','calendario','mensajes','alertas',
+    'reportes','historial','consolidacion','configuracion',
   ],
   MAX:[
-    'dashboard','personas','grupos','perfil','checkin','asistencia','calendario','comunicados',
-    'seguimiento','consolidacion','alertas','mensajes','reportes','historial',
-    'users','permisos','configuracion','discipulado','excel-ia',
-    'asistente-ia','premium','backup',
+    'dashboard','personas','grupos','perfil','checkin',
+    'comunicados','seguimiento','discipulado','analytics',
+    'asistencia','calendario','mensajes','alertas',
+    'reportes','historial','consolidacion','configuracion',
+    'users','permisos','excel-ia','asistente-ia','backup','premium',
   ],
 }
 let _cache = null

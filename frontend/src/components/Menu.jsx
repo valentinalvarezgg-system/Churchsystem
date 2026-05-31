@@ -156,11 +156,20 @@ export default function Menu() {
     </NavLink>
   )
 
-  const isAdmin = rol === 'PASTOR_GENERAL'
-  const isMid   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF'].includes(rol)
-  const isAudit = ['PASTOR_GENERAL','CONSOLIDACION'].includes(rol)
+  // Plan-based navigation (STARTER / PRO / MAX + legacy role fallback)
+  const PLAN_LEGACY = { LIDER:'STARTER', CULTO:'STARTER', CONSOLIDACION:'PRO', ADMINISTRACION:'PRO', GENERAL:'MAX' }
+  const planKey = PLAN_LEGACY[user?.plan] || user?.plan || 'STARTER'
+
+  const isStarter = planKey === 'STARTER'
+  const isPro     = planKey === 'PRO' || planKey === 'MAX'
+  const isMax     = planKey === 'MAX' || rol === 'PASTOR_GENERAL' || rol === 'GODMODE'
+
+  // Compatibilidad con lógica antigua de roles
+  const isAdmin = isMax
+  const isMid   = isPro || isMax
+  const isAudit = isPro || isMax
   const initials = (user?.nombre || user?.email || '?').slice(0,1).toUpperCase()
-  const isLider = rol === 'LIDER'
+  const isLider = isStarter && !isPro && !isMax
   const bottomLinks = isLider ? BOTTOM_LINKS_BY_ROLE.LIDER : BOTTOM_LINKS_BY_ROLE.DEFAULT
   const railLinks = isLider ? RAIL_LINKS_BY_ROLE.LIDER : RAIL_LINKS_BY_ROLE.DEFAULT
 
@@ -243,46 +252,61 @@ export default function Menu() {
         <nav className="sidebar-nav">
           <div className="nav-section">{tt('principal')}</div>
           {lnk('/', <Icons.Dashboard />, tt('dashboard'), true)}
+          {lnk('/analytics', <Icons.Reports />, 'Analytics')}
           {isAdmin && lnk('/premium', <Icons.Premium />, tt('executive'))}
-          {isMid  && lnk('/comunicados', <Icons.Comunicados />, tt('communications'))}
 
-          {isLider && <>
+          {/* STARTER — ver y agregar notas hasta discipulados */}
+          {isStarter && !isPro && <>
             <div className="nav-section">{tt('congregation')}</div>
-            {lnk('/personas',  <Icons.Users />, tt('people'))}
-            {lnk('/grupos',    <Icons.Groups />, tt('groups'))}
-            {lnk('/mensajes',  <Icons.Messages />, tt('messages'))}
+            {lnk('/personas',      <Icons.Users />,      tt('people'))}
+            {lnk('/grupos',        <Icons.Groups />,     tt('groups'))}
+            {lnk('/comunicados',   <Icons.Comunicados />, tt('communications'))}
+            {lnk('/consolidacion', <Icons.Users />,      tt('consolidation'))}
+            {lnk('/checkin',       <Icons.CheckIn />,    tt('checkin'))}
           </>}
 
-          {isMid && <>
+          {/* PRO — ver, modificar y auditar cultos asignados */}
+          {isPro && !isMax && <>
             <div className="nav-section">{tt('congregation')}</div>
-            {lnk('/personas',    <Icons.Users />, tt('people'))}
-            {lnk('/grupos',      <Icons.Groups />, tt('groups'))}
-            {lnk('/asistencia',  <Icons.Attendance />, tt('attendance'))}
-            {lnk('/checkin',     <Icons.CheckIn />, tt('checkin'))}
-            {lnk('/calendario',  <Icons.Calendar />, tt('calendar'))}
-            {lnk('/eventos',     <Icons.Calendar />, tt('events'))}
-            {isAudit && lnk('/consolidacion', <Icons.Users />, tt('consolidation'))}
-          </>}
-
-          {(isMid||isAudit) && <>
+            {lnk('/personas',      <Icons.Users />,      tt('people'))}
+            {lnk('/grupos',        <Icons.Groups />,     tt('groups'))}
+            {lnk('/asistencia',    <Icons.Attendance />, tt('attendance'))}
+            {lnk('/checkin',       <Icons.CheckIn />,    tt('checkin'))}
+            {lnk('/calendario',    <Icons.Calendar />,   tt('calendar'))}
+            {lnk('/eventos',       <Icons.Calendar />,   tt('events'))}
+            {lnk('/consolidacion', <Icons.Users />,      tt('consolidation'))}
             <div className="nav-section">{tt('management')}</div>
-            {isMid   && lnk('/mensajes',  <Icons.Messages />, tt('messages'))}
-            {isAudit && lnk('/alertas',   <Icons.Comunicados />, tt('alerts'), false, alertCount)}
-            {isAudit && lnk('/reportes',  <Icons.Reports />, tt('reports'))}
-          </>}
-
-          {isMid && <>
+            {lnk('/mensajes',      <Icons.Messages />,   tt('messages'))}
+            {lnk('/alertas',       <Icons.Comunicados />, tt('alerts'), false, alertCount)}
+            {lnk('/reportes',      <Icons.Reports />,    tt('reports'))}
+            {lnk('/comunicados',   <Icons.Comunicados />, tt('communications'))}
             <div className="nav-section">{tt('tools')}</div>
-            {lnk('/excel-ia',    <Icons.Excel />, tt('excel'))}
-            {isAudit && lnk('/asistente-ia', <Icons.AI />, tt('assistant'))}
+            {lnk('/configuracion', <Icons.Settings />,   tt('settings'))}
           </>}
 
-          {isAdmin && <>
+          {/* MAX — todo sin restricciones */}
+          {isMax && <>
+            <div className="nav-section">{tt('congregation')}</div>
+            {lnk('/personas',      <Icons.Users />,      tt('people'))}
+            {lnk('/grupos',        <Icons.Groups />,     tt('groups'))}
+            {lnk('/asistencia',    <Icons.Attendance />, tt('attendance'))}
+            {lnk('/checkin',       <Icons.CheckIn />,    tt('checkin'))}
+            {lnk('/calendario',    <Icons.Calendar />,   tt('calendar'))}
+            {lnk('/eventos',       <Icons.Calendar />,   tt('events'))}
+            {lnk('/consolidacion', <Icons.Users />,      tt('consolidation'))}
+            <div className="nav-section">{tt('management')}</div>
+            {lnk('/mensajes',      <Icons.Messages />,   tt('messages'))}
+            {lnk('/alertas',       <Icons.Comunicados />, tt('alerts'), false, alertCount)}
+            {lnk('/reportes',      <Icons.Reports />,    tt('reports'))}
+            {lnk('/comunicados',   <Icons.Comunicados />, tt('communications'))}
+            <div className="nav-section">{tt('tools')}</div>
+            {lnk('/excel-ia',      <Icons.Excel />,      tt('excel'))}
+            {lnk('/asistente-ia',  <Icons.AI />,         tt('assistant'))}
             <div className="nav-section">{tt('admin')}</div>
-            {lnk('/users',         <Icons.Profile />, tt('users'))}
-            {lnk('/permisos',      <Icons.Shield />,  tt('permissions'))}
-            {lnk('/historial',     <Icons.History />, tt('history'))}
-            {lnk('/configuracion', <Icons.Settings />,  tt('settings'))}
+            {lnk('/users',         <Icons.Profile />,    tt('users'))}
+            {lnk('/permisos',      <Icons.Shield />,     tt('permissions'))}
+            {lnk('/historial',     <Icons.History />,    tt('history'))}
+            {lnk('/configuracion', <Icons.Settings />,   tt('settings'))}
           </>}
         </nav>
 
