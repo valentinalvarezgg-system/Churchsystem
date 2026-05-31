@@ -350,10 +350,9 @@ export default function Registro() {
     localStorage.setItem('church_lang', lang)
     localStorage.setItem('church_currency', currency)
     if (promo) localStorage.setItem('church_promo', promo)
-    apiFetch('/subscriptions/plans')
-      .then(payload => {
-        const list = Array.isArray(payload?.items) ? payload.items : []
-        const prices = Object.fromEntries(list.map(p => [String(p.id || '').toUpperCase(), p]))
+    apiFetch(`/mp/planes?country=${country}&lang=${lang}`, { skipAuthRedirect: true })
+      .then(list => {
+        const prices = Object.fromEntries((Array.isArray(list) ? list : []).map(p => [String(p.id || '').toUpperCase(), p]))
         setPlanPrices(prices)
       })
       .catch(() => {})
