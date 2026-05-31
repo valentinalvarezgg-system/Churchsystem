@@ -31,7 +31,7 @@ export const PLANES = {
 const LEGACY = {
   LIDER:'STARTER', CULTO:'STARTER',
   CONSOLIDACION:'PRO', ADMINISTRACION:'PRO',
-  GENERAL:'MAX',
+  GENERAL:'PRO',
 }
 
 export function resolvePlan(raw = 'STARTER') {

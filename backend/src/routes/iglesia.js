@@ -44,7 +44,7 @@ router.get('/token', requireAuth, wrap(async (req, res) => {
   return res.json({
     token: iglesia.token,
     nombre: iglesia.nombre,
-    plan: user.plan || 'GENERAL',
+    plan: user.plan || 'STARTER',
     miembros: Number(miembros?.c || 0),
   })
 }))
@@ -114,7 +114,7 @@ router.post('/unirse', requireAuth, wrap(async (req, res) => {
   return res.json({
     ok: true,
     iglesia: { id: iglesia.id, nombre: iglesia.nombre },
-    plan: user.plan || 'GENERAL',
+    plan: user.plan || 'STARTER',
     mensaje: `Te uniste a ${iglesia.nombre}.`,
   })
 }))
@@ -134,7 +134,7 @@ router.post('/validar-token', wrap(async (req, res) => {
     [iglesia.id, 'PASTOR_GENERAL']
   )
 
-  return res.json({ valido: true, iglesia: iglesia.nombre, plan: planRef?.plan || 'GENERAL' })
+  return res.json({ valido: true, iglesia: iglesia.nombre, plan: planRef?.plan || 'STARTER' })
 }))
 
 export default router

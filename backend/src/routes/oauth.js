@@ -61,7 +61,7 @@ function signSession(user) {
     nombre: user.nombre,
     cultoDia: user.cultoDia,
     cultoTurno: user.cultoTurno,
-    plan: user.plan || 'GENERAL',
+    plan: user.plan || 'STARTER',
     iglesiaId: user.iglesiaId || null,
     pais: user.pais || 'AR',
     divisa: user.divisa || 'ARS',
@@ -91,7 +91,7 @@ async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '',
       `INSERT INTO "User"
         ("nombre","email","password","rol","activo","emailVerificado","plan","expira","oauth_provider","oauth_id","iglesiaId","rolId","createdAt","updatedAt")
        VALUES
-        ($1,$2,$3,'PASTOR_GENERAL',true,$4,'GENERAL',$5,$6,$7,$8,$9,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+        ($1,$2,$3,'PASTOR_GENERAL',true,$4,'STARTER',$5,$6,$7,$8,$9,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
        RETURNING id`,
       [nombre || normalizedEmail, normalizedEmail, '', !!emailVerified, expira, provider, providerId, iglesia.id, role.id]
     )

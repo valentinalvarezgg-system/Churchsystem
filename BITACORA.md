@@ -1199,3 +1199,71 @@ Fecha: 2026-05-31
   - versiones soportadas de seguridad para línea `2.8.x` y `2.7.x`.
   - canal formal de reporte de vulnerabilidades (`seguridad@churchsystem.com.ar`).
   - SLA de respuesta (48h acuse / 5 días hábiles triage / updates semanales).
+
+### Hotfix planes (starter cargaba como max) — 2026-05-31
+- Síntoma reportado:
+  - alta `STARTER` correcta, pero la app mostraba permisos/lectura de `MAX` en algunos casos.
+- Causa raíz:
+  - defaults heredados con fallback en `GENERAL/MAX` en backend+frontend.
+  - cuentas OAuth nuevas se creaban con plan `GENERAL` (que el mapper legacy llevaba a `MAX`).
+- Cambios aplicados:
+  - `frontend/src/hooks/usePlan.js`
+    - fallback de plan: `MAX` → `STARTER`.
+    - fallback de módulos: `FALLBACK.MAX` → `FALLBACK.STARTER`.
+    - mapper legacy `GENERAL` ahora resuelve a `PRO` (no escala a `MAX` por defecto).
+  - `frontend/src/components/Menu.jsx`
+    - mapper legacy `GENERAL` ahora resuelve a `PRO`.
+  - `backend/src/routes/auth.js`
+    - `userPayload.plan` fallback: `GENERAL` → `STARTER`.
+  - `backend/src/middlewares/auth.js`
+    - `req.user.plan` fallback: `GENERAL` → `STARTER`.
+  - `backend/src/middlewares/plan.js`
+    - `LEGACY.GENERAL`: `MAX` → `PRO`.
+  - `backend/src/routes/oauth.js`
+    - sesión OAuth fallback: `GENERAL` → `STARTER`.
+    - creación de nuevos usuarios OAuth: plan inicial `GENERAL` → `STARTER`.
+  - `backend/src/routes/iglesia.js`
+    - fallbacks de plan a `STARTER`.
+  - `backend/src/routes/config.js`
+    - `currentPlan` fallback a `STARTER`.
+- Verificación:
+  - `pnpm -C frontend build` ✅
+  - `pnpm -C backend audit:launch` ✅
+
+### Check-in QR: doble flujo + teléfono obligatorio — 2026-05-31
+- Objetivo:
+  - coexistencia en QR para `primera vez` y `ya registrado/a`.
+  - `teléfono` obligatorio en ambos casos.
+  - `email` opcional pero recomendado.
+  - creación de persona con `nombre` y `apellido` separados.
+- Cambios backend:
+  - `backend/src/routes/checkin.js`
+    - `POST /checkin/registrar/:cultoId/:tok` ahora recibe:
+      - `modo` (`nuevo` | `existente`)
+      - `nombre`, `apellido`, `telefono`, `email`
+    - validación:
+      - teléfono obligatorio (mínimo 8 dígitos).
+      - en modo `nuevo`: nombre y apellido obligatorios.
+    - estrategia de match de persona:
+      1) email (si fue enviado)
+      2) teléfono
+      3) nombre (si está disponible)
+    - si no existe persona:
+      - crea `Persona` con columnas separadas `nombre`, `apellido`, `email`, `telefono` y estado `VISITANTE`.
+    - si existe persona:
+      - refresca `telefono`/`email` cuando llegan datos nuevos.
+- Cambios frontend:
+  - `frontend/src/pages/CheckIn.jsx` (pantalla pública):
+    - selector de modo:
+      - `Es mi primera vez`
+      - `Ya estoy registrado/a`
+    - modo `nuevo`:
+      - pide `Nombre *`, `Apellido *`, `Teléfono *`, `Email (opcional, recomendado)`.
+    - modo `existente`:
+      - pide `Teléfono *`, `Email (opcional, recomendado)`.
+    - UX:
+      - validaciones locales muestran `toast` (no bloque de error fatal de QR).
+      - copy final actualizado con regla de contacto.
+- Verificación:
+  - `pnpm -C frontend build` ✅
+  - `pnpm -C backend audit:launch` ✅

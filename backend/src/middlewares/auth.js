@@ -39,7 +39,7 @@ export async function requireAuth(req, res, next) {
       nombre: u.nombre || payload.nombre,
       rol: u.rol || payload.rol,
       iglesiaId: u.iglesiaId,
-      plan: u.plan || payload.plan || 'GENERAL',
+      plan: u.plan || payload.plan || 'STARTER',
       pais: u.pais || payload.pais || 'AR',
       divisa: u.divisa || payload.divisa || 'ARS',
       idioma: u.idioma || payload.idioma || 'es',
@@ -66,4 +66,3 @@ export function requireRol(...roles) {
     next()
   }
 }
-

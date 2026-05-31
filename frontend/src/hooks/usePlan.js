@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch, getUser } from '../services/api.js'
 
-const LEGACY = { LIDER:'STARTER', CULTO:'STARTER', CONSOLIDACION:'PRO', ADMINISTRACION:'PRO', GENERAL:'MAX' }
+const LEGACY = { LIDER:'STARTER', CULTO:'STARTER', CONSOLIDACION:'PRO', ADMINISTRACION:'PRO', GENERAL:'PRO' }
 
 const FALLBACK = {
   STARTER:[
@@ -26,19 +26,19 @@ let _cache = null
 
 export function usePlan() {
   const user = getUser()
-  const rawPlan = user?.plan || 'MAX'
+  const rawPlan = user?.plan || 'STARTER'
   const planKey = LEGACY[rawPlan] || rawPlan
-  const [plan, setPlan] = useState(_cache || { plan:planKey, modulos:FALLBACK[planKey]||FALLBACK.MAX, loading:true })
+  const [plan, setPlan] = useState(_cache || { plan:planKey, modulos:FALLBACK[planKey]||FALLBACK.STARTER, loading:true })
 
   useEffect(() => {
     if (_cache) { setPlan({..._cache, loading:false}); return }
     apiFetch('/plan/me').then(res => {
       const normalizedPlan = LEGACY[res.plan] || res.plan
-      const mods = res.modulos?.length ? res.modulos : (FALLBACK[normalizedPlan] || FALLBACK.MAX)
+      const mods = res.modulos?.length ? res.modulos : (FALLBACK[normalizedPlan] || FALLBACK.STARTER)
       _cache = { ...res, plan: normalizedPlan, modulos: mods, loading:false }
       setPlan(_cache)
     }).catch(() => {
-      const fb = { plan:planKey, modulos:FALLBACK[planKey]||FALLBACK.MAX, loading:false }
+      const fb = { plan:planKey, modulos:FALLBACK[planKey]||FALLBACK.STARTER, loading:false }
       _cache = fb
       setPlan(fb)
     })

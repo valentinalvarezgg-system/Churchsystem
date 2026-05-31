@@ -86,7 +86,7 @@ function userPayload(user) {
     nombre: user.nombre,
     cultoDia: user.cultoDia || '',
     cultoTurno: Number(user.cultoTurno || 0),
-    plan: user.plan || 'GENERAL',
+    plan: user.plan || 'STARTER',
     iglesiaId: user.iglesiaId || null,
     pais: user.pais || 'AR',
     divisa: user.divisa || 'ARS',

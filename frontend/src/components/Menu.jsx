@@ -157,7 +157,7 @@ export default function Menu() {
   )
 
   // Plan-based navigation (STARTER / PRO / MAX + legacy role fallback)
-  const PLAN_LEGACY = { LIDER:'STARTER', CULTO:'STARTER', CONSOLIDACION:'PRO', ADMINISTRACION:'PRO', GENERAL:'MAX' }
+  const PLAN_LEGACY = { LIDER:'STARTER', CULTO:'STARTER', CONSOLIDACION:'PRO', ADMINISTRACION:'PRO', GENERAL:'PRO' }
   const planKey = PLAN_LEGACY[user?.plan] || user?.plan || 'STARTER'
 
   const isStarter = planKey === 'STARTER'

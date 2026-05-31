@@ -67,32 +67,71 @@ router.post('/registrar/:cultoId/:tok', async (req, res) => {
   )
   if (!culto) return res.status(404).json({ error: 'Culto no encontrado' })
 
-  const { nombre, telefono } = req.body || {}
-  if (!nombre?.trim()) return res.status(400).json({ error: 'Nombre requerido' })
+  const {
+    modo = 'nuevo', // nuevo | existente
+    nombre = '',
+    apellido = '',
+    email = '',
+    telefono = '',
+  } = req.body || {}
+  const phoneDigits = String(telefono || '').replace(/\D/g, '')
+  if (!phoneDigits || phoneDigits.length < 8) {
+    return res.status(400).json({ error: 'Teléfono obligatorio (mínimo 8 dígitos)' })
+  }
+  const cleanNombre = String(nombre || '').trim()
+  const cleanApellido = String(apellido || '').trim()
+  const cleanEmail = String(email || '').trim().toLowerCase()
+  const cleanModo = String(modo || 'nuevo').trim().toLowerCase()
+  if (cleanModo === 'nuevo' && (!cleanNombre || !cleanApellido)) {
+    return res.status(400).json({ error: 'Nombre y apellido requeridos para primer registro' })
+  }
 
   const iglesiaId = culto.iglesiaId
 
   let persona = null
-  if (telefono) {
-    const digits = telefono.replace(/\D/g, '').slice(-8)
+  // Match order: email (if provided) -> phone -> name hint
+  if (cleanEmail) {
+    persona = await pgOne(
+      `SELECT * FROM "Persona" WHERE "iglesiaId"=$1 AND lower("email")=lower($2) AND "deletedAt" IS NULL LIMIT 1`,
+      [iglesiaId, cleanEmail]
+    )
+  }
+  if (!persona) {
+    const digits = phoneDigits.slice(-8)
     persona = await pgOne(
       `SELECT * FROM "Persona" WHERE "iglesiaId"=$1 AND REGEXP_REPLACE("telefono",'\\D','','g') LIKE $2 AND "deletedAt" IS NULL LIMIT 1`,
       [iglesiaId, `%${digits}`]
     ).catch(() => null)
   }
-  if (!persona) {
+  if (!persona && cleanNombre) {
     persona = await pgOne(
       `SELECT * FROM "Persona" WHERE "iglesiaId"=$1 AND "nombre" ILIKE $2 AND "deletedAt" IS NULL LIMIT 1`,
-      [iglesiaId, `%${nombre.trim().split(' ')[0]}%`]
+      [iglesiaId, `%${cleanNombre.split(' ')[0]}%`]
     )
   }
   if (!persona) {
     const row = await pgOne(
-      `INSERT INTO "Persona" ("iglesiaId","nombre","telefono","estado","createdAt","updatedAt")
-       VALUES ($1,$2,$3,'VISITANTE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING *`,
-      [iglesiaId, nombre.trim(), telefono || '']
+      `INSERT INTO "Persona" ("iglesiaId","nombre","apellido","email","telefono","estado","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,$5,'VISITANTE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING *`,
+      [
+        iglesiaId,
+        cleanNombre || 'Visitante',
+        cleanApellido || '',
+        cleanEmail || '',
+        String(telefono || '').trim(),
+      ]
     )
     persona = row
+  } else {
+    // Keep contact data fresh when already matched.
+    await pgExec(
+      `UPDATE "Persona"
+          SET "telefono"=COALESCE(NULLIF($1,''),"telefono"),
+              "email"=COALESCE(NULLIF($2,''),"email"),
+              "updatedAt"=CURRENT_TIMESTAMP
+        WHERE "id"=$3 AND "iglesiaId"=$4`,
+      [String(telefono || '').trim(), cleanEmail, persona.id, iglesiaId]
+    )
   }
 
   await pgExec(

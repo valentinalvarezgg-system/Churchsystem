@@ -11,7 +11,8 @@ export function CheckInPublico() {
   const { cultoId, token } = useParams()
   const [culto, setCulto]     = useState(null)
   const [step, setStep]       = useState('form') // form | loading | ok | error
-  const [form, setForm]       = useState({ nombre:'', telefono:'' })
+  const [mode, setMode]       = useState('nuevo') // nuevo | existente
+  const [form, setForm]       = useState({ nombre:'', apellido:'', email:'', telefono:'' })
   const [resultado, setResult] = useState(null)
   const [err, setErr]         = useState(null)
 
@@ -25,13 +26,24 @@ export function CheckInPublico() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (!form.telefono.trim()) {
+      toast.error('Teléfono obligatorio')
+      return
+    }
+    if (mode === 'nuevo' && (!form.nombre.trim() || !form.apellido.trim())) {
+      toast.error('Nombre y apellido son obligatorios para primer registro')
+      return
+    }
     setStep('loading')
     try {
       const base = getApiUrl()
       const r = await fetch(`${base}/checkin/registrar/${cultoId}/${token}`, {
         method: 'POST',
         headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          modo: mode,
+        })
       }).then(r => r.json())
       if (r.error) { setErr(r.error); setStep('error') }
       else          { setResult(r); setStep('ok') }
@@ -89,19 +101,62 @@ export function CheckInPublico() {
         ) : (
           <form onSubmit={handleSubmit} style={{display:'flex', flexDirection:'column', gap:16}}>
             <div>
-              <label style={s.label}>Tu nombre *</label>
-              <input name="nombre" required style={s.input} value={form.nombre}
-                onChange={e => setForm(f=>({...f, nombre:e.target.value}))}
-                placeholder="Nombre y apellido" autoComplete="name" autoFocus/>
+              <label style={s.label}>¿Cómo querés continuar? *</label>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
+                <button type="button" onClick={() => setMode('nuevo')}
+                  style={{
+                    padding:'10px 8px',
+                    borderRadius:8,
+                    border: mode === 'nuevo' ? '1px solid rgba(59,130,246,0.6)' : '1px solid rgba(255,255,255,0.12)',
+                    background: mode === 'nuevo' ? 'rgba(37,99,235,0.22)' : 'rgba(255,255,255,0.06)',
+                    color:'var(--surface)',
+                    fontWeight:700, fontSize:12, cursor:'pointer'
+                  }}>
+                  Es mi primera vez
+                </button>
+                <button type="button" onClick={() => setMode('existente')}
+                  style={{
+                    padding:'10px 8px',
+                    borderRadius:8,
+                    border: mode === 'existente' ? '1px solid rgba(59,130,246,0.6)' : '1px solid rgba(255,255,255,0.12)',
+                    background: mode === 'existente' ? 'rgba(37,99,235,0.22)' : 'rgba(255,255,255,0.06)',
+                    color:'var(--surface)',
+                    fontWeight:700, fontSize:12, cursor:'pointer'
+                  }}>
+                  Ya estoy registrado/a
+                </button>
+              </div>
             </div>
+            {mode === 'nuevo' && (
+              <>
+                <div>
+                  <label style={s.label}>Nombre *</label>
+                  <input name="nombre" required style={s.input} value={form.nombre}
+                    onChange={e => setForm(f=>({...f, nombre:e.target.value}))}
+                    placeholder="Juan" autoComplete="given-name" autoFocus/>
+                </div>
+                <div>
+                  <label style={s.label}>Apellido *</label>
+                  <input name="apellido" required style={s.input} value={form.apellido}
+                    onChange={e => setForm(f=>({...f, apellido:e.target.value}))}
+                    placeholder="Pérez" autoComplete="family-name"/>
+                </div>
+              </>
+            )}
             <div>
-              <label style={s.label}>Teléfono (opcional)</label>
-              <input name="telefono" style={s.input} value={form.telefono}
+              <label style={s.label}>Teléfono *</label>
+              <input name="telefono" required style={s.input} value={form.telefono}
                 onChange={e => setForm(f=>({...f, telefono:e.target.value}))}
                 placeholder="11 1234-5678" type="tel" autoComplete="tel"/>
             </div>
+            <div>
+              <label style={s.label}>Email (opcional, recomendado)</label>
+              <input name="email" style={s.input} value={form.email}
+                onChange={e => setForm(f=>({...f, email:e.target.value}))}
+                placeholder="vos@email.com" type="email" autoComplete="email"/>
+            </div>
             <button type="submit" style={{...s.btn, opacity: step==='loading'?.6:1}} disabled={step==='loading'}>
-              {step === 'loading' ? 'Registrando...' : 'Registrar asistencia ✓'}
+              {step === 'loading' ? 'Registrando...' : mode === 'nuevo' ? 'Registrarme y confirmar asistencia ✓' : 'Confirmar asistencia ✓'}
             </button>
           </form>
         )}
@@ -312,7 +367,7 @@ export default function CheckInAdmin() {
 
               <p style={{fontSize:11, color:'var(--text-muted)', marginTop:14, lineHeight:1.6}}>
                 Los miembros escanean el QR con la cámara del celular.<br/>
-                Los que no están en la lista quedan registrados como visitantes.
+                Teléfono es obligatorio y email opcional recomendado.
               </p>
             </div>
           ) : (

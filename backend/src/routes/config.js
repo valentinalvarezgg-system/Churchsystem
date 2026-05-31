@@ -127,7 +127,7 @@ function commercialDiagnostics(cfg = {}) {
     ok: checks.every(c => c.ok),
     checks,
     billing: {
-      currentPlan: cfg.plan || 'GENERAL',
+      currentPlan: cfg.plan || 'STARTER',
       pendingPlan: cfg.plan_pendiente || '',
       suscripcionActiva: cfg.suscripcion_activa === '1',
       suscripcionVence: cfg.suscripcion_vence || '',
