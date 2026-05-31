@@ -43,8 +43,8 @@ build/
 npm-debug.log*
 pnpm-debug.log*
 
-# IDE
-.vscode/
+# IDE — settings locales no van a git, pero el workspace sí
+.vscode/settings.json
 .idea/
 *.swp
 *.swo

@@ -1,91 +1,86 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Church System — Docker Compose
+#
+# Modo DEV LOCAL (sin Neon, DB en container):
+#   docker compose --profile dev up -d
+#
+# Solo backend + DB (más liviano):
+#   docker compose --profile dev up -d db backend
+#
+# Producción local (testear el build final):
+#   docker compose --profile prod up -d --build
+#
+# Limpiar todo:
+#   docker compose down -v
+# ─────────────────────────────────────────────────────────────────────────────
+
 services:
-  postgres:
+
+  # ── Base de datos local (solo para desarrollo, NO para producción) ──────────
+  db:
     image: postgres:16-alpine
-    container_name: church-postgres
+    container_name: church-db
+    profiles: [dev]
     restart: unless-stopped
     environment:
-      POSTGRES_DB: church_db
-      POSTGRES_USER: church_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      POSTGRES_DB: churchsystem
+      POSTGRES_USER: church
+      POSTGRES_PASSWORD: church_dev_password
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "5433:5432"          # 5433 en host para no pisar Postgres local si existiera
+    volumes:
+      - church_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U church_user"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - church-network
+      test: ["CMD-SHELL", "pg_isready -U church -d churchsystem"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
+  # ── Backend ──────────────────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: church-backend
+    profiles: [dev, prod]
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
+    env_file:
+      - ./backend/.env
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
-      PORT: 4000
-      DATABASE_URL: postgresql://church_user:${DB_PASSWORD:?DB_PASSWORD is required}@postgres:5432/church_db?sslmode=disable
-      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:4000}
-      BASE_URL: ${BASE_URL:-http://localhost:4000}
-      RESEND_API_KEY: ${RESEND_API_KEY}
-      EMAIL_FROM: ${EMAIL_FROM}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID}
-      APPLE_TEAM_ID: ${APPLE_TEAM_ID}
-      APPLE_KEY_ID: ${APPLE_KEY_ID}
-      APPLE_PRIVATE_KEY: ${APPLE_PRIVATE_KEY}
-      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
-      MP_PUBLIC_KEY: ${MP_PUBLIC_KEY}
-      MP_MODO: ${MP_MODO:-development}
-      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
-      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
-      VAPID_EMAIL: ${VAPID_EMAIL}
-      GROQ_API_KEY: ${GROQ_API_KEY}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
-      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
-      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-    volumes:
-      - ./backend/src:/app/src
-      - backend_uploads:/app/uploads
+      # En modo dev sobreescribir DATABASE_URL para apuntar al container local
+      DATABASE_URL: ${DATABASE_URL:-postgresql://church:church_dev_password@db:5432/churchsystem?sslmode=disable}
+      NODE_ENV: development
+      PORT: "4000"
     ports:
-      - "${BACKEND_PORT:-4000}:4000"
-    networks:
-      - church-network
-    develop:
-      watch:
-        - path: ./backend/src
-          action: rebuild
+      - "4000:4000"
+    volumes:
+      - church_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:4000/health',(r)=>{process.exit(r.statusCode===200?0:1)})\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
+  # ── Frontend (build de producción servido por nginx) ─────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: church-frontend
+    profiles: [prod]
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-80}:80"
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
-    networks:
-      - church-network
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
 
 volumes:
-  postgres_data:
-  backend_uploads:
-
-networks:
-  church-network:
-    driver: bridge
+  church_db_data:
+    name: church_db_data
+  church_uploads:
+    name: church_uploads

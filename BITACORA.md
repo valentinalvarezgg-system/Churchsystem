@@ -736,3 +736,82 @@ grep "^# Church System" README.md
 
 **Commit:** ver rama master, sesión del 31/05/2026
 
+
+---
+
+## Modus Operandi — Herramientas de desarrollo (a partir de 2026-05-31)
+
+### VS Code — `church-system.code-workspace`
+
+Abrir siempre desde el workspace: `open church-system.code-workspace` o doble click en el archivo.
+
+**Lo que provee el workspace:**
+- 4 carpetas separadas en el explorador: Raíz, Backend, Frontend, Landing
+- Prettier configurado (formato automático al guardar, 100 chars, sin semis, comillas simples)
+- EditorConfig para consistencia de indentación y finales de línea
+- Extensiones recomendadas: GitLens, ErrorLens, Thunder Client, Containers, spell-checker
+
+**Tasks disponibles (Cmd+Shift+P → "Run Task"):**
+| Task | Qué hace |
+|------|----------|
+| `▶ backend: dev` | `pnpm dev` con nodemon |
+| `▶ frontend: dev` | `pnpm dev` con Vite |
+| `🔨 frontend: build` | `pnpm build` — build de producción |
+| `🔍 Auditoría integral` | `node scripts/audit.mjs` |
+| `🐳 docker: dev up` | Levanta Postgres local + backend en Docker |
+| `🐳 docker: dev down` | Baja los containers |
+| `🐳 docker: prod build & up` | Build completo + backend + frontend en Docker |
+| `🔄 backend: restart launchd` | Reinicia el proceso de producción vía launchd |
+
+**Debug (F5 o Run > Start Debugging):**
+- `🟢 Backend: Node debug` — breakpoints en cualquier archivo del backend, carga el `.env` automáticamente
+- `🎨 Frontend: Chrome` — debug React en Chrome con hot reload
+- `🚀 App completa` — lanza ambos a la vez
+
+**Thunder Client** (cliente HTTP integrado): para testear endpoints sin salir de VS Code. Los tests se guardan en `.vscode/thunder-tests/` (no commitear datos sensibles).
+
+---
+
+### Docker — flujo de trabajo
+
+**Cuándo usar Docker:**
+
+| Escenario | Comando | Cuándo |
+|-----------|---------|--------|
+| Dev sin Neon | `docker compose --profile dev up -d` | Trabajar offline o testear migraciones sin tocar la DB de producción |
+| Solo DB local | `docker compose --profile dev up -d db` | Tener Postgres en `localhost:5433` para explorar datos |
+| Test del build final | `docker compose --profile prod up -d --build` | Verificar que el Dockerfile funciona antes de un deploy importante |
+| Limpiar todo | `docker compose down -v` | Resetear estado de containers y volúmenes |
+
+**Puertos cuando Docker está activo:**
+- `localhost:5433` → PostgreSQL local (usuario: `church`, pass: `church_dev_password`, db: `churchsystem`)
+- `localhost:4000` → Backend (mismo que launchd, no pueden coexistir)
+- `localhost:3000` → Frontend nginx (solo en perfil `prod`)
+
+**Regla importante:** launchd y Docker no pueden usar el puerto 4000 simultáneamente. Antes de `docker compose up` con backend, hacer `launchctl unload` del plist. Al terminar, `launchctl load` de nuevo.
+
+**Las imágenes buildeadas anteriormente** (`church-backend:latest`, etc.) son seguras para borrar — el `docker-compose.yml` las rebuildeará cuando haga falta:
+```bash
+docker image prune -a   # borra todas las imágenes sin containers activos
+```
+
+---
+
+### Termius — en standby
+
+Sin uso activo. Reservado para cuando la infraestructura migre a un VPS (DigitalOcean, Hetzner, etc.).
+Cuando ese momento llegue: configurar un host con la IP del servidor, usuario `deploy`, y la clave SSH del equipo de desarrollo.
+
+---
+
+### Sesión 2026-05-31 — Integración de herramientas
+
+**Archivos creados/actualizados:**
+- `church-system.code-workspace` — workspace multi-root con tasks, launch configs y extensiones recomendadas
+- `docker-compose.yml` — perfiles `dev` (con Postgres local) y `prod` (build completo)
+- `.prettierrc` — configuración de formato consistente con el código existente
+- `.editorconfig` — consistencia entre editores
+- `.gitignore` — `.vscode/settings.json` excluido, workspace incluido
+
+**Estado de auditoría post-integración:** ver próxima corrida de `node scripts/audit.mjs`
+
