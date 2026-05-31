@@ -996,3 +996,10 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
 - Resultado esperado:
   - si faltan secretos SSH, `build` sigue verde y `deploy` no rompe el pipeline.
   - si están completos, `deploy` ejecuta normalmente por SSH.
+
+### Documentación de seguridad (GitHub)
+- Archivo agregado: `SECURITY.md`
+- Contenido:
+  - versiones soportadas de seguridad para línea `2.8.x` y `2.7.x`.
+  - canal formal de reporte de vulnerabilidades (`seguridad@churchsystem.com.ar`).
+  - SLA de respuesta (48h acuse / 5 días hábiles triage / updates semanales).
