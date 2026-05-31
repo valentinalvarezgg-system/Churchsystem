@@ -1,0 +1,203 @@
+/* ============================================================
+   Church System — Mobile Pro  v2.8
+   Safe-areas, layout, tipografía y modales para móvil.
+   Se importa DESPUÉS de index.css para sobrescribir las reglas
+   problemáticas sin tocar el design system base.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   0. Base
+   ---------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
+
+/* ----------------------------------------------------------
+   1. Variables de safe-area (única fuente de verdad)
+   ---------------------------------------------------------- */
+:root {
+  --safe-top:    env(safe-area-inset-top,    0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left,   0px);
+  --safe-right:  env(safe-area-inset-right,  0px);
+  --bottomnav-h: 56px;
+  --fab-size:    52px;
+}
+
+/* ----------------------------------------------------------
+   2. PROBLEMA #1 — Header choca con el reloj/notch
+      La causa raíz era padding: 0 12px env(...) que ponía el
+      safe-area-top como padding-BOTTOM (bug de shorthand).
+   ---------------------------------------------------------- */
+@media screen and (max-width: 767px) {
+  .mobile-header {
+    /* reemplaza el height/padding bugueado */
+    height: auto !important;
+    min-height: calc(56px + var(--safe-top)) !important;
+    padding-top:    var(--safe-top)  !important;
+    padding-bottom: 0               !important;
+    padding-left:   12px            !important;
+    padding-right:  12px            !important;
+    /* items centrados en los 56px que quedan debajo del status bar */
+    align-items: center !important;
+  }
+
+  .mobile-header-title {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .mobile-header-title,
+  .mobile-header-title span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* ----------------------------------------------------------
+   3. PROBLEMA #2 — Nav inferior: home indicator en iPhone
+   ---------------------------------------------------------- */
+@media screen and (max-width: 767px) {
+  .bottom-nav {
+    /* altura dinámica que incluye el home indicator */
+    height: calc(var(--bottomnav-h) + var(--safe-bottom)) !important;
+    padding-bottom: var(--safe-bottom) !important;
+    padding-left:  max(4px, var(--safe-left))  !important;
+    padding-right: max(4px, var(--safe-right)) !important;
+  }
+
+  /* Ajustar el main para que el último elemento no quede detrás del nav */
+  .main {
+    padding-bottom: calc(var(--bottomnav-h) + var(--safe-bottom) + 20px) !important;
+  }
+}
+
+/* ----------------------------------------------------------
+   4. PROBLEMA #2 — FAB "?" por encima del nav + safe-area
+   ---------------------------------------------------------- */
+@media screen and (max-width: 640px) {
+  .bug-reporter-btn {
+    bottom: calc(var(--bottomnav-h) + var(--safe-bottom) + 16px) !important;
+    right: max(16px, var(--safe-right)) !important;
+    /* tamaño ligeramente más chico en móvil para no obstruir */
+    width:  var(--fab-size) !important;
+    height: var(--fab-size) !important;
+  }
+}
+
+/* ----------------------------------------------------------
+   5. PROBLEMA #3 — Nombres rotos a la mitad
+      Aplica a strong/span con nombres de personas en cards
+   ---------------------------------------------------------- */
+.persona-link,
+.person-name {
+  overflow-wrap: normal;
+  word-break:    normal;
+  hyphens:       none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Filtros y dropdowns: texto truncado con ellipsis, no corte abrupto */
+@media screen and (max-width: 767px) {
+  select.form-input {
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+}
+
+/* ----------------------------------------------------------
+   6. PROBLEMA #5 — Modales cortan contenido abajo
+   ---------------------------------------------------------- */
+@media screen and (max-width: 767px) {
+  .modal {
+    /* dvh = viewport dinámico: corrige barra de URL de Safari */
+    max-height: calc(88dvh - var(--safe-top)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .modal-body {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    /* espacio respirable al final del scroll */
+    padding-bottom: 8px !important;
+  }
+
+  .modal-footer {
+    flex: 0 0 auto !important;
+    /* reserva el home indicator para que los botones no queden pegados */
+    padding-bottom: max(16px, var(--safe-bottom)) !important;
+  }
+}
+
+/* ----------------------------------------------------------
+   7. PROBLEMA #6 — Radios del modal "Nuevo culto"
+      El input[type=radio] nativo sin tamaño fijo se renderiza
+      enorme en iOS. Se fija a 20px y se aísla con flex-shrink.
+   ---------------------------------------------------------- */
+@media screen and (max-width: 767px) {
+  /* contenedor de opciones */
+  .radio-culto-group {
+    display: flex !important;
+    gap: 10px !important;
+  }
+
+  /* cada opción toma el mismo ancho */
+  .radio-culto-option {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    align-items: flex-start !important;
+  }
+
+  /* círculo del radio: tamaño fijo, nunca gigante */
+  .radio-culto-option input[type="radio"] {
+    flex-shrink: 0 !important;
+    width:  20px !important;
+    height: 20px !important;
+    margin-top: 2px !important;
+  }
+
+  /* texto de la etiqueta: hasta 2 líneas, sin romper palabras */
+  .radio-culto-label {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    min-width: 0;
+  }
+}
+
+/* ----------------------------------------------------------
+   8. PROBLEMA #7 — Cards con demasiado aire vertical
+   ---------------------------------------------------------- */
+/* Historial: filas compactas */
+@media screen and (max-width: 767px) {
+  .history-item-card {
+    padding: 12px 14px !important;
+  }
+  .history-item-card p,
+  .history-item-card span {
+    min-height: 0 !important;
+  }
+}
+
+/* ----------------------------------------------------------
+   9. Inputs: evitar zoom de iOS (< 16px causa zoom automático)
+   ---------------------------------------------------------- */
+input:not([type="submit"]):not([type="button"]):not([type="range"]),
+select,
+textarea {
+  font-size: max(16px, 1em);
+}

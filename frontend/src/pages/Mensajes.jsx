@@ -234,8 +234,9 @@ export default function Mensajes() {
             <button className="btn btn-ghost btn-sm" onClick={loadBase}>{t('retry')}</button>
           </div>
         )}
-        {loadingBase && <div className="empty" style={{marginBottom:12}}><p>{t('loadingMsg')}</p></div>}
-
+        {loadingBase ? (
+          <div className="empty" style={{marginTop:40}}><div className="spinner" /><p style={{marginTop:16}}>{t('loadingMsg')}</p></div>
+        ) : (<>
         <div className="mobile-tabs" style={{ display: 'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap: 8, marginBottom: 20 }}>
           {[['enviar', t('tabSend')], ['plantillas', t('tabTemplates')], ['historial', t('tabHistory')]].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={tab === k ? 'btn btn-primary' : 'btn btn-ghost'}>{l}</button>
@@ -462,6 +463,7 @@ export default function Mensajes() {
             )}
           </div>
         )}
+        </>)}
       </main>
       <ConfirmModal
         open={!!confirmBorrarId} onClose={()=>setConfirmBorrarId(null)} onConfirm={borrarPlantilla}

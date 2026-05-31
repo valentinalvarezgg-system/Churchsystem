@@ -267,14 +267,14 @@ export default function Asistencia() {
                 <div className="modal-body">
                   <div className="form-grid">
                     <div className="form-group full"><label>{t('nameLabel')}</label><input name="nombre" className="form-input" value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} required placeholder={form.esEspecial ? form.nombreEspecial || "Oración" : `${form.cultoDia||"DOMINGO"} ${form.horario||"18hs"}`}/></div>
-                    <div className="form-group"><label>{t('dateLabel')}</label><input name="fecha" className="form-input" type="date" value={form.fecha} onChange={e=>setForm(f=>({...f,fecha:e.target.value}))} required/></div>
+                    <div className="form-group"><label>{t('dateLabel')}</label><input name="fecha" className="form-input" type="date" value={form.fecha} onChange={e=>setForm(f=>({...f,fecha:e.target.value}))} required/>{form.fecha&&<span style={{fontSize:11,color:'var(--text-muted)',marginTop:3,display:'block'}}>{new Date(form.fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</span>}</div>
                     <div className="form-group full">
                       <label>{t('typeLabel')}</label>
-                      <div style={{display:'flex',gap:8,marginBottom:10}}>
+                      <div className="radio-culto-group" style={{display:'flex',gap:10,marginBottom:10}}>
                         {[['regular',t('regular')],['especial',t('special')]].map(([k,l])=>(
-                          <label key={k} style={{display:'flex',gap:8,alignItems:'center',padding:'7px 12px',border:`1px solid ${!form.esEspecial===!(k==='especial')?'var(--primary)':'var(--border)'}`,borderRadius:'var(--r)',cursor:'pointer',fontSize:13,fontWeight:!form.esEspecial===!(k==='especial')?600:400,background:!form.esEspecial===!(k==='especial')?'var(--primary-soft)':'transparent'}}>
-                            <input name="esEspecial" type="radio" checked={form.esEspecial===(k==='especial')} onChange={()=>setForm(f=>({...f,esEspecial:k==='especial',nombre:k==='especial'?f.nombreEspecial||'':`${f.cultoDia} ${f.horario}`}))} style={{accentColor:'var(--primary)'}}/>
-                            {l}
+                          <label key={k} className="radio-culto-option" style={{flex:1,minWidth:0,display:'flex',gap:8,alignItems:'flex-start',padding:'9px 12px',border:`1px solid ${!form.esEspecial===!(k==='especial')?'var(--primary)':'var(--border)'}`,borderRadius:'var(--r)',cursor:'pointer',fontSize:13,fontWeight:!form.esEspecial===!(k==='especial')?600:400,background:!form.esEspecial===!(k==='especial')?'var(--primary-soft)':'transparent'}}>
+                            <input name="esEspecial" type="radio" checked={form.esEspecial===(k==='especial')} onChange={()=>setForm(f=>({...f,esEspecial:k==='especial',nombre:k==='especial'?f.nombreEspecial||'':`${f.cultoDia} ${f.horario}`}))} style={{accentColor:'var(--primary)',flexShrink:0,width:18,height:18,marginTop:1}}/>
+                            <span className="radio-culto-label">{l}</span>
                           </label>
                         ))}
                       </div>

@@ -145,7 +145,7 @@ export default function Dashboard() {
             <h1 style={{ fontSize:23, fontWeight:800, letterSpacing:'-0.6px', margin:'0 0 3px' }}>
               {saludo}, {user?.nombre?.split(' ')[0] || txt('pastor')} <Icons.Users />
             </h1>
-            <p style={{ fontSize:13, color:'var(--text-muted)', margin:0, textTransform:'capitalize' }}>{hoyStr}</p>
+            <p style={{ fontSize:13, color:'var(--text-muted)', margin:0 }}>{hoyStr.charAt(0).toUpperCase() + hoyStr.slice(1)}</p>
           </div>
           {t.nuevosMes > 0 && (
             <div onClick={() => navigate('/personas')} style={{
