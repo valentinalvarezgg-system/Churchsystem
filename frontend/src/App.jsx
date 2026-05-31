@@ -120,13 +120,20 @@ export default function App() {
           {/* Rutas públicas */}
           <Route path="/checkin/:cultoId/:token" element={<CheckInPublico />} />
           <Route path="/login"      element={<Login />} />
+          <Route path="/app/login"  element={<Login />} />
           <Route path="/registro"   element={<Registro />} />
+          <Route path="/app/registro" element={<Registro />} />
           <Route path="/recuperar"  element={<RecuperarPassword />} />
+          <Route path="/app/recuperar" element={<RecuperarPassword />} />
           <Route path="/terminos"   element={<Terminos />} />
+          <Route path="/app/terminos" element={<Terminos />} />
           <Route path="/privacidad" element={<Privacidad />} />
+          <Route path="/app/privacidad" element={<Privacidad />} />
           <Route path="/faq"        element={<FAQ />} />
+          <Route path="/app/faq"    element={<FAQ />} />
           <Route path="/vault-login" element={<GodModeLogin />} />
           <Route path="/godmode/login" element={<GodModeLogin />} />
+          <Route path="/app/godmode/login" element={<GodModeLogin />} />
 
           {/* App — rutas protegidas */}
           <Route path="/"              element={<ProtectedRoute roles={ALL}   element={<Dashboard />} />} />
