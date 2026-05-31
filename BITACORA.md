@@ -1031,6 +1031,22 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
 - Motivo:
   - asegurar que el allow-list de build scripts quede anclado en el manifiesto del proyecto frontend además de `.pnpmrc.yaml`, mejorando compatibilidad entre runners de CI.
 
+### Corrección definitiva pnpm policy (GitHub Actions)
+- Evidencia de error:
+  - `pnpm` en CI reporta que el campo `"pnpm"` en `package.json` ya no se lee.
+  - falla con `ERR_PNPM_IGNORED_BUILDS` para `esbuild`.
+- Ajuste aplicado:
+  - se removió configuración `pnpm` de `frontend/package.json` (legacy/ignorada).
+  - se agregó `frontend/pnpm-workspace.yaml` con:
+    - `onlyBuiltDependenciesFile: .pnpm/onlyBuiltDependencies.json`
+    - `strictDepBuilds: false`
+  - se agregó `frontend/.pnpm/onlyBuiltDependencies.json` con:
+    - `["esbuild"]`
+- Verificación local (simulación limpia CI):
+  - `rm -rf frontend/node_modules`
+  - `pnpm install --frozen-lockfile` ✅ (ejecuta `esbuild postinstall`)
+  - `pnpm build` ✅
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:
