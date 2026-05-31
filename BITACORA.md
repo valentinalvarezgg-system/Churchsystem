@@ -1047,6 +1047,16 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
   - `pnpm install --frozen-lockfile` ✅ (ejecuta `esbuild postinstall`)
   - `pnpm build` ✅
 
+### Deploy SSH — diagnóstico y preflight automatizado
+- Error real reportado por CI en `appleboy/ssh-action`:
+  - `ssh.ParsePrivateKey: ssh: no key found`
+  - `dial tcp <host>:22: i/o timeout`
+- Ajustes en workflow (`deploy.yml`):
+  - paso `Validate SSH private key format` (parsea la clave con `ssh-keygen -y`).
+  - paso `Validate SSH host reachability` (testea puerto `22` antes de invocar ssh-action).
+- Objetivo:
+  - fallar con mensaje claro en preflight cuando el secreto de clave está mal o el host no expone SSH.
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:
