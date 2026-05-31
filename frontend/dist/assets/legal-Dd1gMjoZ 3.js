@@ -1,0 +1,1 @@
+const s={ventas:"ventas@churchsystem.com.ar",soporte:"soporte@churchsystem.com.ar",legal:"legal@churchsystem.com.ar",seguridad:"seguridad@churchsystem.com.ar",privacidad:"legal@churchsystem.com.ar"},c="https://churchsystem.com.ar",a="0.1-beta",e="28 de mayo de 2026";export{s as E,e as F,c as S,a as V};
