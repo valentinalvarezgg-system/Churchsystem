@@ -915,3 +915,35 @@ max@test.com:     login=200 plan=MAX     analytics=200
 - `backend/qa-endpoints.mjs` — prueba todos los GET con cada plan
 - `backend/qa-crud.mjs` — prueba CRUD completo con cada plan
 
+---
+
+## Cierre de sección — 2026-05-31 (Auth/Email Recovery)
+
+### Objetivo de cierre
+Dejar operativo y estable el flujo de verificación por email + recupero de contraseña público.
+
+### Cambios aplicados
+- `backend/src/routes/verificacion.js`
+  - corregido manejo de errores de email: ahora evalúa el resultado real de `sendSystemEmail` en `/enviar` y `/reenviar`.
+  - evita falsos positivos de “email enviado” cuando Resend falla.
+
+- `backend/src/routes/auth.js`
+  - agregado `POST /auth/forgot-password` (respuesta neutra anti-enumeración).
+  - agregado `POST /auth/reset-password` (valida código + contexto + expiración y actualiza contraseña).
+  - envío de notificación de seguridad tras cambio exitoso.
+
+- `frontend/src/pages/RecuperarPassword.jsx`
+  - nueva pantalla completa de recupero en 2 pasos (email → código + nueva contraseña).
+
+- `frontend/src/pages/Login.jsx`
+  - agregado link “¿Olvidaste tu contraseña?” hacia `/app/recuperar`.
+
+- `frontend/src/App.jsx`
+  - registrada ruta pública `/recuperar`.
+
+### Verificación técnica
+- `backend pnpm audit:launch` ✅
+- `frontend pnpm build` ✅
+
+### Estado
+✅ Sección cerrada y funcional para continuar release.

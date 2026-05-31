@@ -40,6 +40,7 @@ const GodMode          = lazy(() => import('./pages/GodMode.jsx'))
 const GodModeLogin     = lazy(() => import('./pages/GodModeLogin.jsx'))
 const Analytics        = lazy(() => import('./pages/Analytics.jsx'))
 const Planes           = lazy(() => import('./pages/Planes.jsx'))
+const RecuperarPassword = lazy(() => import('./pages/RecuperarPassword.jsx'))
 
 const ALL   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF','LIDER']
 const MID   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF']
@@ -114,6 +115,7 @@ export default function App() {
           <Route path="/checkin/:cultoId/:token" element={<CheckInPublico />} />
           <Route path="/login"      element={<Login />} />
           <Route path="/registro"   element={<Registro />} />
+          <Route path="/recuperar"  element={<RecuperarPassword />} />
           <Route path="/terminos"   element={<Terminos />} />
           <Route path="/privacidad" element={<Privacidad />} />
           <Route path="/faq"        element={<FAQ />} />

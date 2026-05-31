@@ -35,24 +35,23 @@ router.post('/enviar', wrap(async (req, res) => {
   const expira = new Date(Date.now() + 15 * 60 * 1000).toISOString()
   await setVerificationCode(email, codigo, expira)
 
-  try {
-    await sendSystemEmail({
-      to: email,
-      subject: 'Tu codigo de verificacion - Church System',
-      html: buildSystemEmail({
-        title: 'Codigo de verificacion',
-        intro: `Hola ${nombre || user.nombre || 'Usuario'}, usa este codigo para verificar tu cuenta.`,
-        lines: [`Codigo: ${codigo}`, 'Expira en 15 minutos.'],
-      }),
-      text: `Codigo de verificacion: ${codigo}`,
-    })
-    return res.json({ ok: true, mensaje: `Codigo enviado a ${email}` })
-  } catch {
+  const envio = await sendSystemEmail({
+    to: email,
+    subject: 'Tu codigo de verificacion - Church System',
+    html: buildSystemEmail({
+      title: 'Codigo de verificacion',
+      intro: `Hola ${nombre || user.nombre || 'Usuario'}, usa este codigo para verificar tu cuenta.`,
+      lines: [`Codigo: ${codigo}`, 'Expira en 15 minutos.'],
+    }),
+    text: `Codigo de verificacion: ${codigo}`,
+  })
+  if (envio?.error) {
     if (process.env.NODE_ENV !== 'production') {
       return res.json({ ok: true, mensaje: 'Dev mode', codigoDev: codigo })
     }
     return res.status(500).json({ error: 'No se pudo enviar el email' })
   }
+  return res.json({ ok: true, mensaje: `Codigo enviado a ${email}` })
 }))
 
 router.post('/verificar', wrap(async (req, res) => {
@@ -98,22 +97,21 @@ router.post('/reenviar', wrap(async (req, res) => {
   const expira = new Date(Date.now() + 15 * 60 * 1000).toISOString()
   await setVerificationCode(email, codigo, expira)
 
-  try {
-    await sendSystemEmail({
-      to: email,
-      subject: 'Tu nuevo codigo - Church System',
-      html: buildSystemEmail({
-        title: 'Nuevo codigo',
-        intro: 'Usa este codigo para completar la verificacion.',
-        lines: [`Codigo: ${codigo}`, 'Expira en 15 minutos.'],
-      }),
-      text: `Nuevo codigo: ${codigo}`,
-    })
-    return res.json({ ok: true, mensaje: 'Nuevo código enviado.' })
-  } catch {
+  const envio = await sendSystemEmail({
+    to: email,
+    subject: 'Tu nuevo codigo - Church System',
+    html: buildSystemEmail({
+      title: 'Nuevo codigo',
+      intro: 'Usa este codigo para completar la verificacion.',
+      lines: [`Codigo: ${codigo}`, 'Expira en 15 minutos.'],
+    }),
+    text: `Nuevo codigo: ${codigo}`,
+  })
+  if (envio?.error) {
     if (process.env.NODE_ENV !== 'production') return res.json({ ok: true, codigoDev: codigo })
     return res.status(500).json({ error: 'No se pudo enviar' })
   }
+  return res.json({ ok: true, mensaje: 'Nuevo código enviado.' })
 }))
 
 export default router

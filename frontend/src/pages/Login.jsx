@@ -224,7 +224,13 @@ export default function Login() {
           </button>
         </form>
 
-        <p style={{textAlign:'center',fontSize:14,color:'#64748B',margin:'20px 0 0'}}>
+        <p style={{textAlign:'center',margin:'14px 0 0'}}>
+          <a href={`/app/recuperar?${ctxQuery}`} style={{...S.footerLink, fontSize:13}}>
+            ¿Olvidaste tu contraseña?
+          </a>
+        </p>
+
+        <p style={{textAlign:'center',fontSize:14,color:'#64748B',margin:'14px 0 0'}}>
           {t('noAccount')}{' '}
           <a href={registroHref} style={S.link}>{t('signup')}</a>
         </p>
