@@ -1076,6 +1076,15 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
   - fallback de compatibilidad:
     - si `SSH_PRIVATE_KEY_B64` no decodifica como base64, el workflow lo interpreta como clave raw para evitar bloqueo por secreto mal etiquetado.
 
+### Simplificación definitiva deploy SSH (raw key only)
+- Decisión técnica:
+  - eliminar flujo Base64 del workflow para reducir ambigüedad y errores de formato.
+- `deploy.yml` ahora usa únicamente:
+  - `SSH_PRIVATE_KEY` (clave privada OpenSSH/RSA/EC/DSA en texto)
+  - normalización de `\n` escapados + limpieza CRLF antes de parseo.
+- Beneficio:
+  - evita errores recurrentes `base64: invalid input` por secretos mal serializados.
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:

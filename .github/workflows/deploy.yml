@@ -32,32 +32,17 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_PRIVATE_KEY_B64: ${{ secrets.SSH_PRIVATE_KEY_B64 }}
         run: |
           test -n "$SSH_HOST" || (echo "Missing secret: SSH_HOST" && exit 1)
           test -n "$SSH_USER" || (echo "Missing secret: SSH_USER" && exit 1)
-          if [ -z "$SSH_PRIVATE_KEY" ] && [ -z "$SSH_PRIVATE_KEY_B64" ]; then
-            echo "Missing secret: SSH_PRIVATE_KEY or SSH_PRIVATE_KEY_B64"
-            exit 1
-          fi
+          test -n "$SSH_PRIVATE_KEY" || (echo "Missing secret: SSH_PRIVATE_KEY" && exit 1)
       - name: Validate SSH private key format
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_PRIVATE_KEY_B64: ${{ secrets.SSH_PRIVATE_KEY_B64 }}
         run: |
           umask 077
-          if [ -n "$SSH_PRIVATE_KEY_B64" ]; then
-            CLEANED_B64="$(printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d ' \r\n\t')"
-            if printf '%s' "$CLEANED_B64" | base64 -d > /tmp/deploy_key 2>/dev/null; then
-              true
-            else
-              # Fallback: secret may contain raw key instead of base64.
-              printf '%b' "$SSH_PRIVATE_KEY_B64" | tr -d '\r' > /tmp/deploy_key
-            fi
-          else
-            # Supports secrets pasted with real newlines OR escaped "\n", and strips CRLF.
-            printf '%b' "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/deploy_key
-          fi
+          # Supports secrets pasted with real newlines OR escaped "\n", and strips CRLF.
+          printf '%b' "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/deploy_key
           grep -Eq 'BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY' /tmp/deploy_key || (echo "Invalid private key header" && exit 1)
           ssh-keygen -y -f /tmp/deploy_key >/dev/null
       - name: Validate SSH host reachability
@@ -69,27 +54,12 @@ jobs:
         id: ssh_key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_PRIVATE_KEY_B64: ${{ secrets.SSH_PRIVATE_KEY_B64 }}
         run: |
-          if [ -n "$SSH_PRIVATE_KEY_B64" ]; then
-            CLEANED_B64="$(printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d ' \r\n\t')"
-            {
-              echo "key<<EOF"
-              if printf '%s' "$CLEANED_B64" | base64 -d 2>/dev/null; then
-                true
-              else
-                printf '%b' "$SSH_PRIVATE_KEY_B64" | tr -d '\r'
-              fi
-              echo
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
-          else
-            {
-              echo "key<<EOF"
-              printf '%b' "$SSH_PRIVATE_KEY" | tr -d '\r'
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
-          fi
+          {
+            echo "key<<EOF"
+            printf '%b' "$SSH_PRIVATE_KEY" | tr -d '\r'
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
       - uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
