@@ -370,3 +370,13 @@ process.on('SIGTERM', () => {
   logger.info('Shutting down SIGTERM')
   process.exit(0)
 })
+
+// Red de seguridad: un error async no manejado NO debe tumbar el proceso.
+// Se loguea y el servidor sigue vivo (launchd igual lo reiniciaría, pero esto evita el downtime).
+process.on('unhandledRejection', (reason) => {
+  logger.error({ reason: reason?.message || String(reason), stack: reason?.stack }, 'Unhandled promise rejection — proceso continúa')
+})
+
+process.on('uncaughtException', (err) => {
+  logger.error({ err: err.message, stack: err.stack }, 'Uncaught exception — proceso continúa')
+})

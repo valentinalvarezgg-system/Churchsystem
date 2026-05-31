@@ -69,6 +69,10 @@ export async function sendSystemEmail({ to, subject, html, text }) {
     html,
     text,
   })
+  // Resend devuelve { data, error } — si hay error NO lo ocultamos
+  if (result?.error) {
+    return { error: true, message: result.error.message || 'Error de Resend', statusCode: result.error.statusCode }
+  }
   return { id: result?.data?.id || result?.id || null }
 }
 

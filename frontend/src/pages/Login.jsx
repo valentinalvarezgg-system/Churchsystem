@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, getApiUrl, getStoredContext, decodeJwt, syncContextFromUser } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 import { authCopy } from '../utils/i18n-auth.js'
+import { APP_VERSION_LABEL } from '../version.js'
 
 const S = {
   bg: { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
@@ -153,7 +154,7 @@ export default function Login() {
             </svg>
           </div>
           <h1 style={S.h1}>Church System</h1>
-          <p style={S.sub}>v2.6.0 · {t('subtitle')}</p>
+          <p style={S.sub}>{APP_VERSION_LABEL} · {t('subtitle')}</p>
         </div>
 
         {/* OAuth primero — más prominente */}

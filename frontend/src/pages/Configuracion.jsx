@@ -4,6 +4,7 @@ import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import BtnNotificaciones from '../components/BtnNotificaciones.jsx'
 import { apiFetch, getStoredContext } from '../services/api.js'
+import { APP_VERSION } from '../version.js'
 
 const CATEGORIAS = [
   { key:'iglesia', label:'Iglesia', icon:'🏛️', secciones:[
@@ -807,7 +808,7 @@ export default function Configuracion() {
         <div style={{marginTop:12,padding:'12px 16px',background:'rgba(245,158,11,0.08)',
           border:'1px solid rgba(245,158,11,0.2)',borderRadius:12,fontSize:12,
           color:'var(--text-muted)',lineHeight:1.6}}>
-          <strong style={{color:'var(--c-warning)'}}>⚠ Beta v2.6.0:</strong>{' '}
+          <strong style={{color:'var(--c-warning)'}}>⚠ Beta v{APP_VERSION}:</strong>{' '}
           Plataforma en etapa beta. Algunas funciones pueden cambiar o fallar.
           Para baja o exportación de datos:{' '}
           <a href="mailto:legal@churchsystem.com.ar" style={{color:'var(--primary)'}}>legal@churchsystem.com.ar</a>
