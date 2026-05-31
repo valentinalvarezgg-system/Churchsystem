@@ -1099,6 +1099,26 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
 - Verificación:
   - `frontend pnpm build` ✅
 
+### Hotfix urgente demo pastores (login + onboarding + email)
+- Objetivo: estabilizar hoy el flujo de alta/inicio para pruebas reales.
+- Backend:
+  - `backend/src/routes/oauth.js`
+    - OAuth Google/Apple ahora agrega `setup=1` cuando la cuenta se crea por primera vez.
+    - evita que nuevos usuarios OAuth salteen la configuración inicial.
+  - `backend/src/routes/auth.js`
+    - registro tradicional ahora emite automáticamente código de verificación de 6 dígitos (`EMAIL_VERIFY`) y envía email.
+  - `backend/src/routes/registro.js`
+    - alta vía `/registro/crear` también emite código de verificación de 6 dígitos + email.
+- Frontend:
+  - `frontend/src/pages/Login.jsx`
+    - al volver de OAuth con `setup=1`, guarda `church_force_setup=1`.
+  - `frontend/src/App.jsx`
+    - `useSetupCheck` prioriza `church_force_setup` y abre SetupWizard sí o sí.
+    - al completar setup, limpia flag local para no mostrar wizard nuevamente.
+- Verificación técnica:
+  - `backend pnpm audit:launch` ✅
+  - `frontend pnpm build` ✅
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:

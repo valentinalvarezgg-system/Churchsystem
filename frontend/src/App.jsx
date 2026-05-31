@@ -79,6 +79,12 @@ function useSetupCheck() {
 
   useEffect(() => {
     if (!user || user.rol !== 'PASTOR_GENERAL') { setCheckeado(true); return }
+    const forced = localStorage.getItem('church_force_setup') === '1'
+    if (forced) {
+      setMostrarWizard(true)
+      setCheckeado(true)
+      return
+    }
     apiFetch('/config')
       .then(cfg => {
         const completado  = cfg.setup_completado === '1' || cfg.setup_completado === true
@@ -104,7 +110,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       {checkeado && mostrarWizard && (
-        <SetupWizard onCompleto={() => setMostrarWizard(false)} />
+        <SetupWizard onCompleto={() => { localStorage.removeItem('church_force_setup'); setMostrarWizard(false) }} />
       )}
 
       {isLoggedIn && !mostrarWizard && <BannerNotificaciones />}

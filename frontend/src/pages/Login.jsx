@@ -91,6 +91,9 @@ export default function Login() {
       const error = searchParams.get('error')
       if (token) {
         localStorage.setItem('token', token)
+        if (searchParams.get('setup') === '1') {
+          localStorage.setItem('church_force_setup', '1')
+        }
         try {
           const user = await apiFetch('/auth/me')
           localStorage.setItem('user', JSON.stringify(user))

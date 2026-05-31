@@ -130,6 +130,26 @@ async function marcarPromoUsada(promo) {
   )
 }
 
+async function issueVerificationCode(userId, email, nombre = '') {
+  const codigo = Math.floor(100000 + Math.random() * 900000).toString()
+  const expira = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+  await pgExec(
+    'UPDATE "User" SET "codigoVerif"=$1, "codigoExpira"=$2, "codigoContexto"=$3, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$4',
+    [codigo, expira, 'EMAIL_VERIFY', userId]
+  )
+  const envio = await sendSystemEmail({
+    to: email,
+    subject: 'Verificá tu cuenta - Church System',
+    html: buildSystemEmail({
+      title: 'Código de verificación',
+      intro: `Hola ${nombre || 'Pastor'}, este es tu código de verificación:`,
+      lines: [`Código: ${codigo}`, 'Expira en 15 minutos.'],
+    }),
+    text: `Tu código de verificación es ${codigo}. Expira en 15 minutos.`,
+  })
+  return { envio, codigo }
+}
+
 router.post('/login', async (req, res) => {
   const { email = '', password = '' } = req.body || {}
   const cleanEmail = String(email || '').trim().toLowerCase()
@@ -265,7 +285,14 @@ router.post('/registro', async (req, res) => {
       actionLabel: 'Ingresar',
     }).catch(() => {})
 
-    return res.json({ token: session.accessToken, refreshToken: session.refreshToken, expiresIn: session.expiresIn, user: session.user })
+    const verify = await issueVerificationCode(created.id, email.toLowerCase(), nombre).catch(err => ({ envio: { error: true, message: err?.message || 'verify_send_failed' } }))
+
+    const response = { token: session.accessToken, refreshToken: session.refreshToken, expiresIn: session.expiresIn, user: session.user }
+    if (verify?.envio?.error && process.env.NODE_ENV !== 'production') {
+      response.codigoVerificacionDev = verify.codigo
+      response.aviso = 'No se pudo enviar email de verificación en entorno local'
+    }
+    return res.json(response)
   } catch (error) {
     logger.error({ err: error?.message }, 'Error en registro')
     return res.status(500).json({ error: 'Error al crear la cuenta' })
