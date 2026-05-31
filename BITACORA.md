@@ -1057,6 +1057,17 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
 - Objetivo:
   - fallar con mensaje claro en preflight cuando el secreto de clave está mal o el host no expone SSH.
 
+### Fix adicional: clave SSH en Base64 (anti `libcrypto`)
+- Incidente:
+  - preflight fallando con `Load key "/tmp/deploy_key": error in libcrypto`.
+- Causa probable:
+  - secreto `SSH_PRIVATE_KEY` con formato alterado por saltos de línea.
+- Solución aplicada en `deploy.yml`:
+  - soporte dual:
+    - `SSH_PRIVATE_KEY` (texto plano PEM/OpenSSH)
+    - `SSH_PRIVATE_KEY_B64` (recomendado para evitar problemas de formato)
+  - paso `Prepare SSH key` para reconstruir clave normalizada en runtime y pasarla a `appleboy/ssh-action`.
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:

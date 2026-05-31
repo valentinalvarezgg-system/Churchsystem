@@ -32,27 +32,56 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PRIVATE_KEY_B64: ${{ secrets.SSH_PRIVATE_KEY_B64 }}
         run: |
           test -n "$SSH_HOST" || (echo "Missing secret: SSH_HOST" && exit 1)
           test -n "$SSH_USER" || (echo "Missing secret: SSH_USER" && exit 1)
-          test -n "$SSH_PRIVATE_KEY" || (echo "Missing secret: SSH_PRIVATE_KEY" && exit 1)
+          if [ -z "$SSH_PRIVATE_KEY" ] && [ -z "$SSH_PRIVATE_KEY_B64" ]; then
+            echo "Missing secret: SSH_PRIVATE_KEY or SSH_PRIVATE_KEY_B64"
+            exit 1
+          fi
       - name: Validate SSH private key format
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PRIVATE_KEY_B64: ${{ secrets.SSH_PRIVATE_KEY_B64 }}
         run: |
           umask 077
-          printf '%s\n' "$SSH_PRIVATE_KEY" > /tmp/deploy_key
+          if [ -n "$SSH_PRIVATE_KEY_B64" ]; then
+            printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d > /tmp/deploy_key
+          else
+            printf '%s\n' "$SSH_PRIVATE_KEY" > /tmp/deploy_key
+          fi
           ssh-keygen -y -f /tmp/deploy_key >/dev/null
       - name: Validate SSH host reachability
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
         run: |
           timeout 10 bash -lc "cat < /dev/null > /dev/tcp/${SSH_HOST}/22" || (echo "SSH host not reachable on port 22" && exit 1)
+      - name: Prepare SSH key
+        id: ssh_key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PRIVATE_KEY_B64: ${{ secrets.SSH_PRIVATE_KEY_B64 }}
+        run: |
+          if [ -n "$SSH_PRIVATE_KEY_B64" ]; then
+            {
+              echo "key<<EOF"
+              printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d
+              echo
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "key<<EOF"
+              printf '%s\n' "$SSH_PRIVATE_KEY"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
       - uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ steps.ssh_key.outputs.key }}
           script: |
             cd /var/www/church-system
             git pull origin master
