@@ -647,3 +647,92 @@ Antes de cualquier troubleshooting de deploy, declarar modo vigente en bitácora
 **Commit activo:** `c7c9af5`  
 **Build:** sin cambios de código — solo infraestructura y variables de entorno.
 
+
+---
+
+## Modus Operandi — Versionado y Auditoría (a partir de 2026-05-31)
+
+### Regla de versiones
+
+La versión canónica del proyecto vive en **tres lugares sincronizados**. Deben coincidir siempre:
+
+| Archivo | Campo | Ejemplo |
+|---------|-------|---------|
+| `backend/package.json` | `"version"` | `"2.8.0"` |
+| `frontend/package.json` | `"version"` | `"2.8.0"` |
+| `README.md` | Título `# Church System — vX.Y` | `v2.8 beta` |
+| `package.json` (raíz) | `"version"` | `"2.8.0"` |
+
+**La BITACORA no requiere versión exacta** — solo que la sesión haga referencia al número de versión vigente.
+
+**Cuándo subir la versión:**
+- Major (`X`): cambio de arquitectura o ruptura de compatibilidad.
+- Minor (`Y`): módulo nuevo o feature importante → subir Y en los 4 archivos.
+- Patch (`Z`): fix de bugs o ajustes menores → opcional.
+
+Comando para verificar sync:
+```bash
+grep '"version"' backend/package.json frontend/package.json package.json
+grep "^# Church System" README.md
+```
+
+---
+
+### Script de Auditoría Integral
+
+**Ubicación:** `scripts/audit.mjs`  
+**Ejecutar:** `node scripts/audit.mjs`  
+**Con log a archivo:** `node scripts/audit.mjs --out logs/audit-$(date +%Y%m%d).log`  
+**En JSON:** `node scripts/audit.mjs --json`
+
+**Qué audita (13 checks):**
+1. Versiones sincronizadas entre package.json, README y BITACORA
+2. Variables de entorno críticas y opcionales
+3. Backend local activo en puerto 4000
+4. Smoke tests de endpoints clave (`/health`, `/godmode/login-status`, `/auth/login`, `/personas`)
+5. Dominio público `churchsystem.com.ar` responde correctamente
+6. Rutas sin `requireAuth` (seguridad)
+7. Imports legacy `lib/db.js`
+8. Vulnerabilidades en dependencias (`pnpm audit`)
+9. Paquetes con major update disponible
+10. Build del frontend: `dist/` sincronizado con `src/`
+11. Cloudflare Tunnel activo
+12. launchd plist contiene variables críticas
+13. Git: commits sin pushear y archivos sin commitear
+
+**Cuándo correrlo:**
+- Antes de cada deploy o push importante
+- Cuando algo falla en producción y no es obvio qué
+- Como checklist semanal de salud del sistema
+
+**Interpretar resultados:**
+- `🟢 TODO OK` → sistema en estado óptimo
+- `🟡 HAY ADVERTENCIAS` → advertencias esperadas (MP en test, Stripe sin configurar) no bloquean
+- `🔴 HAY ERRORES CRÍTICOS` → hay que resolver antes de cualquier deploy
+
+**Advertencias permanentes esperadas (no requieren acción inmediata):**
+- `MP_ACCESS_TOKEN en modo TEST` → normal hasta tener cuenta de producción en Mercado Pago
+- `STRIPE_SECRET_KEY sin configurar` → normal hasta implementar pagos USD
+- `ANTHROPIC_API_KEY sin configurar` → normal hasta habilitar IA
+- `X paquetes con major update` → revisar changelogs antes de actualizar, no hacerlo automáticamente
+
+---
+
+### Sesión 2026-05-31 — Sincronización de versiones + auditoría
+
+**Cambios aplicados:**
+- `backend/package.json` y `frontend/package.json`: version `2.6.0` → `2.8.0`
+- `package.json` raíz creado con version `2.8.0` y scripts de audit
+- `backend/.env` reescrito limpio: eliminadas líneas duplicadas y mal formateadas (JWT_SECRET tenía placeholder concatenado con valor real en una sola línea)
+- `JWT_SECRET` actualizado a valor seguro de ≥32 chars
+- `scripts/audit.mjs` creado: 597 líneas, 13 checks, output legible con iconos de estado
+- `logs/` directorio creado para guardar historial de auditorías
+- launchd plist: `JWT_SECRET` actualizado para coincidir con `.env`
+
+**Resultado de primera auditoría post-setup:**
+```
+✅ 28 OK   ❌ 0 Errores   ⚠️  7 Advertencias (todas esperadas)
+```
+
+**Commit:** ver rama master, sesión del 31/05/2026
+

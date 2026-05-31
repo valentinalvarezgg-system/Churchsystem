@@ -1,0 +1,10 @@
+{
+  "name": "church-system",
+  "version": "2.8.0",
+  "private": true,
+  "scripts": {
+    "audit": "node scripts/audit.mjs",
+    "audit:json": "node scripts/audit.mjs --json",
+    "audit:log": "node scripts/audit.mjs --out logs/audit-$(date +%Y%m%d-%H%M%S).log"
+  }
+}
