@@ -984,3 +984,15 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
 
 ### Estado
 ✅ Incidente de deploy identificado y corregido a nivel repositorio.
+
+### Hotfix adicional (workflow deploy)
+- Archivo: `.github/workflows/deploy.yml`
+- Ajustes:
+  - `node-version` de CI actualizado `20` → `22` (reducción de riesgo por deprecación Node 20 en Actions).
+  - job `deploy` condicionado a secretos SSH presentes:
+    - `secrets.SSH_HOST`
+    - `secrets.SSH_USER`
+    - `secrets.SSH_PRIVATE_KEY`
+- Resultado esperado:
+  - si faltan secretos SSH, `build` sigue verde y `deploy` no rompe el pipeline.
+  - si están completos, `deploy` ejecuta normalmente por SSH.
