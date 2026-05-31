@@ -1070,6 +1070,9 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
   - normalización extra para `SSH_PRIVATE_KEY`:
     - interpreta `\n` escapados (`printf '%b'`)
     - elimina `\r` para evitar CRLF corrupto
+  - hardening Base64:
+    - limpia espacios/CR/LF/TAB del secret `SSH_PRIVATE_KEY_B64` antes de decodificar.
+    - valida encabezado `BEGIN ... PRIVATE KEY` previo a `ssh-keygen`.
 
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`

@@ -47,11 +47,12 @@ jobs:
         run: |
           umask 077
           if [ -n "$SSH_PRIVATE_KEY_B64" ]; then
-            printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d > /tmp/deploy_key
+            printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d ' \r\n\t' | base64 -d > /tmp/deploy_key
           else
             # Supports secrets pasted with real newlines OR escaped "\n", and strips CRLF.
             printf '%b' "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/deploy_key
           fi
+          grep -Eq 'BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY' /tmp/deploy_key || (echo "Invalid private key header" && exit 1)
           ssh-keygen -y -f /tmp/deploy_key >/dev/null
       - name: Validate SSH host reachability
         env:
@@ -67,7 +68,7 @@ jobs:
           if [ -n "$SSH_PRIVATE_KEY_B64" ]; then
             {
               echo "key<<EOF"
-              printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d
+              printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d ' \r\n\t' | base64 -d
               echo
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
