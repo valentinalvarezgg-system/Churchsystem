@@ -815,3 +815,41 @@ Cuando ese momento llegue: configurar un host con la IP del servidor, usuario `d
 
 **Estado de auditoría post-integración:** ver próxima corrida de `node scripts/audit.mjs`
 
+
+---
+
+## Sesión 2026-05-31 — Mega build v2.8.1
+
+### Cambios aplicados
+
+**Backend:**
+- `backend/src/routes/plan.js` — `/plan/me` ahora devuelve también `suscripcion` activa consultando la tabla `payments`. Manejo graceful si la tabla no existe aún.
+- `backend/src/server.js` — `subscriptionsRouter` movido de `/api` a `/` para alinearlo con el resto de los routers. Las rutas internas del router son `/subscriptions/*`, `/payments/*`, lo que da URLs consistentes con toda la API.
+- `backend/.env` — agregadas variables comentadas para PayPal (`PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_ENV`, `PAYPAL_WEBHOOK_ID`) y MP webhook (`MP_WEBHOOK_SECRET`). Agregado `QR_SECRET` (valor fijo generado con `crypto.randomBytes(32)`).
+- `~/Library/LaunchAgents/com.churchsystem.backend.plist` — `QR_SECRET` agregado al entorno de launchd.
+
+**Frontend:**
+- `frontend/src/pages/Planes.jsx` — **nueva página** `/planes`. Muestra los 3 planes (Starter/Pro/Max) con precios multimoneda, módulos incluidos, limitaciones, y CTA que inicia el flujo de suscripción vía `/subscriptions/create`. Detecta el plan actual del usuario y lo marca como activo.
+- `frontend/src/components/UpgradeGate.jsx` — el botón "Mejorar mi plan" ahora navega a `/planes` en lugar de abrir un `mailto:`.
+- `frontend/src/App.jsx` — importación lazy de `Planes.jsx` y route `/planes` protegida para todos los roles.
+- `frontend/src/components/Menu.jsx` — ítem "Planes" (★) agregado al sidebar en la sección principal, visible para todos los planes.
+- `frontend/dist/` — build completo de producción generado (10.92s, sin warnings, 1645 módulos).
+
+**Versiones bump:**
+- `backend/package.json`, `frontend/package.json`, `package.json` raíz: `2.8.0` → `2.8.1`
+- `README.md`: `v2.8 beta` → `v2.8.1 beta`
+
+### Auditoría post-build
+```
+✅ 29 OK   ❌ 0 Errores   ⚠️  6 Advertencias (todas esperadas)
+dist/ actualizado ✓ — versiones sincronizadas ✓ — dominio OK ✓
+```
+
+### Estado de pendientes conocidos
+- MP en modo TEST — activar cuando se tenga cuenta de producción en Mercado Pago
+- PayPal credentials — pendiente configurar en developer.paypal.com (sandbox)
+- STRIPE_SECRET_KEY — pendiente cuando se implemente pagos USD
+- ANTHROPIC_API_KEY — pendiente cuando se habilite el asistente IA
+- 7 dependencias con major update disponible — revisar changelogs antes de actualizar (Express 5, Prisma 7, bcryptjs 3, helmet 8, etc.)
+- Frontend: 2 vulnerabilidades moderadas en dependencias (no críticas)
+

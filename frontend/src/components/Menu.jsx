@@ -254,6 +254,7 @@ export default function Menu() {
           {lnk('/', <Icons.Dashboard />, tt('dashboard'), true)}
           {lnk('/analytics', <Icons.Reports />, 'Analytics')}
           {isAdmin && lnk('/premium', <Icons.Premium />, tt('executive'))}
+          {lnk('/planes', <span style={{fontSize:14}}>★</span>, 'Planes')}
 
           {/* STARTER — ver y agregar notas hasta discipulados */}
           {isStarter && !isPro && <>

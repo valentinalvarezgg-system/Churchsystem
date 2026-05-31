@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { usePlan } from '../hooks/usePlan.js'
 
 const LABELS = {
@@ -15,6 +16,7 @@ const MOD_PLAN = {
 }
 
 export default function UpgradeGate({ modulo, children }) {
+  const navigate = useNavigate()
   const { tiene, plan, loading } = usePlan()
   if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:200}}><div className="spinner-xs"/></div>
   if (tiene(modulo)) return children
@@ -25,7 +27,11 @@ export default function UpgradeGate({ modulo, children }) {
       <h2 style={{fontSize:22,fontWeight:800,marginBottom:8,color:'var(--text)'}}>Módulo no disponible</h2>
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6,maxWidth:360}}>Requiere plan <strong style={{color:'var(--primary)'}}>{LABELS[req]}</strong>.</p>
       <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:28}}>Estás en plan <strong>{LABELS[plan]||plan}</strong>.</p>
-      <a href="mailto:soporte@churchsystem.com.ar?subject=Upgrade" style={{padding:'12px 28px',borderRadius:12,fontSize:14,fontWeight:700,background:'linear-gradient(135deg,#6B5CFF,#4845D2)',color:'#fff',textDecoration:'none'}}>Mejorar mi plan →</a>
+      <button
+        onClick={() => navigate('/planes')}
+        style={{padding:'12px 28px',borderRadius:12,fontSize:14,fontWeight:700,background:'linear-gradient(135deg,#6B5CFF,#4845D2)',color:'#fff',border:'none',cursor:'pointer'}}>
+        Ver planes y precios →
+      </button>
     </div>
   )
 }

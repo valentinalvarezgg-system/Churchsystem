@@ -179,7 +179,7 @@ app.use('/webhooks', resendInboundRouter)
 app.use('/verificacion', verificacionRouter)
 app.use('/plan', planRouter)
 app.use('/iglesia', iglesiaRouter)
-app.use('/api', subscriptionsRouter)
+app.use('/', subscriptionsRouter)
 
 const distDir = path.join(process.cwd(), '..', 'frontend', 'dist')
 const landingFile = path.join(process.cwd(), '..', 'landing', 'index.html')
