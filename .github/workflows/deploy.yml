@@ -47,7 +47,13 @@ jobs:
         run: |
           umask 077
           if [ -n "$SSH_PRIVATE_KEY_B64" ]; then
-            printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d ' \r\n\t' | base64 -d > /tmp/deploy_key
+            CLEANED_B64="$(printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d ' \r\n\t')"
+            if printf '%s' "$CLEANED_B64" | base64 -d > /tmp/deploy_key 2>/dev/null; then
+              true
+            else
+              # Fallback: secret may contain raw key instead of base64.
+              printf '%b' "$SSH_PRIVATE_KEY_B64" | tr -d '\r' > /tmp/deploy_key
+            fi
           else
             # Supports secrets pasted with real newlines OR escaped "\n", and strips CRLF.
             printf '%b' "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/deploy_key
@@ -66,9 +72,14 @@ jobs:
           SSH_PRIVATE_KEY_B64: ${{ secrets.SSH_PRIVATE_KEY_B64 }}
         run: |
           if [ -n "$SSH_PRIVATE_KEY_B64" ]; then
+            CLEANED_B64="$(printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d ' \r\n\t')"
             {
               echo "key<<EOF"
-              printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d ' \r\n\t' | base64 -d
+              if printf '%s' "$CLEANED_B64" | base64 -d 2>/dev/null; then
+                true
+              else
+                printf '%b' "$SSH_PRIVATE_KEY_B64" | tr -d '\r'
+              fi
               echo
               echo "EOF"
             } >> "$GITHUB_OUTPUT"

@@ -1073,6 +1073,8 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
   - hardening Base64:
     - limpia espacios/CR/LF/TAB del secret `SSH_PRIVATE_KEY_B64` antes de decodificar.
     - valida encabezado `BEGIN ... PRIVATE KEY` previo a `ssh-keygen`.
+  - fallback de compatibilidad:
+    - si `SSH_PRIVATE_KEY_B64` no decodifica como base64, el workflow lo interpreta como clave raw para evitar bloqueo por secreto mal etiquetado.
 
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
