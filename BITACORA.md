@@ -1179,6 +1179,20 @@ Fecha: 2026-05-31
   - mantener publicación por runtime actual estable (cloud tunnel + servidor activo),
   - tratar CI/CD SSH como hardening posterior, no bloqueante de prueba con pastores.
 
+### Fix urgente página de registro con plan por URL (v2.8.2)
+- Página impactada:
+  - `/app/registro?country=AR&currency=ARS&lang=es&plan=starter&promo=150FF`
+- Problema:
+  - `Registro.jsx` seguía con planes legacy (`LIDER/CULTO/CONSOLIDACION/...`) y no alineaba bien `plan=starter`.
+- Solución:
+  - migración completa a planes vigentes: `STARTER`, `PRO`, `MAX`.
+  - normalizador de plan de URL (`starter/pro/max`) + mapeo de planes legacy a nuevos.
+  - cambio de catálogo de precios: de `/mp/planes` a `/subscriptions/plans` (fuente actual).
+  - fallback de registro ajustado a `PRO` (antes `CONSOLIDACION`).
+  - textos/beneficios de tarjetas de plan actualizados en ES/PT/EN.
+- Verificación:
+  - `frontend pnpm build` ✅
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:

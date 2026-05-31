@@ -24,6 +24,19 @@ const LANGS = [
   { code:'en', label:'English' },
 ]
 
+function normalizePlanInput(raw = '') {
+  const key = String(raw || '').trim().toUpperCase()
+  if (['STARTER', 'PRO', 'MAX'].includes(key)) return key
+  const legacyMap = {
+    LIDER: 'STARTER',
+    CULTO: 'PRO',
+    CONSOLIDACION: 'PRO',
+    ADMINISTRACION: 'MAX',
+    GENERAL: 'MAX',
+  }
+  return legacyMap[key] || ''
+}
+
 const REG_I18N = {
   es: {
     steps:['Plan', 'Cuenta', 'Verificar', 'Listo'],
@@ -105,53 +118,37 @@ const REG_I18N = {
 // ── Planes ────────────────────────────────────────────────────────────────────
 const PLANES = [
   {
-    key: 'LIDER', nombre: 'Líder', precio: 15, popular: false,
-    desc: 'Para líderes de célula',
-    features: ['Dashboard', 'Personas', 'Grupos', 'Check-in QR', 'Mi perfil'],
+    key: 'STARTER', nombre: 'Starter', precio: 29, popular: false,
+    desc: 'Base operativa para equipos pastorales',
+    features: ['Dashboard', 'Personas y perfiles', 'Grupos', 'Check-in QR', 'Analytics base'],
   },
   {
-    key: 'CULTO', nombre: 'Culto', precio: 30, popular: false,
-    desc: 'Para equipos de culto',
-    features: ['Todo lo de Líder', 'Asistencia', 'Calendario', 'Comunicados'],
+    key: 'PRO', nombre: 'Pro', precio: 59, popular: true,
+    desc: 'Operación completa semanal y mensual',
+    features: ['Todo Starter', 'Asistencia y cultos', 'Calendario y eventos', 'Mensajes y alertas', 'Reportes'],
   },
   {
-    key: 'CONSOLIDACION', nombre: 'Consolidación', precio: 50, popular: true,
-    desc: 'Para equipos pastorales',
-    features: ['Todo lo de Culto', 'Seguimiento pastoral', 'Consolidación', 'Alertas', 'Mensajería'],
-  },
-  {
-    key: 'ADMINISTRACION', nombre: 'Administración', precio: 80, popular: false,
-    desc: 'Para secretaría',
-    features: ['Todo lo anterior', 'Reportes completos', 'Gestión usuarios', 'Permisos', 'Excel + IA'],
-  },
-  {
-    key: 'GENERAL', nombre: 'General', precio: 120, popular: false,
-    desc: 'Para pastor general',
-    features: ['Acceso completo', 'Vista ejecutiva IA', 'Asistente IA', 'Multi-iglesia', 'Soporte prioritario'],
+    key: 'MAX', nombre: 'Max', precio: 99, popular: false,
+    desc: 'Escala avanzada para liderazgo central',
+    features: ['Todo Pro', 'Usuarios y permisos', 'Excel + IA', 'Asistente IA', 'Backups y auditoría'],
   },
 ]
 
 const PLAN_COPY = {
   es: {
-    LIDER:{ nombre:'Líder', desc:'Para líderes de célula', features:['Dashboard', 'Personas', 'Grupos', 'Check-in QR', 'Mi perfil'] },
-    CULTO:{ nombre:'Culto', desc:'Para equipos de culto', features:['Todo lo de Líder', 'Asistencia', 'Calendario', 'Comunicados'] },
-    CONSOLIDACION:{ nombre:'Consolidación', desc:'Para equipos pastorales', features:['Todo lo de Culto', 'Seguimiento pastoral', 'Consolidación', 'Alertas', 'Mensajería'] },
-    ADMINISTRACION:{ nombre:'Administración', desc:'Para secretaría', features:['Todo lo anterior', 'Reportes completos', 'Gestión usuarios', 'Permisos', 'Excel + IA'] },
-    GENERAL:{ nombre:'General', desc:'Para pastor general', features:['Acceso completo', 'Vista ejecutiva IA', 'Asistente IA', 'Multi-iglesia', 'Soporte prioritario'] },
+    STARTER:{ nombre:'Starter', desc:'Base operativa para equipos pastorales', features:['Dashboard', 'Personas y perfiles', 'Grupos', 'Check-in QR', 'Analytics base'] },
+    PRO:{ nombre:'Pro', desc:'Operación completa semanal y mensual', features:['Todo Starter', 'Asistencia y cultos', 'Calendario y eventos', 'Mensajes y alertas', 'Reportes'] },
+    MAX:{ nombre:'Max', desc:'Escala avanzada para liderazgo central', features:['Todo Pro', 'Usuarios y permisos', 'Excel + IA', 'Asistente IA', 'Backups y auditoría'] },
   },
   pt: {
-    LIDER:{ nombre:'Líder', desc:'Para líderes de célula', features:['Dashboard', 'Pessoas', 'Grupos', 'Check-in QR', 'Meu perfil'] },
-    CULTO:{ nombre:'Culto', desc:'Para equipes de culto', features:['Tudo do Líder', 'Presença', 'Calendário', 'Comunicados'] },
-    CONSOLIDACION:{ nombre:'Consolidação', desc:'Para equipes pastorais', features:['Tudo do Culto', 'Acompanhamento pastoral', 'Consolidação', 'Alertas', 'Mensagens'] },
-    ADMINISTRACION:{ nombre:'Administração', desc:'Para secretaria', features:['Tudo anterior', 'Relatórios completos', 'Gestão de usuários', 'Permissões', 'Excel + IA'] },
-    GENERAL:{ nombre:'Geral', desc:'Para pastor geral', features:['Acesso completo', 'Visão executiva IA', 'Assistente IA', 'Multi-igreja', 'Suporte prioritário'] },
+    STARTER:{ nombre:'Starter', desc:'Base operacional para equipes pastorais', features:['Dashboard', 'Pessoas e perfis', 'Grupos', 'Check-in QR', 'Analytics base'] },
+    PRO:{ nombre:'Pro', desc:'Operação completa semanal e mensal', features:['Tudo do Starter', 'Presença e cultos', 'Calendário e eventos', 'Mensagens e alertas', 'Relatórios'] },
+    MAX:{ nombre:'Max', desc:'Escala avançada para liderança central', features:['Tudo do Pro', 'Usuários e permissões', 'Excel + IA', 'Assistente IA', 'Backups e auditoria'] },
   },
   en: {
-    LIDER:{ nombre:'Leader', desc:'For cell leaders', features:['Dashboard', 'People', 'Groups', 'QR check-in', 'My profile'] },
-    CULTO:{ nombre:'Worship', desc:'For worship teams', features:['Everything in Leader', 'Attendance', 'Calendar', 'Announcements'] },
-    CONSOLIDACION:{ nombre:'Follow-up', desc:'For pastoral teams', features:['Everything in Worship', 'Pastoral follow-up', 'Consolidation', 'Alerts', 'Messaging'] },
-    ADMINISTRACION:{ nombre:'Administration', desc:'For admin teams', features:['Everything above', 'Full reports', 'User management', 'Permissions', 'Excel + AI'] },
-    GENERAL:{ nombre:'General', desc:'For senior pastors', features:['Full access', 'Executive AI view', 'AI assistant', 'Multi-church', 'Priority support'] },
+    STARTER:{ nombre:'Starter', desc:'Operational base for pastoral teams', features:['Dashboard', 'People profiles', 'Groups', 'QR check-in', 'Base analytics'] },
+    PRO:{ nombre:'Pro', desc:'Complete weekly and monthly operations', features:['Everything in Starter', 'Attendance and services', 'Calendar and events', 'Messaging and alerts', 'Reports'] },
+    MAX:{ nombre:'Max', desc:'Advanced scale for central leadership', features:['Everything in Pro', 'Users and permissions', 'Excel + AI', 'AI assistant', 'Backups and audit'] },
   },
 }
 
@@ -294,7 +291,7 @@ export default function Registro() {
   const [searchParams] = useSearchParams()
 
   const [paso, setPaso]           = useState(0)
-  const [planSel, setPlanSel]     = useState(searchParams.get('plan')?.toUpperCase() || '')
+  const [planSel, setPlanSel]     = useState(normalizePlanInput(searchParams.get('plan')) || '')
   const storedContext = getStoredContext()
   const initialCountry = (searchParams.get('country') || storedContext.country || 'AR').toUpperCase()
   const initialCountryInfo = COUNTRIES.find(c => c.code === initialCountry) || COUNTRIES[0]
@@ -353,9 +350,10 @@ export default function Registro() {
     localStorage.setItem('church_lang', lang)
     localStorage.setItem('church_currency', currency)
     if (promo) localStorage.setItem('church_promo', promo)
-    apiFetch(`/mp/planes?country=${country}&lang=${lang}`)
-      .then(plans => {
-        const prices = Object.fromEntries((plans || []).map(p => [p.id, p]))
+    apiFetch('/subscriptions/plans')
+      .then(payload => {
+        const list = Array.isArray(payload?.items) ? payload.items : []
+        const prices = Object.fromEntries(list.map(p => [String(p.id || '').toUpperCase(), p]))
         setPlanPrices(prices)
       })
       .catch(() => {})
@@ -371,7 +369,7 @@ export default function Registro() {
       await apiFetch('/auth/registro', { method:'POST', body:JSON.stringify({
         nombre:form.nombre, apellido:form.apellido,
         email:form.email.toLowerCase(), password:form.password,
-        plan: planSel || 'CONSOLIDACION',
+        plan: planSel || 'PRO',
         pais: country,
         divisa: currency,
         idioma: lang,
@@ -385,8 +383,8 @@ export default function Registro() {
     finally { setLoading(false) }
   }
 
-  const planActual = PLANES.find(p=>p.key === planSel) || PLANES[2]
-  const priceFor = plan => planPrices[plan.key]?.precio ?? plan.precio
+  const planActual = PLANES.find(p=>p.key === planSel) || PLANES[1]
+  const priceFor = plan => Number(planPrices[plan.key]?.price ?? plan.precio)
   const currencyFor = plan => planPrices[plan.key]?.currency || currency
   const messages = REG_I18N[lang] || REG_I18N.es
   const t = key => messages[key] || REG_I18N.es[key] || key
