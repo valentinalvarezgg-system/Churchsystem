@@ -3,23 +3,52 @@ import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { ensureOperationalTenantDataSynced } from '../lib/core-sync.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { registrar } from '../utils/auditoria.js'
+import { resolvePlan } from '../middlewares/plan.js'
 
 const router = Router()
+
+// Devuelve IDs de cultos accesibles para el usuario:
+// MAX/GODMODE → todos; PRO → solo los asignados; STARTER → [] (sin acceso)
+async function getCultosPermitidos(userId, iglesiaId, plan) {
+  if (plan === 'MAX' || plan === 'GODMODE') return null // null = sin filtro
+  if (plan === 'PRO') {
+    const rows = await pgMany(
+      'SELECT "cultoId" FROM "CultoAsignado" WHERE "userId"=$1 AND "iglesiaId"=$2',
+      [userId, iglesiaId]
+    )
+    return rows.map(r => r.cultoId)
+  }
+  return [] // STARTER no tiene acceso a cultos
+}
 
 router.get('/', requireAuth, async (req, res) => {
   const iglesiaId = Number(req.user.iglesiaId || 0)
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
   await ensureOperationalTenantDataSynced(iglesiaId)
 
-  const rows = await pgMany(
-    `SELECT c.*,
+  const plan = resolvePlan(req.user?.plan)
+  const permitidos = await getCultosPermitidos(req.user.id, iglesiaId, plan)
+
+  // STARTER no tiene acceso al módulo de asistencia — igual devuelve [] para no romper
+  if (Array.isArray(permitidos) && permitidos.length === 0 && plan === 'STARTER') {
+    return res.json([])
+  }
+
+  let query = `SELECT c.*,
             (SELECT COUNT(*)::int FROM "Asistencia" a WHERE a."cultoId"=c."id" AND a."presente"=true) AS "presentes",
             (SELECT COUNT(*)::int FROM "Asistencia" a WHERE a."cultoId"=c."id") AS "totalRegistrados"
        FROM "Culto" c
-      WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
-      ORDER BY c."fecha" DESC, c."id" DESC`,
-    [iglesiaId]
-  )
+      WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL`
+  const params = [iglesiaId]
+
+  if (Array.isArray(permitidos)) {
+    // PRO con cultos asignados
+    query += ` AND c."id" = ANY($2::int[])`
+    params.push(permitidos)
+  }
+
+  query += ` ORDER BY c."fecha" DESC, c."id" DESC`
+  const rows = await pgMany(query, params)
   res.json(rows)
 })
 
@@ -53,7 +82,9 @@ router.post('/', requireAuth, async (req, res) => {
 router.delete('/:id', requireAuth, async (req, res) => {
   const iglesiaId = Number(req.user.iglesiaId || 0)
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
-  if (!['PASTOR_GENERAL', 'PASTOR_CULTO'].includes(req.user.rol)) return res.status(403).json({ error: 'No autorizado' })
+  const plan = resolvePlan(req.user?.plan)
+  if (plan !== 'MAX' && !['PASTOR_GENERAL'].includes(req.user.rol))
+    return res.status(403).json({ error: 'Solo usuarios MAX pueden eliminar cultos' })
 
   const cultoId = Number(req.params.id)
   await pgExec('DELETE FROM "Asistencia" WHERE "cultoId"=$1 AND "iglesiaId"=$2', [cultoId, iglesiaId])
@@ -66,7 +97,18 @@ router.get('/:id/asistencia', requireAuth, async (req, res) => {
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
   await ensureOperationalTenantDataSynced(iglesiaId)
 
+  const plan = resolvePlan(req.user?.plan)
   const cultoId = Number(req.params.id)
+
+  // PRO solo puede acceder a sus cultos asignados
+  if (plan === 'PRO') {
+    const asignado = await pgOne(
+      'SELECT "id" FROM "CultoAsignado" WHERE "userId"=$1 AND "cultoId"=$2 AND "iglesiaId"=$3 LIMIT 1',
+      [req.user.id, cultoId, iglesiaId]
+    )
+    if (!asignado) return res.status(403).json({ error: 'No tenés acceso a este culto' })
+  }
+
   const culto = await pgOne(
     'SELECT * FROM "Culto" WHERE "id"=$1 AND "iglesiaId"=$2 AND "deletedAt" IS NULL LIMIT 1',
     [cultoId, iglesiaId]

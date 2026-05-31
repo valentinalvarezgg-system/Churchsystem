@@ -41,6 +41,8 @@ import stripeRouter from './routes/stripe.js'
 import paypalRouter from './routes/paypal.js'
 import transferenciaRouter from './routes/transferencia.js'
 import planRouter from './routes/plan.js'
+import cultoAsignacionesRouter from './routes/culto-asignaciones.js'
+import analyticsRouter from './routes/analytics.js'
 import iglesiaRouter from './routes/iglesia.js'
 import verificacionRouter from './routes/verificacion.js'
 import registroRouter from './routes/registro.js'
@@ -163,6 +165,8 @@ app.use('/mp', mpRouter)
 app.use('/stripe', stripeRouter)
 app.use('/paypal', paypalRouter)
 app.use('/transferencia', transferenciaRouter)
+app.use('/culto-asignaciones', cultoAsignacionesRouter)
+app.use('/analytics', analyticsRouter)
 app.use('/checkin', checkinRouter)
 app.use('/oracion', blockLegalModule, oracionRouter)
 app.use('/comunicados', comunicadosRouter)
@@ -197,7 +201,7 @@ if (fs.existsSync(distDir)) {
   app.use(express.static(distDir))
   app.get('*', (req, res) => {
     const isCheckinApi = /^\/checkin\/(token|info|registrar|descriptores)\//.test(req.path)
-    const isApi = isCheckinApi || /^\/(api|auth|personas|grupos|cultos|stats|alertas|mensajes|config|ia|fotos|export|finanzas|historial|reportes|discipulado|consolidacion|seguimiento|oracion|comunicados|eventos|backup|users|permisos|perfil|import|busqueda|mp|stripe|paypal|transferencia|plan|oauth|verificacion|iglesia|notificaciones|promo-codes|bug-report|mi-perfil|excel-ia|godmode)/.test(req.path)
+    const isApi = isCheckinApi || /^\/(api|auth|personas|grupos|cultos|stats|alertas|mensajes|config|ia|fotos|export|finanzas|historial|reportes|discipulado|consolidacion|seguimiento|oracion|comunicados|eventos|backup|users|permisos|perfil|import|busqueda|mp|stripe|paypal|transferencia|plan|oauth|verificacion|iglesia|notificaciones|promo-codes|bug-report|mi-perfil|excel-ia|godmode|culto-asignaciones|analytics)/.test(req.path)
     if (isApi) return res.status(404).json({ error: 'Ruta no encontrada' })
     return res.sendFile(path.join(distDir, 'index.html'))
   })
@@ -311,6 +315,23 @@ async function seedGodModeUser() {
 }
 
 await cargarConfigEnv()
+
+// Auto-crear tabla CultoAsignado si no existe (nueva en v2.8/block-05)
+try {
+  await import('./lib/pg.js').then(({ pgExec }) => pgExec(`
+    CREATE TABLE IF NOT EXISTS "CultoAsignado" (
+      "id"          SERIAL PRIMARY KEY,
+      "userId"      INTEGER NOT NULL,
+      "cultoId"     INTEGER NOT NULL,
+      "iglesiaId"   INTEGER NOT NULL,
+      "asignadoPor" INTEGER,
+      "createdAt"   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE ("userId","cultoId","iglesiaId")
+    )
+  `))
+} catch (err) {
+  logger.warn({ err: err.message }, 'CultoAsignado table init skipped')
+}
 
 seedAdmin().then(async () => {
   await seedGodModeUser()
