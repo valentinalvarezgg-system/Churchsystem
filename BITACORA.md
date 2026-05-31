@@ -1023,6 +1023,14 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
   - evitar salida por error duro de builds ignorados en CI.
   - mantener instalación compatible entre entorno local y GitHub Actions.
 
+### Refuerzo de configuración pnpm (CI)
+- Archivo actualizado: `frontend/package.json`
+- Sección agregada:
+  - `pnpm.onlyBuiltDependencies = ["esbuild"]`
+  - `pnpm.strictDepBuilds = false`
+- Motivo:
+  - asegurar que el allow-list de build scripts quede anclado en el manifiesto del proyecto frontend además de `.pnpmrc.yaml`, mejorando compatibilidad entre runners de CI.
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:
