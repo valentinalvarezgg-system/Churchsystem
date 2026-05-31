@@ -24,7 +24,7 @@ export default function GodModeLogin() {
       }
       localStorage.setItem('token', r.token)
       localStorage.setItem('user', JSON.stringify(r.user))
-      navigate('/vault')
+      navigate('/godmode')
     } catch (e2) { setErr(e2.message) }
     setLoading(false)
   }

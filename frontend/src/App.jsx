@@ -120,6 +120,7 @@ export default function App() {
           <Route path="/privacidad" element={<Privacidad />} />
           <Route path="/faq"        element={<FAQ />} />
           <Route path="/vault-login" element={<GodModeLogin />} />
+          <Route path="/godmode/login" element={<GodModeLogin />} />
 
           {/* App — rutas protegidas */}
           <Route path="/"              element={<ProtectedRoute roles={ALL}   element={<Dashboard />} />} />
@@ -148,6 +149,7 @@ export default function App() {
           <Route path="/users"         element={<ProtectedRoute roles={ADMIN} element={<Users />} />} />
           <Route path="/promo-codes"   element={<ProtectedRoute roles={['GODMODE']} element={<PromoCodes />} />} />
           <Route path="/vault"         element={<ProtectedRoute roles={['GODMODE']} element={<GodMode />} />} />
+          <Route path="/godmode"       element={<ProtectedRoute roles={['GODMODE']} element={<GodMode />} />} />
           <Route path="/historial"     element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="historial"><Historial /></UpgradeGate>} />} />
           <Route path="/analytics"    element={<ProtectedRoute roles={ALL}   element={<Analytics />} />} />
           <Route path="/planes"       element={<ProtectedRoute roles={ALL}   element={<Planes />} />} />

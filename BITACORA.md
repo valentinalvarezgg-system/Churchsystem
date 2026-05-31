@@ -1085,6 +1085,20 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
 - Beneficio:
   - evita errores recurrentes `base64: invalid input` por secretos mal serializados.
 
+### Fix GodMode routing (web/mobile)
+- Problema:
+  - acceso a GodMode redirigía al login normal cuando se usaba ruta `/godmode`.
+- Causa:
+  - frontend tenía rutas GodMode internas en `/vault-login` y `/vault`, sin alias `/godmode/*`.
+- Solución:
+  - `frontend/src/App.jsx`:
+    - agregado alias público `/godmode/login` → `GodModeLogin`.
+    - agregado alias protegido `/godmode` → `GodMode`.
+  - `frontend/src/pages/GodModeLogin.jsx`:
+    - navegación post-login ajustada de `/vault` a `/godmode`.
+- Verificación:
+  - `frontend pnpm build` ✅
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:
