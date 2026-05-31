@@ -256,13 +256,12 @@ export default function Menu() {
           {isAdmin && lnk('/premium', <Icons.Premium />, tt('executive'))}
           {lnk('/planes', <span style={{fontSize:14}}>★</span>, 'Planes')}
 
-          {/* STARTER — ver y agregar notas hasta discipulados */}
+          {/* STARTER — congregación básica + seguimiento y discipulado */}
           {isStarter && !isPro && <>
             <div className="nav-section">{tt('congregation')}</div>
             {lnk('/personas',      <Icons.Users />,      tt('people'))}
             {lnk('/grupos',        <Icons.Groups />,     tt('groups'))}
             {lnk('/comunicados',   <Icons.Comunicados />, tt('communications'))}
-            {lnk('/consolidacion', <Icons.Users />,      tt('consolidation'))}
             {lnk('/checkin',       <Icons.CheckIn />,    tt('checkin'))}
           </>}
 

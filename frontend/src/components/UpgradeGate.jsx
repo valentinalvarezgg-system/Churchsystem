@@ -7,12 +7,18 @@ const LABELS = {
   LIDER:'Starter', CULTO:'Starter', CONSOLIDACION:'Pro', ADMINISTRACION:'Pro', GENERAL:'Max',
 }
 const ORDER = ['STARTER','PRO','MAX']
+// Plan MÍNIMO que incluye cada módulo. DEBE coincidir con PLANES en backend/src/middlewares/plan.js
 const MOD_PLAN = {
-  asistencia:'STARTER', calendario:'STARTER', comunicados:'STARTER',
-  seguimiento:'PRO', consolidacion:'PRO', alertas:'PRO', mensajes:'PRO',
-  reportes:'PRO', historial:'PRO', users:'PRO', permisos:'PRO',
-  configuracion:'PRO', discipulado:'PRO', 'excel-ia':'PRO',
-  'asistente-ia':'MAX', premium:'MAX', backup:'MAX',
+  // STARTER (y por ende PRO/MAX)
+  dashboard:'STARTER', personas:'STARTER', grupos:'STARTER', perfil:'STARTER',
+  checkin:'STARTER', comunicados:'STARTER', seguimiento:'STARTER',
+  discipulado:'STARTER', analytics:'STARTER',
+  // PRO (y MAX)
+  asistencia:'PRO', calendario:'PRO', mensajes:'PRO', alertas:'PRO',
+  reportes:'PRO', historial:'PRO', consolidacion:'PRO', configuracion:'PRO',
+  // MAX solamente
+  users:'MAX', permisos:'MAX', 'excel-ia':'MAX', 'asistente-ia':'MAX',
+  backup:'MAX', premium:'MAX',
 }
 
 export default function UpgradeGate({ modulo, children }) {
