@@ -1132,6 +1132,19 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
 - Conclusión:
   - aislamiento por tenant activo y efectivo para datos de personas.
 
+### Update Landing v2.8.2 (alineación producto real)
+- Archivo actualizado: `landing/index.html`
+- Cambios principales:
+  - badge/hero/claims actualizados a estado real `v2.8.2`.
+  - propuesta de valor alineada a SaaS multi-tenant + onboarding guiado + acceso por roles.
+  - métricas del hero actualizadas (22 módulos, 3 planes productivos, web/mobile).
+  - sección de precios migrada de 5 planes legacy a 3 planes actuales:
+    - `STARTER`, `PRO`, `MAX`.
+  - links de registro por plan actualizados (`?plan=starter|pro|max`).
+  - tabla de precios JS (`PRICES`) simplificada al modelo vigente.
+  - traducciones ES/PT/EN actualizadas para nuevos planes y mensajes clave.
+  - footer versionado a `v2.8.2`.
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:
