@@ -84,6 +84,7 @@ const allowedOrigins = [
   ...originEnv,
 ]
 
+app.set('trust proxy', 1) // Cloudflare Tunnel pasa X-Forwarded-For — necesario para rate-limit y logs de IP reales
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }))
 app.use(cors({
   origin: (origin, cb) => {
@@ -179,7 +180,7 @@ app.use('/webhooks', resendInboundRouter)
 app.use('/verificacion', verificacionRouter)
 app.use('/plan', planRouter)
 app.use('/iglesia', iglesiaRouter)
-app.use('/api', subscriptionsRouter)
+app.use('/', subscriptionsRouter)
 
 const distDir = path.join(process.cwd(), '..', 'frontend', 'dist')
 const landingFile = path.join(process.cwd(), '..', 'landing', 'index.html')
@@ -368,4 +369,14 @@ process.on('SIGINT', () => {
 process.on('SIGTERM', () => {
   logger.info('Shutting down SIGTERM')
   process.exit(0)
+})
+
+// Red de seguridad: un error async no manejado NO debe tumbar el proceso.
+// Se loguea y el servidor sigue vivo (launchd igual lo reiniciaría, pero esto evita el downtime).
+process.on('unhandledRejection', (reason) => {
+  logger.error({ reason: reason?.message || String(reason), stack: reason?.stack }, 'Unhandled promise rejection — proceso continúa')
+})
+
+process.on('uncaughtException', (err) => {
+  logger.error({ err: err.message, stack: err.stack }, 'Uncaught exception — proceso continúa')
 })

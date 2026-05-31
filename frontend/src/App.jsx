@@ -39,6 +39,8 @@ const PromoCodes       = lazy(() => import('./pages/PromoCodes.jsx'))
 const GodMode          = lazy(() => import('./pages/GodMode.jsx'))
 const GodModeLogin     = lazy(() => import('./pages/GodModeLogin.jsx'))
 const Analytics        = lazy(() => import('./pages/Analytics.jsx'))
+const Planes           = lazy(() => import('./pages/Planes.jsx'))
+const RecuperarPassword = lazy(() => import('./pages/RecuperarPassword.jsx'))
 
 const ALL   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF','LIDER']
 const MID   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF']
@@ -77,6 +79,12 @@ function useSetupCheck() {
 
   useEffect(() => {
     if (!user || user.rol !== 'PASTOR_GENERAL') { setCheckeado(true); return }
+    const forced = localStorage.getItem('church_force_setup') === '1'
+    if (forced) {
+      setMostrarWizard(true)
+      setCheckeado(true)
+      return
+    }
     apiFetch('/config')
       .then(cfg => {
         const completado  = cfg.setup_completado === '1' || cfg.setup_completado === true
@@ -102,7 +110,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       {checkeado && mostrarWizard && (
-        <SetupWizard onCompleto={() => setMostrarWizard(false)} />
+        <SetupWizard onCompleto={() => { localStorage.removeItem('church_force_setup'); setMostrarWizard(false) }} />
       )}
 
       {isLoggedIn && !mostrarWizard && <BannerNotificaciones />}
@@ -112,11 +120,20 @@ export default function App() {
           {/* Rutas públicas */}
           <Route path="/checkin/:cultoId/:token" element={<CheckInPublico />} />
           <Route path="/login"      element={<Login />} />
+          <Route path="/app/login"  element={<Login />} />
           <Route path="/registro"   element={<Registro />} />
+          <Route path="/app/registro" element={<Registro />} />
+          <Route path="/recuperar"  element={<RecuperarPassword />} />
+          <Route path="/app/recuperar" element={<RecuperarPassword />} />
           <Route path="/terminos"   element={<Terminos />} />
+          <Route path="/app/terminos" element={<Terminos />} />
           <Route path="/privacidad" element={<Privacidad />} />
+          <Route path="/app/privacidad" element={<Privacidad />} />
           <Route path="/faq"        element={<FAQ />} />
+          <Route path="/app/faq"    element={<FAQ />} />
           <Route path="/vault-login" element={<GodModeLogin />} />
+          <Route path="/godmode/login" element={<GodModeLogin />} />
+          <Route path="/app/godmode/login" element={<GodModeLogin />} />
 
           {/* App — rutas protegidas */}
           <Route path="/"              element={<ProtectedRoute roles={ALL}   element={<Dashboard />} />} />
@@ -145,8 +162,10 @@ export default function App() {
           <Route path="/users"         element={<ProtectedRoute roles={ADMIN} element={<Users />} />} />
           <Route path="/promo-codes"   element={<ProtectedRoute roles={['GODMODE']} element={<PromoCodes />} />} />
           <Route path="/vault"         element={<ProtectedRoute roles={['GODMODE']} element={<GodMode />} />} />
+          <Route path="/godmode"       element={<ProtectedRoute roles={['GODMODE']} element={<GodMode />} />} />
           <Route path="/historial"     element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="historial"><Historial /></UpgradeGate>} />} />
           <Route path="/analytics"    element={<ProtectedRoute roles={ALL}   element={<Analytics />} />} />
+          <Route path="/planes"       element={<ProtectedRoute roles={ALL}   element={<Planes />} />} />
           <Route path="*"              element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

@@ -1,0 +1,211 @@
+{
+  "folders": [
+    {
+      "name": "🏠 Raíz",
+      "path": "."
+    },
+    {
+      "name": "⚙️  Backend",
+      "path": "backend"
+    },
+    {
+      "name": "🎨 Frontend",
+      "path": "frontend"
+    },
+    {
+      "name": "🏗️  Landing",
+      "path": "landing"
+    }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.rulers": [100],
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/.git": true,
+      "**/dist": false,
+      "**/.claude": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/.claude": true
+    },
+    "emmet.includeLanguages": {
+      "javascript": "javascriptreact"
+    },
+    "javascript.preferences.importModuleSpecifier": "relative",
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[json]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "eslint.workingDirectories": ["backend", "frontend"],
+    "prettier.singleQuote": true,
+    "prettier.semi": false,
+    "prettier.trailingComma": "es5",
+    "prettier.printWidth": 100,
+    "docker.defaultRegistryPath": "ghcr.io",
+    "thunder-client.workspaceRelativePath": ".vscode/thunder-tests"
+  },
+  "extensions": {
+    "recommendations": [
+      "esbenp.prettier-vscode",
+      "dbaeumer.vscode-eslint",
+      "christian-kohler.npm-intellisense",
+      "formulahendry.auto-rename-tag",
+      "ms-azuretools.vscode-containers",
+      "qwtel.sqlite-viewer",
+      "rangav.vscode-thunder-client",
+      "editorconfig.editorconfig",
+      "streetsidesoftware.code-spell-checker",
+      "streetsidesoftware.code-spell-checker-spanish",
+      "eamodio.gitlens",
+      "usernamehw.errorlens",
+      "PKief.material-icon-theme"
+    ],
+    "unwantedRecommendations": []
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "🟢 Backend: Node debug",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder:⚙️  Backend}",
+        "program": "${workspaceFolder:⚙️  Backend}/src/server.js",
+        "runtimeExecutable": "node",
+        "envFile": "${workspaceFolder:⚙️  Backend}/.env",
+        "env": {
+          "NODE_ENV": "development",
+          "PORT": "4000"
+        },
+        "skipFiles": ["<node_internals>/**"],
+        "restart": true,
+        "console": "integratedTerminal"
+      },
+      {
+        "name": "🎨 Frontend: Chrome",
+        "type": "pwa-chrome",
+        "request": "launch",
+        "url": "http://localhost:5173",
+        "webRoot": "${workspaceFolder:🎨 Frontend}/src"
+      },
+      {
+        "name": "🔍 Auditoría integral",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder:🏠 Raíz}",
+        "program": "${workspaceFolder:🏠 Raíz}/scripts/audit.mjs",
+        "console": "integratedTerminal"
+      }
+    ],
+    "compounds": [
+      {
+        "name": "🚀 App completa (backend + frontend)",
+        "configurations": ["🟢 Backend: Node debug", "🎨 Frontend: Chrome"],
+        "stopAll": true
+      }
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "▶ backend: dev",
+        "type": "shell",
+        "command": "pnpm dev",
+        "options": { "cwd": "${workspaceFolder:⚙️  Backend}" },
+        "isBackground": true,
+        "group": "build",
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "dedicated" }
+      },
+      {
+        "label": "▶ frontend: dev",
+        "type": "shell",
+        "command": "pnpm dev",
+        "options": { "cwd": "${workspaceFolder:🎨 Frontend}" },
+        "isBackground": true,
+        "group": "build",
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "dedicated" }
+      },
+      {
+        "label": "🔨 frontend: build",
+        "type": "shell",
+        "command": "pnpm build",
+        "options": { "cwd": "${workspaceFolder:🎨 Frontend}" },
+        "group": { "kind": "build", "isDefault": true },
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "shared" }
+      },
+      {
+        "label": "🔍 Auditoría integral",
+        "type": "shell",
+        "command": "node scripts/audit.mjs",
+        "options": { "cwd": "${workspaceFolder:🏠 Raíz}" },
+        "group": "test",
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "shared" }
+      },
+      {
+        "label": "🐳 docker: dev up",
+        "type": "shell",
+        "command": "docker compose --profile dev up -d",
+        "options": { "cwd": "${workspaceFolder:🏠 Raíz}" },
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "shared" }
+      },
+      {
+        "label": "🐳 docker: dev down",
+        "type": "shell",
+        "command": "docker compose down",
+        "options": { "cwd": "${workspaceFolder:🏠 Raíz}" },
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "shared" }
+      },
+      {
+        "label": "🐳 docker: prod build & up",
+        "type": "shell",
+        "command": "docker compose --profile prod up -d --build",
+        "options": { "cwd": "${workspaceFolder:🏠 Raíz}" },
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "shared" }
+      },
+      {
+        "label": "📦 backend: install",
+        "type": "shell",
+        "command": "pnpm install",
+        "options": { "cwd": "${workspaceFolder:⚙️  Backend}" },
+        "problemMatcher": [],
+        "presentation": { "reveal": "silent", "panel": "shared" }
+      },
+      {
+        "label": "📦 frontend: install",
+        "type": "shell",
+        "command": "pnpm install",
+        "options": { "cwd": "${workspaceFolder:🎨 Frontend}" },
+        "problemMatcher": [],
+        "presentation": { "reveal": "silent", "panel": "shared" }
+      },
+      {
+        "label": "🔄 backend: restart launchd",
+        "type": "shell",
+        "command": "launchctl unload ~/Library/LaunchAgents/com.churchsystem.backend.plist && launchctl load ~/Library/LaunchAgents/com.churchsystem.backend.plist",
+        "problemMatcher": [],
+        "presentation": { "reveal": "always", "panel": "shared" }
+      }
+    ]
+  }
+}

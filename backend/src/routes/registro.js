@@ -5,7 +5,7 @@ import crypto from 'crypto'
 import logger from '../lib/logger.js'
 import { pgExec, pgOne } from '../lib/pg.js'
 import { getPlanPrice, normalizeCountry, normalizeLanguage, normalizePlan, PLANES } from '../lib/billing.js'
-import { sendNotificationEmail } from '../lib/email.js'
+import { sendNotificationEmail, sendSystemEmail, buildSystemEmail } from '../lib/email.js'
 
 const router = Router()
 
@@ -36,6 +36,26 @@ async function ensureRoleId(codigo = 'PASTOR_GENERAL') {
     [codigo, codigo.replace(/_/g, ' ')]
   )
   return row.id
+}
+
+async function issueVerificationCode(userId, email, nombre = '') {
+  const codigo = Math.floor(100000 + Math.random() * 900000).toString()
+  const expira = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+  await pgExec(
+    'UPDATE "User" SET "codigoVerif"=$1, "codigoExpira"=$2, "codigoContexto"=$3, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$4',
+    [codigo, expira, 'EMAIL_VERIFY', userId]
+  )
+  const envio = await sendSystemEmail({
+    to: email,
+    subject: 'Verificá tu cuenta - Church System',
+    html: buildSystemEmail({
+      title: 'Código de verificación',
+      intro: `Hola ${nombre || 'Pastor'}, este es tu código de verificación:`,
+      lines: [`Código: ${codigo}`, 'Expira en 15 minutos.'],
+    }),
+    text: `Tu código de verificación es ${codigo}. Expira en 15 minutos.`,
+  })
+  return { envio, codigo }
 }
 
 router.post('/crear', async (req, res) => {
@@ -139,7 +159,9 @@ router.post('/crear', async (req, res) => {
       actionLabel: 'Abrir panel',
     }).catch(() => {})
 
-    return res.json({
+    const verify = await issueVerificationCode(created.id, created.email, created.nombre).catch(err => ({ envio: { error: true, message: err?.message || 'verify_send_failed' } }))
+
+    const response = {
       ok: true,
       tenantId,
       token,
@@ -152,7 +174,12 @@ router.post('/crear', async (req, res) => {
       },
       billing: { country: countryInfo.code, currency: price.currency, price: price.amount, promo: promoCode?.code || null },
       iglesiaToken: iglesia.token,
-    })
+    }
+    if (verify?.envio?.error && process.env.NODE_ENV !== 'production') {
+      response.codigoVerificacionDev = verify.codigo
+      response.aviso = 'No se pudo enviar email de verificación en entorno local'
+    }
+    return res.json(response)
   } catch (err) {
     logger.error({ err: err.message, tenantId }, 'Registro error')
     return res.status(500).json({ error: `Error al crear la cuenta: ${err.message}` })
@@ -169,4 +196,3 @@ router.get('/verificar/:tenantId', async (req, res) => {
 })
 
 export default router
-

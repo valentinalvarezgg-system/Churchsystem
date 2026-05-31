@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch, getApiUrl, getStoredContext, decodeJwt, syncContextFromUser } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 import { authCopy } from '../utils/i18n-auth.js'
+import { APP_VERSION_LABEL } from '../version.js'
 
 const S = {
   bg: { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
@@ -90,6 +91,9 @@ export default function Login() {
       const error = searchParams.get('error')
       if (token) {
         localStorage.setItem('token', token)
+        if (searchParams.get('setup') === '1') {
+          localStorage.setItem('church_force_setup', '1')
+        }
         try {
           const user = await apiFetch('/auth/me')
           localStorage.setItem('user', JSON.stringify(user))
@@ -153,7 +157,7 @@ export default function Login() {
             </svg>
           </div>
           <h1 style={S.h1}>Church System</h1>
-          <p style={S.sub}>v2.6.0 · {t('subtitle')}</p>
+          <p style={S.sub}>{APP_VERSION_LABEL} · {t('subtitle')}</p>
         </div>
 
         {/* OAuth primero — más prominente */}
@@ -223,7 +227,13 @@ export default function Login() {
           </button>
         </form>
 
-        <p style={{textAlign:'center',fontSize:14,color:'#64748B',margin:'20px 0 0'}}>
+        <p style={{textAlign:'center',margin:'14px 0 0'}}>
+          <a href={`/app/recuperar?${ctxQuery}`} style={{...S.footerLink, fontSize:13}}>
+            ¿Olvidaste tu contraseña?
+          </a>
+        </p>
+
+        <p style={{textAlign:'center',fontSize:14,color:'#64748B',margin:'14px 0 0'}}>
           {t('noAccount')}{' '}
           <a href={registroHref} style={S.link}>{t('signup')}</a>
         </p>

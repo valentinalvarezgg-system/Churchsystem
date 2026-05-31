@@ -73,6 +73,7 @@ function signSession(user) {
 async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '', emailVerified = true, frontUrl = process.env.FRONTEND_URL || process.env.BASE_URL || '' }) {
   const normalizedEmail = String(email || '').toLowerCase()
   let user = await pgOne('SELECT * FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [normalizedEmail])
+  let createdNow = false
 
   if (!user) {
     const role = await pgOne(
@@ -95,6 +96,7 @@ async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '',
       [nombre || normalizedEmail, normalizedEmail, '', !!emailVerified, expira, provider, providerId, iglesia.id, role.id]
     )
     user = await pgOne('SELECT * FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [normalizedEmail])
+    createdNow = true
     await sendNotificationEmail({
       to: normalizedEmail,
       subject: 'Registro exitoso - Church System',
@@ -111,7 +113,7 @@ async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '',
     user = await pgOne('SELECT * FROM "User" WHERE "id"=$1 LIMIT 1', [user.id])
   }
 
-  return user
+  return { user, createdNow }
 }
 
 // ── Google OAuth ─────────────────────────────────────────────────────────────
@@ -164,7 +166,7 @@ router.get('/google/callback', async (req, res) => {
     const info = await infoRes.json()
     if (!info.email) return res.redirect(`${front}/app/login?error=oauth_failed`)
 
-    const user = await findOrCreateOAuthUser({
+    const { user, createdNow } = await findOrCreateOAuthUser({
       provider: 'google',
       providerId: info.id,
       email: info.email,
@@ -176,7 +178,8 @@ router.get('/google/callback', async (req, res) => {
     if (!user.activo) return res.redirect(`${front}/app/login?error=account_disabled`)
 
     const token = signSession(user)
-    res.redirect(`${front}/app/login?token=${token}`)
+    const setup = createdNow ? '&setup=1' : ''
+    res.redirect(`${front}/app/login?token=${token}${setup}`)
 
   } catch(err) {
     logger.error({ err: err?.message }, 'OAuth Google error')
@@ -257,7 +260,7 @@ router.post('/apple/callback', async (req, res) => {
     if (!info?.email || info.aud !== clientId)
       return res.redirect(`${frontUrl}/app/login?error=oauth_failed`)
 
-    const user = await findOrCreateOAuthUser({
+    const { user, createdNow } = await findOrCreateOAuthUser({
       provider: 'apple',
       providerId: info.sub,
       email: info.email,
@@ -268,7 +271,8 @@ router.post('/apple/callback', async (req, res) => {
 
     if (!user.activo) return res.redirect(`${frontUrl}/app/login?error=account_disabled`)
     const token = signSession(user)
-    res.redirect(`${frontUrl}/app/login?token=${token}`)
+    const setup = createdNow ? '&setup=1' : ''
+    res.redirect(`${frontUrl}/app/login?token=${token}${setup}`)
   } catch (err) {
     logger.error({ err: err?.message }, 'OAuth Apple error')
     res.redirect(`${frontUrl}/app/login?error=oauth_failed`)

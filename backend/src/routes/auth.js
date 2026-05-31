@@ -6,7 +6,7 @@ import logger from '../lib/logger.js'
 import { pgExec, pgOne } from '../lib/pg.js'
 import { registrar } from '../utils/auditoria.js'
 import { normalizeCountry, normalizeLanguage, normalizePlan } from '../lib/billing.js'
-import { sendNotificationEmail } from '../lib/email.js'
+import { sendNotificationEmail, sendSystemEmail, buildSystemEmail } from '../lib/email.js'
 
 const router = Router()
 const failed = new Map()
@@ -128,6 +128,26 @@ async function marcarPromoUsada(promo) {
     'UPDATE "promo_codes" SET "usos"=$1,"usado"=$2 WHERE "id"=$3',
     [usos, maxUsos > 0 && usos >= maxUsos ? 1 : 0, promo.id]
   )
+}
+
+async function issueVerificationCode(userId, email, nombre = '') {
+  const codigo = Math.floor(100000 + Math.random() * 900000).toString()
+  const expira = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+  await pgExec(
+    'UPDATE "User" SET "codigoVerif"=$1, "codigoExpira"=$2, "codigoContexto"=$3, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$4',
+    [codigo, expira, 'EMAIL_VERIFY', userId]
+  )
+  const envio = await sendSystemEmail({
+    to: email,
+    subject: 'Verificá tu cuenta - Church System',
+    html: buildSystemEmail({
+      title: 'Código de verificación',
+      intro: `Hola ${nombre || 'Pastor'}, este es tu código de verificación:`,
+      lines: [`Código: ${codigo}`, 'Expira en 15 minutos.'],
+    }),
+    text: `Tu código de verificación es ${codigo}. Expira en 15 minutos.`,
+  })
+  return { envio, codigo }
 }
 
 router.post('/login', async (req, res) => {
@@ -265,7 +285,14 @@ router.post('/registro', async (req, res) => {
       actionLabel: 'Ingresar',
     }).catch(() => {})
 
-    return res.json({ token: session.accessToken, refreshToken: session.refreshToken, expiresIn: session.expiresIn, user: session.user })
+    const verify = await issueVerificationCode(created.id, email.toLowerCase(), nombre).catch(err => ({ envio: { error: true, message: err?.message || 'verify_send_failed' } }))
+
+    const response = { token: session.accessToken, refreshToken: session.refreshToken, expiresIn: session.expiresIn, user: session.user }
+    if (verify?.envio?.error && process.env.NODE_ENV !== 'production') {
+      response.codigoVerificacionDev = verify.codigo
+      response.aviso = 'No se pudo enviar email de verificación en entorno local'
+    }
+    return res.json(response)
   } catch (error) {
     logger.error({ err: error?.message }, 'Error en registro')
     return res.status(500).json({ error: 'Error al crear la cuenta' })
@@ -310,6 +337,102 @@ router.post('/logout-all', async (req, res) => {
     return res.json({ ok: true })
   } catch {
     return res.status(401).json({ error: 'Token inválido' })
+  }
+})
+
+// ── Recupero de contraseña (público, sin login) ──────────────────────
+// POST /auth/forgot-password → genera código de 6 dígitos y lo manda por email
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase()
+    if (!email) return res.status(400).json({ error: 'Email requerido' })
+
+    const user = await pgOne(
+      'SELECT * FROM "User" WHERE lower("email")=lower($1) AND "deletedAt" IS NULL LIMIT 1',
+      [email]
+    )
+
+    // Respuesta neutra: no revelar si el email existe o no (anti-enumeración)
+    const respuestaNeutra = { ok: true, mensaje: 'Si el email está registrado, vas a recibir un código.' }
+    if (!user) return res.json(respuestaNeutra)
+
+    const codigo = Math.floor(100000 + Math.random() * 900000).toString()
+    const expira = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+    await pgExec(
+      'UPDATE "User" SET "codigoVerif"=$1, "codigoExpira"=$2, "codigoContexto"=$3, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$4',
+      [codigo, expira, 'PASSWORD_RESET', user.id]
+    )
+
+    const envio = await sendSystemEmail({
+      to: email,
+      subject: 'Recuperá tu contraseña - Church System',
+      html: buildSystemEmail({
+        title: 'Recuperación de contraseña',
+        intro: `Hola ${user.nombre || ''}, recibimos un pedido para restablecer tu contraseña. Usá este código:`,
+        lines: [`Código: ${codigo}`, 'Expira en 15 minutos.', 'Si no fuiste vos, ignorá este email.'],
+      }),
+      text: `Tu código para recuperar la contraseña: ${codigo} (expira en 15 minutos)`,
+    })
+    if (envio?.error) {
+      logger.error({ err: envio.message }, 'Error enviando email de recupero')
+      if (process.env.NODE_ENV !== 'production') return res.json({ ...respuestaNeutra, codigoDev: codigo })
+      return res.status(500).json({ error: 'No se pudo enviar el email' })
+    }
+    return res.json(respuestaNeutra)
+  } catch (err) {
+    logger.error({ err: err.message }, 'forgot-password falló')
+    return res.status(500).json({ error: 'Error procesando la solicitud' })
+  }
+})
+
+// POST /auth/reset-password → valida código y setea nueva contraseña
+router.post('/reset-password', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase()
+    const codigo = String(req.body?.codigo || '').trim()
+    const password = String(req.body?.password || '')
+
+    if (!email || !codigo || !password) {
+      return res.status(400).json({ error: 'Email, código y nueva contraseña son requeridos' })
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' })
+    }
+
+    const user = await pgOne(
+      'SELECT * FROM "User" WHERE lower("email")=lower($1) AND "deletedAt" IS NULL LIMIT 1',
+      [email]
+    )
+    if (!user) return res.status(400).json({ error: 'Código inválido o expirado' })
+    if (user.codigoContexto !== 'PASSWORD_RESET') {
+      return res.status(400).json({ error: 'Código inválido o expirado' })
+    }
+    if (!user.codigoExpira || new Date(user.codigoExpira) < new Date()) {
+      return res.status(400).json({ error: 'El código expiró. Pedí uno nuevo.' })
+    }
+    if (String(user.codigoVerif || '') !== codigo) {
+      return res.status(400).json({ error: 'Código incorrecto' })
+    }
+
+    const hash = await bcrypt.hash(password, 10)
+    await pgExec(
+      'UPDATE "User" SET "password"=$1, "codigoVerif"=NULL, "codigoExpira"=NULL, "codigoContexto"=NULL, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$2',
+      [hash, user.id]
+    )
+
+    // Email de aviso de seguridad (no bloquea la respuesta si falla)
+    sendNotificationEmail({
+      to: email,
+      subject: 'Tu contraseña fue cambiada - Church System',
+      title: 'Contraseña actualizada',
+      intro: 'Tu contraseña se cambió correctamente. Si no fuiste vos, contactá a soporte de inmediato.',
+      lines: ['Fecha: ' + new Date().toLocaleString('es-AR')],
+    }).catch(() => {})
+
+    return res.json({ ok: true, mensaje: 'Contraseña actualizada. Ya podés iniciar sesión.' })
+  } catch (err) {
+    logger.error({ err: err.message }, 'reset-password falló')
+    return res.status(500).json({ error: 'Error procesando la solicitud' })
   }
 })
 

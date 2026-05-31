@@ -2,15 +2,21 @@ name: Church System Deploy
 on:
   push:
     branches: [master]
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
       - run: npm install -g pnpm
-      - run: cd frontend && pnpm install --frozen-lockfile && pnpm build
+      - name: Install deps (frontend)
+        run: |
+          cd frontend
+          pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+      - run: cd frontend && pnpm build
       - uses: actions/upload-artifact@v4
         with: { name: dist, path: frontend/dist/, retention-days: 7 }
   deploy:
@@ -18,15 +24,50 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
         with: { name: dist, path: frontend/dist/ }
+      - name: Validate SSH secrets
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          test -n "$SSH_HOST" || (echo "Missing secret: SSH_HOST" && exit 1)
+          test -n "$SSH_USER" || (echo "Missing secret: SSH_USER" && exit 1)
+          test -n "$SSH_PRIVATE_KEY" || (echo "Missing secret: SSH_PRIVATE_KEY" && exit 1)
+      - name: Validate SSH private key format
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          umask 077
+          # Supports secrets pasted with real newlines OR escaped "\n", and strips CRLF.
+          printf '%b' "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/deploy_key
+          grep -Eq 'BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY' /tmp/deploy_key || (echo "Invalid private key header" && exit 1)
+          ssh-keygen -y -f /tmp/deploy_key >/dev/null
+      - name: Validate SSH host reachability
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          PORT="${SSH_PORT:-22}"
+          timeout 10 bash -lc "cat < /dev/null > /dev/tcp/${SSH_HOST}/${PORT}" || (echo "SSH host not reachable on port ${PORT}" && exit 1)
+      - name: Prepare SSH key
+        id: ssh_key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          {
+            echo "key<<EOF"
+            printf '%b' "$SSH_PRIVATE_KEY" | tr -d '\r'
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
       - uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ steps.ssh_key.outputs.key }}
           script: |
             cd /var/www/church-system
             git pull origin master

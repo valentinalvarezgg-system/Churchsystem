@@ -11,6 +11,7 @@ import { Router } from 'express'
 import { pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { resolvePlan } from '../middlewares/plan.js'
+import logger from '../lib/logger.js'
 
 const router = Router()
 
@@ -29,6 +30,7 @@ function weekLabels(n) {
 
 // ── GET /analytics/resumen ──────────────────────────────────────────
 router.get('/resumen', requireAuth, async (req, res) => {
+ try {
   const iglesiaId = Number(req.user.iglesiaId)
   const plan = resolvePlan(req.user?.plan || 'STARTER')
   const userId = Number(req.user.id)
@@ -40,18 +42,18 @@ router.get('/resumen', requireAuth, async (req, res) => {
     pgOne('SELECT COUNT(*)::int AS c FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "estado"=\'VISITANTE\'', [iglesiaId]),
     pgOne('SELECT COUNT(*)::int AS c FROM "Grupo" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId]),
     pgOne(`SELECT COUNT(*)::int AS c FROM "Seguimiento" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
-           AND "fecha" >= NOW() - INTERVAL '30 days'`, [iglesiaId]),
+           AND "createdAt" >= NOW() - INTERVAL '30 days'`, [iglesiaId]),
   ])
 
   // Seguimiento trend últimas 8 semanas
   const seguimientoTrend = await pgMany(
-    `SELECT TO_CHAR(DATE_TRUNC('week', "fecha"), 'DD/MM') AS semana,
+    `SELECT TO_CHAR(DATE_TRUNC('week', "createdAt"), 'DD/MM') AS semana,
             COUNT(*)::int AS total
        FROM "Seguimiento"
       WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
-        AND "fecha" >= NOW() - INTERVAL '8 weeks'
-      GROUP BY DATE_TRUNC('week', "fecha")
-      ORDER BY DATE_TRUNC('week', "fecha")`,
+        AND "createdAt" >= NOW() - INTERVAL '8 weeks'
+      GROUP BY DATE_TRUNC('week', "createdAt")
+      ORDER BY DATE_TRUNC('week', "createdAt")`,
     [iglesiaId]
   )
 
@@ -83,7 +85,7 @@ router.get('/resumen', requireAuth, async (req, res) => {
         AND NOT EXISTS (
           SELECT 1 FROM "Seguimiento" s
            WHERE s."personaId"=p."id" AND s."deletedAt" IS NULL
-             AND s."fecha" >= NOW() - INTERVAL '30 days'
+             AND s."createdAt" >= NOW() - INTERVAL '30 days'
         )`,
     [iglesiaId]
   )
@@ -151,7 +153,7 @@ router.get('/resumen', requireAuth, async (req, res) => {
 
   // Asistencia trend — últimos 8 cultos (accesibles)
   const asistenciaTrend = await pgMany(
-    `SELECT TO_CHAR(c."fecha",'DD/MM') AS fecha,
+    `SELECT TO_CHAR(c."fecha"::date,'DD/MM') AS fecha,
             COUNT(a."id") FILTER (WHERE a."presente"=true)::int AS presentes,
             COUNT(a."id")::int AS total
        FROM "Culto" c
@@ -187,7 +189,7 @@ router.get('/resumen', requireAuth, async (req, res) => {
   // Mensajes enviados últimos 30 días
   const mensajesMes = await pgOne(
     `SELECT COUNT(*)::int AS c FROM "Mensaje"
-      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
+      WHERE "iglesiaId"=$1
         AND "createdAt" >= NOW() - INTERVAL '30 days'`,
     [iglesiaId]
   )
@@ -227,6 +229,10 @@ router.get('/resumen', requireAuth, async (req, res) => {
   }
 
   return res.json({ plan, ...starter, ...pro, ...max })
+ } catch (err) {
+  logger.error({ err: err.message, stack: err.stack }, 'Error en /analytics/resumen')
+  return res.status(500).json({ error: 'Error al cargar analytics', detalle: err.message })
+ }
 })
 
 export default router
