@@ -989,12 +989,15 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
 - Archivo: `.github/workflows/deploy.yml`
 - Ajustes:
   - `node-version` de CI actualizado `20` → `22` (reducción de riesgo por deprecación Node 20 en Actions).
-  - job `deploy` condicionado a secretos SSH presentes:
-    - `secrets.SSH_HOST`
-    - `secrets.SSH_USER`
-    - `secrets.SSH_PRIVATE_KEY`
+  - corrección de sintaxis de workflow: se quitó validación `secrets.*` del `if` del job (inválida en esa expresión).
+  - se agregó paso explícito `Validate SSH secrets` antes de `appleboy/ssh-action`:
+    - valida `SSH_HOST`
+    - valida `SSH_USER`
+    - valida `SSH_PRIVATE_KEY`
+    - falla con mensaje claro si falta alguno.
 - Resultado esperado:
-  - si faltan secretos SSH, `build` sigue verde y `deploy` no rompe el pipeline.
+  - workflow válido (sin error de parseo).
+  - si faltan secretos SSH, falla con diagnóstico explícito.
   - si están completos, `deploy` ejecuta normalmente por SSH.
 
 ### Documentación de seguridad (GitHub)
