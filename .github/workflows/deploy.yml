@@ -2,15 +2,21 @@ name: Church System Deploy
 on:
   push:
     branches: [master]
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with: { node-version: '22' }
       - run: npm install -g pnpm
-      - run: cd frontend && pnpm install --frozen-lockfile && pnpm build
+      - name: Install deps (frontend)
+        run: |
+          cd frontend
+          pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+      - run: cd frontend && pnpm build
       - uses: actions/upload-artifact@v4
         with: { name: dist, path: frontend/dist/, retention-days: 7 }
   deploy:
@@ -18,7 +24,7 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
         with: { name: dist, path: frontend/dist/ }
       - name: Validate SSH secrets

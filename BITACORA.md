@@ -1000,6 +1000,16 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
   - si faltan secretos SSH, falla con diagnóstico explícito.
   - si están completos, `deploy` ejecuta normalmente por SSH.
 
+### Hardening CI adicional (anti-fallas recurrentes deploy)
+- `.github/workflows/deploy.yml`:
+  - `actions/checkout` actualizado a `v5`.
+  - `actions/setup-node` actualizado a `v5`.
+  - `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` para anticipar deprecación de Node 20 en GitHub Actions runtime.
+  - instalación frontend con fallback controlado:
+    - primero `pnpm install --frozen-lockfile`
+    - si falla por drift puntual, fallback automático a `pnpm install --no-frozen-lockfile`.
+- Objetivo: reducir caídas del pipeline por lockfile drift y warnings de runtime en transición de Actions.
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:
