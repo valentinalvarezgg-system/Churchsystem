@@ -40,18 +40,18 @@ router.get('/resumen', requireAuth, async (req, res) => {
     pgOne('SELECT COUNT(*)::int AS c FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "estado"=\'VISITANTE\'', [iglesiaId]),
     pgOne('SELECT COUNT(*)::int AS c FROM "Grupo" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId]),
     pgOne(`SELECT COUNT(*)::int AS c FROM "Seguimiento" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
-           AND "fecha" >= NOW() - INTERVAL '30 days'`, [iglesiaId]),
+           AND "createdAt" >= NOW() - INTERVAL '30 days'`, [iglesiaId]),
   ])
 
   // Seguimiento trend últimas 8 semanas
   const seguimientoTrend = await pgMany(
-    `SELECT TO_CHAR(DATE_TRUNC('week', "fecha"), 'DD/MM') AS semana,
+    `SELECT TO_CHAR(DATE_TRUNC('week', "createdAt"), 'DD/MM') AS semana,
             COUNT(*)::int AS total
        FROM "Seguimiento"
       WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
-        AND "fecha" >= NOW() - INTERVAL '8 weeks'
-      GROUP BY DATE_TRUNC('week', "fecha")
-      ORDER BY DATE_TRUNC('week', "fecha")`,
+        AND "createdAt" >= NOW() - INTERVAL '8 weeks'
+      GROUP BY DATE_TRUNC('week', "createdAt")
+      ORDER BY DATE_TRUNC('week', "createdAt")`,
     [iglesiaId]
   )
 
@@ -83,7 +83,7 @@ router.get('/resumen', requireAuth, async (req, res) => {
         AND NOT EXISTS (
           SELECT 1 FROM "Seguimiento" s
            WHERE s."personaId"=p."id" AND s."deletedAt" IS NULL
-             AND s."fecha" >= NOW() - INTERVAL '30 days'
+             AND s."createdAt" >= NOW() - INTERVAL '30 days'
         )`,
     [iglesiaId]
   )

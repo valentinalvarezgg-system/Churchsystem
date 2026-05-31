@@ -84,6 +84,7 @@ const allowedOrigins = [
   ...originEnv,
 ]
 
+app.set('trust proxy', 1) // Cloudflare Tunnel pasa X-Forwarded-For — necesario para rate-limit y logs de IP reales
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }))
 app.use(cors({
   origin: (origin, cb) => {
