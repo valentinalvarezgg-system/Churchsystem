@@ -947,3 +947,19 @@ Dejar operativo y estable el flujo de verificación por email + recupero de cont
 
 ### Estado
 ✅ Sección cerrada y funcional para continuar release.
+
+---
+
+## Cierre operativo — 2026-05-31 (validación post-merge)
+
+### Objetivo
+Confirmar que el estado posterior a los últimos merges/hotfixes quedó estable y listo para continuar la fase v2.8 sin regresiones.
+
+### Verificación ejecutada
+- `frontend pnpm build` ✅ OK (build producción completado, sin errores).
+- `backend pnpm audit:launch` ✅ OK (`ok: true`, sin críticos, sin warnings, sin rutas privadas candidatas sin protección).
+
+### Resultado
+- Estado técnico actual: **estable** para seguir con próximos bloques.
+- No se detectaron regresiones en la validación base de release.
+- `master` quedó limpio para continuar implementación.
