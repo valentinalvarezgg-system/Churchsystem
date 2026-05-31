@@ -853,3 +853,65 @@ dist/ actualizado ✓ — versiones sincronizadas ✓ — dominio OK ✓
 - 7 dependencias con major update disponible — revisar changelogs antes de actualizar (Express 5, Prisma 7, bcryptjs 3, helmet 8, etc.)
 - Frontend: 2 vulnerabilidades moderadas en dependencias (no críticas)
 
+
+---
+
+## QA Exhaustivo + Megabuild — 2026-05-31
+
+### Metodología
+QA completo backend (todos los endpoints, CRUD) + navegador real con Chrome (login, módulos, gating) sobre los 3 planes. Datos limpiados y recreados desde cero.
+
+### Limpieza de datos
+- Backup completo guardado en `backend/backups/full-backup-*.json` (antes de borrar)
+- Borrados TODOS los datos: 19 iglesias, 24 usuarios, 365 personas, 1076 asistencias, etc.
+- Solo se conservaron las 2 cuentas GODMODE
+- **3 cuentas de prueba creadas** (password `Test1234!` todas):
+  - `starter@test.com` → plan STARTER
+  - `pro@test.com` → plan PRO
+  - `max@test.com` → plan MAX
+
+### Bugs encontrados y CORREGIDOS
+
+**#1 — Analytics crasheaba el servidor (CRÍTICO).** `/analytics/resumen` con MAX tumbaba el proceso Node entero. Dos causas:
+- `TO_CHAR(Culto.fecha, ...)` — la columna es `text`, no date. Fix: cast `::date`.
+- Filtro `deletedAt` en tabla `Mensaje` que no tiene esa columna. Fix: removido.
+- Bonus: queries de `Seguimiento` usaban `fecha` (no existe) → `createdAt`.
+
+**#2 — Errores async tumbaban el proceso (CRÍTICO, sistémico).** Cualquier query fallida en un handler sin try/catch mataba Node en vez de devolver 500. Fix:
+- `process.on('unhandledRejection')` + `process.on('uncaughtException')` en server.js → el servidor NUNCA se cae por un error de DB.
+- `/analytics/resumen` envuelto en try/catch con respuesta 500 limpia.
+
+**#3 — Emails fallan silenciosamente.** `sendSystemEmail` ocultaba errores de Resend devolviendo `{id:null}` como si funcionara. Fix: ahora reporta el error real.
+- **PENDIENTE DE VALENTIN:** la RESEND_API_KEY actual está vencida/inválida (401). Generar una nueva en resend.com y actualizarla en `.env` + plist.
+
+**#4 — Versión hardcodeada.** Login y Configuracion mostraban "v2.6.0". Fix: creado `frontend/src/version.js` (fuente única), ambos importan `APP_VERSION` (2.8.1). Confirmado en producción tras hard-refresh.
+
+**#5 — Gating de planes desincronizado (frontend↔backend).** `UpgradeGate.MOD_PLAN` no coincidía con `PLANES` del backend:
+- asistencia/calendario decían STARTER, son PRO
+- seguimiento/discipulado decían PRO, son STARTER
+- Causaba mensaje contradictorio "Requiere Starter. Estás en Starter".
+- Fix: MOD_PLAN reescrito para reflejar exactamente el backend.
+- Menu.jsx: sacado `consolidacion` del sidebar STARTER (es PRO).
+
+### Verificado funcionando (0 crashes)
+- **Backend CRUD: 36/36 OK** — crear/editar/eliminar personas, grupos, cultos, eventos, comunicados, seguimientos en los 3 planes.
+- **Todos los endpoints GET** responden (los "404" del QA inicial eran falsos positivos: rutas con subpath como `/reportes/semanal`).
+- **Navegador:** login 3 planes, dashboard, personas (crear María González end-to-end OK), analytics (los 3 planes, con gráficos), página Planes, UpgradeGate, comunicados, check-in QR, grupos.
+- **Gating correcto:** STARTER bloqueado en /asistencia con CTA a /planes.
+
+### Observaciones menores (no bugs)
+- `/seguimiento` como ruta directa redirige al dashboard (el seguimiento se hace desde el perfil de cada persona). El plan lo lista como módulo pero no tiene página dedicada — comportamiento aceptable.
+- `/discipulado` → redirect a `/grupos` (intencional, ya estaba en App.jsx).
+
+### Verificación final
+```
+Health: {"status":"ok"}
+starter@test.com: login=200 plan=STARTER analytics=200
+pro@test.com:     login=200 plan=PRO     analytics=200
+max@test.com:     login=200 plan=MAX     analytics=200
+```
+
+### Scripts de QA creados (reutilizables)
+- `backend/qa-endpoints.mjs` — prueba todos los GET con cada plan
+- `backend/qa-crud.mjs` — prueba CRUD completo con cada plan
+
