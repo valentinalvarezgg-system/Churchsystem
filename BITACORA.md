@@ -1119,6 +1119,19 @@ Desincronización lockfile/package tras cambios recientes de dependencias fronte
   - `backend pnpm audit:launch` ✅
   - `frontend pnpm build` ✅
 
+### Validación urgente de aislamiento entre 3 iglesias (multi-tenant)
+- Objetivo: garantizar que los 3 pastores no mezclen información.
+- Evidencia:
+  - `starter@test.com` login → `iglesiaId: 46`
+  - `pro@test.com` login → `iglesiaId: 47`
+  - `max@test.com` login → `iglesiaId: 48`
+  - prueba cruzada:
+    - se creó persona `id=370` con Starter (`iglesiaId=46`).
+    - lectura con Starter: ✅ visible.
+    - lectura de la misma persona con Pro: ❌ `{"error":"No encontrada"}`.
+- Conclusión:
+  - aislamiento por tenant activo y efectivo para datos de personas.
+
 ### Documentación de seguridad (GitHub)
 - Archivo agregado: `SECURITY.md`
 - Contenido:
