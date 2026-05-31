@@ -963,3 +963,24 @@ Confirmar que el estado posterior a los últimos merges/hotfixes quedó estable 
 - Estado técnico actual: **estable** para seguir con próximos bloques.
 - No se detectaron regresiones en la validación base de release.
 - `master` quedó limpio para continuar implementación.
+
+---
+
+## Hotfix deploy — 2026-05-31 (CI lockfile)
+
+### Incidente
+Deploy fallando en pipeline con:
+- `ERR_PNPM_OUTDATED_LOCKFILE`
+- `pnpm install --frozen-lockfile` aborta porque `frontend/pnpm-lock.yaml` no estaba alineado con `frontend/package.json`.
+
+### Causa raíz
+Desincronización lockfile/package tras cambios recientes de dependencias frontend.
+
+### Fix aplicado
+- Regenerado lockfile en `frontend/` con `pnpm install`.
+- Verificación posterior:
+  - `frontend pnpm build` ✅
+  - `backend pnpm audit:launch` ✅
+
+### Estado
+✅ Incidente de deploy identificado y corregido a nivel repositorio.
