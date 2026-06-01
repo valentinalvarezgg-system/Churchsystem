@@ -9,6 +9,8 @@ const TABS_POR_TIPO = {
   SONIDO:          ['panel','tareas','miembros','equipos','checklists'],
   PROYECCION:      ['panel','tareas','miembros','equipos','checklists'],
   NINOS:           ['panel','tareas','miembros','salas','checkin','checklists'],
+  MANTENIMIENTO:   ['panel','tareas','miembros','equipos','checklists'],
+  SEGURIDAD:       ['panel','tareas','miembros','equipos','checklists'],
   default:         ['panel','tareas','miembros','checklists'],
 }
 

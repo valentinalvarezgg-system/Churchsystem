@@ -62,7 +62,12 @@ router.post('/', requireAuth, wrap(async (req, res) => {
 router.get('/:id', requireAuth, wrap(async (req, res) => {
   if (!await checkAcceso(req.params.id, iglesiaId(req)))
     return res.status(404).json({ error: 'Ministerio no encontrado' })
-  const m = await pgOne('SELECT * FROM "Ministerio" WHERE id=$1', [req.params.id])
+  const m = await pgOne(`
+    SELECT m.*,
+      (SELECT COUNT(*)::int FROM "MinisterioMiembro" mm WHERE mm."ministerioId"=m.id AND mm.activo=true) AS "totalMiembros",
+      (SELECT COUNT(*)::int FROM "MinisterioTarea" t WHERE t."ministerioId"=m.id AND t.estado='PENDIENTE' AND t."deletedAt" IS NULL) AS "tareasPendientes"
+    FROM "Ministerio" m WHERE m.id=$1
+  `, [req.params.id])
   const config = await pgOne('SELECT datos FROM "MinisterioConfig" WHERE "ministerioId"=$1', [req.params.id])
   return res.json({ ...m, config: config?.datos || {} })
 }))

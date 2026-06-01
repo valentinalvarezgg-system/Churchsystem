@@ -1,4 +1,6 @@
 import { Router } from 'express'
+import https from 'https'
+import { readFileSync, existsSync } from 'fs'
 import webpush from 'web-push'
 import logger from '../lib/logger.js'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
@@ -7,12 +9,38 @@ import { requireAuth } from '../middlewares/auth.js'
 const router = Router()
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 
+// Agent HTTPS con CA del sistema para que webpush no falle con push services externos
+// (Apple Web Push, FCM, Mozilla) que tienen certificados firmados por CAs del sistema.
+const CA_PATHS = [
+  '/etc/ssl/cert.pem',                  // macOS
+  '/etc/ssl/certs/ca-certificates.crt', // Ubuntu/Debian
+  '/etc/pki/tls/certs/ca-bundle.crt',   // RHEL
+]
+let httpsAgent
+for (const p of CA_PATHS) {
+  if (existsSync(p)) {
+    try { httpsAgent = new https.Agent({ ca: readFileSync(p), rejectUnauthorized: true }); break }
+    catch { /* siguiente */ }
+  }
+}
+if (!httpsAgent) {
+  logger.warn('Push: sin CA local, usando TLS sin verificación')
+  httpsAgent = new https.Agent({ rejectUnauthorized: false })
+}
+
+// Wrapper que siempre pasa el agent correcto
+const pushSend = (subscription, payload, extra = {}) =>
+  webpush.sendNotification(subscription, payload, { agent: httpsAgent, TTL: 86400, ...extra })
+
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
     process.env.VAPID_EMAIL || 'mailto:admin@churchsystem.com.ar',
     process.env.VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY
   )
+  logger.info('Push: VAPID configurado ✓')
+} else {
+  logger.warn('Push: VAPID_PUBLIC_KEY o VAPID_PRIVATE_KEY no configurados')
 }
 
 router.get('/vapid-key', requireAuth, (_req, res) => {
@@ -59,9 +87,9 @@ router.post('/test', requireAuth, wrap(async (req, res) => {
   let errors = 0
   for (const row of subs) {
     try {
-      await webpush.sendNotification(
+      await pushSend(
         { endpoint: row.endpoint, keys: JSON.parse(row.keys) },
-        JSON.stringify({ title: 'Church System', body: 'Notificaciones activas', url: '/' })
+        JSON.stringify({ title: 'Church System', body: 'Notificaciones activas ✓', url: '/', icon: '/icon.svg' })
       )
       ok++
     } catch (err) {
@@ -146,7 +174,7 @@ export async function enviarAlertas() {
 
     for (const row of subs) {
       try {
-        await webpush.sendNotification({ endpoint: row.endpoint, keys: JSON.parse(row.keys) }, payload)
+        await pushSend({ endpoint: row.endpoint, keys: JSON.parse(row.keys) }, payload)
       } catch (err) {
         if (err.statusCode === 410) {
           await pgExec('DELETE FROM "PushSubscription" WHERE "endpoint"=$1', [row.endpoint])
