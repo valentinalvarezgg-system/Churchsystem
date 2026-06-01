@@ -1333,3 +1333,38 @@ Fecha: 2026-05-31
 - Verificación:
   - `pnpm -C frontend build` ✅
   - `pnpm -C backend audit:launch` ✅
+
+### Ministerios mobile + iconografía SVG — 2026-06-01
+- Objetivo:
+  - corregir el layout roto en mobile dentro de `MinisterioDetalle`.
+  - reemplazar emojis visibles del flujo de ministerios por iconografía SVG profesional.
+  - sacar `confirm()` nativo del borrado de tareas para no romper UX en iPhone/Android.
+- Cambios frontend:
+  - `frontend/src/pages/MinIcons.jsx`
+    - nuevo set de iconos SVG para el módulo de ministerios.
+    - mapa `MINISTERIO_ICONS` por tipo (`ALABANZA`, `SONIDO`, `NINOS`, etc.).
+  - `frontend/src/pages/Ministerios.jsx`
+    - cards rediseñadas para mobile-first.
+    - selector de tipos en modal sin emojis.
+    - iconos SVG en empty state, stats y CTA.
+  - `frontend/src/pages/MinisterioDetalle.jsx`
+    - refactor de tabs con iconos SVG en KPIs, empty states y placeholders.
+    - card de tarea corregida a layout de 2 filas:
+      - fila 1: checkbox fijo + título.
+      - fila 2: prioridad + estado + fecha + eliminar.
+    - checklist mobile corregido:
+      - checkbox con tamaño fijo (`18px`, `flexShrink:0`).
+      - texto separado y expandible sin superponer badges.
+    - borrado de tareas migrado de `confirm()` a `ConfirmModal`.
+  - `frontend/src/components/Menu.jsx`
+    - sección `Ministerios` del sidebar ahora usa `Icons.Building`.
+    - i18n agregado para `ministries` en ES/PT/EN.
+- Resultado:
+  - desaparecen los emojis en el flujo principal de ministerios.
+  - las tareas y checklists ya no flotan ni se rompen en mobile.
+  - navegación lateral consistente con el resto del sistema.
+- Nota:
+  - todavía queda deuda de emojis en otros módulos fuera de `Ministerios`; este bloque fue quirúrgico y no hizo una barrida global completa.
+- Verificación:
+  - `pnpm -C frontend build` ✅
+  - `pnpm -C backend audit:launch` ✅
