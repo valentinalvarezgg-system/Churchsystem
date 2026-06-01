@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch, getUser } from '../services/api.js'
-
-const LEGACY = { LIDER:'STARTER', CULTO:'STARTER', CONSOLIDACION:'PRO', ADMINISTRACION:'PRO', GENERAL:'PRO' }
+import { normalizeCommercialPlan, resolveAccessTier } from '../lib/commercialPlans.js'
 
 const FALLBACK = {
   STARTER:[
@@ -27,22 +26,42 @@ let _cache = null
 export function usePlan() {
   const user = getUser()
   const rawPlan = user?.plan || 'STARTER'
-  const planKey = LEGACY[rawPlan] || rawPlan
-  const [plan, setPlan] = useState(_cache || { plan:planKey, modulos:FALLBACK[planKey]||FALLBACK.STARTER, loading:true })
+  const commercialPlan = normalizeCommercialPlan(rawPlan) || 'STARTER'
+  const planKey = resolveAccessTier(rawPlan)
+  const [plan, setPlan] = useState(
+    _cache || {
+      plan: planKey,
+      commercialPlan,
+      modulos: FALLBACK[planKey] || FALLBACK.STARTER,
+      loading: true,
+    }
+  )
 
   useEffect(() => {
     if (_cache) { setPlan({..._cache, loading:false}); return }
     apiFetch('/plan/me').then(res => {
-      const normalizedPlan = LEGACY[res.plan] || res.plan
+      const resolvedCommercialPlan = normalizeCommercialPlan(res.commercialMeta?.key || res.commercialPlan || rawPlan) || commercialPlan
+      const normalizedPlan = resolveAccessTier(res.plan || resolvedCommercialPlan)
       const mods = res.modulos?.length ? res.modulos : (FALLBACK[normalizedPlan] || FALLBACK.STARTER)
-      _cache = { ...res, plan: normalizedPlan, modulos: mods, loading:false }
+      _cache = {
+        ...res,
+        plan: normalizedPlan,
+        commercialPlan: resolvedCommercialPlan,
+        modulos: mods,
+        loading: false,
+      }
       setPlan(_cache)
     }).catch(() => {
-      const fb = { plan:planKey, modulos:FALLBACK[planKey]||FALLBACK.STARTER, loading:false }
+      const fb = {
+        plan: planKey,
+        commercialPlan,
+        modulos: FALLBACK[planKey] || FALLBACK.STARTER,
+        loading: false,
+      }
       _cache = fb
       setPlan(fb)
     })
-  }, [planKey])
+  }, [commercialPlan, planKey, rawPlan])
 
   const tiene = useCallback((mod) => plan.modulos?.includes(mod) ?? false, [plan.modulos])
   return { ...plan, tiene }

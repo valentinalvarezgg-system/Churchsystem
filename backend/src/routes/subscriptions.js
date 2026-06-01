@@ -3,6 +3,7 @@ import https from 'https'
 import logger from '../lib/logger.js'
 import { requireAuth, requireRol } from '../middlewares/auth.js'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
+import { COMMERCIAL_PLANS, getCommercialPlan, normalizePlan } from '../lib/billing.js'
 
 const router = Router()
 
@@ -177,11 +178,9 @@ async function ensureSubscriptionSchema() {
     await pgExec('CREATE INDEX IF NOT EXISTS idx_payments_subscription_id ON payments(subscription_id)')
     await pgExec('CREATE INDEX IF NOT EXISTS idx_payments_platform_status ON payments(platform, status)')
 
-    const defaults = [
-      ['STARTER', 'Starter', 29000, 29],
-      ['PRO', 'Pro', 59000, 59],
-      ['MAX', 'Max', 99000, 99],
-    ]
+    const defaults = Object.values(COMMERCIAL_PLANS)
+      .filter(plan => !plan.free)
+      .map(plan => [plan.key, plan.labels.es, Number(plan.prices.ARS || 0), Number(plan.prices.USD || 0)])
     const freqs = ['mensual', 'trimestral', 'anual']
     for (const [name, description, ars, usd] of defaults) {
       for (const f of freqs) {
@@ -264,8 +263,11 @@ function verifyMpWebhook(req) {
 router.post('/subscriptions/create', requireAuth, requireRol('PASTOR_GENERAL'), async (req, res) => {
   try {
     const platform = normalizePlatform(req.body?.platform)
-    const planName = String(req.body?.planName || 'PRO').trim().toUpperCase()
+    const planName = normalizePlan(req.body?.planName || req.body?.plan || 'PRO')
     const frequency = asFrequency(req.body?.frequency)
+    if (planName === 'FREE') {
+      return res.status(400).json({ error: 'El plan Free no requiere checkout de suscripción.' })
+    }
     const plan = await getPlan(planName, frequency)
     if (!plan) return res.status(404).json({ error: 'Plan de suscripción no encontrado.' })
 
@@ -373,6 +375,9 @@ router.get('/subscriptions/plans', requireAuth, async (req, res) => {
           WHEN 'STARTER' THEN 1
           WHEN 'PRO' THEN 2
           WHEN 'MAX' THEN 3
+          WHEN 'CHURCH_100' THEN 4
+          WHEN 'CHURCH_500' THEN 5
+          WHEN 'CHURCH_1000' THEN 6
           ELSE 99
         END ASC`,
     [frequency]
@@ -384,7 +389,11 @@ router.get('/subscriptions/plans', requireAuth, async (req, res) => {
     frequency: r.frequency,
     price: platform === 'paypal' ? Number(r.price_usd || 0) : Number(r.price_ars || 0),
     currency: platform === 'paypal' ? 'USD' : 'ARS',
-    personas: r.name?.toUpperCase() === 'STARTER' ? 300 : r.name?.toUpperCase() === 'PRO' ? 1000 : 99999,
+    personas: getCommercialPlan(r.name)?.personas || 99999,
+    includedWhatsApp: getCommercialPlan(r.name)?.includedWhatsApp || 0,
+    includedSms: getCommercialPlan(r.name)?.includedSms || 0,
+    audience: getCommercialPlan(r.name)?.audience || 'church',
+    accessTier: getCommercialPlan(r.name)?.accessTier || 'STARTER',
     mpPlanId: r.mp_plan_id || '',
     paypalPlanId: r.paypal_plan_id || '',
   }))

@@ -119,6 +119,9 @@ router.post('/crear-orden', requireAuth, requireRol('PASTOR_GENERAL'), async (re
   const { plan = 'PRO', promo } = req.body || {}
   const cfgAll = await getCfg(req.user.iglesiaId)
   const planKey = normalizePlan(plan)
+  if (planKey === 'FREE') {
+    return res.status(400).json({ error: 'El plan Free no requiere checkout.' })
+  }
   const planInfo = PLANES[planKey]
   // PayPal only accepts USD or select currencies — default USD for simplicity
   const price = getPlanPrice(planKey, 'USD')

@@ -233,6 +233,35 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 
 ## Historial de bloques 2.7 beta
 
+### 2026-06-01 — v2.8.2/block-01 (catálogo comercial global + compatibilidad)
+- Objetivo: preparar la plataforma para una estructura comercial de 7 planes sin romper permisos, navegación ni cobros.
+- Cambios aplicados:
+  - Backend:
+    - `backend/src/lib/billing.js` ahora separa **plan comercial** de **tier de acceso**.
+    - Catálogo comercial agregado: `FREE`, `STARTER`, `PRO`, `MAX`, `CHURCH_100`, `CHURCH_500`, `CHURCH_1000`.
+    - Nuevo mapeo global `commercial -> access tier` para mantener compatibilidad con módulos actuales.
+    - `/plan/me` y `/plan/lista` exponen metadata comercial rica (audience, includedWhatsApp, includedSms, brandingRequired, etc.).
+    - `/subscriptions/*` ampliado para leer y sembrar planes comerciales nuevos.
+    - Guardrails de cobro agregados: `FREE` queda bloqueado en suscripciones, Mercado Pago, PayPal, Stripe y Transferencia.
+  - Frontend:
+    - Nuevo helper central `frontend/src/lib/commercialPlans.js`.
+    - `usePlan()` ahora devuelve `plan` (tier de acceso) + `commercialPlan` (plan comercial real).
+    - `Menu.jsx` y `UpgradeGate.jsx` migrados para usar el tier resuelto sin depender de legacy maps dispersos.
+    - `Registro.jsx` rearmado para mostrar dos líneas comerciales:
+      - liderazgo (`FREE`, `STARTER`, `PRO`, `MAX`)
+      - iglesias (`CHURCH_100`, `CHURCH_500`, `CHURCH_1000`)
+    - `Planes.jsx` reemplazado para consumir el catálogo global y mostrar pricing segmentado por audiencia.
+  - Build pública:
+    - `frontend/dist` regenerado con la nueva estructura comercial.
+- Verificaciones:
+  - `pnpm -C frontend build` ✅
+  - `pnpm -C backend audit:launch` ✅
+- Decisión técnica:
+  - Se mantiene el sistema de permisos en 3 tiers (`STARTER/PRO/MAX`) para evitar regresiones.
+  - Se desacopla pricing/packaging comercial del core de autorización.
+- Resultado:
+  - Base lista para pricing de 7 planes, upsell futuro, comunicación segmentada y expansión internacional sin rehacer el sistema de módulos.
+
 ### 2026-05-30 — v2.7-beta/block-01 (parcial, BLOCKED técnico)
 - Objetivo: unificar estados `loading / empty / error / retry` en 6 pantallas críticas.
 - Cambios aplicados:

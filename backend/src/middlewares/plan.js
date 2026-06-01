@@ -1,3 +1,5 @@
+import { resolveAccessTier } from '../lib/billing.js'
+
 export const PLANES = {
   STARTER: {
     nombre: 'Starter', precio: 29,
@@ -27,15 +29,8 @@ export const PLANES = {
   },
 }
 
-// JWTs existentes con planes viejos siguen funcionando
-const LEGACY = {
-  LIDER:'STARTER', CULTO:'STARTER',
-  CONSOLIDACION:'PRO', ADMINISTRACION:'PRO',
-  GENERAL:'PRO',
-}
-
 export function resolvePlan(raw = 'STARTER') {
-  return LEGACY[raw] || raw
+  return resolveAccessTier(raw)
 }
 
 export function requirePlan(modulo) {

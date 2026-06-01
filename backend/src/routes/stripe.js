@@ -69,6 +69,9 @@ router.post('/crear-sesion', requireAuth, requireRol('PASTOR_GENERAL'), async (r
   const { plan = 'PRO', currency, promo } = req.body || {}
   const cfgAll = await getCfg(req.user.iglesiaId)
   const planKey = normalizePlan(plan)
+  if (planKey === 'FREE') {
+    return res.status(400).json({ error: 'El plan Free no requiere checkout.' })
+  }
   const planInfo = PLANES[planKey]
   const selectedCurrency = String(currency || cfgAll.divisa || 'USD').toUpperCase()
   const price = getPlanPrice(planKey, selectedCurrency)

@@ -4,6 +4,7 @@ import { getUser, apiFetch, getStoredContext, setStoredContext } from '../servic
 import BusquedaGlobal from './BusquedaGlobal.jsx'
 import { useNotificaciones } from '../hooks/useNotificaciones.js'
 import Icons from './Icons.jsx'
+import { resolveAccessTier } from '../lib/commercialPlans.js'
 
 const BOTTOM_LINKS_BY_ROLE = {
   LIDER: [
@@ -156,9 +157,8 @@ export default function Menu() {
     </NavLink>
   )
 
-  // Plan-based navigation (STARTER / PRO / MAX + legacy role fallback)
-  const PLAN_LEGACY = { LIDER:'STARTER', CULTO:'STARTER', CONSOLIDACION:'PRO', ADMINISTRACION:'PRO', GENERAL:'PRO' }
-  const planKey = PLAN_LEGACY[user?.plan] || user?.plan || 'STARTER'
+  // Navigation keeps using access tiers even if the commercial catalog grows.
+  const planKey = resolveAccessTier(user?.plan || 'STARTER')
 
   const isStarter = planKey === 'STARTER'
   const isPro     = planKey === 'PRO' || planKey === 'MAX'

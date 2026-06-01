@@ -101,6 +101,9 @@ router.post('/crear-preferencia', requireAuth, requireRol('PASTOR_GENERAL'), asy
   const { plan = 'CONSOLIDACION', country, currency, promo } = req.body || {}
   const cfgAll = await getCfg(req.user.iglesiaId)
   const planKey = normalizePlan(plan)
+  if (planKey === 'FREE') {
+    return res.status(400).json({ error: 'El plan Free no requiere checkout.' })
+  }
   const countryInfo = normalizeCountry(country || cfgAll.pais || cfgAll.country || 'AR')
   const selectedCurrency = String(currency || cfgAll.divisa || countryInfo.currency || 'USD').toUpperCase()
   const price = getPlanPrice(planKey, selectedCurrency)

@@ -45,6 +45,9 @@ async function setCfg(iglesiaId, clave, valor) {
 router.post('/solicitar', requireAuth, requireRol('PASTOR_GENERAL'), async (req, res) => {
   const { plan = 'PRO' } = req.body || {}
   const planKey = normalizePlan(plan)
+  if (planKey === 'FREE') {
+    return res.status(400).json({ error: 'El plan Free no requiere checkout.' })
+  }
   const planInfo = PLANES[planKey]
   const cfgAll = await getCfg(req.user.iglesiaId)
   const price = getPlanPrice(planKey, cfgAll.divisa || 'ARS')

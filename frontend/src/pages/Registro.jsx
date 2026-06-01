@@ -6,6 +6,7 @@ import { toast } from '../components/Toast.jsx'
 import EmailVerificacion from '../components/EmailVerificacion.jsx'
 import { TokenIglesiaInput } from '../components/TokenIglesia.jsx'
 import { authCopy } from '../utils/i18n-auth.js'
+import { COMMERCIAL_PLAN_ORDER, getCommercialPlanUi, normalizeCommercialPlan } from '../lib/commercialPlans.js'
 
 const API_BASE = getApiUrl()
 const COUNTRIES = [
@@ -25,16 +26,7 @@ const LANGS = [
 ]
 
 function normalizePlanInput(raw = '') {
-  const key = String(raw || '').trim().toUpperCase()
-  if (['STARTER', 'PRO', 'MAX'].includes(key)) return key
-  const legacyMap = {
-    LIDER: 'STARTER',
-    CULTO: 'PRO',
-    CONSOLIDACION: 'PRO',
-    ADMINISTRACION: 'MAX',
-    GENERAL: 'MAX',
-  }
-  return legacyMap[key] || ''
+  return normalizeCommercialPlan(raw)
 }
 
 const REG_I18N = {
@@ -115,42 +107,7 @@ const REG_I18N = {
   },
 }
 
-// ── Planes ────────────────────────────────────────────────────────────────────
-const PLANES = [
-  {
-    key: 'STARTER', nombre: 'Starter', precio: 29, popular: false,
-    desc: 'Base operativa para equipos pastorales',
-    features: ['Dashboard', 'Personas y perfiles', 'Grupos', 'Check-in QR', 'Analytics base'],
-  },
-  {
-    key: 'PRO', nombre: 'Pro', precio: 59, popular: true,
-    desc: 'Operación completa semanal y mensual',
-    features: ['Todo Starter', 'Asistencia y cultos', 'Calendario y eventos', 'Mensajes y alertas', 'Reportes'],
-  },
-  {
-    key: 'MAX', nombre: 'Max', precio: 99, popular: false,
-    desc: 'Escala avanzada para liderazgo central',
-    features: ['Todo Pro', 'Usuarios y permisos', 'Excel + IA', 'Asistente IA', 'Backups y auditoría'],
-  },
-]
-
-const PLAN_COPY = {
-  es: {
-    STARTER:{ nombre:'Starter', desc:'Base operativa para equipos pastorales', features:['Dashboard', 'Personas y perfiles', 'Grupos', 'Check-in QR', 'Analytics base'] },
-    PRO:{ nombre:'Pro', desc:'Operación completa semanal y mensual', features:['Todo Starter', 'Asistencia y cultos', 'Calendario y eventos', 'Mensajes y alertas', 'Reportes'] },
-    MAX:{ nombre:'Max', desc:'Escala avanzada para liderazgo central', features:['Todo Pro', 'Usuarios y permisos', 'Excel + IA', 'Asistente IA', 'Backups y auditoría'] },
-  },
-  pt: {
-    STARTER:{ nombre:'Starter', desc:'Base operacional para equipes pastorais', features:['Dashboard', 'Pessoas e perfis', 'Grupos', 'Check-in QR', 'Analytics base'] },
-    PRO:{ nombre:'Pro', desc:'Operação completa semanal e mensal', features:['Tudo do Starter', 'Presença e cultos', 'Calendário e eventos', 'Mensagens e alertas', 'Relatórios'] },
-    MAX:{ nombre:'Max', desc:'Escala avançada para liderança central', features:['Tudo do Pro', 'Usuários e permissões', 'Excel + IA', 'Assistente IA', 'Backups e auditoria'] },
-  },
-  en: {
-    STARTER:{ nombre:'Starter', desc:'Operational base for pastoral teams', features:['Dashboard', 'People profiles', 'Groups', 'QR check-in', 'Base analytics'] },
-    PRO:{ nombre:'Pro', desc:'Complete weekly and monthly operations', features:['Everything in Starter', 'Attendance and services', 'Calendar and events', 'Messaging and alerts', 'Reports'] },
-    MAX:{ nombre:'Max', desc:'Advanced scale for central leadership', features:['Everything in Pro', 'Users and permissions', 'Excel + AI', 'AI assistant', 'Backups and audit'] },
-  },
-}
+const DEFAULT_PLAN_KEYS = COMMERCIAL_PLAN_ORDER
 
 // ── Estilos base ──────────────────────────────────────────────────────────────
 const c = {
@@ -300,6 +257,7 @@ export default function Registro() {
   const [lang, setLang]           = useState((searchParams.get('lang') || storedContext.lang || initialCountryInfo.lang).slice(0,2))
   const [promo, setPromo]         = useState((searchParams.get('promo') || storedContext.promo || '').toUpperCase())
   const [planPrices, setPlanPrices] = useState({})
+  const [planCatalog, setPlanCatalog] = useState([])
   const [loading, setLoading]     = useState(false)
   const [emailReg, setEmailReg]   = useState('')
   const [nombreReg, setNombreReg] = useState('')
@@ -352,8 +310,10 @@ export default function Registro() {
     if (promo) localStorage.setItem('church_promo', promo)
     apiFetch(`/mp/planes?country=${country}&lang=${lang}`, { skipAuthRedirect: true })
       .then(list => {
-        const prices = Object.fromEntries((Array.isArray(list) ? list : []).map(p => [String(p.id || '').toUpperCase(), p]))
+        const normalizedList = Array.isArray(list) ? list : []
+        const prices = Object.fromEntries(normalizedList.map(p => [String(p.id || '').toUpperCase(), p]))
         setPlanPrices(prices)
+        setPlanCatalog(normalizedList)
       })
       .catch(() => {})
   }, [country, currency, lang, promo])
@@ -382,13 +342,41 @@ export default function Registro() {
     finally { setLoading(false) }
   }
 
-  const planActual = PLANES.find(p=>p.key === planSel) || PLANES[1]
-  const priceFor = plan => Number(planPrices[plan.key]?.price ?? plan.precio)
-  const currencyFor = plan => planPrices[plan.key]?.currency || currency
+  const availablePlans = DEFAULT_PLAN_KEYS
+    .map(key => {
+      const server = planPrices[key] || {}
+      const ui = getCommercialPlanUi(key, lang)
+      return {
+        key,
+        featured: !!server.featured || ui.badge === 'Más popular',
+        free: !!server.free,
+        audience: server.audience || ui.group,
+        personas: Number(server.personas || 0),
+        includedWhatsApp: Number(server.includedWhatsApp || 0),
+        includedSms: Number(server.includedSms || 0),
+        currency: server.currency || currency,
+        price: Number(server.precio ?? 0),
+        label: server.label || ui.name,
+        description: server.description || ui.description,
+        badge: ui.badge || '',
+        features: ui.features,
+      }
+    })
+    .filter(plan => planCatalog.length === 0 || planCatalog.some(item => item.id === plan.key))
+
+  const planActual = availablePlans.find(p=>p.key === planSel) || availablePlans.find(p => p.key === 'PRO') || availablePlans[0]
+  const leadershipPlans = availablePlans.filter(plan => plan.audience === 'individual' || plan.audience === 'leadership')
+  const churchPlans = availablePlans.filter(plan => plan.audience === 'church')
+  const priceFor = plan => Number(plan?.price ?? 0)
+  const currencyFor = plan => plan?.currency || currency
   const messages = REG_I18N[lang] || REG_I18N.es
   const t = key => messages[key] || REG_I18N.es[key] || key
-  const planCopy = plan => PLAN_COPY[lang]?.[plan.key] || PLAN_COPY.es[plan.key] || plan
-  const planName = plan => planCopy(plan).nombre || plan.nombre
+  const planName = plan => plan?.label || getCommercialPlanUi(plan?.key || 'PRO', lang).name
+  const planFeatures = plan => plan?.features || getCommercialPlanUi(plan?.key || 'PRO', lang).features
+  const planDescription = plan => plan?.description || getCommercialPlanUi(plan?.key || 'PRO', lang).description
+  const planBadge = plan => plan?.badge || ''
+  const planIsPopular = plan => plan?.featured || planBadge(plan) === 'Más popular'
+  const isFreePlan = planActual?.free || planActual?.key === 'FREE'
 
   // ── Card wrapper ──────────────────────────────────────────────────────────
   const cardW = paso===0 ? 920 : paso===1 ? 500 : 440
@@ -429,7 +417,11 @@ export default function Registro() {
               <h2 style={{fontFamily:"'Sora',sans-serif", fontSize:26, fontWeight:800,
                 color:c.text, margin:'0 0 6px'}}>{t('choosePlan')}</h2>
               <p style={{fontSize:14, color:c.muted}}>
-                {t('chooseSub')}
+                {lang === 'pt'
+                  ? 'Escolha entre liderança individual ou operação completa da igreja.'
+                  : lang === 'en'
+                    ? 'Choose between individual leadership or full church operations.'
+                    : 'Elegí entre liderazgo individual u operación completa para tu iglesia.'}
               </p>
             </div>
 
@@ -469,73 +461,105 @@ export default function Registro() {
               </div>
             </div>
 
-            {/* Grid de planes */}
-            <div style={{
-              display:'grid',
-              gridTemplateColumns:'repeat(auto-fit, minmax(145px, 1fr))',
-              gap:12, marginBottom:28,
-            }}>
-              {PLANES.map(plan => {
-                const sel = planSel === plan.key
-                const copy = planCopy(plan)
-                return (
-                  <div key={plan.key}
-                    onClick={()=>setPlanSel(plan.key)}
-                    style={{
-                      border:`2px solid ${sel ? c.pri : plan.popular ? 'rgba(107,92,255,.3)' : c.border}`,
-                      borderRadius:16, padding:'20px 16px', cursor:'pointer',
-                      background: sel ? `rgba(107,92,255,.12)` : plan.popular ? 'rgba(107,92,255,.05)' : 'rgba(255,255,255,.02)',
-                      position:'relative', transition:'all .2s',
-                    }}>
-                    {plan.popular && !sel && (
-                      <div style={{
-                        position:'absolute', top:-11, left:'50%', transform:'translateX(-50%)',
-                        background:`linear-gradient(135deg,${c.pri},${c.priD})`,
-                        color:'white', fontSize:10, fontWeight:700,
-                        padding:'2px 10px', borderRadius:100, whiteSpace:'nowrap',
-                      }}>{t('popular')}</div>
-                    )}
-                    {sel && (
-                      <div style={{
-                        position:'absolute', top:-11, left:'50%', transform:'translateX(-50%)',
-                        background:`linear-gradient(135deg,${c.pri},${c.priD})`,
-                        color:'white', fontSize:10, fontWeight:700,
-                        padding:'2px 10px', borderRadius:100,
-                      }}>{t('selected')}</div>
-                    )}
-                    <div style={{fontFamily:"'Sora',sans-serif", fontSize:15, fontWeight:800,
-                      color: sel ? c.priL : c.text, marginBottom:4}}>{copy.nombre}</div>
-                    <div style={{
-                      fontFamily:"'Sora',sans-serif", fontSize:26, fontWeight:800,
-                      color: sel ? c.pri : c.text2, marginBottom:4,
-                    }}>
-                      {currencyFor(plan)} {priceFor(plan)}<span style={{fontSize:12, fontWeight:400, color:c.muted}}>{t('perMonth')}</span>
-                    </div>
-                    <div style={{fontSize:11, color:c.muted, marginBottom:12}}>{copy.desc}</div>
-                    <ul style={{listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:5}}>
-                      {copy.features.map(f => (
-                        <li key={f} style={{fontSize:12, color: sel ? c.text2 : c.muted,
-                          display:'flex', alignItems:'flex-start', gap:6}}>
-                          <span style={{color: sel ? c.ok : '#374151', flexShrink:0, fontSize:11, marginTop:1}}>✓</span>
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
+            {[{
+              key: 'leadership',
+              title: lang === 'pt' ? 'Planos para líderes' : lang === 'en' ? 'Plans for leaders' : 'Planes para líderes',
+              subtitle: lang === 'pt' ? 'Ideal para acompanhar pessoas, grupos e check-ins sem complexidade.' : lang === 'en' ? 'Ideal for people, groups, and check-ins without heavy setup.' : 'Ideal para acompañar personas, grupos y check-ins sin complejidad.',
+              plans: leadershipPlans,
+            }, {
+              key: 'church',
+              title: lang === 'pt' ? 'Planos para igrejas' : lang === 'en' ? 'Plans for churches' : 'Planes para iglesias',
+              subtitle: lang === 'pt' ? 'Pensado para congregações com operação semanal, comunicações e equipe.' : lang === 'en' ? 'Built for congregations with weekly operations, communications, and teams.' : 'Pensado para congregaciones con operación semanal, comunicaciones y equipo.',
+              plans: churchPlans,
+            }].map(section => (
+              <div key={section.key} style={{ marginBottom: 22 }}>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: c.priL }}>
+                    {section.title}
                   </div>
-                )
-              })}
-            </div>
+                  <div style={{ fontSize: 12, color: c.muted, marginTop: 4 }}>{section.subtitle}</div>
+                </div>
+                <div style={{
+                  display:'grid',
+                  gridTemplateColumns:'repeat(auto-fit, minmax(170px, 1fr))',
+                  gap:12,
+                  marginBottom:10,
+                }}>
+                  {section.plans.map(plan => {
+                    const sel = planSel === plan.key
+                    return (
+                      <div key={plan.key}
+                        onClick={()=>setPlanSel(plan.key)}
+                        style={{
+                          border:`2px solid ${sel ? c.pri : planIsPopular(plan) ? 'rgba(107,92,255,.3)' : c.border}`,
+                          borderRadius:16, padding:'20px 16px', cursor:'pointer',
+                          background: sel ? `rgba(107,92,255,.12)` : planIsPopular(plan) ? 'rgba(107,92,255,.05)' : 'rgba(255,255,255,.02)',
+                          position:'relative', transition:'all .2s',
+                        }}>
+                        {planIsPopular(plan) && !sel && (
+                          <div style={{
+                            position:'absolute', top:-11, left:'50%', transform:'translateX(-50%)',
+                            background:`linear-gradient(135deg,${c.pri},${c.priD})`,
+                            color:'white', fontSize:10, fontWeight:700,
+                            padding:'2px 10px', borderRadius:100, whiteSpace:'nowrap',
+                          }}>{planBadge(plan) || t('popular')}</div>
+                        )}
+                        {sel && (
+                          <div style={{
+                            position:'absolute', top:-11, left:'50%', transform:'translateX(-50%)',
+                            background:`linear-gradient(135deg,${c.pri},${c.priD})`,
+                            color:'white', fontSize:10, fontWeight:700,
+                            padding:'2px 10px', borderRadius:100,
+                          }}>{t('selected')}</div>
+                        )}
+                        <div style={{fontFamily:"'Sora',sans-serif", fontSize:15, fontWeight:800,
+                          color: sel ? c.priL : c.text, marginBottom:4}}>{planName(plan)}</div>
+                        <div style={{
+                          fontFamily:"'Sora',sans-serif", fontSize:26, fontWeight:800,
+                          color: sel ? c.pri : c.text2, marginBottom:4,
+                        }}>
+                          {plan.free ? '0' : `${currencyFor(plan)} ${priceFor(plan)}`}<span style={{fontSize:12, fontWeight:400, color:c.muted}}>{plan.free ? '' : t('perMonth')}</span>
+                        </div>
+                        <div style={{fontSize:11, color:c.muted, marginBottom:12}}>{planDescription(plan)}</div>
+                        <ul style={{listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:5}}>
+                          {planFeatures(plan).map(f => (
+                            <li key={f} style={{fontSize:12, color: sel ? c.text2 : c.muted,
+                              display:'flex', alignItems:'flex-start', gap:6}}>
+                              <span style={{color: sel ? c.ok : '#374151', flexShrink:0, fontSize:11, marginTop:1}}>✓</span>
+                              {f}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
 
             {/* Info 14 días */}
             <div style={{
-              background:'rgba(34,197,94,.08)', border:'1px solid rgba(34,197,94,.2)',
+              background: isFreePlan ? 'rgba(59,130,246,.10)' : 'rgba(34,197,94,.08)',
+              border: isFreePlan ? '1px solid rgba(59,130,246,.25)' : '1px solid rgba(34,197,94,.2)',
               borderRadius:12, padding:'12px 16px', marginBottom:24,
               display:'flex', alignItems:'center', gap:10, fontSize:13,
             }}>
-              <span style={{fontSize:20}}>🎁</span>
+              <span style={{fontSize:20}}>{isFreePlan ? '🆓' : '🎁'}</span>
               <div>
-                <strong style={{color:c.ok}}>{t('free14')}</strong>
-                <span style={{color:c.muted}}> — {t('free14Copy')}</span>
+                <strong style={{color:isFreePlan ? '#60A5FA' : c.ok}}>
+                  {isFreePlan
+                    ? (lang === 'pt' ? 'Sem cobrança inicial' : lang === 'en' ? 'No upfront charge' : 'Sin cobro inicial')
+                    : t('free14')}
+                </strong>
+                <span style={{color:c.muted}}>
+                  {' '}— {isFreePlan
+                    ? (lang === 'pt'
+                        ? 'Perfeito para experimentar o sistema, com branding Church System e limites claros para fazer upgrade.'
+                        : lang === 'en'
+                          ? 'Perfect to try the system, with Church System branding and clear upgrade limits.'
+                          : 'Perfecto para probar el sistema, con branding Church System y límites claros para subir de plan.')
+                    : t('free14Copy')}
+                </span>
               </div>
             </div>
 
@@ -564,7 +588,10 @@ export default function Registro() {
               <div>
                 <span style={{fontSize:12, color:c.muted}}>{t('selectedPlan')} · </span>
                 <strong style={{fontSize:13, color:c.priL}}>{planName(planActual)}</strong>
-                <span style={{fontSize:12, color:c.muted}}> · {currencyFor(planActual)} {priceFor(planActual)}{t('perMonth')}</span>
+                <span style={{fontSize:12, color:c.muted}}>
+                  {' · '}
+                  {isFreePlan ? (lang === 'pt' ? 'Gratis' : lang === 'en' ? 'Free' : 'Gratis') : `${currencyFor(planActual)} ${priceFor(planActual)}${t('perMonth')}`}
+                </span>
               </div>
               <button onClick={()=>setPaso(0)}
                 style={{background:'none', border:'none', cursor:'pointer',
@@ -680,13 +707,20 @@ export default function Registro() {
                 </svg>
                 <div>
                   <p style={{fontSize:13, color:c.text2, margin:'0 0 4px', fontWeight:600}}>
-                    {t('noCharge')}
+                    {isFreePlan
+                      ? (lang === 'pt' ? 'Ativação imediata sem cobrança' : lang === 'en' ? 'Immediate activation with no charge' : 'Activación inmediata sin cobro')
+                      : t('noCharge')}
                   </p>
                   <p style={{fontSize:12, color:c.muted, margin:0, lineHeight:1.5}}>
-                    {t('afterTrial')} <strong style={{color:c.text2}}>{currencyFor(planActual)} {priceFor(planActual)}{t('perMonth')}</strong>.
+                    {isFreePlan
+                      ? (lang === 'pt'
+                          ? 'Você começa com o plano Free e pode subir para um plano pago quando precisar de mais usuários, comunicações ou automações.'
+                          : lang === 'en'
+                            ? 'You start on the Free plan and can upgrade later when you need more users, communications, or automations.'
+                            : 'Empezás con el plan Free y podés subir a un plan pago cuando necesites más usuarios, comunicaciones o automatizaciones.')
+                      : <>{t('afterTrial')} <strong style={{color:c.text2}}>{currencyFor(planActual)} {priceFor(planActual)}{t('perMonth')}</strong>.</>}
                     {promo ? <span> {t('invitationApplied')}: <strong style={{color:c.text2}}>{promo}</strong>.</span> : null}
-                    {' '}{t('cancelBefore')}
-                    {' '}{t('paymentBy')}
+                    {!isFreePlan && <>{' '}{t('cancelBefore')} {' '}{t('paymentBy')}</>}
                   </p>
                 </div>
               </div>
@@ -700,7 +734,11 @@ export default function Registro() {
                 </button>
                 <button type="submit" disabled={loading||(form.confirmar&&form.confirmar!==form.password)||!aceptoTerminos}
                   style={{...btnPri, flex:2, opacity:(loading||!aceptoTerminos)?0.5:1}}>
-                  {loading ? t('creating') : t('createFree')}
+                  {loading
+                    ? t('creating')
+                    : isFreePlan
+                      ? (lang === 'pt' ? 'Criar conta Free →' : lang === 'en' ? 'Create Free account →' : 'Crear cuenta Free →')
+                      : t('createFree')}
                 </button>
               </div>
 
