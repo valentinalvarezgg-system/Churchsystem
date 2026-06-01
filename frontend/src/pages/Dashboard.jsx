@@ -165,11 +165,11 @@ export default function Dashboard() {
         {/* ── Stats principales ──────────────────────────────────── */}
         <div className="stats-grid dashboard-stats" style={{ gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12, marginBottom: 20 }}>
           {[
-            { val: t.personas || 0,    lbl: txt('total'),      icon:'⊕', color:'var(--primary)',   path:'/personas' },
-            { val: t.activos  || 0,    lbl: txt('active'),     icon:'✓', color:'var(--c-success)', path:'/personas' },
-            { val: t.visitantes|| 0,   lbl: txt('visitors'),   icon:'⊕', color:'var(--c-warning)', path:'/personas' },
+            { val: t.personas || 0,    lbl: txt('total'),      icon:'Totales', color:'var(--primary)',   path:'/personas' },
+            { val: t.activos  || 0,    lbl: txt('active'),     icon:'OK', color:'var(--c-success)', path:'/personas' },
+            { val: t.visitantes|| 0,   lbl: txt('visitors'),   icon:'Totales', color:'var(--c-warning)', path:'/personas' },
             { val: t.grupos   || 0,    lbl: txt('groups'),     icon:'⊞', color:'var(--c-info)',    path:'/grupos' },
-            { val: t.cultos   || 0,    lbl: txt('services'),   icon:'✓', color:'var(--c-purple)',  path:'/asistencia' },
+            { val: t.cultos   || 0,    lbl: txt('services'),   icon:'OK', color:'var(--c-purple)',  path:'/asistencia' },
             { val: pct+'%',            lbl: txt('attendance'), icon:'▤', color: pctColor,          path:'/asistencia' },
           ].map(s => (
             <div key={s.lbl} className="stat-card" onClick={() => navigate(s.path)}>
@@ -188,7 +188,7 @@ export default function Dashboard() {
             background:'var(--c-danger-bg)', border:'1px solid rgba(220,38,38,0.18)',
             transition:'opacity .15s',
           }}>
-            <span style={{ fontSize:20 }}>🚨</span>
+            <span style={{ fontSize:20 }}></span>
             <div style={{ flex:1 }}>
               <span style={{ fontSize:13, fontWeight:700, color:'var(--c-danger)' }}>
                 {[
@@ -207,7 +207,7 @@ export default function Dashboard() {
           {/* Últimos cultos */}
           <div className="card">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}><Icons.Attendance /> {txt('recentServices')}</h3>
+              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}>{txt('recentServices')}</h3>
               <button className="btn btn-ghost btn-xs" onClick={() => navigate('/asistencia')}>{txt('seeAll')}</button>
             </div>
             {(stats?.asistenciaReciente || []).length === 0
@@ -231,12 +231,12 @@ export default function Dashboard() {
           {/* Próximos seguimientos */}
           <div className="card">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}>≡ {txt('followUps')}</h3>
+              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}>Historial {txt('followUps')}</h3>
               <button className="btn btn-ghost btn-xs" onClick={() => navigate('/alertas')}>{txt('seeAll')}</button>
             </div>
             {(stats?.proximosContactos || []).length === 0
               ? <div className="empty" style={{ padding:'20px 0' }}>
-                  <div className="empty-icon" style={{ fontSize:24 }}><Icons.Attendance /></div>
+                  <div className="empty-icon" style={{ fontSize:24 }}></div>
                   <p>{txt('noFollowUps')}</p>
                 </div>
               : (stats?.proximosContactos || []).slice(0, 6).map((s, i) => {
@@ -268,7 +268,7 @@ export default function Dashboard() {
           {/* Cumpleaños */}
           <div className="card">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}>🎂 {txt('birthdays')}</h3>
+              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}> {txt('birthdays')}</h3>
               <span style={{ fontSize:11, color:'var(--text-muted)' }}>{txt('next30')}</span>
             </div>
             {(stats?.cumpleanos || []).length === 0
@@ -304,15 +304,15 @@ export default function Dashboard() {
 
           {/* Acceso rápido */}
           <div className="card">
-            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>⚡ {txt('quick')}</h3>
+            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>Groq {txt('quick')}</h3>
             <div className="quick-actions-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.isPhone && ori.portrait ? 2 : ori.cols4},minmax(0,1fr))`, gap: ori.isPhone ? 7 : 7 }}>
               {[
                 { icon:'○', label:copy.actions[0][0], desc:copy.actions[0][1], path:'/personas',     color:'#2563EB' },
-                { icon:'✓', label:copy.actions[1][0], desc:copy.actions[1][1], path:'/asistencia',   color:'#16A34A' },
-                { icon:'▢', label:copy.actions[2][0], desc:copy.actions[2][1], path:'/checkin',      color:'#0891B2' },
-                { icon:'✉', label:copy.actions[3][0], desc:copy.actions[3][1], path:'/mensajes',     color:'#D97706' },
-                { icon:'◆', label:copy.actions[4][0], desc:copy.actions[4][1], path:'/asistente-ia', color:'#7C3AED' },
-                { icon:'▣', label:copy.actions[5][0], desc:copy.actions[5][1], path:'/alertas',      color:'#DC2626' },
+                { icon:'OK', label:copy.actions[1][0], desc:copy.actions[1][1], path:'/asistencia',   color:'#16A34A' },
+                { icon:'WhatsApp', label:copy.actions[2][0], desc:copy.actions[2][1], path:'/checkin',      color:'#0891B2' },
+                { icon:'Email', label:copy.actions[3][0], desc:copy.actions[3][1], path:'/mensajes',     color:'#D97706' },
+                { icon:'IA', label:copy.actions[4][0], desc:copy.actions[4][1], path:'/asistente-ia', color:'#7C3AED' },
+                { icon:'Pago', label:copy.actions[5][0], desc:copy.actions[5][1], path:'/alertas',      color:'#DC2626' },
                 { icon:'▤', label:copy.actions[6][0], desc:copy.actions[6][1], path:'/reportes',     color:'#9333EA' },
               ].map(a => (
                 <button key={a.path} className="quick-action-btn" onClick={() => navigate(a.path)}
@@ -379,11 +379,11 @@ export default function Dashboard() {
 
           {/* Panel de estado */}
           <div className="card">
-            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>💡 {txt('status')}</h3>
+            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}> {txt('status')}</h3>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {[
-                { lbl:txt('consolidation'), val: t.consolidacionActiva || 0, icon:'⊕', path:'/consolidacion', warn: t.consolidacionActiva > 0 },
-                { lbl:txt('noTracking'), val: t.sinSeguimiento    || 0, icon:'≡', path:'/alertas',       danger: t.sinSeguimiento > 0 },
+                { lbl:txt('consolidation'), val: t.consolidacionActiva || 0, icon:'Totales', path:'/consolidacion', warn: t.consolidacionActiva > 0 },
+                { lbl:txt('noTracking'), val: t.sinSeguimiento    || 0, icon:'Historial', path:'/alertas',       danger: t.sinSeguimiento > 0 },
               ].map(s => (
                 <div key={s.lbl} onClick={() => navigate(s.path)}
                   style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 10px', borderRadius:8, cursor:'pointer', background:'var(--bg)', border:'1px solid var(--border)', transition:'background .15s' }}
@@ -409,8 +409,8 @@ export default function Dashboard() {
             <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}><Icons.History /> {txt('recentActivity')}</h3>
             <div className="dashboard-activity-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.cols2},1fr)`, gap:0 }}>
               {(stats?.actividadReciente || []).slice(0, 8).map((a, i) => {
-                const iconMap = { CREAR:'➕', ACTUALIZAR:'⊙', ELIMINAR:'⊙', MENSAJE:'✉', MASIVO:'▣', IMPORTAR_EXCEL:'▤', BACKUP:'💾', LOGIN:'🔐' }
-                const ico = iconMap[a.accion] || '✉'
+                const iconMap = { CREAR:'Crear', ACTUALIZAR:'Sistema', ELIMINAR:'Sistema', MENSAJE:'Email', MASIVO:'Pago', IMPORTAR_EXCEL:'▤', BACKUP:'', LOGIN:'' }
+                const ico = iconMap[a.accion] || 'Email'
                 const time = a.createdAt ? new Date(a.createdAt).toLocaleTimeString(txt('locale'),{hour:'2-digit',minute:'2-digit'}) : ''
                 return (
                   <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 0', borderBottom: i < 6 ? '1px solid var(--border)' : 'none' }}>

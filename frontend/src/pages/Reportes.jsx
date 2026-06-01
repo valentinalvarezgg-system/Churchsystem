@@ -118,9 +118,9 @@ export default function Reportes() {
               ))}
             </div>
             {r && <>
-              <button className="btn btn-ghost btn-sm" data-tip="Imprimir reporte" onClick={imprimirReporte}>🖨️ Imprimir</button>
+              <button className="btn btn-ghost btn-sm" data-tip="Imprimir reporte" onClick={imprimirReporte}> Imprimir</button>
               <button className="btn btn-ghost btn-sm" data-tip="Exportar membresía en Excel" onClick={exportarExcel}><Icons.Reports /> Excel</button>
-              {tipo !== 'general' && <button className="btn btn-ghost btn-sm" data-tip="Ver lista de membresía en PDF" onClick={exportarPDF}>📄 PDF</button>}
+              {tipo !== 'general' && <button className="btn btn-ghost btn-sm" data-tip="Ver lista de membresía en PDF" onClick={exportarPDF}> PDF</button>}
             </>}
           </div>
         </div>

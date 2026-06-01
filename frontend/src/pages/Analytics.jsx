@@ -74,7 +74,7 @@ function ChartCard({ title, height = 200, children, insight }) {
           background: 'var(--bg)', border: '1px solid var(--border)',
           fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4,
         }}>
-          💡 {insight}
+           {insight}
         </div>
       )}
     </div>
@@ -116,7 +116,7 @@ export default function Analytics() {
   if (error) return (
     <Layout>
       <div className="empty">
-        <div className="empty-icon">📊</div>
+        <div className="empty-icon"></div>
         <p>Error al cargar analytics: {error}</p>
         <button className="btn btn-primary" onClick={() => window.location.reload()}>Reintentar</button>
       </div>
@@ -226,7 +226,7 @@ export default function Analytics() {
         {/* Header */}
         <div style={{ marginBottom: 28 }}>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', margin: 0 }}>
-            📊 Analytics
+             Analytics
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '6px 0 0' }}>
             Insights de tu actividad pastoral · Plan <strong>{plan}</strong>
@@ -235,13 +235,13 @@ export default function Analytics() {
 
         {/* ── KPIs STARTER (todos) ─────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 24 }}>
-          <KPI icon="👥" label="Total personas"   value={kpis.totalPersonas ?? 0}    color={C.primary} />
-          <KPI icon="✅" label="Activos"           value={kpis.personasActivas ?? 0}  color={C.success} />
-          <KPI icon="🙋" label="Visitantes"        value={kpis.visitantes ?? 0}       color={C.info} />
-          <KPI icon="👪" label="Grupos"            value={kpis.totalGrupos ?? 0}      color={C.purple} />
-          <KPI icon="📋" label="Seguimientos (30d)" value={kpis.seguimientosActivos ?? 0} color={C.warning} />
+          <KPI icon="" label="Total personas"   value={kpis.totalPersonas ?? 0}    color={C.primary} />
+          <KPI icon="Listo" label="Activos"           value={kpis.personasActivas ?? 0}  color={C.success} />
+          <KPI icon="" label="Visitantes"        value={kpis.visitantes ?? 0}       color={C.info} />
+          <KPI icon="" label="Grupos"            value={kpis.totalGrupos ?? 0}      color={C.purple} />
+          <KPI icon="" label="Seguimientos (30d)" value={kpis.seguimientosActivos ?? 0} color={C.warning} />
           {typeof kpis.sinSeguimiento === 'number' && (
-            <KPI icon="⚠️" label="Sin contacto (30d)" value={kpis.sinSeguimiento} color={C.danger}
+            <KPI icon="Advertencia" label="Sin contacto (30d)" value={kpis.sinSeguimiento} color={C.danger}
               sub="personas activas sin seguimiento" />
           )}
         </div>
@@ -249,13 +249,13 @@ export default function Analytics() {
         {/* ── KPIs PRO/MAX ─────────────────────────────────────── */}
         {(plan === 'PRO' || plan === 'MAX') && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 24 }}>
-            <KPI icon="⛪" label="Cultos accesibles" value={kpis.totalCultos ?? 0}       color={C.teal} />
-            <KPI icon="📈" label="Promedio asistencia" value={kpis.promedioAsistencia ?? 0} color={C.success} />
-            <KPI icon="🕊" label="Última asistencia"  value={kpis.ultimaAsistencia ?? 0}   color={C.info} />
-            <KPI icon="🌱" label="Nuevos este mes"    value={kpis.nuevosMes ?? 0}           color={C.primary} />
-            <KPI icon="✉️" label="Mensajes (30d)"     value={kpis.mensajesMes ?? 0}         color={C.warning} />
+            <KPI icon="Cultos" label="Cultos accesibles" value={kpis.totalCultos ?? 0}       color={C.teal} />
+            <KPI icon="" label="Promedio asistencia" value={kpis.promedioAsistencia ?? 0} color={C.success} />
+            <KPI icon="" label="Última asistencia"  value={kpis.ultimaAsistencia ?? 0}   color={C.info} />
+            <KPI icon="" label="Nuevos este mes"    value={kpis.nuevosMes ?? 0}           color={C.primary} />
+            <KPI icon="Email" label="Mensajes (30d)"     value={kpis.mensajesMes ?? 0}         color={C.warning} />
             {tasaRetencion !== null && (
-              <KPI icon="🔄" label="Tasa retención" value={`${tasaRetencion}%`} color={C.purple}
+              <KPI icon="" label="Tasa retención" value={`${tasaRetencion}%`} color={C.purple}
                 sub="presentes / total registrados" />
             )}
           </div>
@@ -264,21 +264,21 @@ export default function Analytics() {
         {/* ── KPIs MAX ─────────────────────────────────────────── */}
         {plan === 'MAX' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 24 }}>
-            <KPI icon="👤" label="Usuarios activos" value={kpis.totalUsuarios ?? 0} color={C.teal} />
+            <KPI icon="" label="Usuarios activos" value={kpis.totalUsuarios ?? 0} color={C.teal} />
           </div>
         )}
 
         {/* ── Insights rápidos ─────────────────────────────────── */}
         {kpis.sinSeguimiento > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 10, marginBottom: 24 }}>
-            <InsightBadge icon="⚠️" color={C.danger}
+            <InsightBadge icon="Advertencia" color={C.danger}
               text={`${kpis.sinSeguimiento} persona${kpis.sinSeguimiento === 1 ? '' : 's'} activa${kpis.sinSeguimiento === 1 ? '' : 's'} sin contacto en los últimos 30 días`} />
             {tasaRetencion !== null && tasaRetencion < 70 && (
-              <InsightBadge icon="📉" color={C.warning}
+              <InsightBadge icon="" color={C.warning}
                 text={`Tasa de retención en ${tasaRetencion}% — por debajo del objetivo del 70%`} />
             )}
             {tasaRetencion !== null && tasaRetencion >= 70 && (
-              <InsightBadge icon="🎯" color={C.success}
+              <InsightBadge icon="" color={C.success}
                 text={`Tasa de retención en ${tasaRetencion}% — por encima del objetivo del 70%`} />
             )}
           </div>
@@ -347,7 +347,7 @@ export default function Analytics() {
         {/* Sin datos */}
         {segTrend.length === 0 && estadoData.length === 0 && (
           <div className="empty">
-            <div className="empty-icon">📊</div>
+            <div className="empty-icon"></div>
             <p>Todavía no hay suficientes datos para mostrar gráficos.</p>
             <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
               Agregá personas, registrá seguimientos y marcá asistencia para ver tus insights.

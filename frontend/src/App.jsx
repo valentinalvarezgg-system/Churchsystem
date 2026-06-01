@@ -65,7 +65,7 @@ class ErrorBoundary extends React.Component {
     if (this.state.error) return (
       <div style={{ minHeight: '100vh', background: '#0A0F1E', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
         <div style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 8, padding: 32, maxWidth: 600, width: '100%' }}>
-          <h2 style={{ color: '#FCA5A5', fontSize: 18, fontWeight: 700, marginBottom: 12 }}>⚠️ Error en la aplicación</h2>
+          <h2 style={{ color: '#FCA5A5', fontSize: 18, fontWeight: 700, marginBottom: 12 }}>Advertencia Error en la aplicación</h2>
           <pre style={{ color: '#FCA5A5', fontSize: 12, background: 'rgba(0,0,0,0.3)', padding: 14, borderRadius: 4, overflow: 'auto', whiteSpace: 'pre-wrap' }}>{this.state.error?.message}{'\n\n'}{this.state.error?.stack?.split('\n').slice(0, 5).join('\n')}</pre>
           <button onClick={() => { this.setState({ error: null }); window.location.href = '/' }} style={{ marginTop: 16, padding: '10px 20px', background: '#2563EB', border: 'none', borderRadius: 4, color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Recargar</button>
         </div>

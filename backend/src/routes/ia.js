@@ -181,7 +181,7 @@ router.post('/chat', requireAuth, async (req, res) => {
   const keyMap = { anthropic: config.anthropic_key, openai: config.openai_key, groq: config.groq_key }
   if (!keyMap[proveedor]) {
     return res.json({
-      respuesta: `⚠️ IA no configurada. Andá a **Configuración → IA**, elegí un proveedor y pegá tu API key.\n\n**Opciones disponibles:**\n• **Groq** — Gratuito, muy rápido (recomendado para empezar)\n• **Anthropic Claude** — El mejor para análisis pastoral\n• **OpenAI ChatGPT** — GPT-4o-mini es económico`,
+      respuesta: `Advertencia IA no configurada. Andá a **Configuración → IA**, elegí un proveedor y pegá tu API key.\n\n**Opciones disponibles:**\n• **Groq** — Gratuito, muy rápido (recomendado para empezar)\n• **Anthropic Claude** — El mejor para análisis pastoral\n• **OpenAI ChatGPT** — GPT-4o-mini es económico`,
       proveedor: null,
     })
   }

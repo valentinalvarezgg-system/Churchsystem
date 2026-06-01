@@ -9,7 +9,7 @@ import XLSX from '../lib/xlsx-safe.js'
 
 const router = Router()
 
-const MARCA_RE = /^[✓✔★☑✅\s]+/
+const MARCA_RE = /^[OK✔Plan☑Listo\s]+/
 const VACIO_RE = /^(·+|\/+|s\/n|s\/a|s\/l|none|null|false|true|undefined)$/i
 const cleanTel = v => String(v ?? '').replace(/\.0$/, '').replace(/[^\d+]/g, '').trim()
 const cleanStr = v => String(v ?? '').replace(MARCA_RE, '').trim()
@@ -351,7 +351,7 @@ router.post('/exportar', requireAuth, async (req, res) => {
 
   personas.forEach((p, i) => {
     const presente = cultoId ? (asistMap[p.id] ? 1 : 0) : null
-    const apellido = presente === 1 ? `✓${p.apellido || ''}` : (p.apellido || '')
+    const apellido = presente === 1 ? `OK${p.apellido || ''}` : (p.apellido || '')
     sheetData.push([
       i + 1, apellido, p.nombre || '', cleanTel(p.telefono),
       presente === 1 ? 'True' : presente === 0 ? 'False' : '',

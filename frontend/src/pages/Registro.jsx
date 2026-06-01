@@ -38,7 +38,7 @@ const REG_I18N = {
     stepCounter:'Paso 1 de 3', choosePlan:'Elegí tu plan',
     chooseSub:'Podés cambiarlo cuando quieras · Todos incluyen 14 días de prueba gratis',
     country:'País', currency:'Divisa', language:'Idioma', invitation:'Invitación',
-    popular:'Más popular', selected:'✓ Seleccionado', perMonth:'/mes',
+    popular:'Más popular', selected:'OK Seleccionado', perMonth:'/mes',
     free14:'14 días gratis', free14Copy:'No se cobra nada hasta que termine el período de prueba. Cancelá cuando quieras.',
     continueWith:'Continuar con', aPlan:'un plan', already:'¿Ya tenés cuenta?', signIn:'Ingresar',
     selectedPlan:'Plan seleccionado', change:'Cambiar', quickSignup:'Registrate rápido con', emailOption:'o con email',
@@ -63,7 +63,7 @@ const REG_I18N = {
     stepCounter:'Passo 1 de 3', choosePlan:'Escolha seu plano',
     chooseSub:'Você pode mudar quando quiser · Todos incluem 14 dias de teste grátis',
     country:'País', currency:'Moeda', language:'Idioma', invitation:'Convite',
-    popular:'Mais popular', selected:'✓ Selecionado', perMonth:'/mês',
+    popular:'Mais popular', selected:'OK Selecionado', perMonth:'/mês',
     free14:'14 dias grátis', free14Copy:'Nada será cobrado até o fim do período de teste. Cancele quando quiser.',
     continueWith:'Continuar com', aPlan:'um plano', already:'Já tem conta?', signIn:'Entrar',
     selectedPlan:'Plano selecionado', change:'Alterar', quickSignup:'Cadastre-se rápido com', emailOption:'ou com email',
@@ -88,7 +88,7 @@ const REG_I18N = {
     stepCounter:'Step 1 of 3', choosePlan:'Choose your plan',
     chooseSub:'You can change it anytime · All plans include a 14-day free trial',
     country:'Country', currency:'Currency', language:'Language', invitation:'Invitation',
-    popular:'Most popular', selected:'✓ Selected', perMonth:'/mo',
+    popular:'Most popular', selected:'OK Selected', perMonth:'/mo',
     free14:'14 days free', free14Copy:'Nothing is charged until the trial period ends. Cancel anytime.',
     continueWith:'Continue with', aPlan:'a plan', already:'Already have an account?', signIn:'Sign in',
     selectedPlan:'Selected plan', change:'Change', quickSignup:'Sign up quickly with', emailOption:'or with email',
@@ -159,7 +159,7 @@ function Stepper({ paso, labels=STEPS }) {
                 background: done?c.ok : active?c.pri : 'rgba(255,255,255,0.07)',
                 color: done||active ? '#fff' : c.muted,
                 transition:'all .3s',
-              }}>{done ? '✓' : i+1}</div>
+              }}>{done ? 'OK' : i+1}</div>
               <span style={{
                 fontSize:12, fontWeight: active?700:400,
                 color: done?c.ok : active?c.text : c.muted,
@@ -525,7 +525,7 @@ export default function Registro() {
                           {planFeatures(plan).map(f => (
                             <li key={f} style={{fontSize:12, color: sel ? c.text2 : c.muted,
                               display:'flex', alignItems:'flex-start', gap:6}}>
-                              <span style={{color: sel ? c.ok : '#374151', flexShrink:0, fontSize:11, marginTop:1}}>✓</span>
+                              <span style={{color: sel ? c.ok : '#374151', flexShrink:0, fontSize:11, marginTop:1}}>OK</span>
                               {f}
                             </li>
                           ))}
@@ -544,7 +544,7 @@ export default function Registro() {
               borderRadius:12, padding:'12px 16px', marginBottom:24,
               display:'flex', alignItems:'center', gap:10, fontSize:13,
             }}>
-              <span style={{fontSize:20}}>{isFreePlan ? '🆓' : '🎁'}</span>
+              <span style={{fontSize:20}}>{isFreePlan ? 'Gratis' : ''}</span>
               <div>
                 <strong style={{color:isFreePlan ? '#60A5FA' : c.ok}}>
                   {isFreePlan
@@ -781,7 +781,7 @@ export default function Registro() {
               background:'linear-gradient(135deg,#22c55e,#16a34a)',
               display:'flex', alignItems:'center', justifyContent:'center',
               fontSize:40,
-            }}>✓</div>
+            }}>OK</div>
             <h2 style={{fontFamily:"'Sora',sans-serif", fontSize:24, fontWeight:800,
               color:c.text, margin:'0 0 8px'}}>
               {t('accountCreated')}
@@ -795,9 +795,9 @@ export default function Registro() {
               background:'rgba(255,255,255,.03)', borderRadius:14, padding:'16px',
             }}>
               {[
-                { icon:'✓', text:t('planActivated').replace('{plan}', planName(planActual)), color:c.ok },
-                { icon:'🎁', text:t('trialActivated'), color:'#f59e0b' },
-                iglesiaJoin && { icon:'✓', text:t('connected').replace('{church}', iglesiaJoin.iglesia?.nombre||iglesiaJoin.nombre||t('yourChurch')), color:c.ok },
+                { icon:'OK', text:t('planActivated').replace('{plan}', planName(planActual)), color:c.ok },
+                { icon:'', text:t('trialActivated'), color:'#f59e0b' },
+                iglesiaJoin && { icon:'OK', text:t('connected').replace('{church}', iglesiaJoin.iglesia?.nombre||iglesiaJoin.nombre||t('yourChurch')), color:c.ok },
               ].filter(Boolean).map((item,i) => (
                 <div key={i} style={{display:'flex', alignItems:'center', gap:10,
                   fontSize:13, color:item.color, fontWeight:600}}>

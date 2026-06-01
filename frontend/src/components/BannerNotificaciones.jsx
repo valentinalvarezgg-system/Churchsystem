@@ -54,7 +54,7 @@ export default function BannerNotificaciones() {
       gap: 12,
       animation: 'slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     }}>
-      <span style={{ fontSize: 28, flexShrink: 0 }}>🔔</span>
+      <span style={{ fontSize: 28, flexShrink: 0 }}></span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
           ¿Activar notificaciones?

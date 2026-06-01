@@ -198,25 +198,25 @@ export default function Menu() {
       {/* ── Header mobile (solo visible en < 1024px) ─────────── */}
       <header className="mobile-header">
         <button className="mobile-menu-btn" onClick={() => setOpen(true)} aria-label={tt('openMenu')}>
-          ☰
+          <Icons.Menu />
         </button>
         <div className="mobile-header-title">
           {currentPage}
           <span>{tt('smart')}</span>
         </div>
         <button className="mobile-menu-btn" onClick={() => setBusqueda(true)} aria-label={tt('search')}>
-          ⌕
+          <Icons.Search />
         </button>
         {soportado && permiso !== 'denied' && (
           <button className="mobile-menu-btn" aria-label={tt('notifications')}
             onClick={async () => { if(!suscrito){ const ok = await suscribir(); if(ok){ /* ya suscrito, el botón se oculta */ } } }}
             style={{ position:'relative' }}
             title={suscrito ? tt('activeNotifications') : tt('enableNotifications')}>
-            {suscrito ? '🔔' : '🔕'}
+            <Icons.Comunicados />
           </button>
         )}
         <button className="mobile-menu-btn" onClick={() => setDark(d => !d)} aria-label="Tema">
-          {dark ? '☀︎' : '☽'}
+          <span style={{ fontSize: 11, fontWeight: 700 }}>{dark ? 'CL' : 'OS'}</span>
         </button>
       </header>
 
@@ -242,12 +242,12 @@ export default function Menu() {
           </div>
           <button className="sidebar-theme-btn" onClick={() => setDark(d => !d)}
             title={dark ? tt('lightMode') : tt('darkMode')}>
-            {dark ? '☀︎' : '☽'}
+            <span style={{ fontSize: 11, fontWeight: 700 }}>{dark ? 'CL' : 'OS'}</span>
           </button>
         </div>
 
         <button className="search-trigger" onClick={() => setBusqueda(true)}>
-          <span style={{fontSize:13}}>⌕</span>
+          <span style={{display:'flex',alignItems:'center',justifyContent:'center'}}><Icons.Search /></span>
           <span style={{flex:1}}>{tt('searchPlaceholder')}</span>
           <span className="search-kbd">⌘K</span>
         </button>
@@ -257,7 +257,7 @@ export default function Menu() {
           {lnk('/', <Icons.Dashboard />, tt('dashboard'), true)}
           {lnk('/analytics', <Icons.Reports />, 'Analytics')}
           {isAdmin && lnk('/premium', <Icons.Premium />, tt('executive'))}
-          {lnk('/planes', <span style={{fontSize:14}}>★</span>, 'Planes')}
+          {lnk('/planes', <Icons.Premium />, 'Planes')}
 
           {/* STARTER — congregación básica + seguimiento y discipulado */}
           {isStarter && !isPro && <>
@@ -367,7 +367,7 @@ export default function Menu() {
                 color: suscrito ? 'var(--c-success)' : 'var(--text-muted)',
                 fontSize:12, cursor:'pointer', width:'100%', marginBottom:6,
               }}>
-              <span>{suscrito ? '🔔' : '🔕'}</span>
+              <Icons.Comunicados />
               <span>{suscrito ? tt('activeNotifications') : tt('enableNotifications')}</span>
             </button>
           )}
@@ -431,7 +431,7 @@ export default function Menu() {
             border:'1px solid var(--border)',
             color:'var(--text-muted)', fontSize:16, cursor:'pointer',
           }}>
-          ☰
+          <Icons.Menu />
         </button>
       </nav>
 

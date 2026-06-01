@@ -135,7 +135,7 @@ export default function Eventos() {
               return (
                 <div key={mes}>
                   <div style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:10}}>
-                    📅 {nombreMes.charAt(0).toUpperCase()+nombreMes.slice(1)}
+                     {nombreMes.charAt(0).toUpperCase()+nombreMes.slice(1)}
                   </div>
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
                     {evs.map(ev => {
@@ -158,8 +158,8 @@ export default function Eventos() {
                             </div>
                             <h3 style={{fontSize:15,fontWeight:700,margin:'0 0 4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{ev.titulo}</h3>
                             <div style={{fontSize:12,color:'var(--text-muted)',display:'flex',gap:12,flexWrap:'wrap'}}>
-                              {ev.hora && <span>🕐 {ev.todoElDia?'Todo el día':ev.hora}</span>}
-                              {ev.lugar && <span>📍 {ev.lugar}</span>}
+                              {ev.hora && <span> {ev.todoElDia?'Todo el día':ev.hora}</span>}
+                              {ev.lugar && <span> {ev.lugar}</span>}
                             </div>
                             {ev.descripcion && <p style={{fontSize:12,color:'var(--text-muted)',margin:'6px 0 0',lineHeight:1.5}}>{ev.descripcion}</p>}
                           </div>
@@ -167,8 +167,8 @@ export default function Eventos() {
                           {/* Acciones */}
                           {canManage && (
                             <div style={{display:'flex',gap:6,flexShrink:0}}>
-                              <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(ev)}>✏️</button>
-                              <button className="btn btn-ghost btn-sm" style={{color:'var(--c-danger)'}} onClick={()=>setConfirmDel(ev.id)}>🗑</button>
+                              <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(ev)}>Editar</button>
+                              <button className="btn btn-ghost btn-sm" style={{color:'var(--c-danger)'}} onClick={()=>setConfirmDel(ev.id)}></button>
                             </div>
                           )}
                         </div>
@@ -187,7 +187,7 @@ export default function Eventos() {
             <div className="modal">
               <div className="modal-header">
                 <h3 className="modal-title">{editando?'Editar evento':'Nuevo evento'}</h3>
-                <button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>✕</button>
+                <button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>×</button>
               </div>
               <form onSubmit={handleSave}>
                 <div className="modal-body">

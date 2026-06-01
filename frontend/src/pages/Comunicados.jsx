@@ -62,7 +62,7 @@ export default function Comunicados() {
                   <div style={{display:'flex',gap:12,alignItems:'flex-start',justifyContent:'space-between'}}>
                     <div style={{flex:1}}>
                       <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:6,flexWrap:'wrap'}}>
-                        {c.fijado?<span style={{fontSize:11,fontWeight:700,color:'var(--c-warning)'}}>📌 FIJADO</span>:null}
+                        {c.fijado?<span style={{fontSize:11,fontWeight:700,color:'var(--c-warning)'}}> FIJADO</span>:null}
                         <span style={{padding:'2px 8px',borderRadius:3,fontSize:11,fontWeight:600,background:TBG[c.tipo],color:TCOLOR[c.tipo]}}>{c.tipo}</span>
                         <span style={{fontSize:11,color:'var(--text-muted)'}}>{c.createdAt?.slice(0,10)} · {c.autorNombre}</span>
                         {c.destinatarios&&c.destinatarios!=='TODOS'&&<span style={{fontSize:10,padding:'1px 6px',borderRadius:3,background:'var(--bg-2)',color:'var(--text-muted)'}}>→ {DEST_LABEL[c.destinatarios]||c.destinatarios}</span>}
@@ -81,7 +81,7 @@ export default function Comunicados() {
         {modal&&(
           <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(false)}>
             <div className="modal">
-              <div className="modal-header"><h3 className="modal-title"><Icons.Comunicados /> Nuevo comunicado</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>✕</button></div>
+              <div className="modal-header"><h3 className="modal-title"><Icons.Comunicados /> Nuevo comunicado</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>×</button></div>
               <form onSubmit={handleSave}>
                 <div className="modal-body">
                   {msg&&<div className={`alert alert-${msg.type}`}>{msg.text}</div>}
@@ -90,7 +90,7 @@ export default function Comunicados() {
                     <div className="form-group"><label>Tipo</label><select name="tipo" className="form-input" value={form.tipo} onChange={e=>setForm(f=>({...f,tipo:e.target.value}))}>{TIPOS.map(t=><option key={t}>{t}</option>)}</select></div>
                     <div className="form-group"><label>Para</label><select name="destinatarios" className="form-input" value={form.destinatarios} onChange={e=>setForm(f=>({...f,destinatarios:e.target.value}))}>{['TODOS','PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF','LIDER'].map(d=><option key={d}>{d}</option>)}</select></div>
                     <div className="form-group full"><label>Contenido *</label><textarea name="contenido" className="form-input" rows={5} value={form.contenido} onChange={e=>setForm(f=>({...f,contenido:e.target.value}))} required/></div>
-                    <div className="form-group full"><label style={{display:'flex',gap:10,alignItems:'center',cursor:'pointer',textTransform:'none',letterSpacing:0,fontWeight:400,fontSize:13}}><input name="fijado" type="checkbox" checked={!!form.fijado} onChange={e=>setForm(f=>({...f,fijado:e.target.checked?1:0}))} style={{width:16,height:16,accentColor:'var(--primary)'}}/>📌 Fijar comunicado</label></div>
+                    <div className="form-group full"><label style={{display:'flex',gap:10,alignItems:'center',cursor:'pointer',textTransform:'none',letterSpacing:0,fontWeight:400,fontSize:13}}><input name="fijado" type="checkbox" checked={!!form.fijado} onChange={e=>setForm(f=>({...f,fijado:e.target.checked?1:0}))} style={{width:16,height:16,accentColor:'var(--primary)'}}/> Fijar comunicado</label></div>
                   </div>
                 </div>
                 <div className="modal-footer"><button type="button" className="btn btn-ghost" onClick={()=>setModal(false)}>Cancelar</button><button type="submit" className="btn btn-primary">Publicar</button></div>

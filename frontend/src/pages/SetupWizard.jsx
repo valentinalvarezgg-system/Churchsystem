@@ -5,9 +5,9 @@ import { apiFetch, getUser } from '../services/api.js'
 
 const PASOS = [
   { id: 'iglesia',      icon: '▦', titulo: 'Tu iglesia',          sub: 'Nombre, dirección y pastor' },
-  { id: 'apariencia',  icon: '🎨', titulo: 'Apariencia',          sub: 'Color y logo (opcional)' },
-  { id: 'integraciones',icon: '🔗', titulo: 'Integraciones',       sub: 'WhatsApp y email' },
-  { id: 'listo',        icon: '🚀', titulo: '¡Todo listo!',        sub: 'Empezá a usar Church System' },
+  { id: 'apariencia',  icon: '', titulo: 'Apariencia',          sub: 'Color y logo (opcional)' },
+  { id: 'integraciones',icon: '', titulo: 'Integraciones',       sub: 'WhatsApp y email' },
+  { id: 'listo',        icon: '', titulo: '¡Todo listo!',        sub: 'Empezá a usar Church System' },
 ]
 
 const COLORES = [
@@ -239,7 +239,7 @@ export default function SetupWizard({ onCompleto }) {
                   border: '1px solid rgba(22,163,74,0.2)',
                 }}>
                   <div style={{ color: '#4ADE80', fontWeight: 700, fontSize: 13, marginBottom: 3 }}>
-                    <Icons.Attendance /> Email con Resend configurado
+                    Email con Resend configurado
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
                     Los emails salen desde noreply@churchsystem.com.ar
@@ -252,7 +252,7 @@ export default function SetupWizard({ onCompleto }) {
                   border: '1px solid rgba(22,163,74,0.2)',
                 }}>
                   <div style={{ color: '#4ADE80', fontWeight: 700, fontSize: 13, marginBottom: 3 }}>
-                    <Icons.Attendance /> WhatsApp con Twilio configurado
+                    WhatsApp con Twilio configurado
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
                     Mensajes individuales y masivos activos
@@ -294,10 +294,10 @@ export default function SetupWizard({ onCompleto }) {
                   marginBottom: 8,
                 }}>
                   {[
-                    ['⊕', 'Agregar personas', '/personas'],
+                    ['Totales', 'Agregar personas', '/personas'],
                     ['⊞', 'Crear grupos', '/grupos'],
-                    ['✓', 'Registrar un culto', '/asistencia'],
-                    ['⊙', 'Más configuración', '/configuracion'],
+                    ['OK', 'Registrar un culto', '/asistencia'],
+                    ['Sistema', 'Más configuración', '/configuracion'],
                   ].map(([icon, label, path]) => (
                     <button key={path}
                       onClick={() => { onCompleto?.(); navigate(path) }}
@@ -368,7 +368,7 @@ export default function SetupWizard({ onCompleto }) {
                     border: 'none', color: 'white', fontSize: 15, fontWeight: 800,
                     opacity: saving ? 0.6 : 1,
                   }}>
-                  {saving ? 'Guardando...' : '🚀 Empezar'}
+                  {saving ? 'Guardando...' : ' Empezar'}
                 </button>
               )}
             </div>

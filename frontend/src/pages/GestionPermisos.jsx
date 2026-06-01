@@ -21,10 +21,10 @@ const MODULOS = [
 ]
 
 const NIVELES = [
-  { val:0, label:'Sin acceso',  color:'var(--c-danger)', bg:'var(--c-danger-bg)', icon:'✗' },
+  { val:0, label:'Sin acceso',  color:'var(--c-danger)', bg:'var(--c-danger-bg)', icon:'Error' },
   { val:1, label:'Solo ver',    color:'var(--c-warning)', bg:'var(--c-warning-bg)', icon:'◎' },
-  { val:2, label:'Ver+editar',  color:'var(--c-info)', bg:'var(--c-info-bg)', icon:'✎' },
-  { val:3, label:'Total',       color:'var(--c-success)', bg:'var(--c-success-bg)', icon:'✓' },
+  { val:2, label:'Ver+editar',  color:'var(--c-info)', bg:'var(--c-info-bg)', icon:'Editar' },
+  { val:3, label:'Total',       color:'var(--c-success)', bg:'var(--c-success-bg)', icon:'OK' },
 ]
 
 export default function GestionPermisos() {
@@ -97,7 +97,7 @@ export default function GestionPermisos() {
                   <div><h2 style={{fontSize:17,fontWeight:700,margin:0}}>{selUser.nombre||selUser.email}</h2><p style={{fontSize:12,color:'var(--text-muted)',margin:'4px 0 0'}}>Rol: <strong style={{color:ROL_COLOR[selUser.rol]||'var(--text-muted)'}}>{selUser.rol}</strong></p></div>
                   <div style={{display:'flex',gap:8}}>
                     <button className="btn btn-ghost btn-sm" data-tip="Resetear permisos al nivel por defecto del rol" onClick={()=>setConfirmReset(true)} disabled={loading}>↩ Resetear</button>
-                    <button className="btn btn-primary" onClick={guardar} disabled={!cambios||loading}>{loading?'Guardando...':cambios?'💾 Guardar':'Sin cambios'}</button>
+                    <button className="btn btn-primary" onClick={guardar} disabled={!cambios||loading}>{loading?'Guardando...':cambios?' Guardar':'Sin cambios'}</button>
                   </div>
                 </div>
                 {msg&&<div className={`alert alert-${msg.type}`} style={{marginBottom:16}}>{msg.text}</div>}

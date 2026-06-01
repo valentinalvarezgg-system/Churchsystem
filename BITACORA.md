@@ -1368,3 +1368,29 @@ Fecha: 2026-05-31
 - Verificación:
   - `pnpm -C frontend build` ✅
   - `pnpm -C backend audit:launch` ✅
+
+### Barrida global de emojis UI — 2026-06-01
+- Objetivo:
+  - eliminar emojis y pictogramas del frontend público/privado para mejorar consistencia visual.
+  - dejar la shell mobile sin iconografía improvisada en textos y botones.
+- Cambios aplicados:
+  - `frontend/src/components/Menu.jsx`
+    - header mobile y rail lateral migrados a `Icons.Menu`, `Icons.Search`, `Icons.Comunicados`, `Icons.Premium`.
+    - estados de tema resumidos a `CL` / `OS` sin emojis.
+    - se repararon dos huecos que había dejado el reemplazo automático en los accesos de `Asistencia`.
+  - `frontend/src/components/BusquedaGlobal.jsx`
+    - lupa de texto reemplazada por `Icons.Search`.
+  - `frontend/src/pages/Configuracion.jsx`
+    - selector claro/oscuro limpio, sin emojis.
+  - barrida semántica sobre `frontend/src/**` + `landing/index.html`
+    - los emojis en textos, tabs, badges, placeholders y mensajes visibles se sustituyeron por:
+      - texto plano, o
+      - términos legibles (`Advertencia`, `Email`, `Backup`, `Seguridad`, etc.) según contexto.
+  - también se normalizaron varios textos generados en backend que podían reflejarse en UI/exportaciones.
+- Estado:
+  - `frontend/src` y `landing/index.html` quedaron sin emojis según búsqueda por rango unicode.
+  - todavía quedan algunos símbolos tipográficos no-emoji (`OK`, `×`, etc.) en ciertos flujos; eso ya entra en una pasada de refinamiento visual, no de limpieza de emojis.
+- Verificación:
+  - búsqueda: `rg -n "[\\x{2600}-\\x{27BF}\\x{1F300}-\\x{1FAFF}]" frontend/src landing/index.html` → sin resultados ✅
+  - `pnpm -C frontend build` ✅
+  - `pnpm -C backend audit:launch` ✅

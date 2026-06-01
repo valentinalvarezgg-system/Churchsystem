@@ -15,10 +15,10 @@ router.post('/', requireAuth, async (req, res) => {
     const recipients = [ownerInbox, supportInbox].filter(Boolean)
     const result = await sendSystemEmail({
       to: recipients,
-      subject: `🐛 Bug Report - ${iglesia || 'Usuario'}`,
+      subject: ` Bug Report - ${iglesia || 'Usuario'}`,
       html: `
         <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #DC2626;">🐛 Bug Report</h2>
+          <h2 style="color: #DC2626;"> Bug Report</h2>
           <div style="background: #F3F4F6; padding: 16px; border-radius: 8px; margin: 16px 0;">
             <p style="margin: 8px 0;"><strong>Usuario:</strong> ${nombre} (${email})</p>
             <p style="margin: 8px 0;"><strong>Iglesia:</strong> ${iglesia || 'N/A'}</p>

@@ -256,7 +256,7 @@ export default function Personas() {
 
         {/* Filtros */}
         <div className="mobile-filter-bar" style={{display:'grid',gap:10,marginBottom:16,gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))'}}>
-          <input type="text" placeholder="⊙ Buscar..." value={search} onChange={e=>setSearch(e.target.value)} className="form-input" style={{maxWidth:'100%'}} />
+          <input type="text" placeholder="Sistema Buscar..." value={search} onChange={e=>setSearch(e.target.value)} className="form-input" style={{maxWidth:'100%'}} />
           <select value={estadoF} onChange={e=>setEstadoF(e.target.value)} className="form-input" style={{width:'100%'}}>
             <option value="">{t('allStates')}</option>
             {ESTADOS.map(e=><option key={e} value={e}>{e}</option>)}
@@ -265,7 +265,7 @@ export default function Personas() {
             <option value="">{t('allGroups')}</option>
             {grupos.map(g=><option key={g.id} value={g.id}>{g.nombre}</option>)}
           </select>
-          <button className="btn btn-ghost btn-sm" onClick={()=>{setSearch('');setEstadoF('');setGrupoF('');setPage(1)}}>✕ {t('clear')}</button>
+          <button className="btn btn-ghost btn-sm" onClick={()=>{setSearch('');setEstadoF('');setGrupoF('');setPage(1)}}>× {t('clear')}</button>
         </div>
 
         {error && (
@@ -437,7 +437,7 @@ export default function Personas() {
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               {['Subir','Mapear','Confirmar'].map((s,i)=>(
                 <div key={s} style={{display:'flex',alignItems:'center',gap:6,flex:i<2?1:0}}>
-                  <div style={{width:28,height:28,borderRadius:'50%',background:pasoImport>i?'var(--c-success)':pasoImport===i?'var(--primary)':'var(--bg-2)',color:pasoImport>=i?'#fff':'var(--text-muted)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700}}>{pasoImport>i?'✓':i+1}</div>
+                  <div style={{width:28,height:28,borderRadius:'50%',background:pasoImport>i?'var(--c-success)':pasoImport===i?'var(--primary)':'var(--bg-2)',color:pasoImport>=i?'#fff':'var(--text-muted)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700}}>{pasoImport>i?'OK':i+1}</div>
                   <span style={{fontSize:13,fontWeight:pasoImport===i?600:400}}>{s}</span>
                   {i<2&&<div style={{flex:1,height:2,background:pasoImport>i?'var(--c-success)':'var(--border)',borderRadius:2}}/>}
                 </div>
@@ -484,7 +484,7 @@ export default function Personas() {
 
           {/* Paso 2: Preview */}
           {pasoImport===2&&preview&&<div>
-            <div className="alert alert-info" style={{marginBottom:16}}>✓ {preview.total} filas listas. {preview.duplicados||0} duplicados detectados.</div>
+            <div className="alert alert-info" style={{marginBottom:16}}>OK {preview.total} filas listas. {preview.duplicados||0} duplicados detectados.</div>
             {preview.muestra?.length>0&&<div className="table-responsive"><table><thead><tr>{Object.keys(preview.muestra[0]).map(k=><th key={k}>{k}</th>)}</tr></thead><tbody>{preview.muestra.map((r,i)=><tr key={i}>{Object.values(r).map((v,j)=><td key={j}>{v}</td>)}</tr>)}</tbody></table></div>}
             <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:16}}>
               <button className="btn btn-ghost" onClick={()=>setPasoImport(1)}>{t('prevStep')}</button>
@@ -494,7 +494,7 @@ export default function Personas() {
 
           {/* Paso 3: Resultado */}
           {pasoImport===3&&resultado&&<div style={{textAlign:'center',padding:40}}>
-            <div style={{fontSize:56,marginBottom:16}}><Icons.Attendance /></div>
+            <div style={{fontSize:56,marginBottom:16}}></div>
             <h3 style={{fontSize:20,fontWeight:700,marginBottom:8}}>{t('importComplete')}</h3>
             <p style={{fontSize:14,color:'var(--text-muted)'}}>
               {resultado.importados} {t('importedPeople')} · {resultado.actualizados||0} {t('updated')} · {resultado.duplicados||0} {t('duplicates')}

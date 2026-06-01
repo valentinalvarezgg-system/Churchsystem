@@ -38,7 +38,7 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
     process.env.VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY
   )
-  logger.info('Push: VAPID configurado ✓')
+  logger.info('Push: VAPID configurado OK')
 } else {
   logger.warn('Push: VAPID_PUBLIC_KEY o VAPID_PRIVATE_KEY no configurados')
 }
@@ -89,7 +89,7 @@ router.post('/test', requireAuth, wrap(async (req, res) => {
     try {
       await pushSend(
         { endpoint: row.endpoint, keys: JSON.parse(row.keys) },
-        JSON.stringify({ title: 'Church System', body: 'Notificaciones activas ✓', url: '/', icon: '/icon.svg' })
+        JSON.stringify({ title: 'Church System', body: 'Notificaciones activas OK', url: '/', icon: '/icon.svg' })
       )
       ok++
     } catch (err) {

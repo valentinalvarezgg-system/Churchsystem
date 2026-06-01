@@ -120,7 +120,7 @@ export default function Terminos() {
         <Section title="9. Beta y funciones experimentales">
           <div style={{background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.2)',
             borderRadius:10, padding:'12px 16px', marginBottom:12}}>
-            <strong style={{color:'#f59e0b'}}>⚠ Aviso Beta:</strong>
+            <strong style={{color:'#f59e0b'}}>Advertencia Aviso Beta:</strong>
             <span style={{color:c.text2}}> Esta plataforma está en etapa beta. Algunas funciones
             pueden cambiar, fallar o no estar disponibles. No uses Church System como único respaldo
             de información crítica.</span>

@@ -28,7 +28,7 @@ function buildPlanilla(personas, cfg, cultoNombre = '', fecha = '', asistenciaMa
   ]
   personas.forEach((p, i) => {
     const presente = asistenciaMap ? (asistenciaMap[p.id] ? 1 : 0) : null
-    const apellido = presente === 1 ? `✓${p.apellido || ''}` : (p.apellido || '')
+    const apellido = presente === 1 ? `OK${p.apellido || ''}` : (p.apellido || '')
     rows.push([
       i + 1,
       apellido,
@@ -188,7 +188,7 @@ router.get('/pdf/:tipo', requireAuth, async (req, res) => {
   const filas = personas.map((p, i) => {
     const presente = asistMap ? (asistMap[p.id] ? 1 : 0) : null
     const apellido = presente === 1
-      ? `<strong style="color:#16A34A">✓${p.apellido || ''}</strong>`
+      ? `<strong style="color:#16A34A">OK${p.apellido || ''}</strong>`
       : (p.apellido || '')
     return `<tr>
       <td class="num">${i + 1}</td>
@@ -228,7 +228,7 @@ router.get('/pdf/:tipo', requireAuth, async (req, res) => {
   @media print{.print-btn{display:none}td,th{padding:3px 6px}@page{margin:8mm;size:A4}}
 </style></head>
 <body>
-<button class="print-btn" onclick="window.print()">🖨 Imprimir / PDF</button>
+<button class="print-btn" onclick="window.print()"> Imprimir / PDF</button>
 <div class="header">
   <div><h1>${iglesia}</h1><h2>${titulo}</h2></div>
   <div class="header-r">${fechaHoy}<br>${personas.length} miembros${tipo === 'asistencia' ? `<br><strong>${presentes} presentes (${pct}%)</strong>` : ''}</div>
@@ -411,10 +411,10 @@ td{padding:7px 10px;border-bottom:1px solid #F8FAFC;color:#334155}
 @media print{.print-btn{display:none}body{background:white}.wrap{padding:12px}@page{margin:10mm;size:A4}}
 </style></head>
 <body>
-<button class="print-btn" onclick="window.print()">🖨 Imprimir / Guardar PDF</button>
+<button class="print-btn" onclick="window.print()"> Imprimir / Guardar PDF</button>
 <div class="wrap">
   <div class="header">
-    <div><h1>⛪ ${iglesia}</h1><h2>${titulo}</h2></div>
+    <div><h1>Cultos ${iglesia}</h1><h2>${titulo}</h2></div>
     <div class="header-r">Generado: ${fechaHoy}<br>${totalPersonas} miembros en total</div>
   </div>
   <div class="cards">
@@ -423,10 +423,10 @@ td{padding:7px 10px;border-bottom:1px solid #F8FAFC;color:#334155}
     <div class="card"><div class="v" style="color:${pctAsist>=70?'#16A34A':pctAsist>=45?'#D97706':'#DC2626'}">${pctAsist}%</div><div class="l">Asistencia prom.</div></div>
     <div class="card"><div class="v">${totalOfrendas > 0 ? '$'+totalOfrendas.toLocaleString('es-AR') : '—'}</div><div class="l">Ofrendas</div></div>
   </div>
-  ${nuevasPersonas.length > 0 ? `<div class="sect"><h3>👥 Nuevas personas (${nuevasPersonas.length})</h3><table><thead><tr><th>Nombre</th><th>Estado</th><th>Teléfono</th><th>Fecha ingreso</th></tr></thead><tbody>${nuevasPersonas.map(p => `<tr><td><strong>${p.apellido || ''} ${p.nombre || ''}</strong></td><td><span class="badge badge-${p.estado}">${p.estado}</span></td><td>${p.telefono || '—'}</td><td>${new Date(p.createdAt).toLocaleDateString('es-AR')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="sect"><h3>👥 Nuevas personas</h3><p class="empty">Sin nuevas personas en este período</p></div>'}
-  ${cultos.length > 0 ? `<div class="sect"><h3>📅 Asistencia por culto</h3><table><thead><tr><th>Culto</th><th>Fecha</th><th>Presentes</th><th>Total</th><th>%</th></tr></thead><tbody>${cultos.map(c => { const p = c.total > 0 ? Math.round(c.presentes / c.total * 100) : 0; const col = p>=70?'#16A34A':p>=45?'#D97706':'#DC2626'; return `<tr><td><strong>${c.nombre}</strong></td><td>${c.fecha}</td><td style="color:${col};font-weight:700">${c.presentes}</td><td>${c.total}</td><td><div style="min-width:60px">${p}%<div class="bar"><div class="fill" style="width:${p}%;background:${col}"></div></div></div></td></tr>` }).join('')}</tbody></table></div>` : '<div class="sect"><h3>📅 Cultos</h3><p class="empty">Sin cultos en este período</p></div>'}
-  ${seguimientos.length > 0 ? `<div class="sect"><h3>📋 Seguimientos realizados</h3><table><thead><tr><th>Tipo</th><th>Cantidad</th></tr></thead><tbody>${seguimientos.map(s => `<tr><td>${s.tipo}</td><td><strong>${s.qty}</strong></td></tr>`).join('')}</tbody></table></div>` : ''}
-  ${finanzas.length > 0 ? `<div class="sect"><h3>💰 Finanzas del período</h3><table><thead><tr><th>Tipo</th><th>Cantidad</th><th>Total</th></tr></thead><tbody>${finanzas.map(f => `<tr><td>${f.tipo}</td><td>${f.qty}</td><td><strong>$${Number(f.total||0).toLocaleString('es-AR')}</strong></td></tr>`).join('')}<tr style="border-top:2px solid #E2E8F0"><td colspan="2"><strong>TOTAL</strong></td><td><strong style="color:${color}">$${totalOfrendas.toLocaleString('es-AR')}</strong></td></tr></tbody></table></div>` : ''}
+  ${nuevasPersonas.length > 0 ? `<div class="sect"><h3> Nuevas personas (${nuevasPersonas.length})</h3><table><thead><tr><th>Nombre</th><th>Estado</th><th>Teléfono</th><th>Fecha ingreso</th></tr></thead><tbody>${nuevasPersonas.map(p => `<tr><td><strong>${p.apellido || ''} ${p.nombre || ''}</strong></td><td><span class="badge badge-${p.estado}">${p.estado}</span></td><td>${p.telefono || '—'}</td><td>${new Date(p.createdAt).toLocaleDateString('es-AR')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="sect"><h3> Nuevas personas</h3><p class="empty">Sin nuevas personas en este período</p></div>'}
+  ${cultos.length > 0 ? `<div class="sect"><h3> Asistencia por culto</h3><table><thead><tr><th>Culto</th><th>Fecha</th><th>Presentes</th><th>Total</th><th>%</th></tr></thead><tbody>${cultos.map(c => { const p = c.total > 0 ? Math.round(c.presentes / c.total * 100) : 0; const col = p>=70?'#16A34A':p>=45?'#D97706':'#DC2626'; return `<tr><td><strong>${c.nombre}</strong></td><td>${c.fecha}</td><td style="color:${col};font-weight:700">${c.presentes}</td><td>${c.total}</td><td><div style="min-width:60px">${p}%<div class="bar"><div class="fill" style="width:${p}%;background:${col}"></div></div></div></td></tr>` }).join('')}</tbody></table></div>` : '<div class="sect"><h3> Cultos</h3><p class="empty">Sin cultos en este período</p></div>'}
+  ${seguimientos.length > 0 ? `<div class="sect"><h3> Seguimientos realizados</h3><table><thead><tr><th>Tipo</th><th>Cantidad</th></tr></thead><tbody>${seguimientos.map(s => `<tr><td>${s.tipo}</td><td><strong>${s.qty}</strong></td></tr>`).join('')}</tbody></table></div>` : ''}
+  ${finanzas.length > 0 ? `<div class="sect"><h3> Finanzas del período</h3><table><thead><tr><th>Tipo</th><th>Cantidad</th><th>Total</th></tr></thead><tbody>${finanzas.map(f => `<tr><td>${f.tipo}</td><td>${f.qty}</td><td><strong>$${Number(f.total||0).toLocaleString('es-AR')}</strong></td></tr>`).join('')}<tr style="border-top:2px solid #E2E8F0"><td colspan="2"><strong>TOTAL</strong></td><td><strong style="color:${color}">$${totalOfrendas.toLocaleString('es-AR')}</strong></td></tr></tbody></table></div>` : ''}
   <div class="footer">Church System — Generado el ${new Date().toLocaleString('es-AR')}</div>
 </div>
 <script>if(new URLSearchParams(location.search).get('print')==='1')window.onload=()=>setTimeout(()=>window.print(),500)</script>

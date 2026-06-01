@@ -86,11 +86,11 @@ export default function Alertas() {
       const r = await apiFetch('/mensajes/enviar', {
         method:'POST',
         body: JSON.stringify({ personaId, tipo:'WHATSAPP',
-          mensaje: `Hola ${nombre}! <Icons.Prayer /> Estuvimos pensando en vos. ¿Cómo estás? Cuándo podemos conectar?` })
+          mensaje: `Hola ${nombre}! Estuvimos pensando en vos. ¿Cómo estás? Cuándo podemos conectar?` })
       })
-      setMsgEnvio(p => ({...p, [personaId]: r.enviado ? '✓' : r.demo ? '≡' : '✗'}))
+      setMsgEnvio(p => ({...p, [personaId]: r.enviado ? 'OK' : r.demo ? 'Historial' : 'Error'}))
       setTimeout(() => setMsgEnvio(p => { const n={...p}; delete n[personaId]; return n }), 4000)
-    } catch { setMsgEnvio(p => ({...p, [personaId]: '✗'})) }
+    } catch { setMsgEnvio(p => ({...p, [personaId]: 'Error'})) }
     setEnviando(null)
   }
 
@@ -110,13 +110,13 @@ export default function Alertas() {
         const r = await apiFetch('/mensajes/enviar', {
           method:'POST',
           body: JSON.stringify({ personaId: p.personaId||p.id, tipo:'WHATSAPP',
-            mensaje: `Hola ${p.nombre}! <Icons.Prayer /> Te contactamos desde la iglesia. ¡Te esperamos!` })
+            mensaje: `Hola ${p.nombre}! Te contactamos desde la iglesia. ¡Te esperamos!` })
         })
         r.enviado || r.demo ? ok++ : err++
       } catch { err++ }
     }
     setEnviandoMasivo(false)
-    setMsgMasivo(`<Icons.Attendance /> ${ok} enviados${err?` · ✗ ${err} fallaron`:''}`)
+    setMsgMasivo(`${ok} enviados${err?` · Error ${err} fallaron`:''}`)
     setSeleccionados([])
   }
 
@@ -149,11 +149,11 @@ export default function Alertas() {
   )
 
   const TABS = [
-    { key:'sinAsistir',             icon:'🚨', label:t('noAttend'),     count:data?.sinAsistir?.total||0,              color:'var(--c-danger)',  bg:'var(--c-danger-bg)' },
-    { key:'sinSeguimiento',         icon:'⚠', label:t('noFollowUp'),   count:data?.sinSeguimiento?.total||0,          color:'var(--c-warning)', bg:'var(--c-warning-bg)' },
-    { key:'visitantesSinConsolidar',icon:'⊕', label:t('visitors'),     count:data?.visitantesSinConsolidar?.total||0, color:'var(--c-info)',    bg:'var(--c-info-bg)' },
-    { key:'contactosVencidos',      icon:'✓', label:t('overdue'),      count:data?.contactosVencidos?.total||0,       color:'var(--c-purple)',  bg:'var(--c-purple-bg)' },
-    { key:'cumpleanosSemana',       icon:'🎂', label:t('birthdays'),    count:data?.cumpleanosSemana?.total||0,        color:'var(--c-pink)',    bg:'var(--c-pink-bg)' },
+    { key:'sinAsistir',             icon:'', label:t('noAttend'),     count:data?.sinAsistir?.total||0,              color:'var(--c-danger)',  bg:'var(--c-danger-bg)' },
+    { key:'sinSeguimiento',         icon:'Advertencia', label:t('noFollowUp'),   count:data?.sinSeguimiento?.total||0,          color:'var(--c-warning)', bg:'var(--c-warning-bg)' },
+    { key:'visitantesSinConsolidar',icon:'Totales', label:t('visitors'),     count:data?.visitantesSinConsolidar?.total||0, color:'var(--c-info)',    bg:'var(--c-info-bg)' },
+    { key:'contactosVencidos',      icon:'OK', label:t('overdue'),      count:data?.contactosVencidos?.total||0,       color:'var(--c-purple)',  bg:'var(--c-purple-bg)' },
+    { key:'cumpleanosSemana',       icon:'', label:t('birthdays'),    count:data?.cumpleanosSemana?.total||0,        color:'var(--c-pink)',    bg:'var(--c-pink-bg)' },
   ]
   const current  = data?.[tab]?.data || []
   const tabInfo  = TABS.find(t => t.key === tab)
@@ -175,7 +175,7 @@ export default function Alertas() {
           <div className="page-actions">
             {criticas > 0 && (
               <span style={{background:'var(--c-danger-bg)',color:'var(--c-danger)',padding:'5px 14px',borderRadius:20,fontSize:13,fontWeight:700,border:'1px solid rgba(220,38,38,0.2)'}}>
-                🚨 {criticas} {t('critical')}
+                 {criticas} {t('critical')}
               </span>
             )}
             <span style={{background:'var(--bg-2)',color:'var(--text-muted)',padding:'5px 12px',borderRadius:20,fontSize:13,border:'1px solid var(--border)'}}>
@@ -220,10 +220,10 @@ export default function Alertas() {
               <>
                 <button className="btn btn-ghost btn-sm" style={{color:'var(--c-success)',borderColor:'rgba(22,163,74,.3)'}}
                   onClick={enviarMasivo} disabled={enviandoMasivo}>
-                  {enviandoMasivo ? `… ${t('sending')}` : `✉ ${t('massWA')} (${seleccionados.length})`}
+                  {enviandoMasivo ? `… ${t('sending')}` : `Email ${t('massWA')} (${seleccionados.length})`}
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setSeleccionados([])}>
-                  ✕ {t('clear')}
+                  × {t('clear')}
                 </button>
               </>
             )}
@@ -242,7 +242,7 @@ export default function Alertas() {
           </div>
 
           {current.length === 0
-            ? <div className="empty"><div className="empty-icon"><Icons.Attendance /></div><p>{t('noAlerts')}</p></div>
+            ? <div className="empty"><div className="empty-icon"></div><p>{t('noAlerts')}</p></div>
             : <>
               <div className="alerts-mobile-list">
                 {current.map((p, i) => {
@@ -324,7 +324,7 @@ export default function Alertas() {
                         {tab==='sinSeguimiento' && (
                           <>
                             <td style={{fontSize:12,color:p.ultimoSeguimiento?'var(--text-muted)':'var(--c-danger)'}}>
-                              {p.ultimoSeguimiento ? p.ultimoSeguimiento.slice(0,10) : '🚨 Nunca'}
+                              {p.ultimoSeguimiento ? p.ultimoSeguimiento.slice(0,10) : ' Nunca'}
                             </td>
                             <td style={{fontSize:12}}>{p.liderNombre||'—'}</td>
                           </>
@@ -350,7 +350,7 @@ export default function Alertas() {
                         )}
                         {tab==='cumpleanosSemana' && (
                           <td style={{fontSize:12,fontWeight:600}}>
-                            🎂 {p.fechaNacimiento?.slice(5)?.replace('-','/')}
+                             {p.fechaNacimiento?.slice(5)?.replace('-','/')}
                             {(() => {
                               const [m,d] = (p.cumDia||'').split('-').map(Number)
                               const f = new Date(new Date().getFullYear(),m-1,d)
@@ -370,7 +370,7 @@ export default function Alertas() {
                                 data-tip="Enviar WhatsApp rápido"
                                 disabled={enviando===pid}
                                 onClick={() => enviarWA(pid, p.nombre)}>
-                                {enviando===pid ? '…' : '✉'}
+                                {enviando===pid ? '…' : 'Email'}
                                 {msgEnvio[pid] && <span style={{marginLeft:4}}>{msgEnvio[pid]}</span>}
                               </button>
                             )}

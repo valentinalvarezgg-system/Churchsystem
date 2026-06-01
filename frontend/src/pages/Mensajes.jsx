@@ -8,7 +8,7 @@ import { makeI18n } from '../lib/i18n.js'
 
 const MSG_I18N = {
   es: { title:'Mensajería', notConfigured:'sin configurar',
-        tabSend:'✉ Enviar', tabTemplates:'Plantillas', tabHistory:'≡ Historial',
+        tabSend:'Email Enviar', tabTemplates:'Plantillas', tabHistory:'Historial Historial',
         loadingMsg:'Cargando mensajería...', noMessages:'Sin mensajes aún',
         newMessage:'Nuevo mensaje', sendMode:'Modo de envío', channel:'Canal',
         individual:'Individual', mass:'Masivo',
@@ -20,7 +20,7 @@ const MSG_I18N = {
         sending:'Enviando...', sendMsg:'↑ Enviar mensaje', sendToAll:'↑ Enviar a todos',
         quickTemplates:'Plantillas rápidas', noTemplatesFor:'Sin plantillas para',
         customTemplates:'Plantillas personalizadas', newTemplate:'+ Nueva',
-        templateNote:'Las plantillas con 📌 son predeterminadas del sistema.',
+        templateNote:'Las plantillas con  son predeterminadas del sistema.',
         templateName:'Nombre', templateType:'Tipo', content:'Contenido',
         variables:'variables:', use:'Usar',
         sentMessages:'Mensajes enviados', sent:'Enviado', error:'Error', noPerson:'Sin persona',
@@ -28,7 +28,7 @@ const MSG_I18N = {
         delTemplate:'¿Eliminar plantilla?', delTemplateMsg:'Esta plantilla será eliminada permanentemente.',
   },
   pt: { title:'Mensagens', notConfigured:'sem configuração',
-        tabSend:'✉ Enviar', tabTemplates:'Templates', tabHistory:'≡ Histórico',
+        tabSend:'Email Enviar', tabTemplates:'Templates', tabHistory:'Historial Histórico',
         loadingMsg:'Carregando mensagens...', noMessages:'Sem mensagens ainda',
         newMessage:'Nova mensagem', sendMode:'Modo de envio', channel:'Canal',
         individual:'Individual', mass:'Em massa',
@@ -40,7 +40,7 @@ const MSG_I18N = {
         sending:'Enviando...', sendMsg:'↑ Enviar mensagem', sendToAll:'↑ Enviar para todos',
         quickTemplates:'Templates rápidos', noTemplatesFor:'Sem templates para',
         customTemplates:'Templates personalizados', newTemplate:'+ Novo',
-        templateNote:'Os templates com 📌 são predefinidos do sistema.',
+        templateNote:'Os templates com  são predefinidos do sistema.',
         templateName:'Nome', templateType:'Tipo', content:'Conteúdo',
         variables:'variáveis:', use:'Usar',
         sentMessages:'Mensagens enviadas', sent:'Enviado', error:'Erro', noPerson:'Sem pessoa',
@@ -48,7 +48,7 @@ const MSG_I18N = {
         delTemplate:'Excluir template?', delTemplateMsg:'Este template será excluído permanentemente.',
   },
   en: { title:'Messaging', notConfigured:'not configured',
-        tabSend:'✉ Send', tabTemplates:'Templates', tabHistory:'≡ History',
+        tabSend:'Email Send', tabTemplates:'Templates', tabHistory:'Historial History',
         loadingMsg:'Loading messaging...', noMessages:'No messages yet',
         newMessage:'New message', sendMode:'Send mode', channel:'Channel',
         individual:'Individual', mass:'Mass',
@@ -60,7 +60,7 @@ const MSG_I18N = {
         sending:'Sending...', sendMsg:'↑ Send message', sendToAll:'↑ Send to all',
         quickTemplates:'Quick templates', noTemplatesFor:'No templates for',
         customTemplates:'Custom templates', newTemplate:'+ New',
-        templateNote:'Templates with 📌 are system defaults.',
+        templateNote:'Templates with  are system defaults.',
         templateName:'Name', templateType:'Type', content:'Content',
         variables:'variables:', use:'Use',
         sentMessages:'Sent messages', sent:'Sent', error:'Error', noPerson:'No person',
@@ -73,9 +73,9 @@ const TIPOS = ['WHATSAPP', 'EMAIL']
 
 const PLANTILLAS_DEFAULT = [
   { id: 'd1', nombre: 'Bienvenida', tipo: 'WHATSAPP', contenido: 'Hola {nombre}! <Icons.Users /> Bienvenido/a a nuestra comunidad. Es un placer tenerte con nosotros. ¡Que Dios te bendiga!' },
-  { id: 'd2', nombre: 'Recordatorio culto', tipo: 'WHATSAPP', contenido: 'Hola {nombre}! <Icons.Prayer /> Te recordamos que este domingo tenemos culto. Te esperamos!' },
-  { id: 'd3', nombre: 'Seguimiento', tipo: 'WHATSAPP', contenido: 'Hola {nombre}! ¿Cómo estás? Te contactamos desde la iglesia para saber cómo te encontrás. Estamos orando por vos <Icons.Prayer />' },
-  { id: 'd4', nombre: 'Cumpleaños', tipo: 'WHATSAPP', contenido: '🎂 Feliz cumpleaños {nombre}! Que Dios te colme de bendiciones en este nuevo año de vida. Te queremos mucho! ❤️' },
+  { id: 'd2', nombre: 'Recordatorio culto', tipo: 'WHATSAPP', contenido: 'Hola {nombre}! Te recordamos que este domingo tenemos culto. Te esperamos!' },
+  { id: 'd3', nombre: 'Seguimiento', tipo: 'WHATSAPP', contenido: 'Hola {nombre}! ¿Cómo estás? Te contactamos desde la iglesia para saber cómo te encontrás. Estamos orando por vos' },
+  { id: 'd4', nombre: 'Cumpleaños', tipo: 'WHATSAPP', contenido: ' Feliz cumpleaños {nombre}! Que Dios te colme de bendiciones en este nuevo año de vida. Te queremos mucho! ' },
 ]
 
 export default function Mensajes() {
@@ -161,16 +161,16 @@ export default function Mensajes() {
           method: 'POST',
           body: JSON.stringify({ personaId: Number(form.personaId), tipo: form.tipo, mensaje: form.mensaje, asunto: form.asunto })
         })
-        const txt = res.demo ? '≡ Mensaje guardado (email sin configurar — andá a Configuración → Integraciones → Email)'
-          : res.enviado ? `<Icons.Attendance /> Mensaje enviado por ${form.tipo}`
-          : `⚠ No se pudo enviar: ${res.error}`
+        const txt = res.demo ? 'Historial Mensaje guardado (email sin configurar — andá a Configuración → Integraciones → Email)'
+          : res.enviado ? `Mensaje enviado por ${form.tipo}`
+          : `Advertencia No se pudo enviar: ${res.error}`
         setMsg({ type: res.enviado || res.demo ? 'success' : 'warning', text: txt })
       } else {
         res = await apiFetch('/mensajes/masivo', {
           method: 'POST',
           body: JSON.stringify({ grupoId: form.grupoId || null, estado: form.estado || null, tipo: form.tipo, mensaje: form.mensaje, asunto: form.asunto })
         })
-        setMsg({ type: 'success', text: `<Icons.Attendance /> ${res.enviados}/${res.total} mensajes enviados` + (res.errores > 0 ? ` · ${res.errores} errores` : '') })
+        setMsg({ type: 'success', text: `${res.enviados}/${res.total} mensajes enviados` + (res.errores > 0 ? ` · ${res.errores} errores` : '') })
       }
       loadHistorial()
     } catch (err) {
@@ -219,10 +219,10 @@ export default function Mensajes() {
             <h1 className="page-title"><Icons.Messages /> {t('title')}</h1>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3, display: 'flex', gap: 10 }}>
               <span style={{ ...badgeColor('WHATSAPP'), padding: '2px 9px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
-                WhatsApp {twOk ? '✓' : `⚠ ${t('notConfigured')}`}
+                WhatsApp {twOk ? 'OK' : `Advertencia ${t('notConfigured')}`}
               </span>
               <span style={{ ...badgeColor('EMAIL'), padding: '2px 9px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>
-                Email {emlOk ? '✓' : `⚠ ${t('notConfigured')}`}
+                Email {emlOk ? 'OK' : `Advertencia ${t('notConfigured')}`}
               </span>
             </p>
           </div>
@@ -267,7 +267,7 @@ export default function Mensajes() {
                     <label>{t('channel')}</label>
                     <select name="tipo" className="form-input" value={form.tipo} onChange={e => f('tipo', e.target.value)}>
                       <option value="WHATSAPP"><Icons.CheckIn /> WhatsApp{!twOk ? ' (sin config)' : ''}</option>
-                      <option value="EMAIL">✉ Email{!emlOk ? ' (sin config)' : ''}</option>
+                      <option value="EMAIL">Email Email{!emlOk ? ' (sin config)' : ''}</option>
                     </select>
                   </div>
 
@@ -369,7 +369,7 @@ export default function Mensajes() {
                   <div className="form-group"><label>{t('templateType')}</label>
                     <select name="tipo" className="form-input" value={newP.tipo} onChange={e => setNewP(p => ({ ...p, tipo: e.target.value }))}>
                       <option value="WHATSAPP"><Icons.CheckIn /> WhatsApp</option>
-                      <option value="EMAIL">✉ Email</option>
+                      <option value="EMAIL">Email Email</option>
                     </select>
                   </div>
                   <div className="form-group full">
@@ -392,7 +392,7 @@ export default function Mensajes() {
               <div key={p.id} className="template-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border)', gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 5 }}>
-                    <strong style={{ fontSize: 14 }}>{String(p.id).startsWith('d') ? '📌 ' : ''}{p.nombre}</strong>
+                    <strong style={{ fontSize: 14 }}>{String(p.id).startsWith('d') ? ' ' : ''}{p.nombre}</strong>
                     <span style={{ ...badgeColor(p.tipo), padding: '1px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{p.tipo}</span>
                   </div>
                   <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>{p.contenido}</p>
@@ -400,7 +400,7 @@ export default function Mensajes() {
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => { setTab('enviar'); f('mensaje', p.contenido); f('tipo', p.tipo) }}>{t('use')}</button>
                   {!String(p.id).startsWith('d') && (
-                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmBorrarId(p.id)}>✕</button>
+                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmBorrarId(p.id)}>×</button>
                   )}
                 </div>
               </div>

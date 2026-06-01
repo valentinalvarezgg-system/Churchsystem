@@ -34,7 +34,7 @@ export function TokenIglesiaAdmin() {
       {loading?<div className="skeleton" style={{height:56,borderRadius:12}}/>:
       <div style={{display:'flex',alignItems:'center',gap:12,background:'var(--bg)',border:'2px solid var(--primary)',borderRadius:12,padding:'12px 16px',fontFamily:'monospace',fontSize:22,fontWeight:800,letterSpacing:4,color:'var(--primary)'}}>
         <span style={{flex:1}}>{data?.token||'—'}</span>
-        <button onClick={copiar} className="btn btn-primary btn-sm" style={{fontFamily:'inherit',letterSpacing:0,fontSize:13}}>{copiado?'✓ Copiado':'Copiar'}</button>
+        <button onClick={copiar} className="btn btn-primary btn-sm" style={{fontFamily:'inherit',letterSpacing:0,fontSize:13}}>{copiado?'OK Copiado':'Copiar'}</button>
       </div>}
       <div style={{marginTop:12,display:'flex',justifyContent:'flex-end',gap:8}}>
         <button onClick={regenerar} className="btn btn-ghost btn-sm" style={{fontSize:12,color:confirm?'var(--c-error)':'var(--text-muted)'}}>{confirm?'Confirmar regenerar':'Regenerar token'}</button>
@@ -74,7 +74,7 @@ export function TokenIglesiaInput({ onSuccess, label='Código de iglesia' }) {
         {estado==='valido'&&<button onClick={unirse} disabled={loading} className="btn btn-primary" style={{whiteSpace:'nowrap'}}>{loading?'Uniéndose...':'Unirse'}</button>}
       </div>
       {estado==='validando'&&<p style={{fontSize:12,color:'var(--primary)',marginTop:6}}>Verificando...</p>}
-      {estado==='valido'&&iglesia&&<p style={{fontSize:12,color:'var(--c-success)',marginTop:6,fontWeight:600}}>✓ Iglesia encontrada: {iglesia}</p>}
+      {estado==='valido'&&iglesia&&<p style={{fontSize:12,color:'var(--c-success)',marginTop:6,fontWeight:600}}>OK Iglesia encontrada: {iglesia}</p>}
       {estado==='error'&&<p style={{fontSize:12,color:'var(--c-error)',marginTop:6}}>Token inválido.</p>}
     </div>
   )

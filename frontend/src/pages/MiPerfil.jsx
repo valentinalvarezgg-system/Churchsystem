@@ -68,7 +68,7 @@ export default function MiPerfil() {
             </div>
             <div className="card">
               <h3 style={{fontSize:12,fontWeight:600,marginBottom:10,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Mi actividad</h3>
-              {[['⊕',perfil.stats?.totalPersonas,'Personas a cargo'],['≡',perfil.stats?.totalSeguimientos,'Seguimientos'],['✉',perfil.stats?.totalMensajes,'Mensajes']].map(([ic,v,l])=>(
+              {[['Totales',perfil.stats?.totalPersonas,'Personas a cargo'],['Historial',perfil.stats?.totalSeguimientos,'Seguimientos'],['Email',perfil.stats?.totalMensajes,'Mensajes']].map(([ic,v,l])=>(
                 <div key={l} style={{display:'flex',gap:10,alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
                   <span style={{fontSize:20}}>{ic}</span>
                   <div><div style={{fontSize:18,fontWeight:700,color:'var(--primary)'}}>{v||0}</div><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.3}}>{l}</div></div>
@@ -77,7 +77,7 @@ export default function MiPerfil() {
             </div>
             {perfil.rol==='PASTOR_GENERAL'&&backupInfo&&(
               <div className="card">
-                <h3 style={{fontSize:12,fontWeight:600,marginBottom:10,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>💾 Backup</h3>
+                <h3 style={{fontSize:12,fontWeight:600,marginBottom:10,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}> Backup</h3>
                 <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Motor: <strong>PostgreSQL</strong></p>
                 <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:12}}>
                   {Object.entries(backupInfo.totales||{}).map(([k,v])=>(

@@ -31,7 +31,7 @@ export default function UpgradeGate({ modulo, children }) {
   const currentLabel = getCommercialPlanUi(commercialPlan || plan).name || LABELS[commercialPlan] || LABELS[plan] || plan
   return (
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'calc(100vh - 120px)',padding:40,textAlign:'center'}}>
-      <div style={{width:72,height:72,borderRadius:20,marginBottom:24,background:'linear-gradient(135deg,#6B5CFF,#4845D2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:32,color:'#fff'}}>★</div>
+      <div style={{width:72,height:72,borderRadius:20,marginBottom:24,background:'linear-gradient(135deg,#6B5CFF,#4845D2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:32,color:'#fff'}}>Plan</div>
       <h2 style={{fontSize:22,fontWeight:800,marginBottom:8,color:'var(--text)'}}>Módulo no disponible</h2>
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6,maxWidth:360}}>Requiere plan <strong style={{color:'var(--primary)'}}>{LABELS[req]}</strong>.</p>
       <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:28}}>Estás en plan <strong>{currentLabel}</strong>.</p>

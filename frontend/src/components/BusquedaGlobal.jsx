@@ -45,7 +45,7 @@ export default function BusquedaGlobal({ onClose }) {
     onClose()
   }
 
-  const TIPO_ICON  = { persona:'👤', grupo:'🧩', culto:'📅', usuario:'🔐' }
+  const TIPO_ICON  = { persona:'', grupo:'', culto:'', usuario:'' }
   const TIPO_LABEL = { persona:'Persona', grupo:'Grupo', culto:'Culto', usuario:'Usuario' }
 
   const overlay = (
@@ -74,7 +74,9 @@ export default function BusquedaGlobal({ onClose }) {
           display:'flex', alignItems:'center', gap:12,
           padding:'14px 16px', borderBottom:'1px solid var(--border)'
         }}>
-          <span style={{fontSize:16, color:'var(--text-muted)', flexShrink:0}}>⌕</span>
+          <span style={{display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',flexShrink:0}}>
+            <Icons.Search />
+          </span>
           <input
             name="search" id="busqueda-global"
             ref={inputRef}
@@ -117,7 +119,7 @@ export default function BusquedaGlobal({ onClose }) {
                   fontSize:15, flexShrink:0, transition:'background .1s',
                   color: i === selected ? 'var(--surface)' : 'inherit',
                 }}>
-                  {TIPO_ICON[item.tipo] || '📄'}
+                  {TIPO_ICON[item.tipo] || ''}
                 </span>
                 <div style={{flex:1, minWidth:0}}>
                   <div style={{

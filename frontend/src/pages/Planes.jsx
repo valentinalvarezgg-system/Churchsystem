@@ -265,7 +265,7 @@ export default function Planes() {
           <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
             {plan.features.map(feature => (
               <div key={feature} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--text)' }}>
-                <span style={{ color: '#22c55e' }}>✓</span>
+                <span style={{ color: '#22c55e' }}>OK</span>
                 <span>{feature}</span>
               </div>
             ))}
@@ -367,13 +367,13 @@ export default function Planes() {
           alignItems: 'center',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)' }}>
-            <span>🔒</span> {tt.payments}
+            <span></span> {tt.payments}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)' }}>
-            <span>↩️</span> {tt.cancel}
+            <span>↩</span> {tt.cancel}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)' }}>
-            <span>💬</span>
+            <span></span>
             <a href="mailto:ventas@churchsystem.com.ar" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
               {tt.contact}
             </a>

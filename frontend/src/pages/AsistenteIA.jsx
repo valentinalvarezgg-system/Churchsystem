@@ -34,7 +34,7 @@ export default function AsistenteIA() {
     try {
       const res = await apiFetch('/ia/chat',{method:'POST',body:JSON.stringify({pregunta:q,historial:nuevos.slice(-6,-1).map(m=>({role:m.role,content:m.content}))})})
       setMensajes(p=>[...p,{role:'assistant',content:res.respuesta}])
-    } catch(e) { setMensajes(p=>[...p,{role:'assistant',content:`✗ ${e.message}`}]) }
+    } catch(e) { setMensajes(p=>[...p,{role:'assistant',content:`Error ${e.message}`}]) }
     setLoading(false); inputRef.current?.focus()
   }
 
@@ -50,11 +50,11 @@ export default function AsistenteIA() {
             <div><h1 style={{margin:0,fontSize:17,fontWeight:700}}>Asistente Pastoral IA</h1><p style={{margin:0,fontSize:12,color:'var(--text-muted)'}}>Preguntame sobre tu congregación</p></div>
           </div>
           <div style={{display:'flex', gap:8, alignItems:'center', flexWrap:'wrap'}}>
-            {iaConfig&&<span style={{fontSize:12,padding:'3px 10px',borderRadius:20,fontWeight:600,background:iaConfig.ia_configurada?'var(--c-success-bg)':'var(--c-danger-bg)',color:iaConfig.ia_configurada?'var(--c-green-dark)':'var(--c-danger)'}}>{iaConfig.ia_configurada?'🟢 Activa':'🔴 Sin API key'}</span>}
+            {iaConfig&&<span style={{fontSize:12,padding:'3px 10px',borderRadius:20,fontWeight:600,background:iaConfig.ia_configurada?'var(--c-success-bg)':'var(--c-danger-bg)',color:iaConfig.ia_configurada?'var(--c-green-dark)':'var(--c-danger)'}}>{iaConfig.ia_configurada?' Activa':' Sin API key'}</span>}
             {mensajes.length>0&&<button className="btn btn-ghost btn-sm" onClick={()=>setMensajes([])}>Nueva conversación</button>}
           </div>
         </div>
-        {sinKey&&<div className="alert alert-warning" style={{margin:'16px 24px 0'}}>⚠ <strong>IA no configurada.</strong> Andá a <a href="/configuracion" style={{color:'var(--c-warning)',fontWeight:600}}>Configuración → IA</a> para activarla. Groq es gratis y no necesita tarjeta.</div>}
+        {sinKey&&<div className="alert alert-warning" style={{margin:'16px 24px 0'}}>Advertencia <strong>IA no configurada.</strong> Andá a <a href="/configuracion" style={{color:'var(--c-warning)',fontWeight:600}}>Configuración → IA</a> para activarla. Groq es gratis y no necesita tarjeta.</div>}
         <div style={{flex:1,overflowY:'auto',padding:'20px 24px'}}>
           {mensajes.length===0 ? (
             <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:24}}>
@@ -71,7 +71,7 @@ export default function AsistenteIA() {
             <div>
               {mensajes.map((m,i)=>(
                 <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start',flexDirection:m.role==='assistant'?'row':'row-reverse',marginBottom:16}}>
-                  <div style={{width:32,height:32,borderRadius:'50%',flexShrink:0,background:m.role==='assistant'?'var(--sidebar-bg)':'var(--primary)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>{m.role==='assistant'?'◆':'○'}</div>
+                  <div style={{width:32,height:32,borderRadius:'50%',flexShrink:0,background:m.role==='assistant'?'var(--sidebar-bg)':'var(--primary)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>{m.role==='assistant'?'IA':'○'}</div>
                   <div style={{maxWidth:'75%',padding:'12px 16px',borderRadius:m.role==='assistant'?'4px 14px 14px 14px':'14px 4px 14px 14px',background:m.role==='assistant'?'var(--surface)':'var(--primary)',color:m.role==='assistant'?'var(--text)':'var(--surface)',border:m.role==='assistant'?'1px solid var(--border)':'none',fontSize:14,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{m.content}</div>
                 </div>
               ))}

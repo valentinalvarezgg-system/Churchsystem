@@ -9,7 +9,7 @@ const ETAPAS = ['NUEVO_CREYENTE','CONSOLIDADO','DISCIPULO','LIDER','MINISTRO']
 const MATERIALES = ['BIBLIA_BASICA','CONSOLIDACION_1','CONSOLIDACION_2','DISCIPULADO_1','DISCIPULADO_2','MINISTERIO']
 const ETAPA_COLOR = { NUEVO_CREYENTE:'var(--c-info)',CONSOLIDADO:'var(--c-warning)',DISCIPULO:'var(--c-success)',LIDER:'var(--c-purple)',MINISTRO:'var(--c-danger)' }
 const ETAPA_BG    = { NUEVO_CREYENTE:'var(--c-info-bg)',CONSOLIDADO:'var(--c-warning-bg)',DISCIPULO:'var(--c-success-bg)',LIDER:'var(--c-purple-bg)',MINISTRO:'var(--c-danger-bg)' }
-const MAT_LABEL   = { BIBLIA_BASICA:'▤ Biblia básica',CONSOLIDACION_1:'Consolidación 1',CONSOLIDACION_2:'◇ Consolidación 2',DISCIPULADO_1:'Discipulado 1',DISCIPULADO_2:'Discipulado 2',MINISTERIO:'★ Ministerio' }
+const MAT_LABEL   = { BIBLIA_BASICA:'▤ Biblia básica',CONSOLIDACION_1:'Consolidación 1',CONSOLIDACION_2:'◇ Consolidación 2',DISCIPULADO_1:'Discipulado 1',DISCIPULADO_2:'Discipulado 2',MINISTERIO:'Plan Ministerio' }
 
 export default function Discipulado({ title = 'Discipulado' }) {
   const navigate = useNavigate()
@@ -73,7 +73,7 @@ export default function Discipulado({ title = 'Discipulado' }) {
         </div>
         {stats?.bautizados&&(
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:10,marginBottom:16}}>
-            {[['💧',stats.bautizados.agua||0,'Bautizados agua'],['🕊️',stats.bautizados.espiritu||0,'Bautizados espíritu'],['📚',stats.bautizados.discipulado||0,'Discipulado completo']].map(([ic,v,l])=>(
+            {[['',stats.bautizados.agua||0,'Bautizados agua'],['',stats.bautizados.espiritu||0,'Bautizados espíritu'],['',stats.bautizados.discipulado||0,'Discipulado completo']].map(([ic,v,l])=>(
               <div key={l} className="card" style={{display:'flex',gap:12,alignItems:'center',padding:'12px 16px'}}>
                 <span style={{fontSize:28}}>{ic}</span>
                 <div><div style={{fontSize:24,fontWeight:800,color:'var(--primary)'}}>{v}</div><div style={{fontSize:11,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.3}}>{l}</div></div>
@@ -102,7 +102,7 @@ export default function Discipulado({ title = 'Discipulado' }) {
                       <div className="mobile-person-meta">
                         {p.liderNombre && <span style={{fontSize:11,color:'var(--text-muted)'}}><Icons.Profile /> {p.liderNombre}</span>}
                         <span style={{fontSize:11,color:'var(--text-muted)'}}>
-                          {p.bautizadoAgua?'💧 ':''}{p.bautizadoEspiritu?'🕊️ ':''}{p.materialesCompletados||0}/{MATERIALES.length} materiales
+                          {p.bautizadoAgua?' ':''}{p.bautizadoEspiritu?' ':''}{p.materialesCompletados||0}/{MATERIALES.length} materiales
                         </span>
                       </div>
                       <button className="btn btn-ghost btn-sm" style={{marginTop:6,width:'100%'}} onClick={()=>abrirModal(p)}>Ver progreso</button>
@@ -124,10 +124,10 @@ export default function Discipulado({ title = 'Discipulado' }) {
                         <td>
                           <div style={{display:'flex',gap:8}}>
                             <label style={{display:'flex',gap:4,alignItems:'center',fontSize:12,cursor:'pointer',textTransform:'none',letterSpacing:0,fontWeight:400,color:'var(--text)'}}>
-                              <input name="bautizadoAgua" type="checkbox" checked={!!p.bautizadoAgua} onChange={()=>toggleCheck('bautizadoAgua',p.bautizadoAgua,p.id)} style={{accentColor:'var(--primary)'}}/> 💧
+                              <input name="bautizadoAgua" type="checkbox" checked={!!p.bautizadoAgua} onChange={()=>toggleCheck('bautizadoAgua',p.bautizadoAgua,p.id)} style={{accentColor:'var(--primary)'}}/> 
                             </label>
                             <label style={{display:'flex',gap:4,alignItems:'center',fontSize:12,cursor:'pointer',textTransform:'none',letterSpacing:0,fontWeight:400,color:'var(--text)'}}>
-                              <input name="bautizadoEspiritu" type="checkbox" checked={!!p.bautizadoEspiritu} onChange={()=>toggleCheck('bautizadoEspiritu',p.bautizadoEspiritu,p.id)} style={{accentColor:'var(--c-purple)'}}/> 🕊️
+                              <input name="bautizadoEspiritu" type="checkbox" checked={!!p.bautizadoEspiritu} onChange={()=>toggleCheck('bautizadoEspiritu',p.bautizadoEspiritu,p.id)} style={{accentColor:'var(--c-purple)'}}/> 
                             </label>
                           </div>
                         </td>
@@ -149,7 +149,7 @@ export default function Discipulado({ title = 'Discipulado' }) {
         {modal&&(
           <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
             <div className="modal">
-              <div className="modal-header"><h3 className="modal-title"><Icons.Discipleship /> {modal.nombre} {modal.apellido}</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(null)}>✕</button></div>
+              <div className="modal-header"><h3 className="modal-title"><Icons.Discipleship /> {modal.nombre} {modal.apellido}</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(null)}>×</button></div>
               <div className="modal-body">
                 {materiales.map(m=>(
                   <div key={m.material} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
@@ -157,7 +157,7 @@ export default function Discipulado({ title = 'Discipulado' }) {
                       <input name="completado" type="checkbox" checked={!!m.completado} onChange={()=>toggleMaterial(m.material,m.completado)} style={{width:18,height:18,accentColor:'var(--c-success)',cursor:'pointer'}}/>
                       <div>
                         <div style={{fontSize:14,fontWeight:m.completado?600:400}}>{MAT_LABEL[m.material]||m.material}</div>
-                        {m.fecha&&<div style={{fontSize:11,color:'var(--c-success)'}}><Icons.Attendance /> {m.fecha}</div>}
+                        {m.fecha&&<div style={{fontSize:11,color:'var(--c-success)'}}>{m.fecha}</div>}
                       </div>
                     </div>
                     {!!m.completado&&<span className="badge badge-activo">Completado</span>}

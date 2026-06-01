@@ -22,7 +22,7 @@ for (const caPath of SYSTEM_CA_PATHS) {
   if (existsSync(caPath)) {
     try {
       sslConfig = { rejectUnauthorized: true, ca: readFileSync(caPath, 'utf8') }
-      logger.info({ ca: caPath }, 'DB SSL: verificación activada con CA del sistema ✓')
+      logger.info({ ca: caPath }, 'DB SSL: verificación activada con CA del sistema OK')
       break
     } catch { /* intentar siguiente */ }
   }

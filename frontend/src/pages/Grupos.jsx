@@ -123,7 +123,7 @@ export default function Grupos() {
             <div className="modal">
               <div className="modal-header">
                 <h3 className="modal-title">{modal==='edit'?t('editModal'):t('newModal')}</h3>
-                <button className="btn btn-ghost btn-sm" onClick={()=>setModal(null)}>✕</button>
+                <button className="btn btn-ghost btn-sm" onClick={()=>setModal(null)}>×</button>
               </div>
               <form onSubmit={handleSave}>
                 <div className="modal-body">
@@ -156,7 +156,7 @@ export default function Grupos() {
             <div className="modal">
               <div className="modal-header">
                 <h3 className="modal-title">{detalle.nombre}</h3>
-                <button className="btn btn-ghost btn-sm" onClick={()=>setDetalle(null)}>✕</button>
+                <button className="btn btn-ghost btn-sm" onClick={()=>setDetalle(null)}>×</button>
               </div>
               <div className="modal-body">
                 <p style={{marginBottom:14,color:'var(--text-muted)',fontSize:13}}>{detalle.miembros?.length||0} {t('members')}</p>

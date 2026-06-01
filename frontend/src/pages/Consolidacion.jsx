@@ -9,11 +9,11 @@ const ESTADOS = ['PRIMER_CONTACTO','EN_PROCESO','COMPLETADA','TRANSFERIDA']
 const ECOLOR  = { PRIMER_CONTACTO:'#D97706', EN_PROCESO:'#2563EB', COMPLETADA:'#16A34A', TRANSFERIDA:'#64748B' }
 const ELABEL  = { PRIMER_CONTACTO:'Primer contacto', EN_PROCESO:'En proceso', COMPLETADA:'Completada', TRANSFERIDA:'Transferida' }
 const PASOS = [
-  { key:'bienvenida',         icon:'⊕', label:'Bienvenida personal' },
-  { key:'datos',              icon:'✉', label:'Datos registrados' },
-  { key:'primer_llamada',     icon:'📞', label:'Primera llamada' },
+  { key:'bienvenida',         icon:'Totales', label:'Bienvenida personal' },
+  { key:'datos',              icon:'Email', label:'Datos registrados' },
+  { key:'primer_llamada',     icon:'', label:'Primera llamada' },
   { key:'material_entregado', icon:'▤', label:'Material entregado' },
-  { key:'segunda_visita',     icon:'🏠', label:'Segunda visita' },
+  { key:'segunda_visita',     icon:'', label:'Segunda visita' },
   { key:'conectado_grupo',    icon:'⊞', label:'Conectado a grupo' },
   { key:'discipulado',        icon:'▧',  label:'Inicio de discipulado' },
 ]
@@ -95,7 +95,7 @@ export default function Consolidacion() {
           </div>
           <div style={{ display:'flex', gap:8 }}>
             <div style={{ display:'flex', background:'var(--bg)', borderRadius:'var(--r)', border:'1px solid var(--border)', overflowX:'auto' }}>
-              {[['lista','≡'],['kanban','▦']].map(([k,ic]) => (
+              {[['lista','Historial'],['kanban','▦']].map(([k,ic]) => (
                 <button key={k} onClick={() => setView(k)}
                   style={{
                     padding:'7px 14px', border:'none', cursor:'pointer', fontSize:13, fontWeight:600,
@@ -305,7 +305,7 @@ export default function Consolidacion() {
                       {' · '}{pct}% completado
                     </div>
                   </div>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setModal(null)}>✕</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setModal(null)}>×</button>
                 </div>
                 <div className="modal-body">
                   {/* Barra de progreso */}
@@ -344,7 +344,7 @@ export default function Consolidacion() {
                           fontSize:11, color:'var(--surface)', fontWeight:800,
                           transition:'all .2s',
                         }}>
-                          {done ? '✓' : ''}
+                          {done ? 'OK' : ''}
                         </div>
                         <span style={{ fontSize:18 }}>{p.icon}</span>
                         <span style={{
@@ -355,7 +355,7 @@ export default function Consolidacion() {
                         }}>
                           {p.label}
                         </span>
-                        {done && <span style={{ fontSize:11, color:'var(--c-success)', fontWeight:600 }}>✓ Completado</span>}
+                        {done && <span style={{ fontSize:11, color:'var(--c-success)', fontWeight:600 }}>OK Completado</span>}
                       </div>
                     )
                   })}
@@ -378,7 +378,7 @@ export default function Consolidacion() {
             <div className="modal">
               <div className="modal-header">
                 <h3 className="modal-title">+ Nuevo proceso de consolidación</h3>
-                <button className="btn btn-ghost btn-sm" onClick={() => setNuevaModal(false)}>✕</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setNuevaModal(false)}>×</button>
               </div>
               <form onSubmit={crearConsolidacion}>
                 <div className="modal-body" style={{ display:'flex', flexDirection:'column', gap:14 }}>

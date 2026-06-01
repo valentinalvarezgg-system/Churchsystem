@@ -139,12 +139,12 @@ export default function CamaraFoto({ onFoto, onCerrar, nombre = '' }) {
       <div style={card}>
         <div style={header}>
           <div>
-            <div style={{ color: 'var(--surface)', fontWeight: 700, fontSize: 15 }}>📷 Foto de referencia</div>
+            <div style={{ color: 'var(--surface)', fontWeight: 700, fontSize: 15 }}> Foto de referencia</div>
             {nombre && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 }}>{nombre}</div>}
           </div>
           <button onClick={onCerrar}
             style={{ background: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, color: 'rgba(255,255,255,0.6)', padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}>
-            ✕ Cerrar
+            × Cerrar
           </button>
         </div>
 
@@ -192,11 +192,11 @@ export default function CamaraFoto({ onFoto, onCerrar, nombre = '' }) {
                     color: 'var(--surface)', fontSize: 15, fontWeight: 700,
                     opacity: !camaraActiva || countdown !== null ? 0.5 : 1,
                   }}>
-                  {countdown !== null ? `Preparate... ${countdown}` : '📸 Capturar'}
+                  {countdown !== null ? `Preparate... ${countdown}` : ' Capturar'}
                 </button>
                 <button onClick={cambiarCamara} data-tip="Cambiar cámara"
                   style={{ padding: '13px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 18 }}>
-                  🔄
+                  
                 </button>
               </div>
               <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.3)', padding: '0 20px 16px', lineHeight: 1.5 }}>
@@ -225,7 +225,7 @@ export default function CamaraFoto({ onFoto, onCerrar, nombre = '' }) {
                 </button>
                 <button onClick={confirmar}
                   style={{ flex: 2, padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg,#16A34A,#15803D)', border: 'none', color: 'var(--surface)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>
-                  ✅ Usar esta foto
+                  Listo Usar esta foto
                 </button>
               </div>
               <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.3)', padding: '0 20px 16px' }}>
@@ -245,7 +245,7 @@ export default function CamaraFoto({ onFoto, onCerrar, nombre = '' }) {
           {/* FASE OK */}
           {fase === 'ok' && (
             <div style={{ aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-              <div style={{ fontSize: 72 }}>✅</div>
+              <div style={{ fontSize: 72 }}>Listo</div>
               <div style={{ color: 'var(--surface)', fontSize: 16, fontWeight: 700 }}>¡Foto guardada!</div>
               <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Se usará para reconocimiento facial</div>
               <button onClick={onCerrar}
@@ -258,7 +258,7 @@ export default function CamaraFoto({ onFoto, onCerrar, nombre = '' }) {
           {/* FASE ERROR */}
           {fase === 'error' && (
             <div style={{ aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 }}>
-              <div style={{ fontSize: 48 }}>⚠️</div>
+              <div style={{ fontSize: 48 }}>Advertencia</div>
               <div style={{ color: '#FCA5A5', fontSize: 14, textAlign: 'center', lineHeight: 1.6 }}>{errMsg}</div>
               <button onClick={() => { setFase('camara'); setErrMsg(''); iniciarCamara() }}
                 style={{ padding: '10px 24px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--surface)', cursor: 'pointer', fontSize: 14 }}>

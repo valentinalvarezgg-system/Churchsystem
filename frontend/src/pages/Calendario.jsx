@@ -96,7 +96,7 @@ export default function Calendario() {
           </div>
           <div style={{ display:'flex', gap:8 }}>
             <div style={{ display:'flex', background:'var(--bg)', borderRadius:'var(--r)', border:'1px solid var(--border)', overflowX:'auto' }}>
-              {[['mes','▦'],['lista','≡']].map(([k,ic]) => (
+              {[['mes','▦'],['lista','Historial']].map(([k,ic]) => (
                 <button key={k} onClick={() => setView(k)}
                   style={{
                     padding:'7px 14px', border:'none', cursor:'pointer', fontSize:13, fontWeight:600,
@@ -247,8 +247,8 @@ export default function Calendario() {
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontWeight:700, fontSize:14, marginBottom:2 }}>{ev.titulo}</div>
                         <div style={{ fontSize:12, color:'var(--text-muted)', display:'flex', gap:10 }}>
-                          {ev.hora && <span>🕐 {ev.hora}</span>}
-                          {ev.lugar && <span>📍 {ev.lugar}</span>}
+                          {ev.hora && <span> {ev.hora}</span>}
+                          {ev.lugar && <span> {ev.lugar}</span>}
                           <span style={{ background:(TCOLOR[ev.tipo]||'#64748B')+'15', color:TCOLOR[ev.tipo]||'#64748B', padding:'0 6px', borderRadius:3, fontWeight:600, fontSize:10 }}>
                             {ev.tipo}
                           </span>
@@ -336,23 +336,23 @@ export default function Calendario() {
                   </span>
                   <h3 className="modal-title" style={{ marginTop:2 }}>{selEv.titulo}</h3>
                 </div>
-                <button className="btn btn-ghost btn-sm" onClick={() => setSelEv(null)}>✕</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setSelEv(null)}>×</button>
               </div>
               <div className="modal-body" style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:13 }}>
-                    <span><Icons.Attendance /></span>
+                    <span></span>
                     <span style={{ fontWeight:600 }}>{selEv.fecha}</span>
                   </div>
                   {selEv.hora && (
                     <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:13 }}>
-                      <span>🕐</span>
+                      <span></span>
                       <span>{selEv.hora}</span>
                     </div>
                   )}
                   {selEv.lugar && (
                     <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:13 }}>
-                      <span>📍</span>
+                      <span></span>
                       <span>{selEv.lugar}</span>
                     </div>
                   )}
@@ -403,7 +403,7 @@ export default function Calendario() {
             <div className="modal">
               <div className="modal-header">
                 <h3 className="modal-title"><Icons.Calendar /> Nuevo evento</h3>
-                <button className="btn btn-ghost btn-sm" onClick={() => setModal(false)}>✕</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setModal(false)}>×</button>
               </div>
               <form onSubmit={handleSave}>
                 <div className="modal-body">

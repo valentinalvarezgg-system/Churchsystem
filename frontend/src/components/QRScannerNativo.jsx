@@ -57,7 +57,7 @@ export default function QRScannerNativo({ style }) {
     >
       {scanning
         ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>◌</span> Escaneando…</>
-        : <>📷 Escanear QR de check-in</>
+        : <> Escanear QR de check-in</>
       }
     </button>
   )

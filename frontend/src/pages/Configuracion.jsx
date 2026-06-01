@@ -7,24 +7,24 @@ import { apiFetch, getStoredContext } from '../services/api.js'
 import { APP_VERSION } from '../version.js'
 
 const CATEGORIAS = [
-  { key:'iglesia', label:'Iglesia', icon:'🏛️', secciones:[
-    { key:'general',    icon:'🏛️', label:'General',    desc:'Nombre, pastor, contacto' },
-    { key:'cultos',     icon:'✓', label:'Cultos',     desc:'Días, turnos y horarios' },
-    { key:'apariencia', icon:'🎨', label:'Apariencia', desc:'Color y logo' },
+  { key:'iglesia', label:'Iglesia', icon:'', secciones:[
+    { key:'general',    icon:'', label:'General',    desc:'Nombre, pastor, contacto' },
+    { key:'cultos',     icon:'OK', label:'Cultos',     desc:'Días, turnos y horarios' },
+    { key:'apariencia', icon:'', label:'Apariencia', desc:'Color y logo' },
   ]},
-  { key:'suscripcion', label:'Suscripción', icon:'▣', secciones:[] },
-  { key:'integraciones', label:'Integraciones', icon:'🔌', secciones:[
-    { key:'whatsapp', icon:'▢', label:'WhatsApp',             desc:'Meta Cloud API oficial' },
-    { key:'ia',       icon:'◆', label:'Inteligencia Artificial', desc:'Groq · Anthropic · OpenAI' },
-    { key:'email',    icon:'✉', label:'Email',                  desc:'Resend — emails masivos' },
+  { key:'suscripcion', label:'Suscripción', icon:'Pago', secciones:[] },
+  { key:'integraciones', label:'Integraciones', icon:'', secciones:[
+    { key:'whatsapp', icon:'WhatsApp', label:'WhatsApp',             desc:'Meta Cloud API oficial' },
+    { key:'ia',       icon:'IA', label:'Inteligencia Artificial', desc:'Groq · Anthropic · OpenAI' },
+    { key:'email',    icon:'Email', label:'Email',                  desc:'Resend — emails masivos' },
   ]},
-  { key:'pastoral', label:'Pastoral', icon:'≡', secciones:[
-    { key:'alertas',     icon:'▣', label:'Alertas',     desc:'Umbrales automáticos' },
-    { key:'seguimiento', icon:'👣', label:'Seguimiento', desc:'Frecuencias' },
+  { key:'pastoral', label:'Pastoral', icon:'Historial', secciones:[
+    { key:'alertas',     icon:'Pago', label:'Alertas',     desc:'Umbrales automáticos' },
+    { key:'seguimiento', icon:'', label:'Seguimiento', desc:'Frecuencias' },
   ]},
-  { key:'sistema', label:'Sistema', icon:'⊙', secciones:[
-    { key:'seguridad', icon:'🔐', label:'Seguridad',     desc:'Sesiones y acceso' },
-    { key:'backup',    icon:'💾', label:'Backup y datos', desc:'PostgreSQL · Neon' },
+  { key:'sistema', label:'Sistema', icon:'Sistema', secciones:[
+    { key:'seguridad', icon:'', label:'Seguridad',     desc:'Sesiones y acceso' },
+    { key:'backup',    icon:'', label:'Backup y datos', desc:'PostgreSQL · Neon' },
   ]},
 ]
 
@@ -50,10 +50,10 @@ function badge(sec, cfg) {
 
 
 const METODOS_PAGO = [
-  { key:'mercadopago', label:'MercadoPago', icon:'💳', desc:'Tarjeta, débito, efectivo (Latinoamérica)' },
-  { key:'stripe',      label:'Stripe',      icon:'💳', desc:'Tarjeta de crédito/débito (internacional)' },
+  { key:'mercadopago', label:'MercadoPago', icon:'', desc:'Tarjeta, débito, efectivo (Latinoamérica)' },
+  { key:'stripe',      label:'Stripe',      icon:'', desc:'Tarjeta de crédito/débito (internacional)' },
   { key:'paypal',      label:'PayPal',      icon:'🅿',  desc:'Cuenta PayPal (USD, internacional)' },
-  { key:'transferencia', label:'Transferencia', icon:'🏦', desc:'Transferencia bancaria manual (24hs hábiles)' },
+  { key:'transferencia', label:'Transferencia', icon:'', desc:'Transferencia bancaria manual (24hs hábiles)' },
 ]
 
 function SuscripcionTab() {
@@ -129,7 +129,7 @@ function SuscripcionTab() {
     setLoading(false)
   }
 
-  if (!estado) return <div className="empty"><div className="empty-icon">▣</div><p>Cargando...</p></div>
+  if (!estado) return <div className="empty"><div className="empty-icon">Pago</div><p>Cargando...</p></div>
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
@@ -140,7 +140,7 @@ function SuscripcionTab() {
         <h3 style={{ fontSize:14, fontWeight:700, marginBottom:16 }}>Estado de tu suscripción</h3>
         <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
           <div style={{ flex:1, minWidth:160, padding:'14px 16px', borderRadius:'var(--r-lg)', background: estado.activo ? 'var(--c-success-bg)' : 'var(--c-warning-bg)', border: `1px solid ${estado.activo ? 'var(--c-success-brd)' : 'var(--c-warning-brd)'}` }}>
-            <div style={{ fontSize:22, marginBottom:4 }}>{estado.activo ? '✓' : '⚠'}</div>
+            <div style={{ fontSize:22, marginBottom:4 }}>{estado.activo ? 'OK' : 'Advertencia'}</div>
             <div style={{ fontSize:14, fontWeight:700, color: estado.activo ? 'var(--c-success)' : 'var(--c-warning)' }}>
               {estado.enTrial ? `Trial — ${estado.diasTrial} días restantes` : estado.suscActiva ? 'Suscripción activa' : 'Sin suscripción activa'}
             </div>
@@ -154,7 +154,7 @@ function SuscripcionTab() {
             )}
           </div>
           <div style={{ flex:1, minWidth:160, padding:'14px 16px', borderRadius:'var(--r-lg)', background:'var(--c-info-bg)', border:'1px solid var(--c-info-brd)' }}>
-            <div style={{ fontSize:22, marginBottom:4 }}>📦</div>
+            <div style={{ fontSize:22, marginBottom:4 }}></div>
             <div style={{ fontSize:14, fontWeight:700, color:'var(--c-info)' }}>Plan {estado.planLabel}</div>
             <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:2 }}>
               {estado.personasMax === 99999 ? 'Personas ilimitadas' : `Hasta ${estado.personasMax} personas`}
@@ -252,7 +252,7 @@ function SuscripcionTab() {
               background: p.id === estado.plan ? 'var(--primary-soft)' : 'var(--surface)',
             }}>
               <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:.5, marginBottom:6 }}>
-                {p.label} {p.id === estado.plan && '✓ Actual'}
+                {p.label} {p.id === estado.plan && 'OK Actual'}
               </div>
               <div style={{ fontSize:26, fontWeight:800, marginBottom:4 }}>
                 {p.currency || 'ARS'} {Number(p.precio || 0).toLocaleString('es-AR')}
@@ -263,7 +263,7 @@ function SuscripcionTab() {
               </div>
               <button className="btn btn-primary btn-sm" style={{ width:'100%' }}
                 onClick={() => pagar(p.id)} disabled={loading}>
-                {loading ? '…' : metodo === 'transferencia' ? '🏦 Solicitar' : '▣ Suscribirse'}
+                {loading ? '…' : metodo === 'transferencia' ? ' Solicitar' : 'Pago Suscribirse'}
               </button>
             </div>
           ))}
@@ -495,7 +495,7 @@ export default function Configuracion() {
                   <div className="form-group"><label>URL del logo</label><input name="logo_url" className="form-input" value={form.logo_url} onChange={e=>f('logo_url',e.target.value)} placeholder="https://..."/></div>
                   <div className="form-group full"><label>Tema por defecto</label>
                     <div style={{display:'flex',gap:10}}>
-                      {[['0','☀️  Claro'],['1','🌙  Oscuro']].map(([val,lbl])=>(
+                      {[['0','Claro'],['1','Oscuro']].map(([val,lbl])=>(
                         <label key={val} style={{display:'flex',gap:8,alignItems:'center',padding:'8px 16px',border:`1px solid ${form.modo_oscuro_default===val?'var(--primary)':'var(--border)'}`,borderRadius:'var(--r)',cursor:'pointer',background:form.modo_oscuro_default===val?'var(--primary-soft)':'transparent',fontSize:13,fontWeight:form.modo_oscuro_default===val?600:400}}>
                           <input type="radio" name="modo" value={val} checked={form.modo_oscuro_default===val} onChange={()=>f('modo_oscuro_default',val)} style={{accentColor:'var(--primary)'}}/>{lbl}
                         </label>
@@ -516,7 +516,7 @@ export default function Configuracion() {
               {/* WHATSAPP */}
               {sec==='whatsapp' && <>
                 <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',marginBottom:20,borderRadius:'var(--r)',background:config.whatsapp_cloud_configurado?'#F0FDF4':'#FFFBEB',border:`1px solid ${config.whatsapp_cloud_configurado?'#86EFAC':'#FDE68A'}`}}>
-                  <span style={{fontSize:20}}>{config.whatsapp_cloud_configurado?'✓':'⚠'}</span>
+                  <span style={{fontSize:20}}>{config.whatsapp_cloud_configurado?'OK':'Advertencia'}</span>
                   <div>
                     <div style={{fontSize:13,fontWeight:600,color:config.whatsapp_cloud_configurado?'var(--c-success)':'var(--c-warning)'}}>{config.whatsapp_cloud_configurado?'Meta Cloud API activa':'Sin configurar — modo demo / fallback'}</div>
                     <div style={{fontSize:11,color:'var(--text-muted)'}}>{config.whatsapp_cloud_configurado?'La iglesia ya puede enviar por WhatsApp oficial':'Los mensajes se registran; podés seguir con Twilio solo como legado temporal'}</div>
@@ -548,9 +548,9 @@ export default function Configuracion() {
                 <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>Elegí un proveedor. <strong>Groq es gratuito</strong> y no necesita tarjeta de crédito.</p>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:10,marginBottom:24}}>
                   {[
-                    {key:'groq',      icon:'⚡',name:'Groq',      sub:'Gratis · Llama 3.1',     url:'https://console.groq.com',       ok:config.groq_ok},
-                    {key:'anthropic', icon:'🧠',name:'Anthropic', sub:'Claude · Más preciso',    url:'https://console.anthropic.com',  ok:config.anthropic_ok},
-                    {key:'openai',    icon:'💡',name:'OpenAI',    sub:'ChatGPT · Popular',       url:'https://platform.openai.com',    ok:config.openai_ok},
+                    {key:'groq',      icon:'Groq',name:'Groq',      sub:'Gratis · Llama 3.1',     url:'https://console.groq.com',       ok:config.groq_ok},
+                    {key:'anthropic', icon:'',name:'Anthropic', sub:'Claude · Más preciso',    url:'https://console.anthropic.com',  ok:config.anthropic_ok},
+                    {key:'openai',    icon:'',name:'OpenAI',    sub:'ChatGPT · Popular',       url:'https://platform.openai.com',    ok:config.openai_ok},
                   ].map(p=>{
                     const sel = form.ia_proveedor===p.key
                     return (
@@ -603,7 +603,7 @@ export default function Configuracion() {
               {/* EMAIL */}
               {sec==='email' && <>
                 <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',marginBottom:20,borderRadius:'var(--r)',background:config.email_configurado?'#F0FDF4':'#FFFBEB',border:`1px solid ${config.email_configurado?'#86EFAC':'#FDE68A'}`}}>
-                  <span style={{fontSize:20}}>{config.email_configurado?'✓':'⚠'}</span>
+                  <span style={{fontSize:20}}>{config.email_configurado?'OK':'Advertencia'}</span>
                   <div>
                     <div style={{fontSize:13,fontWeight:600,color:config.email_configurado?'var(--c-success)':'var(--c-warning)'}}>{config.email_configurado?'Email activo — Resend configurado':'Sin configurar — modo demo'}</div>
                     <div style={{fontSize:11,color:'var(--text-muted)'}}>{config.email_configurado?'Los emails se envían realmente':'Los mensajes se guardan pero no se envían'}</div>
@@ -674,10 +674,10 @@ export default function Configuracion() {
                 <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>Cuándo se disparan las alertas pastorales automáticas.</p>
                 <div style={{display:'flex',flexDirection:'column',gap:12}}>
                   {[
-                    {k:'alerta_sin_asistir',     label:'🚨 Sin asistir',             unit:'cultos consecutivos',   min:1,max:10},
-                    {k:'alerta_sin_seguimiento',  label:'⚠ Sin seguimiento',         unit:'días sin contacto',     min:7,max:90},
+                    {k:'alerta_sin_asistir',     label:' Sin asistir',             unit:'cultos consecutivos',   min:1,max:10},
+                    {k:'alerta_sin_seguimiento',  label:'Advertencia Sin seguimiento',         unit:'días sin contacto',     min:7,max:90},
                     {k:'alerta_visitante',        label:'Visitante sin consolidar', unit:'días desde el ingreso', min:7,max:60},
-                    {k:'alerta_cumple',           label:'🎂 Cumpleaños',              unit:'días de anticipación',  min:1,max:14},
+                    {k:'alerta_cumple',           label:' Cumpleaños',              unit:'días de anticipación',  min:1,max:14},
                   ].map(({k,label,unit,min,max})=>(
                     <div key={k} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 16px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
                       <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{label}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{unit}</div></div>
@@ -717,7 +717,7 @@ export default function Configuracion() {
                   <div style={{padding:'8px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Protecciones activas</div>
                   {['JWT con expiración configurable','Verificación de usuario activo en cada request','Rate limiting en login y API de IA','Sanitización de inputs en todos los endpoints','Aislamiento multi-tenant (datos por iglesia)','Helmet — headers HTTP de seguridad','CORS estricto — whitelist de orígenes','Auditoría de acciones en historial'].map((item,i)=>(
                     <div key={i} style={{display:'flex',gap:10,padding:'8px 14px',borderBottom:'1px solid var(--border)',fontSize:13,alignItems:'center'}}>
-                      <span style={{color:'var(--c-success)',flexShrink:0}}>✓</span>{item}
+                      <span style={{color:'var(--c-success)',flexShrink:0}}>OK</span>{item}
                     </div>
                   ))}
                 </div>
@@ -751,7 +751,7 @@ export default function Configuracion() {
                   </>
                 )}
                 <div style={{display:'flex',alignItems:'flex-start',gap:10,padding:14,background:'var(--bg)',border:'1px solid var(--border)',borderRadius:'var(--r)'}}>
-                  <span style={{fontSize:18,flexShrink:0}}>🛡️</span>
+                  <span style={{fontSize:18,flexShrink:0}}></span>
                   <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.5}}>
                     Los respaldos de PostgreSQL se administran desde <strong>Neon</strong> (recuperación point-in-time automática). Para exportar manualmente usá <code>pg_dump</code> con tu <code>DATABASE_URL</code>.
                   </div>
@@ -821,7 +821,7 @@ export default function Configuracion() {
         <div style={{marginTop:12,padding:'12px 16px',background:'rgba(245,158,11,0.08)',
           border:'1px solid rgba(245,158,11,0.2)',borderRadius:12,fontSize:12,
           color:'var(--text-muted)',lineHeight:1.6}}>
-          <strong style={{color:'var(--c-warning)'}}>⚠ Beta v{APP_VERSION}:</strong>{' '}
+          <strong style={{color:'var(--c-warning)'}}>Advertencia Beta v{APP_VERSION}:</strong>{' '}
           Plataforma en etapa beta. Algunas funciones pueden cambiar o fallar.
           Para baja o exportación de datos:{' '}
           <a href="mailto:legal@churchsystem.com.ar" style={{color:'var(--primary)'}}>legal@churchsystem.com.ar</a>

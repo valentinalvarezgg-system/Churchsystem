@@ -44,7 +44,7 @@ export default function Users() {
       <Menu />
       <main className="main">
         <div className="page-header">
-          <h1 className="page-title">🔐 Usuarios del sistema</h1>
+          <h1 className="page-title"> Usuarios del sistema</h1>
           <button className="btn btn-primary" onClick={()=>openModal()}>+ Nuevo usuario</button>
         </div>
         <div className="card" style={{padding:0, overflowX:'auto'}}>
@@ -93,7 +93,7 @@ export default function Users() {
             <div className="modal">
               <div className="modal-header">
                 <h3 className="modal-title">{modal==='edit'?'Editar usuario':'Nuevo usuario'}</h3>
-                <button className="btn btn-ghost btn-sm" onClick={()=>setModal(null)}>✕</button>
+                <button className="btn btn-ghost btn-sm" onClick={()=>setModal(null)}>×</button>
               </div>
               <form onSubmit={handleSave}>
                 <div className="modal-body">

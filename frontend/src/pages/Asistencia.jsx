@@ -145,7 +145,7 @@ export default function Asistencia() {
       <Menu />
       <main className="main">
         <div className="page-header">
-          <h1 className="page-title"><Icons.Attendance /> {t('title')}</h1>
+          <h1 className="page-title">{t('title')}</h1>
           {canManage && <button className="btn btn-primary" data-tip="Crear un nuevo registro de culto" onClick={()=>setModal(true)}>{t('newService')}</button>}
         </div>
         {loading ? (
@@ -157,7 +157,7 @@ export default function Asistencia() {
           </div>
         ) : cultosOrdenados.length === 0 ? (
           <div className="empty">
-            <div className="empty-icon"><Icons.Attendance /></div>
+            <div className="empty-icon"></div>
             <p>{t('noServices')}</p>
           </div>
         ) : (
@@ -233,7 +233,7 @@ export default function Asistencia() {
                     return (
                       <button key={p.id} className={`attendance-person-card${checked ? ' is-present' : ''}`}
                         onClick={() => canManage && togglePresente(Number(p.id))}>
-                        <span className="attendance-check">{checked ? '✓' : ''}</span>
+                        <span className="attendance-check">{checked ? 'OK' : ''}</span>
                         <span className="attendance-person-name">{p.nombre} {p.apellido}</span>
                         <span className={`badge badge-${p.estado?.toLowerCase()}`}>{p.estado}</span>
                       </button>
@@ -242,7 +242,7 @@ export default function Asistencia() {
                 </div>
                 <div className="attendance-table-wrap" style={{maxHeight:'calc(88dvh - 250px)',overflowY:'auto',overflowX:'auto'}}>
                   <table style={{minWidth:500}}>
-                    <thead><tr><th style={{width:44}}>✓</th><th>Nombre</th><th>Estado</th></tr></thead>
+                    <thead><tr><th style={{width:44}}>OK</th><th>Nombre</th><th>Estado</th></tr></thead>
                     <tbody>{(detalle?.personas || []).map(p=> {
                       const checked = presentes.has(Number(p.id))
                       return (
@@ -262,7 +262,7 @@ export default function Asistencia() {
         {modal && (
           <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(false)}>
             <div className="modal">
-              <div className="modal-header"><h3 className="modal-title">{t('newServiceModal')}</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>✕</button></div>
+              <div className="modal-header"><h3 className="modal-title">{t('newServiceModal')}</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>×</button></div>
               <form onSubmit={crearCulto}>
                 <div className="modal-body">
                   <div className="form-grid">

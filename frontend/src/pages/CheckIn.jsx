@@ -63,7 +63,7 @@ export function CheckInPublico() {
 
   if (err) return (
     <div style={s.page}><div style={{...s.card, textAlign:'center'}}>
-      <div style={{fontSize:48, marginBottom:12}}>⚠</div>
+      <div style={{fontSize:48, marginBottom:12}}>Advertencia</div>
       <h2 style={{color:'var(--surface)', fontSize:18, marginBottom:8}}>QR inválido</h2>
       <p style={{color:'rgba(255,255,255,0.4)', fontSize:13}}>{err}</p>
     </div></div>
@@ -87,14 +87,14 @@ export function CheckInPublico() {
 
         {step === 'ok' ? (
           <div style={{textAlign:'center'}}>
-            <div style={{fontSize:64, marginBottom:16}}><Icons.Attendance /></div>
+            <div style={{fontSize:64, marginBottom:16}}></div>
             <h2 style={{color:'var(--surface)', fontSize:22, fontWeight:800, marginBottom:8}}>
               ¡Bienvenido, {resultado?.persona?.nombre?.split(' ')[0]}!
             </h2>
             <p style={{color:'rgba(255,255,255,0.5)', fontSize:14}}>Tu asistencia fue registrada.</p>
             <div style={{marginTop:20, padding:'10px 16px', background:'rgba(22,163,74,0.15)', borderRadius:8, border:'1px solid rgba(22,163,74,0.3)'}}>
               <p style={{color:'#86EFAC', fontSize:13, margin:0}}>
-                {resultado?.persona?.estado === 'VISITANTE' ? 'Registrado como nuevo visitante' : '✓ Asistencia confirmada'}
+                {resultado?.persona?.estado === 'VISITANTE' ? 'Registrado como nuevo visitante' : 'OK Asistencia confirmada'}
               </p>
             </div>
           </div>
@@ -156,7 +156,7 @@ export function CheckInPublico() {
                 placeholder="vos@email.com" type="email" autoComplete="email"/>
             </div>
             <button type="submit" style={{...s.btn, opacity: step==='loading'?.6:1}} disabled={step==='loading'}>
-              {step === 'loading' ? 'Registrando...' : mode === 'nuevo' ? 'Registrarme y confirmar asistencia ✓' : 'Confirmar asistencia ✓'}
+              {step === 'loading' ? 'Registrando...' : mode === 'nuevo' ? 'Registrarme y confirmar asistencia OK' : 'Confirmar asistencia OK'}
             </button>
           </form>
         )}
@@ -215,11 +215,11 @@ export default function CheckInAdmin() {
       @media print { button { display:none } }
     </style></head><body>
     <h1><Icons.Dashboard /> ${qrData.culto?.nombre}</h1>
-    <p><Icons.Attendance /> ${qrData.culto?.fecha}</p>
+    <p>${qrData.culto?.fecha}</p>
     <p style="font-size:14px;color:#2563EB;font-weight:600">Escaneá para registrar tu asistencia</p>
     <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData.url)}" width="300" height="300"/>
     <p class="url">${qrData.url}</p>
-    <button onclick="window.print()" style="margin-top:20px;padding:10px 24px;background:#2563EB;color:white;border:none;border-radius:6px;font-size:15px;cursor:pointer">🖨️ Imprimir</button>
+    <button onclick="window.print()" style="margin-top:20px;padding:10px 24px;background:#2563EB;color:white;border:none;border-radius:6px;font-size:15px;cursor:pointer"> Imprimir</button>
     </body></html>`)
     w.document.close()
     setTimeout(() => w.print(), 400)
@@ -265,7 +265,7 @@ export default function CheckInAdmin() {
                 <button className="btn btn-ghost btn-sm" onClick={() => setEditingBase(true)}>
                   {baseUrl ? 'Cambiar' : 'Configurar'}
                 </button>
-                {baseUrl && <button className="btn btn-ghost btn-sm" style={{color:'var(--c-danger)'}} onClick={() => saveBase('')}>✕</button>}
+                {baseUrl && <button className="btn btn-ghost btn-sm" style={{color:'var(--c-danger)'}} onClick={() => saveBase('')}>×</button>}
               </>
             )}
           </div>
@@ -284,7 +284,7 @@ export default function CheckInAdmin() {
               Seleccioná un culto
             </h3>
             {cultos.length === 0
-              ? <div className="empty"><div className="empty-icon"><Icons.Attendance /></div><p>Sin cultos.<br/>Creá uno en Asistencia.</p></div>
+              ? <div className="empty"><div className="empty-icon"></div><p>Sin cultos.<br/>Creá uno en Asistencia.</p></div>
               : cultos.map(c => (
                 <div key={c.id} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'11px 0', borderBottom:'1px solid var(--border)'}}>
                   <div>
@@ -331,15 +331,15 @@ export default function CheckInAdmin() {
                 const bdr   = qrData.isPublic && !isTempTunnel ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.25)'
                 const color = qrData.isPublic && !isTempTunnel ? 'var(--c-success)' : 'var(--c-warning)'
                 const label = !qrData.isPublic
-                  ? '⚠ Solo WiFi local'
+                  ? 'Advertencia Solo WiFi local'
                   : isTempTunnel
-                  ? '⚠ URL temporal (Cloudflare)'
-                  : '🌐 Acceso público'
+                  ? 'Advertencia URL temporal (Cloudflare)'
+                  : ' Acceso público'
                 const msg = !qrData.isPublic
                   ? 'Solo funciona en la misma red WiFi. Para acceso público configurá FRONTEND_URL en Render.'
                   : isTempTunnel
                   ? 'Este link expira cuando se cierra el túnel. Regenerá el QR después de cada reinicio, o usá la URL de producción (churchsystem.com.ar).'
-                  : '✓ Funciona desde cualquier red y datos móviles'
+                  : 'OK Funciona desde cualquier red y datos móviles'
                 return (
                   <div style={{margin:'0 0 16px',padding:'10px 14px',background:bg,borderRadius:'var(--r)',border:`1px solid ${bdr}`,textAlign:'left'}}>
                     <p style={{fontSize:11,fontWeight:700,color,textTransform:'uppercase',letterSpacing:.4,marginBottom:4}}>{label}</p>
@@ -353,15 +353,15 @@ export default function CheckInAdmin() {
               <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:8}}>
                 <button className="btn btn-primary btn-sm" onClick={copiar}
                   data-tip="Copiar link para compartir por WhatsApp">
-                  {copied ? '✓ Copiado' : '≡ Copiar link'}
+                  {copied ? 'OK Copiado' : 'Historial Copiar link'}
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={imprimir}
                   data-tip="Imprimir el QR en papel para el culto">
-                  🖨️ Imprimir
+                   Imprimir
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => window.open(qrData.url, '_blank')}
                   data-tip="Probar el QR en esta misma computadora">
-                  🔗 Probar
+                   Probar
                 </button>
               </div>
 

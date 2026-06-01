@@ -1103,7 +1103,7 @@ tbody tr:last-child td { border-bottom: none; }
     --sidebar-w:   0px;
   }
 
-  /* Sidebar: oculto, se desliza al tocar ☰ */
+  /* Sidebar: oculto, se desliza al tocar Menú */
   .sidebar {
     position: fixed;
     top: 0; left: 0; bottom: 0;

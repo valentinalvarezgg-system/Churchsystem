@@ -114,7 +114,7 @@ export default function ExcelIA() {
               {['Subir archivo','Mapear columnas','Resultado'].map((s,i)=>(
                 <React.Fragment key={s}>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
-                    <div style={{width:28,height:28,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,background:paso>i?'var(--c-success)':paso===i?'var(--primary)':'#f1f5f9',color:paso>=i?'var(--surface)':'var(--text-faint)'}}>{paso>i?'✓':i+1}</div>
+                    <div style={{width:28,height:28,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,background:paso>i?'var(--c-success)':paso===i?'var(--primary)':'#f1f5f9',color:paso>=i?'var(--surface)':'var(--text-faint)'}}>{paso>i?'OK':i+1}</div>
                     <span style={{fontSize:13,fontWeight:paso===i?600:400,color:paso===i?'var(--primary)':paso>i?'var(--c-success)':'var(--text-muted)'}}>{s}</span>
                   </div>
                   {i<2&&<div style={{flex:1,height:2,background:paso>i?'var(--c-success)':'#f1f5f9',borderRadius:2,maxWidth:60}}/>}
@@ -138,7 +138,7 @@ export default function ExcelIA() {
               <div>
                 <div className="card" style={{marginBottom:16}}>
                   <div style={{display:'flex',gap:12,alignItems:'center',marginBottom:12}}>
-                    <span style={{fontSize:22}}>{analisis.metodo==='ia'?'◆':'⊙'}</span>
+                    <span style={{fontSize:22}}>{analisis.metodo==='ia'?'IA':'Sistema'}</span>
                     <div><h3 style={{fontSize:15,fontWeight:700,margin:0}}>Análisis: {analisis.total} filas · {analisis.columnas?.length} columnas</h3><p style={{fontSize:12,color:'var(--text-muted)',margin:0}}>{analisis.metodo==='ia'?`IA · confianza ${Math.round((analisis.confianza||0)*100)}%`:'Mapeo automático'}</p></div>
                   </div>
                   <div style={{display:'flex',gap:16}}>

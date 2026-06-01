@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { useNotificaciones } from '../hooks/useNotificaciones.js'
 
 const ESTADO_LABEL = {
-  idle:          { icon: '🔕', label: 'Desactivadas',    color: 'var(--text-muted)' },
+  idle:          { icon: '', label: 'Desactivadas',    color: 'var(--text-muted)' },
   solicitando:   { icon: '⏳', label: 'Activando...',    color: 'var(--c-warning)'  },
-  activo:        { icon: '🔔', label: 'Activas',         color: 'var(--c-success)'  },
-  denegado:      { icon: '🚫', label: 'Bloqueadas',      color: 'var(--c-danger)'   },
-  'sin-soporte': { icon: '❌', label: 'Sin soporte',     color: 'var(--text-muted)' },
+  activo:        { icon: '', label: 'Activas',         color: 'var(--c-success)'  },
+  denegado:      { icon: '', label: 'Bloqueadas',      color: 'var(--c-danger)'   },
+  'sin-soporte': { icon: 'No', label: 'Sin soporte',     color: 'var(--text-muted)' },
 }
 
 export default function BtnNotificaciones() {
@@ -24,7 +24,7 @@ export default function BtnNotificaciones() {
       setMsg({ type: 'ok', text: 'Notificaciones desactivadas' })
     } else {
       const ok = await suscribir()
-      if (ok) setMsg({ type: 'ok',    text: '🔔 ¡Notificaciones activadas!' })
+      if (ok) setMsg({ type: 'ok',    text: ' ¡Notificaciones activadas!' })
       else    setMsg({ type: 'error', text: estado === 'denegado'
         ? 'Permiso bloqueado. Habilitalo en la configuración del browser.'
         : error || 'No se pudo activar. Intentá de nuevo.' })
@@ -36,7 +36,7 @@ export default function BtnNotificaciones() {
     setCargando(true); setMsg(null)
     const r = await testear()
     if (r.error) setMsg({ type: 'error', text: r.error })
-    else         setMsg({ type: 'ok',    text: `✅ Notificación enviada (${r.enviadas} dispositivo${r.enviadas !== 1 ? 's' : ''})` })
+    else         setMsg({ type: 'ok',    text: `Listo Notificación enviada (${r.enviadas} dispositivo${r.enviadas !== 1 ? 's' : ''})` })
     setCargando(false)
   }
 
@@ -71,7 +71,7 @@ export default function BtnNotificaciones() {
       </p>
 
       {/* Qué notifica */}
-      {['🎂 Cumpleaños del día', '⏰ Seguimientos vencidos', '👋 Visitantes +30 días sin consolidar'].map(item => (
+      {[' Cumpleaños del día', 'Seguimiento Seguimientos vencidos', ' Visitantes +30 días sin consolidar'].map(item => (
         <div key={item} style={{
           display: 'flex', alignItems: 'center', gap: 8,
           fontSize: 12, color: 'var(--text-2)', marginBottom: 5,
@@ -131,7 +131,7 @@ export default function BtnNotificaciones() {
                 background: 'transparent', color: 'var(--text-2)',
                 opacity: cargando ? 0.6 : 1,
               }}>
-              📨 Enviar prueba
+               Enviar prueba
             </button>
           )}
 
