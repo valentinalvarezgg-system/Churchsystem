@@ -263,6 +263,8 @@ export default function Menu() {
             {lnk('/grupos',        <Icons.Groups />,     tt('groups'))}
             {lnk('/comunicados',   <Icons.Comunicados />, tt('communications'))}
             {lnk('/checkin',       <Icons.CheckIn />,    tt('checkin'))}
+            <div className="nav-section">Ministerios</div>
+            {lnk('/ministerios',   <span style={{fontSize:16}}>🏛️</span>, 'Mis ministerios')}
           </>}
 
           {/* PRO — ver, modificar y auditar cultos asignados */}
@@ -275,6 +277,8 @@ export default function Menu() {
             {lnk('/calendario',    <Icons.Calendar />,   tt('calendar'))}
             {lnk('/eventos',       <Icons.Calendar />,   tt('events'))}
             {lnk('/consolidacion', <Icons.Users />,      tt('consolidation'))}
+            <div className="nav-section">Ministerios</div>
+            {lnk('/ministerios',   <span style={{fontSize:16}}>🏛️</span>, 'Mis ministerios')}
             <div className="nav-section">{tt('management')}</div>
             {lnk('/mensajes',      <Icons.Messages />,   tt('messages'))}
             {lnk('/alertas',       <Icons.Comunicados />, tt('alerts'), false, alertCount)}
@@ -294,6 +298,8 @@ export default function Menu() {
             {lnk('/calendario',    <Icons.Calendar />,   tt('calendar'))}
             {lnk('/eventos',       <Icons.Calendar />,   tt('events'))}
             {lnk('/consolidacion', <Icons.Users />,      tt('consolidation'))}
+            <div className="nav-section">Ministerios</div>
+            {lnk('/ministerios',   <span style={{fontSize:16}}>🏛️</span>, 'Mis ministerios')}
             <div className="nav-section">{tt('management')}</div>
             {lnk('/mensajes',      <Icons.Messages />,   tt('messages'))}
             {lnk('/alertas',       <Icons.Comunicados />, tt('alerts'), false, alertCount)}

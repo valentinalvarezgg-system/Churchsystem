@@ -39,8 +39,10 @@ const PromoCodes       = lazy(() => import('./pages/PromoCodes.jsx'))
 const GodMode          = lazy(() => import('./pages/GodMode.jsx'))
 const GodModeLogin     = lazy(() => import('./pages/GodModeLogin.jsx'))
 const Analytics        = lazy(() => import('./pages/Analytics.jsx'))
-const Planes           = lazy(() => import('./pages/Planes.jsx'))
+const Planes            = lazy(() => import('./pages/Planes.jsx'))
 const RecuperarPassword = lazy(() => import('./pages/RecuperarPassword.jsx'))
+const Ministerios       = lazy(() => import('./pages/Ministerios.jsx'))
+const MinisterioDetalle = lazy(() => import('./pages/MinisterioDetalle.jsx'))
 
 const ALL   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF','LIDER']
 const MID   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF']
@@ -49,7 +51,8 @@ const AUDIT = ['PASTOR_GENERAL','CONSOLIDACION']
 
 function PageSpinner() {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center',
+      justifyContent:'center', background:'var(--bg)' }}>
       <div className="spinner-sm" />
     </div>
   )
@@ -140,7 +143,9 @@ export default function App() {
           <Route path="/premium"       element={<ProtectedRoute roles={ADMIN} element={<DashboardPremium />} />} />
           <Route path="/personas"      element={<ProtectedRoute roles={MID}   element={<Personas />} />} />
           <Route path="/personas/:id"  element={<ProtectedRoute roles={MID}   element={<Perfil />} />} />
-          <Route path="/grupos"        element={<ProtectedRoute roles={MID}   element={<Grupos />} />} />
+          <Route path="/grupos"            element={<ProtectedRoute roles={MID}   element={<Grupos />} />} />
+          <Route path="/ministerios"       element={<ProtectedRoute roles={ALL}   element={<Ministerios />} />} />
+          <Route path="/ministerios/:id"   element={<ProtectedRoute roles={ALL}   element={<MinisterioDetalle />} />} />
 
           <Route path="/asistencia"    element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="asistencia"><Asistencia /></UpgradeGate>} />} />
           <Route path="/calendario"    element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="calendario"><Calendario /></UpgradeGate>} />} />
