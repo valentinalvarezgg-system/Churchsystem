@@ -56,6 +56,9 @@ export function assertLaunchEnvironment() {
     if (!process.env.MP_ACCESS_TOKEN) {
       warnings.push('MP_ACCESS_TOKEN no configurado: los pagos reales no van a funcionar.')
     }
+    if (!process.env.META_ACCESS_TOKEN || !process.env.META_PHONE_NUMBER_ID) {
+      warnings.push('META_ACCESS_TOKEN / META_PHONE_NUMBER_ID no configurados: WhatsApp Cloud API no va a enviar mensajes.')
+    }
   }
 
   return { ok: errors.length === 0, errors, warnings }

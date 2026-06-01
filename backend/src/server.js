@@ -58,6 +58,7 @@ import oauthRouter from './routes/oauth.js'
 import godmodeRouter from './routes/godmode.js'
 import resendInboundRouter from './routes/resend-inbound.js'
 import subscriptionsRouter from './routes/subscriptions.js'
+import whatsappRouter from './routes/whatsapp.js'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -179,6 +180,7 @@ app.use('/promo-codes', promoCodesRouter)
 app.use('/oauth', oauthRouter)
 app.use('/godmode', godmodeRouter)
 app.use('/webhooks', resendInboundRouter)
+app.use('/whatsapp', whatsappRouter)
 app.use('/verificacion', verificacionRouter)
 app.use('/plan', planRouter)
 app.use('/iglesia', iglesiaRouter)
@@ -204,7 +206,7 @@ if (fs.existsSync(distDir)) {
   app.use(express.static(distDir))
   app.get('*', (req, res) => {
     const isCheckinApi = /^\/checkin\/(token|info|registrar|descriptores)\//.test(req.path)
-    const isApi = isCheckinApi || /^\/(api|auth|personas|grupos|cultos|stats|alertas|mensajes|config|ia|fotos|export|finanzas|historial|reportes|discipulado|consolidacion|seguimiento|oracion|comunicados|eventos|backup|users|permisos|perfil|import|busqueda|mp|stripe|paypal|transferencia|plan|oauth|verificacion|iglesia|notificaciones|promo-codes|bug-report|mi-perfil|excel-ia|godmode|culto-asignaciones|analytics)/.test(req.path)
+    const isApi = isCheckinApi || /^\/(api|auth|personas|grupos|cultos|stats|alertas|mensajes|config|ia|fotos|export|finanzas|historial|reportes|discipulado|consolidacion|seguimiento|oracion|comunicados|eventos|backup|users|permisos|perfil|import|busqueda|mp|stripe|paypal|transferencia|plan|oauth|verificacion|iglesia|notificaciones|promo-codes|bug-report|mi-perfil|excel-ia|godmode|culto-asignaciones|analytics|whatsapp|webhooks)/.test(req.path)
     if (isApi) return res.status(404).json({ error: 'Ruta no encontrada' })
     return res.sendFile(path.join(distDir, 'index.html'))
   })

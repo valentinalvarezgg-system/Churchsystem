@@ -18,6 +18,7 @@ const ALLOWED = [
   'nombre_iglesia', 'direccion', 'telefono_iglesia', 'email_iglesia', 'pastor_nombre', 'sitio_web',
   'cultos_dias', 'cultos_turnos', 'culto_duracion', 'culto_capacidad',
   'twilio_sid', 'twilio_token', 'twilio_from',
+  'wa_provider', 'wa_phone_number_id', 'wa_business_account_id', 'wa_access_token', 'wa_verify_token', 'wa_status', 'wa_display_phone_number', 'wa_verified_name',
   'anthropic_key', 'openai_key', 'groq_key',
   'ia_proveedor', 'modelo_anthropic', 'modelo_openai', 'modelo_groq',
   'alerta_sin_asistir', 'alerta_sin_seguimiento', 'alerta_visitante', 'alerta_cumple',
@@ -68,6 +69,12 @@ function emailDiagnostics(cfg = {}) {
     'MP_ACCESS_TOKEN',
     'DATABASE_URL',
     'JWT_SECRET',
+    'META_APP_ID',
+    'META_APP_SECRET',
+    'META_VERIFY_TOKEN',
+    'META_ACCESS_TOKEN',
+    'META_PHONE_NUMBER_ID',
+    'META_WABA_ID',
   ]
   const missing = renderVars.filter(k => !process.env[k])
   const warnings = []
@@ -79,6 +86,8 @@ function emailDiagnostics(cfg = {}) {
   if (!process.env.APPLE_CLIENT_ID || !process.env.APPLE_TEAM_ID || !process.env.APPLE_KEY_ID || !process.env.APPLE_PRIVATE_KEY) warnings.push('Apple Sign-In no tiene todas las variables en Render.')
   if (!process.env.DATABASE_URL) warnings.push('Falta DATABASE_URL en entorno.')
   if (!process.env.JWT_SECRET) warnings.push('Falta JWT_SECRET en entorno.')
+  if (!process.env.META_APP_ID || !process.env.META_APP_SECRET) warnings.push('Meta App ID/Secret incompletos para WhatsApp Cloud API.')
+  if (!process.env.META_VERIFY_TOKEN) warnings.push('Falta META_VERIFY_TOKEN para validar webhook de WhatsApp.')
 
   return {
     ok: warnings.length === 0,
@@ -122,6 +131,19 @@ function commercialDiagnostics(cfg = {}) {
     { key: 'google_oauth', ok: oauthGoogleConfigured, detail: oauthGoogleConfigured ? 'Google OAuth OK' : 'Google OAuth incompleto' },
     { key: 'apple_oauth', ok: oauthAppleConfigured, detail: oauthAppleConfigured ? 'Apple Sign-In OK' : 'Apple Sign-In incompleto' },
     { key: 'email_sender', ok: !!(cfg.resend_key || process.env.RESEND_API_KEY), detail: cfg.resend_key || process.env.RESEND_API_KEY ? 'Email saliente OK' : 'Email saliente incompleto' },
+    {
+      key: 'whatsapp_cloud',
+      ok: !!(
+        cfg.wa_phone_number_id ||
+        process.env.META_PHONE_NUMBER_ID
+      ) && !!(
+        cfg.wa_access_token ||
+        process.env.META_ACCESS_TOKEN
+      ),
+      detail: (cfg.wa_phone_number_id || process.env.META_PHONE_NUMBER_ID)
+        ? 'WhatsApp Cloud preparado'
+        : 'WhatsApp Cloud sin numero conectado',
+    },
   ]
   return {
     ok: checks.every(c => c.ok),
@@ -139,6 +161,12 @@ function commercialDiagnostics(cfg = {}) {
       expectedGoogleCallback,
       expectedAppleCallback,
       frontLoginUrl: frontUrlRaw ? `${frontUrlRaw}/app/login` : '',
+    },
+    whatsapp: {
+      provider: cfg.wa_provider || 'meta_cloud',
+      phoneNumberId: cfg.wa_phone_number_id || process.env.META_PHONE_NUMBER_ID || '',
+      businessAccountId: cfg.wa_business_account_id || process.env.META_WABA_ID || '',
+      webhookVerifyTokenConfigured: !!(cfg.wa_verify_token || process.env.META_VERIFY_TOKEN),
     },
     checkedAt: new Date().toISOString(),
   }
@@ -171,6 +199,7 @@ router.get('/', requireAuth, wrap(async (req, res) => {
   return res.json({
     ...safe,
     twilio_configurado: !!cfg.twilio_token,
+    whatsapp_cloud_configurado: !!(cfg.wa_phone_number_id || process.env.META_PHONE_NUMBER_ID) && !!(cfg.wa_access_token || process.env.META_ACCESS_TOKEN),
     email_configurado: !!(cfg.resend_key || process.env.RESEND_API_KEY),
     ia_configurada: !!(cfg.anthropic_key || cfg.openai_key || cfg.groq_key),
     ia_proveedor: cfg.ia_proveedor || 'anthropic',
@@ -238,6 +267,10 @@ router.put('/', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res)
     twilio_sid: 'TWILIO_ACCOUNT_SID',
     twilio_token: 'TWILIO_AUTH_TOKEN',
     twilio_from: 'TWILIO_WHATSAPP_FROM',
+    wa_access_token: 'META_ACCESS_TOKEN',
+    wa_verify_token: 'META_VERIFY_TOKEN',
+    wa_phone_number_id: 'META_PHONE_NUMBER_ID',
+    wa_business_account_id: 'META_WABA_ID',
     resend_key: 'RESEND_API_KEY',
     email_from: 'EMAIL_FROM',
   }
@@ -247,6 +280,7 @@ router.put('/', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res)
 
   const critical = changed.filter(k => [
     'resend_key', 'email_from', 'twilio_sid', 'twilio_token', 'twilio_from',
+    'wa_access_token', 'wa_verify_token', 'wa_phone_number_id', 'wa_business_account_id',
     'anthropic_key', 'openai_key', 'groq_key', 'sesion_horas', 'max_intentos',
   ].includes(k))
 

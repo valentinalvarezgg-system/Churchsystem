@@ -26,9 +26,36 @@ Todas las variables van en `backend/.env` (ver `backend/.env.example`).
 
 ---
 
-## 2. Twilio — WhatsApp y SMS
+## 2. Meta Cloud API — WhatsApp oficial
 
-**Para qué sirve:** Envío de mensajes de WhatsApp a miembros (seguimientos, recordatorios de culto, cumpleaños, mensajes pastorales).
+**Para qué sirve:** Canal oficial de WhatsApp para OTP, templates aprobados, recordatorios, seguimiento pastoral, estados y webhooks. Base SaaS multi-iglesia y multi-número.
+
+| Variable | Descripción |
+|----------|-------------|
+| `META_APP_ID` | App ID de Meta for Developers |
+| `META_APP_SECRET` | App Secret |
+| `META_VERIFY_TOKEN` | Token para verificar el webhook |
+| `META_ACCESS_TOKEN` | Access token de Graph API |
+| `META_PHONE_NUMBER_ID` | Phone Number ID del sender |
+| `META_WABA_ID` | WhatsApp Business Account ID |
+| `META_DISPLAY_PHONE_NUMBER` | Número visible (opcional) |
+| `META_VERIFIED_NAME` | Nombre verificado (opcional) |
+
+**Archivos que lo usan:**
+- `backend/src/services/whatsapp.js` — servicio oficial Graph API, schema, logs, templates y conversaciones
+- `backend/src/routes/whatsapp.js` — webhook público, diagnóstico, conexión y envío de templates
+- `backend/src/routes/mensajes.js` — envío directo usando Meta Cloud API con fallback legacy
+- `backend/src/routes/config.js` — diagnóstico y guardado de credenciales por iglesia
+- `backend/src/server.js` — registro del webhook `/whatsapp/webhook`
+- `frontend/src/pages/Configuracion.jsx` — carga del `Phone Number ID`, `WABA ID`, token y estado
+
+**Notas:** esta es la integración objetivo para producción. Permite una conexión por iglesia hoy y deja lista la base para múltiples números por tenant.
+
+---
+
+## 3. Twilio — WhatsApp y SMS (legacy / fallback)
+
+**Para qué sirve:** Compatibilidad temporal mientras se migra hacia Meta Cloud API oficial.
 
 | Variable | Descripción |
 |----------|-------------|
@@ -46,7 +73,7 @@ Todas las variables van en `backend/.env` (ver `backend/.env.example`).
 
 ---
 
-## 3. MercadoPago — Pagos de suscripción
+## 4. MercadoPago — Pagos de suscripción
 
 **Para qué sirve:** Procesamiento de pagos de planes mensuales (sólo para países LATAM: AR, BR, CL, CO, MX, PE, UY). Los pagos en USD no pasan por MercadoPago.
 
@@ -64,7 +91,7 @@ Todas las variables van en `backend/.env` (ver `backend/.env.example`).
 
 ---
 
-## 4. Google OAuth — Sign-in con Google
+## 5. Google OAuth — Sign-in con Google
 
 **Para qué sirve:** Permite registrarse e iniciar sesión con cuenta de Google (sin necesidad de contraseña).
 
@@ -84,7 +111,7 @@ Todas las variables van en `backend/.env` (ver `backend/.env.example`).
 
 ---
 
-## 5. Apple Sign-In — Sign-in con Apple
+## 6. Apple Sign-In — Sign-in con Apple
 
 **Para qué sirve:** Permite registrarse e iniciar sesión con Apple ID (requerido por App Store si se ofrece otro OAuth).
 
@@ -104,7 +131,7 @@ Todas las variables van en `backend/.env` (ver `backend/.env.example`).
 
 ---
 
-## 6. Web Push / VAPID — Notificaciones push
+## 7. Web Push / VAPID — Notificaciones push
 
 **Para qué sirve:** Envío de notificaciones push al navegador de los pastores/líderes (alertas de cumpleaños, seguimientos vencidos, visitantes sin consolidar). Se envían diariamente a las 8:30 AM.
 
@@ -126,7 +153,7 @@ npx web-push generate-vapid-keys
 
 ---
 
-## 7. Groq — IA (proveedor principal)
+## 8. Groq — IA (proveedor principal)
 
 **Para qué sirve:** Asistente pastoral con IA: análisis de miembros, sugerencias pastorales, respuestas a consultas. Es el proveedor por defecto (gratuito y rápido).
 
@@ -144,7 +171,7 @@ npx web-push generate-vapid-keys
 
 ---
 
-## 8. Anthropic — IA (Claude)
+## 9. Anthropic — IA (Claude)
 
 **Para qué sirve:** Alternativa premium al asistente pastoral. Usa Claude Haiku por defecto.
 
@@ -161,7 +188,7 @@ npx web-push generate-vapid-keys
 
 ---
 
-## 9. OpenAI — IA (ChatGPT)
+## 10. OpenAI — IA (ChatGPT)
 
 **Para qué sirve:** Segunda alternativa al asistente pastoral.
 
@@ -183,7 +210,8 @@ npx web-push generate-vapid-keys
 | Servicio | Tipo | Variables clave | Obligatorio |
 |----------|------|-----------------|-------------|
 | Resend | Email | `RESEND_API_KEY` | No (app funciona sin él) |
-| Twilio | WhatsApp | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` | No |
+| Meta Cloud API | WhatsApp oficial | `META_ACCESS_TOKEN`, `META_PHONE_NUMBER_ID`, `META_WABA_ID` | No |
+| Twilio | WhatsApp legacy/fallback | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` | No |
 | MercadoPago | Pagos LATAM | `MP_ACCESS_TOKEN` | No (solo para cobros) |
 | Google OAuth | Login social | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No |
 | Apple Sign-In | Login social | `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` | No |

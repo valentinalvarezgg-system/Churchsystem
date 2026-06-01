@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { registrar } from '../utils/auditoria.js'
+import { resolveWhatsAppConnection, sendWhatsAppText } from '../services/whatsapp.js'
 
 const router = Router()
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
@@ -13,10 +14,16 @@ async function getCfg(iglesiaId) {
   )
   const cfg = {}
   for (const r of rows) cfg[r.clave] = r.valor
+  cfg.__iglesiaId = iglesiaId
   return cfg
 }
 
 async function enviarWhatsApp(cfg, destino, texto) {
+  const metaConnection = await resolveWhatsAppConnection(cfg.__iglesiaId || null).catch(() => null)
+  if (metaConnection?.phoneNumberId && metaConnection?.accessToken) {
+    await sendWhatsAppText({ iglesiaId: cfg.__iglesiaId, to: destino, text: texto })
+    return { provider: 'meta_cloud' }
+  }
   const SID = cfg.twilio_sid || process.env.TWILIO_ACCOUNT_SID
   const TOK = cfg.twilio_token || process.env.TWILIO_AUTH_TOKEN
   const FROM = cfg.twilio_from || process.env.TWILIO_WHATSAPP_FROM

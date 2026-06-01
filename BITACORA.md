@@ -1,6 +1,6 @@
 # BITÁCORA — Church System
 
-Última actualización: 2026-05-30  
+Última actualización: 2026-06-01  
 Versión base oficial: **v2.7-beta.0 (baseline)**  
 Versión previa consolidada: **v2.6.x (estable técnica)**  
 Rama oficial: **master**
@@ -261,6 +261,43 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
   - Se desacopla pricing/packaging comercial del core de autorización.
 - Resultado:
   - Base lista para pricing de 7 planes, upsell futuro, comunicación segmentada y expansión internacional sin rehacer el sistema de módulos.
+
+### 2026-06-01 — v2.8.2/block-02 (WhatsApp Cloud API oficial + multi-iglesia base)
+- Objetivo: preparar Church System para WhatsApp oficial de Meta como subsistema SaaS serio, sin depender de integraciones informales.
+- Cambios aplicados:
+  - Backend:
+    - Nuevo servicio oficial `backend/src/services/whatsapp.js` con:
+      - Graph API `v23.0`
+      - tablas estructurales `WhatsAppConnection`, `WhatsAppTemplate`, `WhatsAppConversation`, `WhatsAppLog`
+      - envío de texto y templates
+      - persistencia multi-iglesia
+      - webhook processor para mensajes entrantes y estados
+    - Nueva ruta `backend/src/routes/whatsapp.js`:
+      - `GET /whatsapp/webhook`
+      - `POST /whatsapp/webhook`
+      - `GET /whatsapp/diagnostics`
+      - `POST /whatsapp/connection`
+      - `POST /whatsapp/templates`
+      - `POST /whatsapp/templates/sync`
+      - `POST /whatsapp/send-template`
+    - `backend/src/routes/mensajes.js` ahora intenta primero Meta Cloud API y deja Twilio solo como fallback legacy.
+    - `backend/src/routes/config.js` ampliado con claves `wa_*`, diagnósticos de Meta y sync de variables de entorno.
+    - `backend/src/lib/env.js` ahora advierte en production si faltan `META_ACCESS_TOKEN` / `META_PHONE_NUMBER_ID`.
+    - `backend/src/server.js` registra el módulo `/whatsapp` y reconoce sus endpoints públicos.
+  - Frontend:
+    - `frontend/src/pages/Configuracion.jsx` dejó de presentar WhatsApp como Twilio-only y ahora muestra Meta Cloud API como integración principal.
+    - Se agregaron campos para `wa_phone_number_id`, `wa_business_account_id`, `wa_access_token`, `wa_verify_token`, `wa_status`, `wa_display_phone_number`, `wa_verified_name`.
+  - Documentación:
+    - `INTEGRACIONES.md` actualizado para poner Meta Cloud API como canal oficial y Twilio como fallback legado.
+    - `backend/.env.example` actualizado con variables `META_*`.
+- Verificaciones:
+  - `pnpm -C frontend build` ✅
+  - `pnpm -C backend audit:launch` ✅
+- Decisión técnica:
+  - Church System pasa a tratar WhatsApp como subsistema propio con persistencia, logs y webhook oficial.
+  - Twilio queda como compatibilidad temporal para no cortar flujos existentes mientras se migra tenant por tenant.
+- Resultado:
+  - Base lista para OTP por template, automatizaciones, recordatorios, seguimiento pastoral, conversaciones y futura IA conversacional sobre WhatsApp oficial.
 
 ### 2026-05-30 — v2.7-beta/block-01 (parcial, BLOCKED técnico)
 - Objetivo: unificar estados `loading / empty / error / retry` en 6 pantallas críticas.

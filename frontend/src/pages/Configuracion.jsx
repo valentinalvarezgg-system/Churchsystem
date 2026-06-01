@@ -14,7 +14,7 @@ const CATEGORIAS = [
   ]},
   { key:'suscripcion', label:'Suscripción', icon:'▣', secciones:[] },
   { key:'integraciones', label:'Integraciones', icon:'🔌', secciones:[
-    { key:'whatsapp', icon:'▢', label:'WhatsApp',             desc:'Twilio — mensajes reales' },
+    { key:'whatsapp', icon:'▢', label:'WhatsApp',             desc:'Meta Cloud API oficial' },
     { key:'ia',       icon:'◆', label:'Inteligencia Artificial', desc:'Groq · Anthropic · OpenAI' },
     { key:'email',    icon:'✉', label:'Email',                  desc:'Resend — emails masivos' },
   ]},
@@ -32,7 +32,7 @@ const CAMPOS = {
   general:     ['nombre_iglesia','direccion','telefono_iglesia','email_iglesia','pastor_nombre','sitio_web'],
   cultos:      ['cultos_dias','cultos_turnos','culto_duracion','culto_capacidad'],
   apariencia:  ['color_primario','logo_url','modo_oscuro_default'],
-  whatsapp:    ['twilio_sid','twilio_from'],
+  whatsapp:    ['wa_phone_number_id','wa_business_account_id','wa_status'],
   ia:          ['ia_proveedor'],
   email:       ['resend_key','email_from','email_nombre'],
   alertas:     ['alerta_sin_asistir','alerta_sin_seguimiento','alerta_visitante','alerta_cumple'],
@@ -42,7 +42,7 @@ const CAMPOS = {
 }
 
 function badge(sec, cfg) {
-  if (sec==='whatsapp') return cfg.twilio_configurado ? 'ok' : 'warn'
+  if (sec==='whatsapp') return cfg.whatsapp_cloud_configurado ? 'ok' : 'warn'
   if (sec==='ia')       return (cfg.anthropic_ok||cfg.openai_ok||cfg.groq_ok) ? 'ok' : 'warn'
   if (sec==='email')    return cfg.email_configurado ? 'ok' : 'warn'
   return null
@@ -515,18 +515,31 @@ export default function Configuracion() {
 
               {/* WHATSAPP */}
               {sec==='whatsapp' && <>
-                <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',marginBottom:20,borderRadius:'var(--r)',background:config.twilio_configurado?'#F0FDF4':'#FFFBEB',border:`1px solid ${config.twilio_configurado?'#86EFAC':'#FDE68A'}`}}>
-                  <span style={{fontSize:20}}>{config.twilio_configurado?'✓':'⚠'}</span>
+                <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',marginBottom:20,borderRadius:'var(--r)',background:config.whatsapp_cloud_configurado?'#F0FDF4':'#FFFBEB',border:`1px solid ${config.whatsapp_cloud_configurado?'#86EFAC':'#FDE68A'}`}}>
+                  <span style={{fontSize:20}}>{config.whatsapp_cloud_configurado?'✓':'⚠'}</span>
                   <div>
-                    <div style={{fontSize:13,fontWeight:600,color:config.twilio_configurado?'var(--c-success)':'var(--c-warning)'}}>{config.twilio_configurado?'Twilio activo':'Sin configurar — modo demo'}</div>
-                    <div style={{fontSize:11,color:'var(--text-muted)'}}>{config.twilio_configurado?'Los mensajes se envían por WhatsApp real':'Los mensajes se registran pero no se envían'}</div>
+                    <div style={{fontSize:13,fontWeight:600,color:config.whatsapp_cloud_configurado?'var(--c-success)':'var(--c-warning)'}}>{config.whatsapp_cloud_configurado?'Meta Cloud API activa':'Sin configurar — modo demo / fallback'}</div>
+                    <div style={{fontSize:11,color:'var(--text-muted)'}}>{config.whatsapp_cloud_configurado?'La iglesia ya puede enviar por WhatsApp oficial':'Los mensajes se registran; podés seguir con Twilio solo como legado temporal'}</div>
                   </div>
-                  <a href="https://console.twilio.com" target="_blank" rel="noreferrer" style={{marginLeft:'auto',fontSize:12,color:'var(--primary)',fontWeight:600,whiteSpace:'nowrap'}}>Ir a Twilio →</a>
+                  <a href="https://developers.facebook.com/docs/whatsapp" target="_blank" rel="noreferrer" style={{marginLeft:'auto',fontSize:12,color:'var(--primary)',fontWeight:600,whiteSpace:'nowrap'}}>Ir a Meta →</a>
                 </div>
+                <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:18}}>
+                  Recomendado para producción. Cada iglesia puede conectar su propio número y sus propios templates, dejando Twilio solo como compatibilidad de transición.
+                </p>
                 <div className="form-grid">
-                  <div className="form-group full"><label>Account SID</label><input name="twilio_sid" className="form-input" value={form.twilio_sid} onChange={e=>f('twilio_sid',e.target.value)} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/></div>
-                  <div className="form-group full"><label>Auth Token{config.twilio_configurado&&<span style={{fontWeight:400,color:'var(--text-muted)'}}> — vacío = no cambiar</span>}</label><input name="twilio_token" className="form-input" type="password" value={form.twilio_token} onChange={e=>f('twilio_token',e.target.value)} placeholder={config.twilio_configurado?'••••••••••':'Tu auth token'}/></div>
-                  <div className="form-group full"><label>Número WhatsApp de Twilio</label><input name="twilio_from" className="form-input" value={form.twilio_from} onChange={e=>f('twilio_from',e.target.value)} placeholder="+14155238886"/></div>
+                  <div className="form-group full"><label>Provider</label><input name="wa_provider" className="form-input" value={form.wa_provider} onChange={e=>f('wa_provider',e.target.value)} placeholder="meta_cloud"/></div>
+                  <div className="form-group full"><label>Phone Number ID</label><input name="wa_phone_number_id" className="form-input" value={form.wa_phone_number_id} onChange={e=>f('wa_phone_number_id',e.target.value)} placeholder="123456789012345"/></div>
+                  <div className="form-group full"><label>WhatsApp Business Account ID</label><input name="wa_business_account_id" className="form-input" value={form.wa_business_account_id} onChange={e=>f('wa_business_account_id',e.target.value)} placeholder="987654321098765"/></div>
+                  <div className="form-group full"><label>Access Token{config.whatsapp_cloud_configurado&&<span style={{fontWeight:400,color:'var(--text-muted)'}}> — vacío = no cambiar</span>}</label><input name="wa_access_token" className="form-input" type="password" value={form.wa_access_token} onChange={e=>f('wa_access_token',e.target.value)} placeholder={config.whatsapp_cloud_configurado?'EAAG••••••••':'EAAG...'} /></div>
+                  <div className="form-group"><label>Verify Token</label><input name="wa_verify_token" className="form-input" value={form.wa_verify_token} onChange={e=>f('wa_verify_token',e.target.value)} placeholder="churchsystem-whatsapp-verify"/></div>
+                  <div className="form-group"><label>Estado</label><input name="wa_status" className="form-input" value={form.wa_status} onChange={e=>f('wa_status',e.target.value)} placeholder="connected"/></div>
+                  <div className="form-group"><label>Display Phone Number</label><input name="wa_display_phone_number" className="form-input" value={form.wa_display_phone_number} onChange={e=>f('wa_display_phone_number',e.target.value)} placeholder="+54 9 11 0000 0000"/></div>
+                  <div className="form-group"><label>Verified Name</label><input name="wa_verified_name" className="form-input" value={form.wa_verified_name} onChange={e=>f('wa_verified_name',e.target.value)} placeholder="Church System"/></div>
+                </div>
+                <div style={{marginTop:16,padding:'14px 16px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
+                  <div style={{fontSize:11,fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Webhook oficial</div>
+                  <div style={{fontSize:13,color:'var(--text)',marginBottom:6}}><strong>GET / POST</strong> {window.location.origin.replace('/app','')}/whatsapp/webhook</div>
+                  <div style={{fontSize:11,color:'var(--text-muted)'}}>Si querés usar un verify token distinto por iglesia, cargalo acá y luego verificá el endpoint con esa conexión.</div>
                 </div>
               </>}
 
