@@ -37,6 +37,7 @@ import backupRouter from './routes/backup.js'
 import permisosRouter from './routes/permisos.js'
 import excelIaRouter from './routes/excel_ia.js'
 import mpRouter from './routes/mercadopago.js'
+import ministeriosRouter from './routes/ministerios.js'
 import stripeRouter from './routes/stripe.js'
 import paypalRouter from './routes/paypal.js'
 import transferenciaRouter from './routes/transferencia.js'
@@ -163,6 +164,7 @@ app.use('/excel-ia', excelIaRouter)
 app.use('/notificaciones', notificacionesRouter)
 app.use('/registro', registroRouter)
 app.use('/mp', mpRouter)
+app.use('/ministerios', ministeriosRouter)
 app.use('/stripe', stripeRouter)
 app.use('/paypal', paypalRouter)
 app.use('/transferencia', transferenciaRouter)
