@@ -122,8 +122,8 @@ export default function App() {
           <Route path="/login"      element={<Login />} />
           <Route path="/app/login"  element={<Login />} />
           <Route path="/registro"   element={<Registro />} />
-          <Route path="/app/registro" element={<Registro />} />
           <Route path="/recuperar"  element={<RecuperarPassword />} />
+          <Route path="/app/registro" element={<Registro />} />
           <Route path="/app/recuperar" element={<RecuperarPassword />} />
           <Route path="/terminos"   element={<Terminos />} />
           <Route path="/app/terminos" element={<Terminos />} />
