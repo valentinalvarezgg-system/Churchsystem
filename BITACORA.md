@@ -1394,3 +1394,13 @@ Fecha: 2026-05-31
   - búsqueda: `rg -n "[\\x{2600}-\\x{27BF}\\x{1F300}-\\x{1FAFF}]" frontend/src landing/index.html` → sin resultados ✅
   - `pnpm -C frontend build` ✅
   - `pnpm -C backend audit:launch` ✅
+
+### Hotfix post-barrida (regex importación/búsqueda) — 2026-06-01
+- Problema detectado:
+  - durante la limpieza de símbolos, dos regex de normalización quedaron con un token incorrecto (`Plan`) en la clase de prefijos.
+- Corrección:
+  - [excel_ia.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/routes/excel_ia.js) → `MARCA_RE` normalizado a `^(?:OK|LISTO|[✔☑])\\s*` (case-insensitive).
+  - [busqueda.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/routes/busqueda.js) → `clean()` con la misma normalización.
+- Verificación:
+  - `pnpm -C frontend build` ✅
+  - `pnpm -C backend audit:launch` ✅

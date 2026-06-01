@@ -4,7 +4,7 @@ import { requireAuth } from '../middlewares/auth.js'
 
 const router = Router()
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
-const clean = v => String(v || '').replace(/^[OK✔Plan☑Listo\s]+/, '').trim()
+const clean = v => String(v || '').replace(/^(?:OK|LISTO|[✔☑])\s*/i, '').trim()
 
 router.get('/', requireAuth, wrap(async (req, res) => {
   const { q = '', limit = 8 } = req.query
@@ -56,4 +56,3 @@ router.get('/', requireAuth, wrap(async (req, res) => {
 }))
 
 export default router
-

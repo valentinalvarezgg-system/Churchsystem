@@ -9,7 +9,7 @@ import XLSX from '../lib/xlsx-safe.js'
 
 const router = Router()
 
-const MARCA_RE = /^[OK✔Plan☑Listo\s]+/
+const MARCA_RE = /^(?:OK|LISTO|[✔☑])\s*/i
 const VACIO_RE = /^(·+|\/+|s\/n|s\/a|s\/l|none|null|false|true|undefined)$/i
 const cleanTel = v => String(v ?? '').replace(/\.0$/, '').replace(/[^\d+]/g, '').trim()
 const cleanStr = v => String(v ?? '').replace(MARCA_RE, '').trim()
