@@ -23,8 +23,12 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
 
-      - name: Install pnpm
-        run: npm install -g pnpm@9
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Verify pnpm is available
+        run: pnpm --version
 
       - name: Install frontend deps
         working-directory: frontend
@@ -54,8 +58,12 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: backend/pnpm-lock.yaml
 
-      - name: Install pnpm
-        run: npm install -g pnpm@9
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Verify pnpm is available
+        run: pnpm --version
 
       - name: Install backend deps
         working-directory: backend

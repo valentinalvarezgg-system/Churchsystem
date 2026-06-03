@@ -1,6 +1,6 @@
 # BITÁCORA — Church System
 
-Última actualización: 2026-06-01  
+Última actualización: 2026-06-03
 Versión base oficial: **v2.7-beta.0 (baseline)**  
 Versión previa consolidada: **v2.6.x (estable técnica)**  
 Rama oficial: **master**
@@ -188,6 +188,8 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - `d069dab` fix: regex API + confirm/Perfil.
 - `7a198d1` fix(ui): hardening mobile layout/overflow.
 - `9e5eae9` fix(ui): responsive hardening páginas clave.
+- `6430101` fix(ci): use pnpm cache and lockfiles per workspace.
+- `7808dd4` feat: sync current drive cleanup and ministerios updates.
 
 ---
 
@@ -198,6 +200,11 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 
 ## EN CURSO
 - Ninguno. Último bloque cerrado: `v2.8.3/block-01`.
+
+### 2026-06-03 — CI workflow: pnpm PATH hardening
+- **Arreglado:** `check-backend` y `build-frontend` ya no dependen de `npm install -g pnpm` para exponer el binario.
+- **Cambio:** se incorporó `pnpm/action-setup@v4` y un step `Verify pnpm is available` en ambos jobs.
+- **Motivo:** GitHub Actions estaba fallando con `Unable to locate executable file: pnpm` en el job de backend.
 
 ## Versión actual: **v2.8** (inicio 2026-05-30)
 
