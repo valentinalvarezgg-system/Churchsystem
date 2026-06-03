@@ -1562,6 +1562,65 @@ Fecha: 2026-05-31
   - `pnpm -C frontend build` ✅
   - `node -e "import('./backend/src/routes/config.js').then(()=>import('./backend/src/routes/ministerios.js')).then(()=>import('./backend/src/routes/oauth.js'))"` ✅ con `DATABASE_URL` y `JWT_SECRET` de prueba
 
+### v2.8.4 — Auth, Organización, WhatsApp, Invitaciones y Sesiones — 2026-06-03
+
+#### Módulo: ConfiguracionOrganizacion (nuevo — inspirado en Clerk)
+- Nuevo archivo: `frontend/src/pages/ConfiguracionOrganizacion.jsx` (855 líneas)
+  - Tab **Miembros**: lista con avatar generativo por iniciales, badge de rol con colores semánticos, filtros por nombre/email/rol, stats (total/activos/pastores), modal inline de edición, toggle activar/desactivar, badge "Vos" en usuario actual
+  - Tab **Roles & Permisos**: split layout — lista de usuarios izquierda, panel de permisos derecha; chips de nivel `—` `Ver` `Edit` `Full` por módulo (14 módulos incluyendo ministerios y finanzas); guardar aparece solo cuando hay cambios no guardados
+  - Tab **Invitaciones**: formulario email + rol, link copiable generado por backend, lista pendientes/aceptadas, revocar individual
+  - Tab **Sesiones**: dispositivos activos con ícono, IP, tiempo relativo, badge "Esta sesión", revocar individual + "cerrar todas las demás"; fallback visual si endpoint no existe aún
+- Ruta `/organizacion` registrada en `App.jsx` (lazy, roles: `PASTOR_GENERAL`, `PASTOR_CULTO`)
+- Link "Organización" agregado al sidebar en sección Admin (Menu.jsx)
+
+#### OAuth — diagnóstico y activación Apple
+- Google OAuth: ya funcionaba; credenciales en `.env` confirmadas
+- Apple OAuth: código en `oauth.js` estaba completo (ES256, `form_post`, id_token); faltaban variables
+  - Agregadas al `.env`: `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, `APPLE_REDIRECT_URI`
+  - Instrucciones documentadas: Services ID, Key `.p8`, Team ID, conversión a línea única con `awk`
+  - Sitio oauth.net analizado: implementación nativa con `fetch` + `jsonwebtoken` es la forma correcta, no requiere librerías externas
+
+#### Backend: /invitaciones
+- Nuevo archivo: `backend/src/routes/invitaciones.js`
+  - Tabla `Invitacion` con auto-create (sin migración manual necesaria)
+  - `GET /invitaciones` — lista con join a nombre del invitador (admin)
+  - `POST /invitaciones` — crea, revoca pendientes previas para ese email, genera token de 32 bytes, envía email via Resend, devuelve link de registro
+  - `DELETE /invitaciones/:id` — revoca
+  - `GET /invitaciones/verificar/:token` — público, para flujo de registro con invite; detecta expiradas y las marca
+  - TTL configurable (7 días por defecto)
+  - Auditoría en historial para crear/eliminar
+
+#### Backend: /sesiones
+- Nuevo archivo: `backend/src/routes/sesiones.js`
+  - Tabla `Sesion` con auto-create; parsing de User-Agent a dispositivo/navegador legible
+  - `POST /sesiones/touch` — upsert de sesión actual, limpieza automática de sesiones > 30 días
+  - `GET /sesiones` — lista activas del usuario (ordenadas: current primero)
+  - `DELETE /sesiones/:id` — revoca sesión remota (no permite cerrar la propia)
+  - `DELETE /sesiones` — cierra todas menos la actual (usa header `x-session-id`)
+  - IP extraída de `cf-connecting-ip` → `x-real-ip` → `x-forwarded-for` → `req.ip`
+
+#### Frontend: session tracking
+- `frontend/src/services/api.js`: función `getOrCreateSessionId()` — genera ID estable en `localStorage`; header `x-session-id` inyectado automáticamente en todas las requests
+- `frontend/src/pages/Login.jsx`: función `touchSesion()` llamada post-login en email/pass Y en retorno OAuth (Google + Apple)
+
+#### WhatsApp Cloud API (Meta oficial) — arquitectura definida
+- Módulo nuevo: `backend/src/whatsapp/` (4 archivos: router, service, templates, webhook)
+  - `whatsapp.service.js`: `sendWhatsAppMessage`, `textMessage`, `templateMessage`
+  - `whatsapp.webhook.js`: verificación GET + procesamiento POST (mensajes entrantes + statuses)
+  - `whatsapp.templates.js`: constantes de templates y builder de componentes
+  - `whatsapp.router.js`: `GET/POST /webhook`, `POST /send`, `POST /recordatorio-reunion`
+- Router montado en `/whatsapp` y `/api/whatsapp`
+- Variables de entorno documentadas en `.env.example` y `.env`: `META_APP_ID`, `META_APP_SECRET`, `META_SYSTEM_TOKEN`, `META_PHONE_NUMBER_ID`, `META_WABA_ID`, `META_VERIFY_TOKEN`, `META_GRAPH_VERSION`
+- Arquitectura: número propio de Church System (comunicación con clientes) + Embedded Signup para que cada iglesia conecte su propio número
+- Decisión técnica documentada: Baileys descartado (viola TOS Meta, riesgo de ban); Meta Cloud API es la única opción a escala
+
+#### server.js
+- Imports + `app.use` agregados para `invitacionesRouter` y `sesionesRouter`
+
+- Verificación pendiente: `pnpm -C frontend build` (ejecutar antes de deploy)
+
+---
+
 ### v2.8.3 / cleanup-01 — Poda de legado y simplificación visual — 2026-06-03
 - Objetivo:
   - reducir código muerto y referencias arcaicas.

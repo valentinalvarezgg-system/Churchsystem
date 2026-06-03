@@ -83,6 +83,10 @@ export default function Login() {
     localStorage.setItem('church_lang', next)
   }, [searchParams])
 
+  async function touchSesion() {
+    try { await apiFetch('/sesiones/touch', { method: 'POST' }) } catch {}
+  }
+
   useEffect(() => {
     async function handleOAuthReturn() {
       const token = searchParams.get('token')
@@ -103,6 +107,7 @@ export default function Login() {
             syncContextFromUser(decoded)
           }
         }
+        await touchSesion()
         toast.success(copy.ok)
         navigate('/')
       } else if (error) {
@@ -131,6 +136,7 @@ export default function Login() {
       localStorage.setItem('token', res.token)
       localStorage.setItem('user', JSON.stringify(res.user))
       syncContextFromUser(res.user)
+      await touchSesion()
       navigate('/')
     } catch(err) { toast.error(err.message || t('invalid')) }
     finally { setLoading(false) }

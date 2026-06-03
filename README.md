@@ -1,4 +1,4 @@
-# Church System — v2.8.1 beta
+# Church System — v2.8.4 beta
 
 Sistema integral de gestión pastoral para iglesias evangélicas.  
 Multi-tenant · SaaS · Mobile-first · Productivo en `churchsystem.com.ar`
@@ -84,10 +84,22 @@ VAPID_SUBJECT=mailto:soporte@churchsystem.com.ar
 # OAuth (opcional)
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-xxxxx
-APPLE_CLIENT_ID=com.churchsystem.web
-APPLE_TEAM_ID=XXXXXXXXXX
-APPLE_KEY_ID=XXXXXXXXXX
+# Apple Sign In — obtener en developer.apple.com → Certificates, Identifiers & Profiles
+# Convertir .p8 a una línea: cat AuthKey_XXX.p8 | awk 'NF {printf "%s\\n", $0}'
+APPLE_CLIENT_ID=com.churchsystem.web       # Services ID identifier
+APPLE_TEAM_ID=XXXXXXXXXX                   # 10 chars, en Membership
+APPLE_KEY_ID=XXXXXXXXXX                    # ID de la Key con Sign In with Apple
 APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+APPLE_REDIRECT_URI=https://churchsystem.com.ar/oauth/apple/callback
+
+# WhatsApp Cloud API (Meta oficial)
+META_APP_ID=
+META_APP_SECRET=
+META_SYSTEM_TOKEN=           # Token permanente de System User en Meta Business Manager
+META_PHONE_NUMBER_ID=        # ID del número en Getting Started
+META_WABA_ID=                # WhatsApp Business Account ID
+META_VERIFY_TOKEN=           # String secreto para verificación de webhook
+META_GRAPH_VERSION=v23.0
 
 # CORS adicional (opcional)
 CORS_ORIGINS=https://app.example.com
@@ -140,6 +152,9 @@ Churchsystem/
 │       │   ├── promo-codes.js     # Códigos promocionales (GODMODE)
 │       │   ├── bug-report.js      # Reporte de bugs vía email
 │       │   ├── resend-inbound.js  # Webhook correos entrantes
+│       │   ├── invitaciones.js    # Invitaciones por link (CRUD + verificar token)
+│       │   ├── sesiones.js        # Gestión de sesiones activas por dispositivo
+│       │   ├── whatsapp.js        # WhatsApp Cloud API (Meta oficial)
 │       │   ├── oracion.js         # [bloqueado — decisión legal]
 │       │   └── finanzas.js        # [bloqueado — decisión legal]
 │       ├── middlewares/
@@ -186,7 +201,8 @@ Churchsystem/
 │       │   ├── AsistenteIA.jsx    # Chat IA pastoral
 │       │   ├── ExcelIA.jsx        # Análisis de Excel con IA
 │       │   ├── Configuracion.jsx  # Config iglesia + notificaciones
-│       │   ├── GestionPermisos.jsx # Permisos por rol
+│       │   ├── GestionPermisos.jsx # Permisos por rol (legacy)
+│       │   ├── ConfiguracionOrganizacion.jsx # Organización estilo Clerk — Miembros/Roles/Invitaciones/Sesiones
 │       │   ├── Users.jsx          # Gestión de usuarios
 │       │   ├── MiPerfil.jsx       # Mi perfil de usuario
 │       │   ├── Historial.jsx      # Log de auditoría

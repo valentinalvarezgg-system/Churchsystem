@@ -63,12 +63,22 @@ if (channel) {
   }
 }
 
+function getOrCreateSessionId() {
+  let sid = localStorage.getItem('church_session_id')
+  if (!sid) {
+    sid = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10)
+    localStorage.setItem('church_session_id', sid)
+  }
+  return sid
+}
+
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('token')
   const url   = `${API}${path}`
   const method = (options.method || 'GET').toUpperCase()
   const lang = localStorage.getItem('church_lang')
   const skipAuthRedirect = options.skipAuthRedirect === true
+  const sessionId = getOrCreateSessionId()
   let res
   try {
     res = await fetch(url, {
@@ -77,6 +87,7 @@ export async function apiFetch(path, options = {}) {
         'Content-Type': 'application/json',
         ...(lang ? { 'Accept-Language': lang } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'x-session-id': sessionId,
         ...(options.headers || {})
       }
     })
