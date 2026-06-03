@@ -19,17 +19,20 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "npm"
+          node-version: "24"
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Install pnpm
         run: npm install -g pnpm@9
 
       - name: Install frontend deps
-        run: cd frontend && pnpm install --frozen-lockfile || pnpm install
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile || pnpm install
 
       - name: Build frontend
-        run: cd frontend && pnpm build
+        working-directory: frontend
+        run: pnpm build
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
@@ -47,13 +50,16 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
+          cache: "pnpm"
+          cache-dependency-path: backend/pnpm-lock.yaml
 
       - name: Install pnpm
         run: npm install -g pnpm@9
 
       - name: Install backend deps
-        run: cd backend && pnpm install
+        working-directory: backend
+        run: pnpm install
 
       - name: Syntax check (node --check)
         run: |
