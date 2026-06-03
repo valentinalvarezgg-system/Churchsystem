@@ -201,10 +201,11 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 ## EN CURSO
 - Ninguno. Último bloque cerrado: `v2.8.3/block-01`.
 
-### 2026-06-03 — CI workflow: pnpm PATH hardening
-- **Arreglado:** `check-backend` y `build-frontend` ya no dependen de `npm install -g pnpm` para exponer el binario.
-- **Cambio:** se incorporó `pnpm/action-setup@v4` y un step `Verify pnpm is available` en ambos jobs.
-- **Motivo:** GitHub Actions estaba fallando con `Unable to locate executable file: pnpm` en el job de backend.
+### 2026-06-03 — CI workflow: pnpm/Corepack hardening
+- **Arreglado:** `check-backend` y `build-frontend` ya no dependen de `npm install -g pnpm` ni de `pnpm/action-setup` para exponer el binario.
+- **Cambio:** el workflow activa `corepack` y prepara `pnpm@9.15.5` de forma explícita en ambos jobs; además se agregó `packageManager` a `frontend/package.json` y `backend/package.json`.
+- **Cleanup:** se eliminó `frontend/pnpm-workspace.yaml` porque estaba mal formado y hacía que pnpm esperara `packages` en un archivo que solo debía contener política de builds.
+- **Motivo:** GitHub Actions estaba mostrando fallas intermitentes con la disponibilidad de `pnpm` en PATH y el frontend además tenía un archivo de workspace inválido que rompía `pnpm build`.
 
 ## Versión actual: **v2.8** (inicio 2026-05-30)
 

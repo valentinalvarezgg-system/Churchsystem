@@ -23,9 +23,11 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Activate pnpm
+        run: corepack prepare pnpm@9.15.5 --activate
 
       - name: Verify pnpm is available
         run: pnpm --version
@@ -58,9 +60,11 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: backend/pnpm-lock.yaml
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Activate pnpm
+        run: corepack prepare pnpm@9.15.5 --activate
 
       - name: Verify pnpm is available
         run: pnpm --version

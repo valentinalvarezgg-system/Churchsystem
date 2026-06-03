@@ -2,6 +2,7 @@
   "name": "church-backend",
   "version": "2.8.1",
   "private": true,
+  "packageManager": "pnpm@9.15.5",
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.js",
