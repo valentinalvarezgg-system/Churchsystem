@@ -209,6 +209,13 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - **i18n:** se actualizaron los textos de `es`, `pt` y `en` para que la sección comercial, el hero y el CTA final no queden desfasados respecto del producto actual.
 - **Verificación:** `cd frontend && pnpm build` ✅
 
+### 2026-06-03 — Landing mobile: navegación y respuesta táctil
+- **Navegación móvil:** se agregó un carrusel horizontal de categorías (`Funciones`, `Módulos`, `¿Cómo funciona?`, `Precios`) en vez de un desplegable, para mantener visibilidad y navegación rápida en mobile.
+- **Botones:** se endureció la respuesta táctil con `touch-action: manipulation`, targets más firmes y CTAs full-width en pantallas chicas.
+- **Performance percibida:** se redujo el peso visual en mobile quitando blur fuerte del navbar, bajando intensidad de orbs y usando `content-visibility` en secciones fuera del hero.
+- **UX:** se agregó resaltado automático de la categoría visible con `IntersectionObserver` y `scroll-margin-top` para que los anchors caigan bien debajo del nav sticky.
+- **Verificación:** `cd frontend && pnpm build` ✅
+
 ### 2026-06-03 — CI workflow: pnpm/Corepack hardening
 - **Arreglado:** `check-backend` y `build-frontend` ya no dependen de `npm install -g pnpm` ni de `pnpm/action-setup` para exponer el binario.
 - **Cambio:** el workflow activa `corepack` y prepara `pnpm@9.15.5` de forma explícita en ambos jobs; además se agregó `packageManager` a `frontend/package.json` y `backend/package.json`.

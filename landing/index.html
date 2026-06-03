@@ -13,6 +13,7 @@
     :root{--primary:#6B5CFF;--primary-d:#4845D2;--bg:#0A0E1A;--bg2:#111827;--surface:#1E293B;--border:rgba(255,255,255,0.08);--text:#F1F5F9;--text-2:#CBD5E1;--muted:#64748B;--success:#22c55e;--r:16px}
     html{scroll-behavior:smooth}
     body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+    a,button,select{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
     .orb{position:fixed;border-radius:50%;filter:blur(120px);opacity:.12;pointer-events:none;z-index:0}
     .orb-1{width:600px;height:600px;background:var(--primary);top:-200px;right:-100px}
     .orb-2{width:400px;height:400px;background:#06B6D4;bottom:10%;left:-100px}
@@ -28,6 +29,11 @@
     .nav-select option{background:#111827;color:#F1F5F9}
     .nav-cta{background:var(--primary);color:white;text-decoration:none;padding:9px 20px;border-radius:10px;font-size:14px;font-weight:600;transition:opacity .2s;white-space:nowrap}
     .nav-cta:hover{opacity:.85}
+    .mobile-section-nav{display:none;position:sticky;top:72px;z-index:95;padding:10px 16px 2px;background:linear-gradient(180deg,rgba(10,14,26,.98),rgba(10,14,26,.86));backdrop-filter:blur(14px)}
+    .mobile-section-track{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:8px;scroll-snap-type:x proximity}
+    .mobile-section-track::-webkit-scrollbar{display:none}
+    .mobile-section-chip{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text-2);text-decoration:none;font-size:13px;font-weight:700;white-space:nowrap;scroll-snap-align:start;transition:background .2s,border-color .2s,color .2s}
+    .mobile-section-chip.active{background:rgba(107,92,255,.18);border-color:rgba(107,92,255,.4);color:#fff}
     .hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:120px 24px 80px;text-align:center}
     .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(107,92,255,.15);border:1px solid rgba(107,92,255,.3);border-radius:100px;padding:6px 16px;font-size:13px;font-weight:600;color:#A78BFA;margin-bottom:28px;animation:fadeUp .6s ease both}
     .hero-badge .badge-dot{width:6px;height:6px;border-radius:50%;background:#A78BFA;display:inline-block;flex:0 0 6px}
@@ -42,7 +48,8 @@
     .hero-stats{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;animation:fadeUp .6s .4s ease both}
     .hero-stat-val{font-family:'Sora',sans-serif;font-size:28px;font-weight:800;color:var(--primary)}
     .hero-stat-lbl{font-size:13px;color:var(--muted);margin-top:2px}
-    section{position:relative;z-index:1;padding:100px 24px}
+    section{position:relative;z-index:1;padding:100px 24px;scroll-margin-top:110px;content-visibility:auto;contain-intrinsic-size:900px}
+    .hero{content-visibility:visible;contain-intrinsic-size:auto}
     .container{max-width:1100px;margin:0 auto}
     .section-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--primary);margin-bottom:12px}
     .section-title{font-family:'Sora',sans-serif;font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-1px;margin-bottom:16px;line-height:1.2}
@@ -110,8 +117,8 @@
     .footer-links a{color:var(--muted);text-decoration:none;font-size:13px;transition:color .2s}
     .footer-links a:hover{color:var(--text)}
     @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-    @media(max-width:1100px){nav{padding:14px 20px}.nav-links{display:none}.nav-controls{display:none}.hero{padding:100px 20px 60px}.hero-stats{gap:24px}section{padding:60px 20px}.pricing-group{padding:20px}.cta-section{padding:48px 24px;margin:0 16px 60px}footer{flex-direction:column;align-items:flex-start;padding:32px 20px}}
-    @media(max-width:480px){.nav-cta{padding:8px 12px;font-size:13px}.nav-logo{font-size:16px}.hero-ctas{flex-direction:column}.btn-primary,.btn-ghost{width:100%;text-align:center}}
+    @media(max-width:1100px){nav{padding:14px 20px;backdrop-filter:none;background:rgba(10,14,26,.96)}.nav-links{display:none}.nav-controls{display:none}.mobile-section-nav{display:block}.hero{padding:136px 20px 60px}.hero-stats{gap:24px}section{padding:60px 20px;scroll-margin-top:138px}.pricing-group{padding:20px}.cta-section{padding:48px 24px;margin:0 16px 60px}footer{flex-direction:column;align-items:flex-start;padding:32px 20px}.orb{opacity:.08;filter:blur(80px)}.orb-2{display:none}}
+    @media(max-width:480px){.nav-cta{padding:8px 12px;font-size:13px}.nav-logo{font-size:16px}.hero-ctas{flex-direction:column}.btn-primary,.btn-ghost{width:100%;text-align:center;min-height:48px;display:flex;align-items:center;justify-content:center}.hero-title{letter-spacing:-1.2px}.hero-sub{margin-bottom:30px}.mobile-section-nav{top:66px;padding:10px 12px 0}.mobile-section-chip{font-size:12px;padding:9px 12px}}
   </style>
 </head>
 <body>
@@ -175,6 +182,15 @@
   </div>
   <a href="/app" class="nav-cta" data-i18n="login">Ingresar →</a>
 </nav>
+
+<div class="mobile-section-nav" aria-label="Navegacion movil">
+  <div class="mobile-section-track">
+    <a href="#funciones" class="mobile-section-chip" data-chip-for="funciones" data-i18n="navFeatures">Funciones</a>
+    <a href="#modulos" class="mobile-section-chip" data-chip-for="modulos" data-i18n="navModules">Módulos</a>
+    <a href="#como-funciona" class="mobile-section-chip" data-chip-for="como-funciona" data-i18n="navHow">¿Cómo funciona?</a>
+    <a href="#precios" class="mobile-section-chip" data-chip-for="precios" data-i18n="navPricing">Precios</a>
+  </div>
+</div>
 
 <section class="hero">
   <div class="hero-badge"><span class="badge-dot"></span> <span data-i18n="badge">Church System 2026 · onboarding, QR, IA y multi-iglesia</span></div>
@@ -670,6 +686,28 @@ function applyContext() {
     link.href = `/app/registro?${qp.toString()}`
   })
 }
+const mobileChips = Array.from(document.querySelectorAll('.mobile-section-chip'))
+const sections = ['funciones','modulos','como-funciona','precios']
+function setActiveChip(id) {
+  mobileChips.forEach(chip => {
+    const active = chip.dataset.chipFor === id
+    chip.classList.toggle('active', active)
+    if (active) chip.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' })
+  })
+}
+const sectionObserver = new IntersectionObserver(entries => {
+  const visible = entries
+    .filter(entry => entry.isIntersecting)
+    .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+  if (visible?.target?.id) setActiveChip(visible.target.id)
+}, { rootMargin: '-35% 0px -50% 0px', threshold: [0.15, 0.35, 0.6] })
+sections.forEach(id => {
+  const section = document.getElementById(id)
+  if (section) sectionObserver.observe(section)
+})
+mobileChips.forEach(chip => {
+  chip.addEventListener('click', () => setActiveChip(chip.dataset.chipFor))
+})
 const initialCountry = (params.get('country') || localStorage.getItem('church_country') || 'AR').toUpperCase()
 countrySelect.value = COUNTRIES[initialCountry] ? initialCountry : 'AR'
 langSelect.value = (params.get('lang') || localStorage.getItem('church_lang') || COUNTRIES[countrySelect.value].lang).slice(0,2)
@@ -677,6 +715,7 @@ countrySelect.addEventListener('change', () => { langSelect.value = COUNTRIES[co
 currencySelect.addEventListener('change', applyContext)
 langSelect.addEventListener('change', applyContext)
 applyContext()
+setActiveChip('funciones')
 </script>
 </body>
 </html>
