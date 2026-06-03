@@ -8,7 +8,8 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "backup:postgres": "bash ./scripts/backup-postgres.sh",
-    "audit:launch": "node ./scripts/launch-audit.mjs"
+    "audit:launch": "node ./scripts/launch-audit.mjs",
+    "verify:whatsapp": "node ./scripts/verify-whatsapp.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.11.1",
