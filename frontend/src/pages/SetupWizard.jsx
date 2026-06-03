@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Icons from '../components/Icons.jsx'
+import BrandLogo from '../components/BrandLogo.jsx'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, getUser } from '../services/api.js'
 
@@ -83,10 +84,10 @@ export default function SetupWizard({ onCompleto }) {
 
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}><Icons.Dashboard /></div>
-          <h1 style={{ color: 'white', fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>
-            Church System
-          </h1>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom: 10 }}>
+            <BrandLogo variant="dark" size={64} wordmark={false} />
+          </div>
+          <h1 style={{ color: 'white', fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>Church System</h1>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, margin: '4px 0 0' }}>
             Configuración inicial
           </p>

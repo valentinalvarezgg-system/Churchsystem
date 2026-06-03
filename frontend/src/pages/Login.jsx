@@ -4,6 +4,7 @@ import { apiFetch, getApiUrl, getStoredContext, decodeJwt, syncContextFromUser }
 import { toast } from '../components/Toast.jsx'
 import { authCopy } from '../utils/i18n-auth.js'
 import { APP_VERSION_LABEL } from '../version.js'
+import BrandLogo from '../components/BrandLogo.jsx'
 
 const S = {
   bg: { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
@@ -21,9 +22,6 @@ const S = {
     border:'1px solid rgba(255,255,255,0.09)',
     boxShadow:'0 30px 60px -12px rgba(0,0,0,0.6)' },
   logoWrap: { textAlign:'center', marginBottom:32 },
-  logoBox: { width:68, height:68, margin:'0 auto 14px',
-    background:'linear-gradient(135deg,#7C6FFF,#4845D2)',
-    borderRadius:20, display:'flex', alignItems:'center', justifyContent:'center' },
   h1: { fontSize:26, fontWeight:800, color:'#F1F5F9', margin:'0 0 4px',
     fontFamily:"'Sora', sans-serif" },
   sub: { fontSize:13, color:'#64748B' },
@@ -150,11 +148,8 @@ export default function Login() {
       <div style={S.card}>
         {/* Logo */}
         <div style={S.logoWrap}>
-          <div style={S.logoBox}>
-            <svg width="36" height="36" viewBox="0 0 100 100" fill="none">
-              <path d="M28 18 Q18 18 18 28 L18 72 Q18 82 28 82 L42 82 Q52 82 52 72 L52 28 Q52 18 42 18 Z" fill="white"/>
-              <path d="M58 18 Q48 18 48 28 L48 52 Q48 62 58 62 L72 62 Q82 62 82 52 L82 28 Q82 18 72 18 Z" fill="white" opacity="0.85"/>
-            </svg>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:14 }}>
+            <BrandLogo variant="dark" size={68} wordmark={false} />
           </div>
           <h1 style={S.h1}>Church System</h1>
           <p style={S.sub}>{APP_VERSION_LABEL} · {t('subtitle')}</p>

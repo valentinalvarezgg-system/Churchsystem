@@ -2,6 +2,8 @@ import { Router } from 'express'
 import { pgExec, pgOne, pgMany } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 import logger from '../lib/logger.js'
+import { readTenantConfig } from '../lib/tenant-config.js'
+import { extractGoogleDriveFolderId, listGoogleDriveFolderFiles } from '../lib/google-drive.js'
 
 const router = Router()
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
@@ -25,6 +27,22 @@ async function checkRol(ministerioId, uId, rolesPermitidos = ['COORDINADOR','LID
   )
   if (!m) return false
   return rolesPermitidos.includes(m.rol)
+}
+
+async function readMinisterioConfig(ministerioId) {
+  const row = await pgOne('SELECT datos FROM "MinisterioConfig" WHERE "ministerioId"=$1', [ministerioId])
+  return row?.datos || {}
+}
+
+async function saveMinisterioConfig(ministerioId, datos) {
+  const row = await pgOne(`
+    INSERT INTO "MinisterioConfig" ("ministerioId","datos")
+    VALUES ($1,$2::jsonb)
+    ON CONFLICT ("ministerioId")
+    DO UPDATE SET "datos"=EXCLUDED."datos","updatedAt"=CURRENT_TIMESTAMP
+    RETURNING *
+  `, [ministerioId, JSON.stringify(datos || {})])
+  return row?.datos || datos || {}
 }
 
 // ── MINISTERIOS ───────────────────────────────────────────────
@@ -68,8 +86,8 @@ router.get('/:id', requireAuth, wrap(async (req, res) => {
       (SELECT COUNT(*)::int FROM "MinisterioTarea" t WHERE t."ministerioId"=m.id AND t.estado='PENDIENTE' AND t."deletedAt" IS NULL) AS "tareasPendientes"
     FROM "Ministerio" m WHERE m.id=$1
   `, [req.params.id])
-  const config = await pgOne('SELECT datos FROM "MinisterioConfig" WHERE "ministerioId"=$1', [req.params.id])
-  return res.json({ ...m, config: config?.datos || {} })
+  const config = await readMinisterioConfig(req.params.id)
+  return res.json({ ...m, config: config || {} })
 }))
 
 // PUT /ministerios/:id — actualizar ministerio
@@ -94,6 +112,108 @@ router.delete('/:id', requireAuth, wrap(async (req, res) => {
     return res.status(404).json({ error: 'No encontrado' })
   await pgExec('UPDATE "Ministerio" SET "deletedAt"=CURRENT_TIMESTAMP WHERE id=$1', [req.params.id])
   return res.json({ ok: true })
+}))
+
+// ── GOOGLE DRIVE ─────────────────────────────────────────────
+
+router.get('/:id/drive', requireAuth, wrap(async (req, res) => {
+  if (!await checkAcceso(req.params.id, iglesiaId(req)))
+    return res.status(404).json({ error: 'No encontrado' })
+
+  const ministerioConfig = await readMinisterioConfig(req.params.id)
+  const driveConfig = ministerioConfig.drive || {}
+  const churchConfig = await readTenantConfig(iglesiaId(req))
+  const refreshToken = churchConfig.google_drive_refresh_token || ''
+  const connected = !!refreshToken
+  const folderId = extractGoogleDriveFolderId(driveConfig.folderId || driveConfig.folderUrl || '')
+  const folderLabel = driveConfig.folderLabel || driveConfig.label || ''
+  const folderUrl = driveConfig.folderUrl || driveConfig.folderId || ''
+
+  if (!connected) {
+    return res.json({
+      connected: false,
+      folderId,
+      folderUrl,
+      folderLabel,
+      files: [],
+      lastSyncAt: driveConfig.lastSyncAt || null,
+      message: 'Conectá Google Drive desde Configuración para leer archivos.',
+    })
+  }
+
+  if (!folderId) {
+    return res.json({
+      connected: true,
+      folderId: '',
+      folderUrl,
+      folderLabel,
+      files: [],
+      lastSyncAt: driveConfig.lastSyncAt || null,
+      message: 'Definí la carpeta de Drive de este ministerio.',
+    })
+  }
+
+  try {
+    const files = await listGoogleDriveFolderFiles({
+      refreshToken,
+      folderId,
+      pageSize: Number(req.query.limit || 100),
+    })
+    const syncedAt = new Date().toISOString()
+    await saveMinisterioConfig(req.params.id, {
+      ...ministerioConfig,
+      drive: {
+        ...driveConfig,
+        folderId,
+        folderUrl,
+        folderLabel,
+        enabled: driveConfig.enabled !== false,
+        lastSyncAt: syncedAt,
+        lastFilesCount: files.length,
+      },
+    })
+    return res.json({
+      connected: true,
+      folderId,
+      folderUrl,
+      folderLabel,
+      files,
+      lastSyncAt: syncedAt,
+      message: files.length ? `Se encontraron ${files.length} archivos.` : 'La carpeta no tiene archivos visibles.',
+    })
+  } catch (err) {
+    logger.warn({ err: err?.message, ministerioId: req.params.id }, 'Google Drive sync failed')
+    return res.status(200).json({
+      connected: true,
+      folderId,
+      folderUrl,
+      folderLabel,
+      files: [],
+      lastSyncAt: driveConfig.lastSyncAt || null,
+      message: err.message || 'No se pudo sincronizar la carpeta de Drive.',
+    })
+  }
+}))
+
+router.put('/:id/drive', requireAuth, wrap(async (req, res) => {
+  if (!await checkAcceso(req.params.id, iglesiaId(req)))
+    return res.status(404).json({ error: 'No encontrado' })
+  if (!await checkRol(req.params.id, userId(req), ['COORDINADOR', 'LIDER'])) {
+    return res.status(403).json({ error: 'No tenés permisos para configurar Drive' })
+  }
+  const { folderId, folderUrl, folderLabel, enabled = true, categories = [] } = req.body || {}
+  const ministerioConfig = await readMinisterioConfig(req.params.id)
+  const drive = {
+    ...(ministerioConfig.drive || {}),
+    enabled: enabled !== false,
+    folderId: extractGoogleDriveFolderId(folderId || folderUrl || ''),
+    folderUrl: folderUrl || '',
+    folderLabel: folderLabel || '',
+    categories: Array.isArray(categories) ? categories : String(categories || '').split(',').map(v => v.trim()).filter(Boolean),
+    updatedAt: new Date().toISOString(),
+  }
+  const nextConfig = await saveMinisterioConfig(req.params.id, { ...ministerioConfig, drive })
+  return res.json({ ok: true, drive: nextConfig.drive || drive })
 }))
 
 // ── MIEMBROS ──────────────────────────────────────────────────

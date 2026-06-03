@@ -43,6 +43,7 @@ const Planes            = lazy(() => import('./pages/Planes.jsx'))
 const RecuperarPassword = lazy(() => import('./pages/RecuperarPassword.jsx'))
 const Ministerios       = lazy(() => import('./pages/Ministerios.jsx'))
 const MinisterioDetalle = lazy(() => import('./pages/MinisterioDetalle.jsx'))
+const ConfiguracionOrganizacion = lazy(() => import('./pages/ConfiguracionOrganizacion.jsx'))
 
 const ALL   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF','LIDER']
 const MID   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF']
@@ -164,6 +165,7 @@ export default function App() {
           <Route path="/asistente-ia"  element={<ProtectedRoute roles={AUDIT} element={<AsistenteIA />} />} />
           <Route path="/configuracion" element={<ProtectedRoute roles={ADMIN} element={<Configuracion />} />} />
           <Route path="/permisos"      element={<ProtectedRoute roles={ADMIN} element={<GestionPermisos />} />} />
+          <Route path="/organizacion"  element={<ProtectedRoute roles={['PASTOR_GENERAL','PASTOR_CULTO']} element={<ConfiguracionOrganizacion />} />} />
           <Route path="/users"         element={<ProtectedRoute roles={ADMIN} element={<Users />} />} />
           <Route path="/promo-codes"   element={<ProtectedRoute roles={['GODMODE']} element={<PromoCodes />} />} />
           <Route path="/vault"         element={<ProtectedRoute roles={['GODMODE']} element={<GodMode />} />} />

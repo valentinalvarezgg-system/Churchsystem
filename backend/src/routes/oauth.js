@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken'
 import logger from '../lib/logger.js'
 import { pgExec, pgOne } from '../lib/pg.js'
 import { sendNotificationEmail } from '../lib/email.js'
+import { exchangeGoogleDriveCode, fetchGoogleUserInfo } from '../lib/google-drive.js'
+import { readTenantConfig, upsertTenantConfig } from '../lib/tenant-config.js'
 
 const router = Router()
 const SECRET     = () => {
@@ -133,6 +135,46 @@ router.get('/google', (req, res) => {
     prompt:        'select_account',
   })
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`)
+})
+
+router.get('/google/drive', (req, res) => {
+  const front = safeFrontUrl(req) || resolveFrontUrl(req)
+  return res.redirect(`${front}/app/configuracion?sec=integraciones&error=drive_use_config_button`)
+})
+
+router.get('/google/drive/callback', async (req, res) => {
+  const { code, state } = req.query || {}
+  const fallbackFront = safeFrontUrl(req) || resolveFrontUrl(req)
+  if (!code || !state) return res.redirect(`${fallbackFront}/app/configuracion?sec=integraciones&error=drive_failed`)
+
+  try {
+    const decoded = jwt.verify(String(state), SECRET())
+    if (decoded?.purpose !== 'google-drive-connect' || !decoded.iglesiaId) {
+      return res.redirect(`${decoded?.frontUrl || fallbackFront}/app/configuracion?sec=integraciones&error=drive_failed`)
+    }
+
+    const base = safeBaseUrl(req)
+    const redirectUri = base ? `${base}/oauth/google/drive/callback` : ''
+    const tokens = await exchangeGoogleDriveCode({ code: String(code), redirectUri })
+    const profile = await fetchGoogleUserInfo(tokens.access_token)
+
+    const iglesiaId = Number(decoded.iglesiaId)
+    const existing = await readTenantConfig(iglesiaId)
+    await upsertTenantConfig(iglesiaId, {
+      google_drive_refresh_token: tokens.refresh_token || existing.google_drive_refresh_token || '',
+      google_drive_access_token: tokens.access_token,
+      google_drive_token_expires_at: tokens.expires_in ? new Date(Date.now() + Number(tokens.expires_in) * 1000).toISOString() : new Date(Date.now() + 3600 * 1000).toISOString(),
+      google_drive_email: profile.email || profile.hd || '',
+      google_drive_status: 'connected',
+      google_drive_scopes: tokens.scope || 'https://www.googleapis.com/auth/drive.readonly',
+      google_drive_connected_at: new Date().toISOString(),
+    })
+
+    return res.redirect(`${decoded.frontUrl || fallbackFront}/app/configuracion?sec=integraciones&drive=connected`)
+  } catch (err) {
+    logger.error({ err: err?.message }, 'Google Drive OAuth error')
+    return res.redirect(`${fallbackFront}/app/configuracion?sec=integraciones&error=drive_failed`)
+  }
 })
 
 router.get('/google/callback', async (req, res) => {

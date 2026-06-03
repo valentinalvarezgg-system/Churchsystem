@@ -1,7 +1,10 @@
 import { Router } from 'express'
-import { pgExec, pgMany } from '../lib/pg.js'
+import jwt from 'jsonwebtoken'
+import { pgExec } from '../lib/pg.js'
 import { requireAuth, requireRol } from '../middlewares/auth.js'
 import { sendNotificationEmail, systemFrom } from '../lib/email.js'
+import { buildGoogleDriveAuthUrl } from '../lib/google-drive.js'
+import { readTenantConfig } from '../lib/tenant-config.js'
 
 const router = Router()
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
@@ -19,6 +22,7 @@ const ALLOWED = [
   'cultos_dias', 'cultos_turnos', 'culto_duracion', 'culto_capacidad',
   'twilio_sid', 'twilio_token', 'twilio_from',
   'wa_provider', 'wa_phone_number_id', 'wa_business_account_id', 'wa_access_token', 'wa_verify_token', 'wa_status', 'wa_display_phone_number', 'wa_verified_name',
+  'google_drive_refresh_token', 'google_drive_access_token', 'google_drive_token_expires_at', 'google_drive_email', 'google_drive_status', 'google_drive_scopes', 'google_drive_connected_at',
   'anthropic_key', 'openai_key', 'groq_key',
   'ia_proveedor', 'modelo_anthropic', 'modelo_openai', 'modelo_groq',
   'alerta_sin_asistir', 'alerta_sin_seguimiento', 'alerta_visitante', 'alerta_cumple',
@@ -28,22 +32,6 @@ const ALLOWED = [
   'setup_completado',
   'sesion_horas', 'max_intentos',
 ]
-
-async function readTenantConfig(iglesiaId) {
-  const cfg = {}
-  const rows = await pgMany(
-    'SELECT "iglesiaId","clave","valor" FROM "Configuracion" WHERE "iglesiaId"=$1 OR "iglesiaId" IS NULL ORDER BY "iglesiaId" NULLS FIRST',
-    [iglesiaId]
-  )
-  for (const r of rows) {
-    try {
-      cfg[r.clave] = JSON.parse(r.valor)
-    } catch {
-      cfg[r.clave] = r.valor
-    }
-  }
-  return cfg
-}
 
 function emailDiagnostics(cfg = {}) {
   const from = cfg.email_from || process.env.EMAIL_FROM || systemFrom()
@@ -71,10 +59,15 @@ function emailDiagnostics(cfg = {}) {
     'JWT_SECRET',
     'META_APP_ID',
     'META_APP_SECRET',
+    'META_API_VERSION',
+    'META_SYSTEM_TOKEN',
     'META_VERIFY_TOKEN',
+    'META_WEBHOOK_VERIFY_TOKEN',
     'META_ACCESS_TOKEN',
     'META_PHONE_NUMBER_ID',
     'META_WABA_ID',
+    'META_EMBEDDED_SIGNUP_CONFIG_ID',
+    'META_REDIRECT_URI',
   ]
   const missing = renderVars.filter(k => !process.env[k])
   const warnings = []
@@ -87,7 +80,7 @@ function emailDiagnostics(cfg = {}) {
   if (!process.env.DATABASE_URL) warnings.push('Falta DATABASE_URL en entorno.')
   if (!process.env.JWT_SECRET) warnings.push('Falta JWT_SECRET en entorno.')
   if (!process.env.META_APP_ID || !process.env.META_APP_SECRET) warnings.push('Meta App ID/Secret incompletos para WhatsApp Cloud API.')
-  if (!process.env.META_VERIFY_TOKEN) warnings.push('Falta META_VERIFY_TOKEN para validar webhook de WhatsApp.')
+  if (!(process.env.META_WEBHOOK_VERIFY_TOKEN || process.env.META_VERIFY_TOKEN)) warnings.push('Falta META_WEBHOOK_VERIFY_TOKEN para validar webhook de WhatsApp.')
 
   return {
     ok: warnings.length === 0,
@@ -138,11 +131,19 @@ function commercialDiagnostics(cfg = {}) {
         process.env.META_PHONE_NUMBER_ID
       ) && !!(
         cfg.wa_access_token ||
+        process.env.META_SYSTEM_TOKEN ||
         process.env.META_ACCESS_TOKEN
       ),
       detail: (cfg.wa_phone_number_id || process.env.META_PHONE_NUMBER_ID)
         ? 'WhatsApp Cloud preparado'
         : 'WhatsApp Cloud sin numero conectado',
+    },
+    {
+      key: 'google_drive',
+      ok: !!cfg.google_drive_refresh_token || String(cfg.google_drive_status || '').toLowerCase() === 'connected',
+      detail: cfg.google_drive_email
+        ? `Drive conectado: ${cfg.google_drive_email}`
+        : 'Google Drive sin conectar',
     },
   ]
   return {
@@ -166,7 +167,7 @@ function commercialDiagnostics(cfg = {}) {
       provider: cfg.wa_provider || 'meta_cloud',
       phoneNumberId: cfg.wa_phone_number_id || process.env.META_PHONE_NUMBER_ID || '',
       businessAccountId: cfg.wa_business_account_id || process.env.META_WABA_ID || '',
-      webhookVerifyTokenConfigured: !!(cfg.wa_verify_token || process.env.META_VERIFY_TOKEN),
+      webhookVerifyTokenConfigured: !!(cfg.wa_verify_token || process.env.META_WEBHOOK_VERIFY_TOKEN || process.env.META_VERIFY_TOKEN),
     },
     checkedAt: new Date().toISOString(),
   }
@@ -192,20 +193,49 @@ function launchReadiness(cfg = {}) {
   }
 }
 
+router.post('/google-drive/connect-url', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res) => {
+  const base = String(process.env.BASE_URL || process.env.FRONTEND_URL || '').trim().replace(/\/$/, '')
+  const front = String(process.env.FRONTEND_URL || process.env.BASE_URL || '').trim().replace(/\/$/, '')
+  const state = jwt.sign({
+    purpose: 'google-drive-connect',
+    iglesiaId: req.user.iglesiaId || null,
+    userId: req.user.id || null,
+    frontUrl: front,
+  }, process.env.JWT_SECRET, { expiresIn: '10m' })
+
+  const url = buildGoogleDriveAuthUrl({ state, baseUrl: base })
+  if (!url) return res.status(500).json({ error: 'Google Drive no está configurado' })
+  return res.json({ ok: true, url })
+}))
+
 router.get('/', requireAuth, wrap(async (req, res) => {
   const cfg = await readTenantConfig(req.user.iglesiaId || 0)
-  const { twilio_token, anthropic_key, openai_key, groq_key, resend_key, ...safe } = cfg
+  const {
+    twilio_token,
+    anthropic_key,
+    openai_key,
+    groq_key,
+    resend_key,
+    google_drive_refresh_token,
+    google_drive_access_token,
+    google_drive_token_expires_at,
+    ...safe
+  } = cfg
 
   return res.json({
     ...safe,
     twilio_configurado: !!cfg.twilio_token,
-    whatsapp_cloud_configurado: !!(cfg.wa_phone_number_id || process.env.META_PHONE_NUMBER_ID) && !!(cfg.wa_access_token || process.env.META_ACCESS_TOKEN),
+    whatsapp_cloud_configurado: !!(cfg.wa_phone_number_id || process.env.META_PHONE_NUMBER_ID) && !!(cfg.wa_access_token || process.env.META_SYSTEM_TOKEN || process.env.META_ACCESS_TOKEN),
     email_configurado: !!(cfg.resend_key || process.env.RESEND_API_KEY),
     ia_configurada: !!(cfg.anthropic_key || cfg.openai_key || cfg.groq_key),
     ia_proveedor: cfg.ia_proveedor || 'anthropic',
     anthropic_ok: !!cfg.anthropic_key,
     openai_ok: !!cfg.openai_key,
     groq_ok: !!cfg.groq_key,
+    google_drive_configurado: !!(cfg.google_drive_refresh_token || String(cfg.google_drive_status || '').toLowerCase() === 'connected'),
+    google_drive_status: cfg.google_drive_status || 'disconnected',
+    google_drive_email: cfg.google_drive_email || '',
+    google_drive_connected_at: cfg.google_drive_connected_at || '',
   })
 }))
 
@@ -267,8 +297,8 @@ router.put('/', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res)
     twilio_sid: 'TWILIO_ACCOUNT_SID',
     twilio_token: 'TWILIO_AUTH_TOKEN',
     twilio_from: 'TWILIO_WHATSAPP_FROM',
-    wa_access_token: 'META_ACCESS_TOKEN',
-    wa_verify_token: 'META_VERIFY_TOKEN',
+    wa_access_token: 'META_SYSTEM_TOKEN',
+    wa_verify_token: 'META_WEBHOOK_VERIFY_TOKEN',
     wa_phone_number_id: 'META_PHONE_NUMBER_ID',
     wa_business_account_id: 'META_WABA_ID',
     resend_key: 'RESEND_API_KEY',
@@ -277,6 +307,8 @@ router.put('/', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res)
   for (const [field, env] of Object.entries(sync)) {
     if (req.body[field]) process.env[env] = req.body[field]
   }
+  if (req.body.wa_access_token) process.env.META_ACCESS_TOKEN = req.body.wa_access_token
+  if (req.body.wa_verify_token) process.env.META_VERIFY_TOKEN = req.body.wa_verify_token
 
   const critical = changed.filter(k => [
     'resend_key', 'email_from', 'twilio_sid', 'twilio_token', 'twilio_from',

@@ -8,23 +8,24 @@ import { APP_VERSION } from '../version.js'
 
 const CATEGORIAS = [
   { key:'iglesia', label:'Iglesia', icon:'', secciones:[
-    { key:'general',    icon:'', label:'General',    desc:'Nombre, pastor, contacto' },
-    { key:'cultos',     icon:'OK', label:'Cultos',     desc:'Días, turnos y horarios' },
-    { key:'apariencia', icon:'', label:'Apariencia', desc:'Color y logo' },
+    { key:'general',    icon:Icons.Building, label:'General',    desc:'Nombre, pastor, contacto' },
+    { key:'cultos',     icon:Icons.Calendar, label:'Cultos',     desc:'Días, turnos y horarios' },
+    { key:'apariencia', icon:Icons.Settings, label:'Apariencia', desc:'Color y logo' },
   ]},
-  { key:'suscripcion', label:'Suscripción', icon:'Pago', secciones:[] },
+  { key:'suscripcion', label:'Suscripción', icon:Icons.Premium, secciones:[] },
   { key:'integraciones', label:'Integraciones', icon:'', secciones:[
-    { key:'whatsapp', icon:'WhatsApp', label:'WhatsApp',             desc:'Meta Cloud API oficial' },
-    { key:'ia',       icon:'IA', label:'Inteligencia Artificial', desc:'Groq · Anthropic · OpenAI' },
-    { key:'email',    icon:'Email', label:'Email',                  desc:'Resend — emails masivos' },
+    { key:'whatsapp', icon:Icons.Messages, label:'WhatsApp',             desc:'Meta Cloud API oficial' },
+    { key:'drive',    icon:Icons.FileText, label:'Google Drive', desc:'Carpetas y archivos por ministerio' },
+    { key:'ia',       icon:Icons.AI, label:'Inteligencia Artificial', desc:'Groq · Anthropic · OpenAI' },
+    { key:'email',    icon:Icons.Mail, label:'Email',                  desc:'Resend — emails masivos' },
   ]},
-  { key:'pastoral', label:'Pastoral', icon:'Historial', secciones:[
-    { key:'alertas',     icon:'Pago', label:'Alertas',     desc:'Umbrales automáticos' },
-    { key:'seguimiento', icon:'', label:'Seguimiento', desc:'Frecuencias' },
+  { key:'pastoral', label:'Pastoral', icon:Icons.History, secciones:[
+    { key:'alertas',     icon:Icons.Comunicados, label:'Alertas',     desc:'Umbrales automáticos' },
+    { key:'seguimiento', icon:Icons.Clock, label:'Seguimiento', desc:'Frecuencias' },
   ]},
-  { key:'sistema', label:'Sistema', icon:'Sistema', secciones:[
-    { key:'seguridad', icon:'', label:'Seguridad',     desc:'Sesiones y acceso' },
-    { key:'backup',    icon:'', label:'Backup y datos', desc:'PostgreSQL · Neon' },
+  { key:'sistema', label:'Sistema', icon:Icons.Settings, secciones:[
+    { key:'seguridad', icon:Icons.Shield, label:'Seguridad',     desc:'Sesiones y acceso' },
+    { key:'backup',    icon:Icons.Archive, label:'Backup y datos', desc:'PostgreSQL · Neon' },
   ]},
 ]
 
@@ -43,6 +44,7 @@ const CAMPOS = {
 
 function badge(sec, cfg) {
   if (sec==='whatsapp') return cfg.whatsapp_cloud_configurado ? 'ok' : 'warn'
+  if (sec==='drive')    return cfg.google_drive_configurado ? 'ok' : 'warn'
   if (sec==='ia')       return (cfg.anthropic_ok||cfg.openai_ok||cfg.groq_ok) ? 'ok' : 'warn'
   if (sec==='email')    return cfg.email_configurado ? 'ok' : 'warn'
   return null
@@ -274,7 +276,7 @@ function SuscripcionTab() {
 }
 
 export default function Configuracion() {
-  const [sec, setSec]         = useState('general')
+  const [sec, setSec]         = useState(() => new URLSearchParams(window.location.search).get('sec') || 'general')
   const [config, setConfig]   = useState({})
   const [form, setForm]       = useState({})
   const [msg, setMsg]         = useState(null)
@@ -285,6 +287,8 @@ export default function Configuracion() {
   const [emailDiag, setEmailDiag]   = useState(null)
   const [testingEmail, setTestingEmail] = useState(false)
   const [loadError, setLoadError] = useState(null)
+  const [driveConnecting, setDriveConnecting] = useState(false)
+  const publicOrigin = window.location.origin.replace('/app', '')
 
   useEffect(() => {
     setLoadError(null)
@@ -334,6 +338,13 @@ export default function Configuracion() {
       setLoadError(e.message || 'No se pudo cargar configuración')
       setLoading(false)
     })
+
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('drive') === 'connected') {
+      setMsg({ type: 'success', text: 'Google Drive conectado correctamente.' })
+    } else if (params.get('error') === 'drive_failed') {
+      setMsg({ type: 'error', text: 'No se pudo conectar Google Drive.' })
+    }
   }, [])
 
   const f = (k, v) => setForm(p => ({ ...p, [k]: v }))
@@ -374,6 +385,19 @@ export default function Configuracion() {
     }
   }
 
+  async function connectGoogleDrive() {
+    setDriveConnecting(true)
+    setMsg(null)
+    try {
+      const res = await apiFetch('/config/google-drive/connect-url', { method: 'POST', body: JSON.stringify({}) })
+      if (!res.url) throw new Error('No se pudo generar la URL de conexión')
+      window.location.href = res.url
+    } catch (err) {
+      setMsg({ type: 'error', text: err.message })
+      setDriveConnecting(false)
+    }
+  }
+
   const catActiva = CATEGORIAS.find(c => c.secciones.some(s => s.key === sec))
   const secActiva = CATEGORIAS.flatMap(c => c.secciones).find(s => s.key === sec)
 
@@ -408,7 +432,7 @@ export default function Configuracion() {
                 <div key={cat.key} style={{marginBottom:4}}>
                   <button onClick={() => setCollapsed(p=>({...p,[cat.key]:!p[cat.key]}))}
                     style={{width:'100%',padding:'7px 10px',border:'none',background:'transparent',cursor:'pointer',display:'flex',alignItems:'center',gap:8,borderRadius:'var(--r)'}}>
-                    <span style={{fontSize:13}}>{cat.icon}</span>
+                    <span style={{fontSize:13, display:'flex', alignItems:'center'}}>{typeof cat.icon === 'function' ? <cat.icon size={14} /> : cat.icon}</span>
                     <span style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.6px',color:'var(--text-muted)',flex:1,textAlign:'left'}}>{cat.label}</span>
                     <span style={{fontSize:10,color:'var(--text-faint)'}}>{open?'▾':'▸'}</span>
                   </button>
@@ -418,7 +442,7 @@ export default function Configuracion() {
                     return (
                       <button key={s.key} onClick={() => { setSec(s.key); setMsg(null) }}
                         style={{width:'100%',padding:'8px 10px 8px 28px',border:'none',borderRadius:'var(--r)',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:9,marginBottom:1,background:active?'var(--primary)':'transparent',color:active?'var(--surface)':'var(--text)'}}>
-                        <span style={{fontSize:13,flexShrink:0}}>{s.icon}</span>
+                        <span style={{fontSize:13,flexShrink:0,display:'flex',alignItems:'center'}}>{typeof s.icon === 'function' ? <s.icon size={14} /> : s.icon}</span>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:13,fontWeight:active?600:450,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.label}</div>
                           {!active && <div style={{fontSize:10,opacity:.55,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.desc}</div>}
@@ -538,8 +562,57 @@ export default function Configuracion() {
                 </div>
                 <div style={{marginTop:16,padding:'14px 16px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
                   <div style={{fontSize:11,fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Webhook oficial</div>
-                  <div style={{fontSize:13,color:'var(--text)',marginBottom:6}}><strong>GET / POST</strong> {window.location.origin.replace('/app','')}/whatsapp/webhook</div>
+                  <div style={{fontSize:13,color:'var(--text)',marginBottom:6}}><strong>GET / POST</strong> {publicOrigin}/whatsapp/webhook</div>
                   <div style={{fontSize:11,color:'var(--text-muted)'}}>Si querés usar un verify token distinto por iglesia, cargalo acá y luego verificá el endpoint con esa conexión.</div>
+                </div>
+              </>}
+
+              {/* GOOGLE DRIVE */}
+              {sec==='drive' && <>
+                <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',marginBottom:20,borderRadius:'var(--r)',background:config.google_drive_configurado?'#F0FDF4':'#EFF6FF',border:`1px solid ${config.google_drive_configurado?'#86EFAC':'#BFDBFE'}`}}>
+                  <span style={{fontSize:20}}>{config.google_drive_configurado ? 'OK' : 'Drive'}</span>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:600,color:config.google_drive_configurado?'var(--c-success)':'var(--primary)'}}>
+                      {config.google_drive_configurado ? 'Google Drive conectado' : 'Google Drive no conectado'}
+                    </div>
+                    <div style={{fontSize:11,color:'var(--text-muted)'}}>
+                      {config.google_drive_email || 'Conectá Drive para leer carpetas y archivos de ministerios.'}
+                    </div>
+                  </div>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={connectGoogleDrive} disabled={driveConnecting} style={{marginLeft:'auto'}}>
+                    {driveConnecting ? 'Conectando...' : config.google_drive_configurado ? 'Reconectar' : 'Conectar Drive'}
+                  </button>
+                </div>
+                <div className="form-grid">
+                  <div className="form-group full">
+                    <label>Estado de conexión</label>
+                    <input className="form-input" value={config.google_drive_status || 'disconnected'} readOnly />
+                  </div>
+                  <div className="form-group full">
+                    <label>Correo conectado</label>
+                    <input className="form-input" value={config.google_drive_email || ''} readOnly placeholder="Sin conectar todavía" />
+                  </div>
+                  <div className="form-group full">
+                    <label>Última conexión</label>
+                    <input className="form-input" value={config.google_drive_connected_at ? new Date(config.google_drive_connected_at).toLocaleString('es-AR') : ''} readOnly placeholder="Pendiente" />
+                  </div>
+                </div>
+                <div style={{marginTop:16,padding:'14px 16px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
+                  <p style={{fontSize:11,fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Cómo se usa</p>
+                  <ol style={{paddingLeft:16,fontSize:13,color:'var(--text-2)',lineHeight:1.9,margin:0}}>
+                    <li>Conectá una sola vez la cuenta de Google Drive de la iglesia.</li>
+                    <li>Luego, en cada ministerio, pegá la carpeta correspondiente.</li>
+                    <li>La app leerá PDFs, Docs, Sheets y archivos comunes en solo lectura.</li>
+                  </ol>
+                </div>
+                <div style={{marginTop:12,padding:'14px 16px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
+                  <p style={{fontSize:11,fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Google Cloud Console</p>
+                  <div style={{fontSize:13,color:'var(--text-2)',lineHeight:1.7}}>
+                    Agregá este redirect URI en tu cliente OAuth:
+                    <div style={{marginTop:6,fontFamily:'monospace',fontSize:12,color:'var(--primary)',wordBreak:'break-all'}}>
+                      {publicOrigin}/oauth/google/drive/callback
+                    </div>
+                  </div>
                 </div>
               </>}
 

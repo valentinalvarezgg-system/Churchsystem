@@ -149,11 +149,11 @@ export default function Alertas() {
   )
 
   const TABS = [
-    { key:'sinAsistir',             icon:'', label:t('noAttend'),     count:data?.sinAsistir?.total||0,              color:'var(--c-danger)',  bg:'var(--c-danger-bg)' },
-    { key:'sinSeguimiento',         icon:'Advertencia', label:t('noFollowUp'),   count:data?.sinSeguimiento?.total||0,          color:'var(--c-warning)', bg:'var(--c-warning-bg)' },
-    { key:'visitantesSinConsolidar',icon:'Totales', label:t('visitors'),     count:data?.visitantesSinConsolidar?.total||0, color:'var(--c-info)',    bg:'var(--c-info-bg)' },
-    { key:'contactosVencidos',      icon:'OK', label:t('overdue'),      count:data?.contactosVencidos?.total||0,       color:'var(--c-purple)',  bg:'var(--c-purple-bg)' },
-    { key:'cumpleanosSemana',       icon:'', label:t('birthdays'),    count:data?.cumpleanosSemana?.total||0,        color:'var(--c-pink)',    bg:'var(--c-pink-bg)' },
+    { key:'sinAsistir',             icon:Icons.AlertTriangle, label:t('noAttend'),     count:data?.sinAsistir?.total||0,              color:'var(--c-danger)',  bg:'var(--c-danger-bg)' },
+    { key:'sinSeguimiento',         icon:Icons.Clock, label:t('noFollowUp'),   count:data?.sinSeguimiento?.total||0,          color:'var(--c-warning)', bg:'var(--c-warning-bg)' },
+    { key:'visitantesSinConsolidar',icon:Icons.Users, label:t('visitors'),     count:data?.visitantesSinConsolidar?.total||0, color:'var(--c-info)',    bg:'var(--c-info-bg)' },
+    { key:'contactosVencidos',      icon:Icons.History, label:t('overdue'),      count:data?.contactosVencidos?.total||0,       color:'var(--c-purple)',  bg:'var(--c-purple-bg)' },
+    { key:'cumpleanosSemana',       icon:Icons.Heart, label:t('birthdays'),    count:data?.cumpleanosSemana?.total||0,        color:'var(--c-pink)',    bg:'var(--c-pink-bg)' },
   ]
   const current  = data?.[tab]?.data || []
   const tabInfo  = TABS.find(t => t.key === tab)
@@ -195,7 +195,7 @@ export default function Alertas() {
                 cursor:'pointer', transition:'all .2s',
                 boxShadow: tab===t.key ? `0 4px 12px ${t.color}40` : 'none',
               }}>
-              <div style={{fontSize:22,marginBottom:4}}>{t.icon}</div>
+              <div style={{fontSize:22,marginBottom:4,display:'flex',justifyContent:'center'}}>{typeof t.icon === 'function' ? <t.icon size={20} color={tab===t.key?'var(--surface)':t.color} /> : t.icon}</div>
               <div style={{fontSize:26,fontWeight:800,color:tab===t.key?'var(--surface)':t.color,lineHeight:1}}>
                 {t.count}
               </div>

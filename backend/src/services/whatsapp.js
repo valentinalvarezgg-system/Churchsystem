@@ -1,9 +1,9 @@
 import logger from '../lib/logger.js'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 
-const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v23.0'
+const GRAPH_VERSION = process.env.META_API_VERSION || process.env.META_GRAPH_VERSION || 'v23.0'
 const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_VERSION}`
-const DEFAULT_VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || ''
+const DEFAULT_VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN || process.env.META_VERIFY_TOKEN || ''
 
 let schemaReadyPromise = null
 
@@ -166,7 +166,7 @@ export async function resolveWhatsAppConnection(iglesiaId) {
   if (row) {
     return {
       ...row,
-      accessToken: row.accessToken || process.env.META_ACCESS_TOKEN || '',
+      accessToken: row.accessToken || process.env.META_SYSTEM_TOKEN || process.env.META_ACCESS_TOKEN || '',
       verifyToken: row.verifyToken || DEFAULT_VERIFY_TOKEN,
       businessAccountId: row.businessAccountId || process.env.META_WABA_ID || '',
       phoneNumberId: row.phoneNumberId || process.env.META_PHONE_NUMBER_ID || '',
@@ -176,14 +176,15 @@ export async function resolveWhatsAppConnection(iglesiaId) {
     }
   }
 
-  if (!process.env.META_PHONE_NUMBER_ID || !process.env.META_ACCESS_TOKEN) return null
+  const systemToken = process.env.META_SYSTEM_TOKEN || process.env.META_ACCESS_TOKEN || ''
+  if (!process.env.META_PHONE_NUMBER_ID || !systemToken) return null
   return {
     id: null,
     iglesiaId: iglesiaId || null,
     provider: 'meta_cloud',
     phoneNumberId: process.env.META_PHONE_NUMBER_ID,
     businessAccountId: process.env.META_WABA_ID || '',
-    accessToken: process.env.META_ACCESS_TOKEN,
+    accessToken: systemToken,
     verifyToken: DEFAULT_VERIFY_TOKEN,
     displayPhoneNumber: process.env.META_DISPLAY_PHONE_NUMBER || '',
     verifiedName: process.env.META_VERIFIED_NAME || '',
@@ -536,8 +537,8 @@ export async function getWhatsAppDiagnostics(iglesiaId) {
     env: {
       appId: !!process.env.META_APP_ID,
       appSecret: !!process.env.META_APP_SECRET,
-      verifyToken: !!process.env.META_VERIFY_TOKEN,
-      accessToken: !!process.env.META_ACCESS_TOKEN,
+      verifyToken: !!(process.env.META_WEBHOOK_VERIFY_TOKEN || process.env.META_VERIFY_TOKEN),
+      accessToken: !!(process.env.META_SYSTEM_TOKEN || process.env.META_ACCESS_TOKEN),
       phoneNumberId: !!process.env.META_PHONE_NUMBER_ID,
       wabaId: !!process.env.META_WABA_ID,
     },

@@ -5,6 +5,7 @@ import { apiFetch, decodeJwt, getApiUrl, getStoredContext, syncContextFromUser }
 import { toast } from '../components/Toast.jsx'
 import EmailVerificacion from '../components/EmailVerificacion.jsx'
 import { TokenIglesiaInput } from '../components/TokenIglesia.jsx'
+import BrandLogo from '../components/BrandLogo.jsx'
 import { authCopy } from '../utils/i18n-auth.js'
 import { COMMERCIAL_PLAN_ORDER, getCommercialPlanUi, normalizeCommercialPlan } from '../lib/commercialPlans.js'
 
@@ -184,16 +185,7 @@ function Stepper({ paso, labels=STEPS }) {
 function Logo() {
   return (
     <div style={{display:'flex', alignItems:'center', gap:10, justifyContent:'center', marginBottom:8}}>
-      <div style={{
-        width:40, height:40, borderRadius:12,
-        background:`linear-gradient(135deg,#7C6FFF,${c.priD})`,
-        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
-      }}>
-        <svg width="22" height="22" viewBox="0 0 100 100" fill="none">
-          <path d="M28 18 Q18 18 18 28 L18 72 Q18 82 28 82 L42 82 Q52 82 52 72 L52 28 Q52 18 42 18 Z" fill="white"/>
-          <path d="M58 18 Q48 18 48 28 L48 52 Q48 62 58 62 L72 62 Q82 62 82 52 L82 28 Q82 18 72 18 Z" fill="white" opacity="0.85"/>
-        </svg>
-      </div>
+      <BrandLogo variant="dark" size={40} wordmark={false} />
       <span style={{fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:18, color:c.text}}>
         Church System
       </span>

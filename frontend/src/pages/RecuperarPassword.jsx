@@ -2,15 +2,13 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
+import BrandLogo from '../components/BrandLogo.jsx'
 
 const S = {
   bg: { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
     background:'#0A0E1A', padding:'20px', fontFamily:"'Inter','Sora',sans-serif" },
   card: { width:'100%', maxWidth:420, background:'#0F1629', border:'1px solid #1E293B',
     borderRadius:20, padding:'36px 32px' },
-  logoBox: { width:64, height:64, borderRadius:18, margin:'0 auto 16px',
-    background:'linear-gradient(135deg,#6B5CFF,#4845D2)', display:'flex',
-    alignItems:'center', justifyContent:'center' },
   h1: { fontSize:22, fontWeight:800, color:'#F1F5F9', textAlign:'center', margin:'0 0 6px' },
   sub: { fontSize:14, color:'#94A3B8', textAlign:'center', margin:'0 0 24px', lineHeight:1.5 },
   label: { fontSize:12, fontWeight:600, color:'#94A3B8', textTransform:'uppercase',
@@ -86,11 +84,8 @@ export default function RecuperarPassword() {
   return (
     <div style={S.bg}>
       <div style={S.card}>
-        <div style={S.logoBox}>
-          <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
-            <path d="M28 18 Q18 18 18 28 L18 72 Q18 82 28 82 L42 82 Q52 82 52 72 L52 28 Q52 18 42 18 Z" fill="white"/>
-            <path d="M58 18 Q48 18 48 28 L48 52 Q48 62 58 62 L72 62 Q82 62 82 52 L82 28 Q82 18 72 18 Z" fill="white" opacity="0.85"/>
-          </svg>
+        <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}>
+          <BrandLogo variant="dark" size={64} wordmark={false} />
         </div>
 
         {paso === 1 ? (

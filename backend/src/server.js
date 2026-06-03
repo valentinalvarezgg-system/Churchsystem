@@ -59,6 +59,8 @@ import godmodeRouter from './routes/godmode.js'
 import resendInboundRouter from './routes/resend-inbound.js'
 import subscriptionsRouter from './routes/subscriptions.js'
 import whatsappRouter from './routes/whatsapp.js'
+import invitacionesRouter from './routes/invitaciones.js'
+import sesionesRouter from './routes/sesiones.js'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -101,7 +103,12 @@ app.use(cors({
 }))
 // Stripe webhook needs raw body BEFORE global JSON parser for signature verification
 app.use('/stripe/webhook', express.raw({ type: 'application/json' }))
-app.use(express.json({ limit: '10mb' }))
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, _res, buf) => {
+    req.rawBody = Buffer.from(buf)
+  },
+}))
 app.use(express.urlencoded({ extended: false, limit: '1mb' }))
 app.disable('x-powered-by')
 app.use(httpLogger())
@@ -181,6 +188,9 @@ app.use('/oauth', oauthRouter)
 app.use('/godmode', godmodeRouter)
 app.use('/webhooks', resendInboundRouter)
 app.use('/whatsapp', whatsappRouter)
+app.use('/api/whatsapp', whatsappRouter)
+app.use('/invitaciones', invitacionesRouter)
+app.use('/sesiones', sesionesRouter)
 app.use('/verificacion', verificacionRouter)
 app.use('/plan', planRouter)
 app.use('/iglesia', iglesiaRouter)
@@ -215,31 +225,6 @@ if (fs.existsSync(distDir)) {
 
 app.use((_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }))
 app.use(errorHandler)
-
-async function getLegacyDbIfAllowed() {
-  if (process.env.ALLOW_LEGACY_SQLJS !== 'true') return null
-  const mod = await import('./lib/db.js')
-  return mod.default
-}
-
-async function cargarConfigEnv() {
-  const db = await getLegacyDbIfAllowed()
-  if (!db) return
-  try {
-    const claves = {
-      anthropic_key: 'ANTHROPIC_API_KEY',
-      twilio_sid: 'TWILIO_ACCOUNT_SID',
-      twilio_token: 'TWILIO_AUTH_TOKEN',
-      twilio_from: 'TWILIO_WHATSAPP_FROM',
-    }
-    for (const [k, env] of Object.entries(claves)) {
-      const r = db.get('SELECT valor FROM configuracion WHERE clave=?', [k])
-      if (r?.valor) process.env[env] = r.valor
-    }
-  } catch (err) {
-    logger.debug({ err: err.message }, 'Legacy config loading skipped')
-  }
-}
 
 async function seedAdmin() {
   if (process.env.NODE_ENV === 'production') {
@@ -318,8 +303,6 @@ async function seedGodModeUser() {
   )
   logger.info({ email }, 'Usuario GODMODE creado')
 }
-
-await cargarConfigEnv()
 
 // Auto-crear tabla CultoAsignado si no existe (nueva en v2.8/block-05)
 try {

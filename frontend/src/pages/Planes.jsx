@@ -4,6 +4,34 @@ import { apiFetch, getStoredContext } from '../services/api.js'
 import { usePlan } from '../hooks/usePlan.js'
 import { COMMERCIAL_PLAN_ORDER, getCommercialPlanUi } from '../lib/commercialPlans.js'
 
+function CheckIcon({ color = '#22c55e', size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path
+        d="M5.5 10.5L8.5 13.5L14.5 6.5"
+        stroke={color}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function ArrowPathIcon({ color = 'var(--text-muted)', size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path
+        d="M6 7H14V15M14 7L5.5 15.5"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 const SECTION_COPY = {
   es: {
     title: 'Elegí cómo querés operar Church System',
@@ -265,7 +293,7 @@ export default function Planes() {
           <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
             {plan.features.map(feature => (
               <div key={feature} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--text)' }}>
-                <span style={{ color: '#22c55e' }}>OK</span>
+                <CheckIcon />
                 <span>{feature}</span>
               </div>
             ))}
@@ -367,13 +395,13 @@ export default function Planes() {
           alignItems: 'center',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)' }}>
-            <span></span> {tt.payments}
+            <CheckIcon color="#22c55e" /> {tt.payments}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)' }}>
-            <span>↩</span> {tt.cancel}
+            <ArrowPathIcon /> {tt.cancel}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)' }}>
-            <span></span>
+            <CheckIcon color="var(--primary)" />
             <a href="mailto:ventas@churchsystem.com.ar" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
               {tt.contact}
             </a>

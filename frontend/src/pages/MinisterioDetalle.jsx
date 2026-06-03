@@ -1,19 +1,20 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
+import Icons from '../components/Icons.jsx'
 import { ConfirmModal } from '../components/Modal.jsx'
 import { apiFetch } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 import MinIcons, { MINISTERIO_ICONS } from './MinIcons.jsx'
 
 const TABS_POR_TIPO = {
-  ALABANZA: ['panel', 'tareas', 'miembros', 'canciones', 'setlists', 'checklists'],
-  SONIDO: ['panel', 'tareas', 'miembros', 'equipos', 'checklists'],
-  PROYECCION: ['panel', 'tareas', 'miembros', 'equipos', 'checklists'],
-  NINOS: ['panel', 'tareas', 'miembros', 'salas', 'checkin', 'checklists'],
-  MANTENIMIENTO: ['panel', 'tareas', 'miembros', 'equipos', 'checklists'],
-  SEGURIDAD: ['panel', 'tareas', 'miembros', 'equipos', 'checklists'],
-  default: ['panel', 'tareas', 'miembros', 'checklists'],
+  ALABANZA: ['panel', 'tareas', 'miembros', 'canciones', 'setlists', 'archivos', 'checklists'],
+  SONIDO: ['panel', 'tareas', 'miembros', 'equipos', 'archivos', 'checklists'],
+  PROYECCION: ['panel', 'tareas', 'miembros', 'equipos', 'archivos', 'checklists'],
+  NINOS: ['panel', 'tareas', 'miembros', 'salas', 'checkin', 'archivos', 'checklists'],
+  MANTENIMIENTO: ['panel', 'tareas', 'miembros', 'equipos', 'archivos', 'checklists'],
+  SEGURIDAD: ['panel', 'tareas', 'miembros', 'equipos', 'archivos', 'checklists'],
+  default: ['panel', 'tareas', 'miembros', 'archivos', 'checklists'],
 }
 
 const TAB_LABELS = {
@@ -22,6 +23,7 @@ const TAB_LABELS = {
   miembros: 'Miembros',
   canciones: 'Repertorio',
   setlists: 'Setlists',
+  archivos: 'Archivos',
   checklists: 'Checklists',
   equipos: 'Equipos',
   salas: 'Salas',
@@ -712,6 +714,168 @@ function TabChecklists({ ministerioId }) {
   )
 }
 
+function TabArchivos({ ministerioId }) {
+  const [drive, setDrive] = useState({ files: [] })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [folderUrl, setFolderUrl] = useState('')
+  const [folderLabel, setFolderLabel] = useState('')
+  const [filter, setFilter] = useState('TODOS')
+
+  const cargar = useCallback(async () => {
+    try {
+      const data = await apiFetch(`/ministerios/${ministerioId}/drive`)
+      setDrive(data || { files: [] })
+      setFolderUrl(data?.folderUrl || data?.folderId || '')
+      setFolderLabel(data?.folderLabel || '')
+    } finally {
+      setLoading(false)
+    }
+  }, [ministerioId])
+
+  useEffect(() => { cargar() }, [cargar])
+
+  async function guardar(e) {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      const data = await apiFetch(`/ministerios/${ministerioId}/drive`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          folderUrl,
+          folderLabel,
+        }),
+      })
+      setDrive(prev => ({ ...prev, ...data }))
+      await cargar()
+      toast.success('Carpeta de Drive guardada')
+    } catch (err) {
+      toast.error(err.message || 'No pudimos guardar la carpeta')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <div style={S.spinner} />
+
+  const files = drive.files || []
+  const categories = ['TODOS', ...new Set(files.map(file => file.categoryLabel || 'Archivo'))]
+  const visibleFiles = filter === 'TODOS' ? files : files.filter(file => (file.categoryLabel || 'Archivo') === filter)
+
+  return (
+    <div>
+      <div style={S.driveTop}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 12, color: drive.connected ? 'var(--c-success)' : 'var(--c-warning)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: .4 }}>
+            {drive.connected ? 'Google Drive conectado' : 'Google Drive no conectado'}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.5 }}>
+            {drive.message || 'Vinculá una carpeta del ministerio para leer partituras, lyrics, riders, cronogramas y checklists.'}
+          </div>
+        </div>
+        <button onClick={cargar} style={S.btnSec} type="button">
+          <Icons.Refresh size={16} color="var(--text-muted)" style={{ marginRight: 6 }} />
+          Sincronizar
+        </button>
+      </div>
+
+      {!drive.connected && (
+        <div style={{ ...S.empty, marginBottom: 16 }}>
+          <MinIcons.FolderOpen size={40} color="var(--text-faint)" />
+          <p style={{ color: 'var(--text-muted)', textAlign: 'center', maxWidth: 420 }}>
+            Primero conectá Google Drive desde Configuración. Después podés pegar acá la carpeta del ministerio.
+          </p>
+        </div>
+      )}
+
+      <form onSubmit={guardar} style={S.formCard}>
+        <div style={S.formGrid}>
+          <div style={{ gridColumn: '1/-1' }}>
+            <label style={S.label}>Carpeta de Google Drive *</label>
+            <input
+              value={folderUrl}
+              onChange={e => setFolderUrl(e.target.value)}
+              style={S.input}
+              placeholder="Pegá el link de la carpeta o el folder ID"
+              required
+            />
+          </div>
+          <div style={{ gridColumn: '1/-1' }}>
+            <label style={S.label}>Nombre interno de la carpeta</label>
+            <input
+              value={folderLabel}
+              onChange={e => setFolderLabel(e.target.value)}
+              style={S.input}
+              placeholder="Alabanza / Repertorio / Sonido principal"
+            />
+          </div>
+        </div>
+        <div style={S.formFooter}>
+          <button type="submit" style={S.btnPrimary} disabled={saving}>
+            {saving ? 'Guardando...' : 'Guardar carpeta'}
+          </button>
+        </div>
+      </form>
+
+      {files.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={S.tabActions}>
+            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{files.length} archivos</span>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setFilter(cat)}
+                  style={{
+                    ...S.filterChip,
+                    background: filter === cat ? 'var(--primary)' : 'var(--bg-2)',
+                    color: filter === cat ? 'var(--surface)' : 'var(--text)',
+                    borderColor: filter === cat ? 'var(--primary)' : 'var(--border)',
+                  }}
+                >
+                  {cat === 'TODOS' ? 'Todos' : cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={S.list}>
+            {visibleFiles.map(file => {
+              const iconColor = file.category === 'carpeta' ? '#8B5CF6' : file.category === 'cronograma' ? '#2563EB' : file.category === 'produccion' ? '#D97706' : '#6B7280'
+              return (
+                <div key={file.id} style={S.fileCard}>
+                  <div style={{ ...S.fileIcon, color: iconColor, background: `${iconColor}15` }}>
+                    <MinIcons.FolderOpen size={16} color={iconColor} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {file.title || file.name}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <span>{file.categoryLabel || 'Archivo'}</span>
+                      {file.modifiedTime && <span>· {fmt(file.modifiedTime)}</span>}
+                      {file.sizeLabel && <span>· {file.sizeLabel}</span>}
+                    </div>
+                  </div>
+                  <a
+                    href={file.webViewLink || file.webContentLink || '#'}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={S.btnIcono}
+                  >
+                    <Icons.External size={15} color="var(--text-faint)" />
+                  </a>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function MinisterioDetalle() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -798,6 +962,7 @@ export default function MinisterioDetalle() {
           {tab === 'miembros' && <TabMiembros ministerioId={id} />}
           {tab === 'canciones' && <TabCanciones ministerioId={id} />}
           {tab === 'equipos' && <TabEquipos ministerioId={id} />}
+          {tab === 'archivos' && <TabArchivos ministerioId={id} />}
           {tab === 'checklists' && <TabChecklists ministerioId={id} />}
           {tab === 'setlists' && (
             <div style={S.empty}>
@@ -860,6 +1025,17 @@ const S = {
   },
   tabContent: { minHeight:240 },
   tabActions: { display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14, gap:8 },
+  driveTop: {
+    display:'flex',
+    alignItems:'flex-start',
+    justifyContent:'space-between',
+    gap:12,
+    marginBottom:14,
+    padding:'14px 16px',
+    border:'1px solid var(--border)',
+    borderRadius:14,
+    background:'var(--bg-2)',
+  },
   kpiGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 },
   kpiCard: {
     background:'var(--bg-2)',
@@ -890,6 +1066,33 @@ const S = {
   checkbox: { width:18, height:18, flexShrink:0, cursor:'pointer', accentColor:'#6B5CFF', marginTop:1 },
   badge: { display:'inline-flex', alignItems:'center', fontSize:11, fontWeight:700, padding:'2px 7px', borderRadius:6, flexShrink:0 },
   fecha: { display:'inline-flex', alignItems:'center', fontSize:11, color:'var(--text-muted)' },
+  filterChip: {
+    padding:'7px 10px',
+    borderRadius:999,
+    border:'1px solid var(--border)',
+    fontSize:12,
+    fontWeight:700,
+    cursor:'pointer',
+    whiteSpace:'nowrap',
+  },
+  fileCard: {
+    display:'flex',
+    alignItems:'center',
+    gap:10,
+    padding:'12px 14px',
+    background:'var(--bg-2)',
+    border:'1px solid var(--border)',
+    borderRadius:12,
+  },
+  fileIcon: {
+    width:36,
+    height:36,
+    borderRadius:10,
+    display:'flex',
+    alignItems:'center',
+    justifyContent:'center',
+    flexShrink:0,
+  },
   btnIcono: {
     background:'none',
     border:'none',

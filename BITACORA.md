@@ -197,7 +197,7 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - Criterio de salida: 0 estados inconsistentes detectables en flujo principal.
 
 ## EN CURSO
-- Ninguno. Último bloque cerrado: `v2.8/block-04`.
+- Ninguno. Último bloque cerrado: `v2.8.3/block-01`.
 
 ## Versión actual: **v2.8** (inicio 2026-05-30)
 
@@ -1404,3 +1404,183 @@ Fecha: 2026-05-31
 - Verificación:
   - `pnpm -C frontend build` ✅
   - `pnpm -C backend audit:launch` ✅
+
+### UI Resilience pass (boxes + legibilidad cross-device) — 2026-06-01
+- Objetivo:
+  - evitar colapsos visuales de boxes/cards en desktop, tablet y móvil.
+  - mejorar legibilidad y centrado de texto en botones/chips sin romper navegación.
+- Cambios aplicados:
+  - [theme.css](/Users/Valentin/Desktop/church-system-alpha/frontend/src/theme.css)
+    - nueva capa global anti-colapso para componentes base (`.card`, `.section-card`, `.stat-card`, `.modal`, `.btn`, `.input`, `.form-input`, tablas y listas móviles).
+    - `max-width: 100%` en superficies clave para eliminar desbordes por hardcode visual.
+    - `min-width: 0` en hijos de contenedores flex/grid críticos (`card`, `modal-body`, `page-header`, `toolbar`, `settings`), para que el texto no empuje el layout.
+    - wrapping robusto (`overflow-wrap: anywhere`, `word-break: break-word`) en textos de cards/modales/badges.
+    - botones con `text-align: center` + `justify-content: center` para consistencia visual.
+    - en móvil (`max-width: 767px`): `btn/badge/rol-badge` pasan a `white-space: normal` y line-height estable para evitar recortes.
+    - cards/modales en móvil con `overflow: hidden` para cortar glitches de bordes/contenido flotante.
+- Resultado:
+  - se reduce fuertemente el riesgo de cajas rotas por strings largos, labels extensos o densidad variable de contenido.
+  - textos de controles y chips quedan más legibles/centrados en vistas chicas.
+- Verificación:
+  - `pnpm -C frontend build` ✅
+
+### Rebranding logo oficial (claro/oscuro) — 2026-06-01
+- Objetivo:
+  - reemplazar el isotipo viejo por el nuevo logo oficial de Church System.
+  - dejar variante clara y oscura según contexto visual de la app y la landing.
+- Cambios aplicados:
+  - [BrandLogo.jsx](/Users/Valentin/Desktop/church-system-alpha/frontend/src/components/BrandLogo.jsx)
+    - nuevo componente compartido con `BrandMark` y variantes `light` / `dark`.
+    - isotipo vectorial unificado para app, auth y pantallas operativas.
+  - App:
+    - [Menu.jsx](/Users/Valentin/Desktop/church-system-alpha/frontend/src/components/Menu.jsx)
+    - [Login.jsx](/Users/Valentin/Desktop/church-system-alpha/frontend/src/pages/Login.jsx)
+    - [RecuperarPassword.jsx](/Users/Valentin/Desktop/church-system-alpha/frontend/src/pages/RecuperarPassword.jsx)
+    - [Registro.jsx](/Users/Valentin/Desktop/church-system-alpha/frontend/src/pages/Registro.jsx)
+    - [SetupWizard.jsx](/Users/Valentin/Desktop/church-system-alpha/frontend/src/pages/SetupWizard.jsx)
+    - [GodModeLogin.jsx](/Users/Valentin/Desktop/church-system-alpha/frontend/src/pages/GodModeLogin.jsx)
+    - todas esas vistas ahora usan el mismo logo y respetan fondo claro/oscuro.
+  - Landing:
+    - [landing/index.html](/Users/Valentin/Desktop/church-system-alpha/landing/index.html)
+    - [landing/registro.html](/Users/Valentin/Desktop/church-system-alpha/landing/registro.html)
+    - nav/footer/registro migrados al nuevo isotipo inline para no depender de assets rotos.
+  - Assets públicos:
+    - [icon.svg](/Users/Valentin/Desktop/church-system-alpha/frontend/public/icon.svg)
+    - [favicon.svg](/Users/Valentin/Desktop/church-system-alpha/frontend/public/favicon.svg)
+    - [logo-light.svg](/Users/Valentin/Desktop/church-system-alpha/frontend/public/logo-light.svg)
+    - [logo-dark.svg](/Users/Valentin/Desktop/church-system-alpha/frontend/public/logo-dark.svg)
+    - [manifest.json](/Users/Valentin/Desktop/church-system-alpha/frontend/public/manifest.json) actualizado para incluir SVG.
+    - `icon-192.png` y `icon-512.png` regenerados desde el nuevo SVG.
+- Verificación:
+  - `pnpm -C frontend build` ✅
+
+### Hotfix iconografía visible (`OK` textual) — 2026-06-01
+- Problema detectado:
+  - en la landing y en `/planes`, algunos checks visuales habían quedado como texto literal `OK` en lugar de iconos.
+- Corrección:
+  - [landing/index.html](/Users/Valentin/Desktop/church-system-alpha/landing/index.html)
+    - `plan-features li::before` migrado de `content:'OK'` a check SVG embebido por CSS.
+  - [Planes.jsx](/Users/Valentin/Desktop/church-system-alpha/frontend/src/pages/Planes.jsx)
+    - nuevo `CheckIcon` para features incluidas.
+    - nuevo `ArrowPathIcon` para el bloque informativo inferior.
+    - se eliminaron spans vacíos/textuales que dejaban huecos raros.
+- Verificación:
+  - `pnpm -C frontend build` ✅
+
+### Hotfix landing residual (`OK`) — 2026-06-01
+- Problema detectado:
+  - seguía apareciendo al menos un `OK` visible en el pricing del landing.
+- Corrección:
+  - [landing/index.html](/Users/Valentin/Desktop/church-system-alpha/landing/index.html)
+    - se confirmó y dejó estable el reemplazo del marcador textual por check SVG en `plan-features li::before`.
+- Verificación:
+  - `pnpm -C frontend build` ✅
+
+### v2.8.3 / block-01 — WhatsApp Meta Cloud dual-layer — 2026-06-03
+- Objetivo:
+  - adaptar el backend a la arquitectura dual:
+    - `churchsystem` usa el número propio de la plataforma.
+    - `iglesia/:id` usa el número conectado por cada iglesia.
+  - preparar Embedded Signup sin duplicar módulos legacy.
+- Cambios aplicados:
+  - Nuevo módulo backend:
+    - [whatsapp.router.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/whatsapp/whatsapp.router.js)
+    - [whatsapp.service.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/whatsapp/whatsapp.service.js)
+    - [whatsapp.templates.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/whatsapp/whatsapp.templates.js)
+    - [whatsapp.webhook.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/whatsapp/whatsapp.webhook.js)
+  - Ruta puente:
+    - [routes/whatsapp.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/routes/whatsapp.js) ahora delega al módulo nuevo.
+  - Server:
+    - [server.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/server.js)
+    - se guarda `rawBody` para verificación de firma `X-Hub-Signature-256`.
+    - alias adicional `app.use('/api/whatsapp', whatsappRouter)` para compatibilidad con la URL productiva pedida.
+  - Service core:
+    - [services/whatsapp.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/services/whatsapp.js)
+    - soporte para aliases de entorno:
+      - `META_API_VERSION`
+      - `META_SYSTEM_TOKEN`
+      - `META_WEBHOOK_VERIFY_TOKEN`
+  - Config / readiness:
+    - [config.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/routes/config.js)
+    - diagnóstico y sync de entorno actualizados para usar nombres nuevos sin romper compatibilidad con `META_ACCESS_TOKEN` / `META_VERIFY_TOKEN`.
+  - Rutas nuevas relevantes:
+    - `GET/POST /api/whatsapp/webhook`
+    - `POST /api/whatsapp/churchsystem/send`
+    - `POST /api/whatsapp/churchsystem/recordatorio-reunion`
+    - `POST /api/whatsapp/iglesia/:iglesiaId/send`
+    - `POST /api/whatsapp/iglesia/:iglesiaId/recordatorio-reunion`
+    - `POST /api/whatsapp/onboard-iglesia`
+    - `GET /api/whatsapp/meta/config`
+- Seguridad / aislamiento:
+  - `GODMODE` puede operar el número propio y cualquier iglesia.
+  - `PASTOR_GENERAL` solo puede operar el WhatsApp de su propia iglesia.
+  - verificación de firma de webhook preparada si `META_APP_SECRET` está presente.
+- Estado de Meta app creation:
+  - BLOCKED externo:
+    - no se pudo crear la app en Meta desde esta sesión porque falta acceso interactivo autenticado al panel de `developers.facebook.com`.
+    - el código quedó listo para conectarse apenas exista `META_APP_ID`, `META_APP_SECRET`, `META_SYSTEM_TOKEN`, `META_PHONE_NUMBER_ID`, `META_WABA_ID`, `META_WEBHOOK_VERIFY_TOKEN`.
+- Verificación:
+  - `node -e "import('dotenv/config').then(()=>import('./src/whatsapp/whatsapp.router.js'))..."` ✅
+  - `pnpm -C backend audit:launch` ✅
+
+### v2.8.3 / block-02 — Google Drive por iglesia y por ministerio — 2026-06-03
+- Objetivo:
+  - conectar Google Drive como fuente de archivos solo lectura para ministerios.
+  - separar la conexión global de la iglesia del vínculo específico de cada ministerio.
+- Cambios aplicados:
+  - Backend:
+    - nuevo helper [backend/src/lib/google-drive.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/lib/google-drive.js)
+      - genera URL OAuth con scope `drive.readonly`
+      - intercambia `code` por tokens
+      - renueva access tokens con refresh token
+      - lista archivos de una carpeta y clasifica material / producción / cronograma / checklist
+    - nuevo helper [backend/src/lib/tenant-config.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/lib/tenant-config.js)
+      - lectura / upsert de configuración por iglesia
+    - [backend/src/routes/config.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/routes/config.js)
+      - `POST /config/google-drive/connect-url`
+      - diagnóstico de lanzamiento y estado de integraciones incluye Google Drive
+      - `/config` expone solo estado seguro, no tokens
+    - [backend/src/routes/oauth.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/routes/oauth.js)
+      - callback `GET /oauth/google/drive/callback`
+      - guarda refresh token y metadatos de conexión por iglesia
+    - [backend/src/routes/ministerios.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/routes/ministerios.js)
+      - `GET /ministerios/:id/drive`
+      - `PUT /ministerios/:id/drive`
+      - guarda carpeta por ministerio y sincroniza archivos visibles
+  - Frontend:
+    - [frontend/src/pages/Configuracion.jsx](/Users/Valentin/Desktop/church-system-alpha/frontend/src/pages/Configuracion.jsx)
+      - nueva sección Google Drive dentro de Integraciones
+      - botón para conectar la cuenta de la iglesia
+      - estado visible de conexión, correo y última conexión
+      - muestra el redirect URI exacto para cargar en Google Cloud Console
+    - [frontend/src/pages/MinisterioDetalle.jsx](/Users/Valentin/Desktop/church-system-alpha/frontend/src/pages/MinisterioDetalle.jsx)
+      - nueva pestaña `Archivos`
+      - permite pegar carpeta Drive por ministerio
+      - lista y filtra archivos con lectura visual limpia
+      - guarda última sincronización en el estado del ministerio
+- Verificación:
+  - `pnpm -C frontend build` ✅
+  - `node -e "import('./backend/src/routes/config.js').then(()=>import('./backend/src/routes/ministerios.js')).then(()=>import('./backend/src/routes/oauth.js'))"` ✅ con `DATABASE_URL` y `JWT_SECRET` de prueba
+
+### v2.8.3 / cleanup-01 — Poda de legado y simplificación visual — 2026-06-03
+- Objetivo:
+  - reducir código muerto y referencias arcaicas.
+  - limpiar marcadores visuales antiguos para que la UI quede más consistente.
+  - bajar complejidad donde había lógica sobrante.
+- Cambios aplicados:
+  - Eliminado el legado de SQLite runtime:
+    - borrado [backend/src/lib/db.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/lib/db.js)
+    - [backend/src/server.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/server.js) ya no intenta cargar `lib/db.js`
+    - [backend/scripts/launch-audit.mjs](/Users/Valentin/Desktop/church-system-alpha/backend/scripts/launch-audit.mjs) quedó sin chequeos viejos de `sql.js` / `lib/db.js`
+  - UI más limpia:
+    - [frontend/src/pages/Configuracion.jsx](/Users/Valentin/Desktop/church-system-alpha/frontend/src/pages/Configuracion.jsx)
+      - categorías e ítems de configuración migrados a iconos reales
+      - helper local para origin público reutilizado en vez de repetir `window.location.origin.replace('/app','')`
+    - [frontend/src/pages/Alertas.jsx](/Users/Valentin/Desktop/church-system-alpha/frontend/src/pages/Alertas.jsx)
+      - tabs de alertas con iconografía Lucide real en vez de textos marcadores
+  - Google Drive:
+    - [backend/src/lib/google-drive.js](/Users/Valentin/Desktop/church-system-alpha/backend/src/lib/google-drive.js)
+      - cache simple de access token para reducir renovaciones repetidas
+- Verificación:
+  - `pnpm -C frontend build` ✅
+  - `node -e "import('./backend/src/server.js').then(()=>console.log('server ok'))"` ✅ con `DATABASE_URL` válido

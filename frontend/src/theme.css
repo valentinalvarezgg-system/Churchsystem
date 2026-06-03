@@ -98,6 +98,69 @@ td {
   border-radius: var(--r-lg);
 }
 
+/* UI resilience: evita colapsos y cortes visuales en boxes/cards */
+.card,
+.section-card,
+.stat-card,
+.modal,
+.btn,
+.input,
+.form-input,
+textarea,
+select,
+table,
+.table-responsive,
+.mobile-list,
+.mobile-person-card,
+.attendance-person-card,
+.alert-mobile-card {
+  max-width: 100%;
+}
+
+.card > *,
+.section-card > *,
+.stat-card > *,
+.modal-body > *,
+.page-header > *,
+.toolbar > *,
+.settings-panel > *,
+.settings-panel-header > * {
+  min-width: 0;
+}
+
+.card h1,
+.card h2,
+.card h3,
+.card p,
+.section-card h1,
+.section-card h2,
+.section-card h3,
+.section-card p,
+.stat-card h1,
+.stat-card h2,
+.stat-card h3,
+.stat-card p,
+.modal h1,
+.modal h2,
+.modal h3,
+.modal p,
+.alert,
+.badge,
+.rol-badge {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.btn {
+  text-align: center;
+  justify-content: center;
+}
+
+.table-responsive table,
+.attendance-table-wrap table {
+  table-layout: auto;
+}
+
 .mobile-list {
   display: none;
 }
@@ -173,6 +236,20 @@ td {
     border-radius: 14px;
     padding: 16px;
     box-shadow: var(--shadow-xs);
+  }
+
+  .btn,
+  .badge,
+  .rol-badge {
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  .card,
+  .section-card,
+  .stat-card,
+  .modal {
+    overflow: hidden;
   }
 
   .main .stats-grid,

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { getUser, apiFetch, getStoredContext, setStoredContext } from '../services/api.js'
 import BusquedaGlobal from './BusquedaGlobal.jsx'
+import BrandLogo from './BrandLogo.jsx'
 import { useNotificaciones } from '../hooks/useNotificaciones.js'
 import Icons from './Icons.jsx'
 import { resolveAccessTier } from '../lib/commercialPlans.js'
@@ -226,16 +227,7 @@ export default function Menu() {
       {/* ── Sidebar ───────────────────────────────────────────── */}
       <aside className={`sidebar${open ? ' open' : ''}`}>
         <div className="sidebar-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-          <svg className="sidebar-logo-icon" width="40" height="40" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M60 40 Q40 40 40 60 L40 140 Q40 160 60 160 L80 160 Q100 160 100 140 L100 60 Q100 40 80 40 Z" fill="url(#cs_grad)" stroke="none"/>
-            <path d="M120 40 Q100 40 100 60 L100 100 Q100 120 120 120 L140 120 Q160 120 160 100 L160 60 Q160 40 140 40 Z" fill="url(#cs_grad)" stroke="none"/>
-            <defs>
-              <linearGradient id="cs_grad" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#6B5CFF"/>
-                <stop offset="100%" stopColor="#4845D2"/>
-              </linearGradient>
-            </defs>
-          </svg>
+          <BrandLogo variant={dark ? 'dark' : 'light'} size={40} wordmark={false} />
           <div className="sidebar-logo-text">
             Church System
             <span>{tt('smart')}</span>
@@ -312,6 +304,7 @@ export default function Menu() {
             {lnk('/excel-ia',      <Icons.Excel />,      tt('excel'))}
             {lnk('/asistente-ia',  <Icons.AI />,         tt('assistant'))}
             <div className="nav-section">{tt('admin')}</div>
+            {lnk('/organizacion',  <Icons.Shield />,     'Organización')}
             {lnk('/users',         <Icons.Profile />,    tt('users'))}
             {lnk('/permisos',      <Icons.Shield />,     tt('permissions'))}
             {lnk('/historial',     <Icons.History />,    tt('history'))}
