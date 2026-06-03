@@ -216,6 +216,12 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - **UX:** se agregó resaltado automático de la categoría visible con `IntersectionObserver` y `scroll-margin-top` para que los anchors caigan bien debajo del nav sticky.
 - **Verificación:** `cd frontend && pnpm build` ✅
 
+### 2026-06-03 — Landing mobile Safari fix
+- **Bug real:** en iPhone/Safari el chip activo del carrusel podía quedar clavado en `Funciones` aunque el usuario estuviera viendo otra sección, especialmente al volver a una posición de scroll guardada.
+- **Ajuste aplicado:** el estado activo ya no depende solo de `IntersectionObserver`; se sumó sincronización por scroll real con `requestAnimationFrame`, recálculo en `resize` y resync en `pageshow`.
+- **Resultado esperado:** el carrusel horizontal refleja la sección visible de forma estable en mobile, incluso si Safari restaura la página a mitad o al final del landing.
+- **Verificación:** `cd frontend && pnpm build` ✅
+
 ### 2026-06-03 — CI workflow: pnpm/Corepack hardening
 - **Arreglado:** `check-backend` y `build-frontend` ya no dependen de `npm install -g pnpm` ni de `pnpm/action-setup` para exponer el binario.
 - **Cambio:** el workflow activa `corepack` y prepara `pnpm@9.15.5` de forma explícita en ambos jobs; además se agregó `packageManager` a `frontend/package.json` y `backend/package.json`.

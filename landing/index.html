@@ -688,26 +688,52 @@ function applyContext() {
 }
 const mobileChips = Array.from(document.querySelectorAll('.mobile-section-chip'))
 const sections = ['funciones','modulos','como-funciona','precios']
-function setActiveChip(id) {
+function setActiveChip(id, { center = false } = {}) {
   mobileChips.forEach(chip => {
     const active = chip.dataset.chipFor === id
     chip.classList.toggle('active', active)
-    if (active) chip.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' })
+    if (active && center) chip.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' })
   })
 }
-const sectionObserver = new IntersectionObserver(entries => {
-  const visible = entries
-    .filter(entry => entry.isIntersecting)
-    .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
-  if (visible?.target?.id) setActiveChip(visible.target.id)
-}, { rootMargin: '-35% 0px -50% 0px', threshold: [0.15, 0.35, 0.6] })
+function activeSectionFromScroll() {
+  const navHeight = window.innerWidth <= 480 ? 124 : 146
+  const probe = navHeight + 18
+  let current = sections[0]
+  sections.forEach(id => {
+    const section = document.getElementById(id)
+    if (!section) return
+    const top = section.getBoundingClientRect().top
+    if (top <= probe) current = id
+  })
+  return current
+}
+let scrollTicking = false
+function syncActiveSection() {
+  setActiveChip(activeSectionFromScroll())
+  scrollTicking = false
+}
+const sectionObserver = typeof IntersectionObserver !== 'undefined'
+  ? new IntersectionObserver(entries => {
+      const visible = entries
+        .filter(entry => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+      if (visible?.target?.id) setActiveChip(visible.target.id)
+    }, { rootMargin: '-35% 0px -50% 0px', threshold: [0.15, 0.35, 0.6] })
+  : null
 sections.forEach(id => {
   const section = document.getElementById(id)
-  if (section) sectionObserver.observe(section)
+  if (sectionObserver && section) sectionObserver.observe(section)
 })
 mobileChips.forEach(chip => {
-  chip.addEventListener('click', () => setActiveChip(chip.dataset.chipFor))
+  chip.addEventListener('click', () => setActiveChip(chip.dataset.chipFor, { center: true }))
 })
+window.addEventListener('scroll', () => {
+  if (scrollTicking) return
+  scrollTicking = true
+  window.requestAnimationFrame(syncActiveSection)
+}, { passive: true })
+window.addEventListener('resize', syncActiveSection, { passive: true })
+window.addEventListener('pageshow', syncActiveSection)
 const initialCountry = (params.get('country') || localStorage.getItem('church_country') || 'AR').toUpperCase()
 countrySelect.value = COUNTRIES[initialCountry] ? initialCountry : 'AR'
 langSelect.value = (params.get('lang') || localStorage.getItem('church_lang') || COUNTRIES[countrySelect.value].lang).slice(0,2)
@@ -715,7 +741,7 @@ countrySelect.addEventListener('change', () => { langSelect.value = COUNTRIES[co
 currencySelect.addEventListener('change', applyContext)
 langSelect.addEventListener('change', applyContext)
 applyContext()
-setActiveChip('funciones')
+syncActiveSection()
 </script>
 </body>
 </html>
