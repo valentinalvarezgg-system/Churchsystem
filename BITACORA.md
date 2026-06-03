@@ -201,6 +201,14 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 ## EN CURSO
 - Ninguno. Último bloque cerrado: `v2.8.3/block-01`.
 
+### 2026-06-03 — Landing comercial alineado a catálogo v2.9.0
+- **Actualizado:** `landing/index.html` ahora comunica la propuesta actual del producto: onboarding, QR, IA, multi-iglesia, ministerios conectados a Google Drive y operación por roles.
+- **Planes nuevos:** la landing dejó atrás la grilla vieja de 3 planes y ahora muestra las 2 líneas comerciales reales:
+  `Free`, `Starter`, `Pro`, `Max`, `Church 100`, `Church 500`, `Church 1000+`.
+- **Sincronización:** precios y capacidades quedaron alineados con el catálogo vigente del backend (`COMMERCIAL_PLANS`), incluyendo volúmenes de WhatsApp/SMS y contexto por país/divisa.
+- **i18n:** se actualizaron los textos de `es`, `pt` y `en` para que la sección comercial, el hero y el CTA final no queden desfasados respecto del producto actual.
+- **Verificación:** `cd frontend && pnpm build` ✅
+
 ### 2026-06-03 — CI workflow: pnpm/Corepack hardening
 - **Arreglado:** `check-backend` y `build-frontend` ya no dependen de `npm install -g pnpm` ni de `pnpm/action-setup` para exponer el binario.
 - **Cambio:** el workflow activa `corepack` y prepara `pnpm@9.15.5` de forma explícita en ambos jobs; además se agregó `packageManager` a `frontend/package.json` y `backend/package.json`.
