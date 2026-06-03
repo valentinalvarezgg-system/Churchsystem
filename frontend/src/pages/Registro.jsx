@@ -317,7 +317,7 @@ export default function Registro() {
     if (form.password.length < 8) { toast.error(msg.passwordMin); return }
     setLoading(true)
     try {
-      await apiFetch('/auth/registro', { method:'POST', body:JSON.stringify({
+      const res = await apiFetch('/auth/registro', { method:'POST', body:JSON.stringify({
         nombre:form.nombre, apellido:form.apellido,
         email:form.email.toLowerCase(), password:form.password,
         plan: planSel || 'PRO',
@@ -327,6 +327,11 @@ export default function Registro() {
         promo: promo || undefined,
         iglesiaToken: form.iglesiaToken || undefined,
       })})
+      if (res?.token) {
+        localStorage.setItem('token', res.token)
+        localStorage.setItem('user', JSON.stringify(res.user))
+        if (res.user) syncContextFromUser(res.user)
+      }
       setEmailReg(form.email.toLowerCase())
       setNombreReg(form.nombre)
       setPaso(2)
@@ -798,7 +803,7 @@ export default function Registro() {
                 </div>
               ))}
             </div>
-            <button onClick={()=>navigate('/login')} style={btnPri}>
+            <button onClick={()=>navigate('/')} style={btnPri}>
               {t('enter')}
             </button>
           </div>

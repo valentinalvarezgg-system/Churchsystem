@@ -1699,6 +1699,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* ── B. Spinner xs ────────────────────────────────────────────────────────── */
 @keyframes cs-spin { to { transform: rotate(360deg); } }
+@keyframes spin    { to { transform: rotate(360deg); } }
 
 .spinner-xs {
   width:        14px;

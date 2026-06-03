@@ -321,6 +321,140 @@ try {
   logger.warn({ err: err.message }, 'CultoAsignado table init skipped')
 }
 
+// Auto-crear tablas de Ministerios (v2.8.5)
+try {
+  await import('./lib/pg.js').then(({ pgExec }) => pgExec(`
+    CREATE TABLE IF NOT EXISTS "Ministerio" (
+      "id"          SERIAL PRIMARY KEY,
+      "iglesiaId"   INTEGER NOT NULL,
+      "tipo"        TEXT NOT NULL DEFAULT 'PERSONALIZADO',
+      "nombre"      TEXT NOT NULL,
+      "descripcion" TEXT,
+      "icono"       TEXT,
+      "color"       TEXT,
+      "activo"      BOOLEAN NOT NULL DEFAULT true,
+      "orden"       INTEGER,
+      "createdAt"   TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"   TIMESTAMPTZ DEFAULT NOW(),
+      "deletedAt"   TIMESTAMPTZ
+    );
+    CREATE TABLE IF NOT EXISTS "MinisterioMiembro" (
+      "id"           SERIAL PRIMARY KEY,
+      "ministerioId" INTEGER NOT NULL,
+      "userId"       INTEGER NOT NULL,
+      "rol"          TEXT NOT NULL DEFAULT 'SERVIDOR',
+      "notas"        TEXT,
+      "activo"       BOOLEAN NOT NULL DEFAULT true,
+      "createdAt"    TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"    TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE ("ministerioId","userId")
+    );
+    CREATE TABLE IF NOT EXISTS "MinisterioTarea" (
+      "id"            SERIAL PRIMARY KEY,
+      "ministerioId"  INTEGER NOT NULL,
+      "iglesiaId"     INTEGER NOT NULL,
+      "titulo"        TEXT NOT NULL,
+      "descripcion"   TEXT,
+      "estado"        TEXT NOT NULL DEFAULT 'PENDIENTE',
+      "prioridad"     TEXT NOT NULL DEFAULT 'MEDIA',
+      "asignadoA"     INTEGER,
+      "creadoPor"     INTEGER,
+      "eventoId"      INTEGER,
+      "fechaVence"    DATE,
+      "fechaCompletada" TIMESTAMPTZ,
+      "createdAt"     TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"     TIMESTAMPTZ DEFAULT NOW(),
+      "deletedAt"     TIMESTAMPTZ
+    );
+    CREATE TABLE IF NOT EXISTS "MinisterioChecklist" (
+      "id"           SERIAL PRIMARY KEY,
+      "ministerioId" INTEGER NOT NULL,
+      "nombre"       TEXT NOT NULL,
+      "tipo"         TEXT NOT NULL DEFAULT 'CULTO',
+      "eventoId"     INTEGER,
+      "completado"   BOOLEAN NOT NULL DEFAULT false,
+      "completadoAt" TIMESTAMPTZ,
+      "completadoPor" INTEGER,
+      "createdAt"    TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"    TIMESTAMPTZ DEFAULT NOW(),
+      "deletedAt"    TIMESTAMPTZ
+    );
+    CREATE TABLE IF NOT EXISTS "MinisterioChecklistItem" (
+      "id"          SERIAL PRIMARY KEY,
+      "checklistId" INTEGER NOT NULL,
+      "texto"       TEXT NOT NULL,
+      "completado"  BOOLEAN NOT NULL DEFAULT false,
+      "orden"       INTEGER NOT NULL DEFAULT 0,
+      "updatedAt"   TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS "MinisterioCancion" (
+      "id"           SERIAL PRIMARY KEY,
+      "ministerioId" INTEGER NOT NULL,
+      "titulo"       TEXT NOT NULL,
+      "artista"      TEXT,
+      "tonalidad"    TEXT,
+      "bpm"          INTEGER,
+      "duracionSeg"  INTEGER,
+      "letra"        TEXT,
+      "notas"        TEXT,
+      "archivoUrl"   TEXT,
+      "createdAt"    TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"    TIMESTAMPTZ DEFAULT NOW(),
+      "deletedAt"    TIMESTAMPTZ
+    );
+    CREATE TABLE IF NOT EXISTS "MinisterioSetlist" (
+      "id"           SERIAL PRIMARY KEY,
+      "ministerioId" INTEGER NOT NULL,
+      "nombre"       TEXT NOT NULL,
+      "fecha"        DATE,
+      "eventoId"     INTEGER,
+      "notas"        TEXT,
+      "createdAt"    TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"    TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS "MinisterioSetlistCancion" (
+      "id"        SERIAL PRIMARY KEY,
+      "setlistId" INTEGER NOT NULL,
+      "cancionId" INTEGER NOT NULL,
+      "orden"     INTEGER NOT NULL DEFAULT 0,
+      "tonalidad" TEXT
+    );
+    CREATE TABLE IF NOT EXISTS "MinisterioEquipo" (
+      "id"           SERIAL PRIMARY KEY,
+      "ministerioId" INTEGER NOT NULL,
+      "nombre"       TEXT NOT NULL,
+      "tipo"         TEXT,
+      "marca"        TEXT,
+      "modelo"       TEXT,
+      "serial"       TEXT,
+      "estado"       TEXT NOT NULL DEFAULT 'OPERATIVO',
+      "ubicacion"    TEXT,
+      "notas"        TEXT,
+      "createdAt"    TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"    TIMESTAMPTZ DEFAULT NOW(),
+      "deletedAt"    TIMESTAMPTZ
+    );
+    CREATE TABLE IF NOT EXISTS "MinisterioConfig" (
+      "id"           SERIAL PRIMARY KEY,
+      "ministerioId" INTEGER NOT NULL UNIQUE,
+      "datos"        JSONB NOT NULL DEFAULT '{}',
+      "updatedAt"    TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS "MinisterioSala" (
+      "id"             SERIAL PRIMARY KEY,
+      "ministerioId"   INTEGER NOT NULL,
+      "nombre"         TEXT NOT NULL,
+      "rangoEdadMin"   INTEGER,
+      "rangoEdadMax"   INTEGER,
+      "capacidad"      INTEGER,
+      "activa"         BOOLEAN NOT NULL DEFAULT true,
+      "createdAt"      TIMESTAMPTZ DEFAULT NOW()
+    );
+  `))
+} catch (err) {
+  logger.warn({ err: err.message }, 'Ministerio tables init skipped')
+}
+
 seedAdmin().then(async () => {
   await seedGodModeUser()
   app.listen(PORT, '0.0.0.0', () => {
