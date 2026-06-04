@@ -25,6 +25,82 @@ function diasRestantes(fecha) {
   return { label: `En ${diff} días`, color: '#16A34A' }
 }
 
+// ── Modal RSVP ──────────────────────────────────────────────
+function RsvpModal({ evento, onClose }) {
+  const [data, setData]     = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    apiFetch(`/eventos/${evento.id}/rsvp`)
+      .then(d => { setData(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [evento.id])
+
+  const baseUrl = window.location.origin.replace('/app','')
+  const waLink = (r) => {
+    const token = btoa(`${evento.id}-${Date.now()}`).slice(0,16)
+    const url = `${baseUrl}/api/eventos/rsvp/confirmar?token=${token}&r=${r}&ig=0`
+    return `https://wa.me/?text=${encodeURIComponent(`¿Vas a asistir a *${evento.titulo}* el ${evento.fecha}?\n\n✅ Sí: ${baseUrl}/api/eventos/rsvp/confirmar?token=${token}&r=SI&ig=0\n❌ No puedo: ${baseUrl}/api/eventos/rsvp/confirmar?token=${token}&r=NO&ig=0`)}`
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal" style={{maxWidth:480}}>
+        <div className="modal-header">
+          <h3 className="modal-title">✅ Confirmaciones — {evento.titulo}</h3>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body">
+          {loading ? <p style={{color:'var(--text-muted)'}}>Cargando...</p> : !data ? <p>Sin datos</p> : (
+            <>
+              {/* KPIs */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
+                {[['✅ Sí',data.si,'var(--c-success)'],['❌ No',data.no,'var(--c-danger)'],['🤔 Tal vez',data.talvez,'var(--c-warning)']].map(([l,v,c])=>(
+                  <div key={l} style={{textAlign:'center',background:'var(--bg-2)',borderRadius:10,padding:'12px 8px'}}>
+                    <div style={{fontSize:26,fontWeight:800,color:c}}>{v}</div>
+                    <div style={{fontSize:11,color:'var(--text-muted)'}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Enviar link de confirmación */}
+              <div style={{background:'var(--bg-2)',borderRadius:10,padding:'12px',marginBottom:14}}>
+                <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>Enviar invitación con confirmación por WhatsApp</div>
+                <a href={waLink('SI')} target="_blank" rel="noopener noreferrer"
+                  style={{display:'inline-flex',alignItems:'center',gap:6,padding:'8px 14px',borderRadius:8,background:'#25D366',color:'#fff',fontSize:12,fontWeight:600,textDecoration:'none'}}>
+                  💬 Compartir link de confirmación
+                </a>
+                <p style={{fontSize:11,color:'var(--text-muted)',marginTop:6}}>
+                  El link incluye botones Sí / No. Al hacer clic, la persona confirma automáticamente y aparece en esta lista.
+                </p>
+              </div>
+
+              {/* Detalle */}
+              {data.detalle?.length > 0 && (
+                <div>
+                  <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>Respuestas ({data.total})</div>
+                  <div style={{maxHeight:200,overflowY:'auto',display:'flex',flexDirection:'column',gap:4}}>
+                    {data.detalle.map(r => (
+                      <div key={r.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',background:'var(--bg-2)',borderRadius:6,fontSize:12}}>
+                        <span>{r.nombre} {r.apellido || ''}</span>
+                        <span style={{fontWeight:700,color: r.respuesta==='SI'?'var(--c-success)':r.respuesta==='NO'?'var(--c-danger)':'var(--c-warning)'}}>
+                          {r.respuesta==='SI'?'✅ Sí':r.respuesta==='NO'?'❌ No':'🤔 Tal vez'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {data.total === 0 && <p style={{color:'var(--text-muted)',fontSize:13,textAlign:'center',padding:'12px 0'}}>Todavía no hay confirmaciones. Compartí el link para empezar a recibir respuestas.</p>}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Eventos() {
   const user = getUser()
   const canManage = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION'].includes(user?.rol)
@@ -38,9 +114,12 @@ export default function Eventos() {
   const [modal, setModal]       = useState(false)
   const [editando, setEditando] = useState(null)
   const [form, setForm]         = useState({ titulo:'', tipo:'EVENTO', fecha:hoy, hora:'', lugar:'', descripcion:'', todoElDia:false })
-  const [filtro, setFiltro]     = useState('proximos') // proximos | todos | pasados
+  const [filtro, setFiltro]     = useState('proximos')
   const [msg, setMsg]           = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
+  const [rsvpEvento, setRsvpEvento] = useState(null)   // evento seleccionado para ver RSVP
+  const [rsvpData, setRsvpData]     = useState(null)
+  const [rsvpLoading, setRsvpLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -165,12 +244,18 @@ export default function Eventos() {
                           </div>
 
                           {/* Acciones */}
-                          {canManage && (
-                            <div style={{display:'flex',gap:6,flexShrink:0}}>
-                              <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(ev)}>Editar</button>
-                              <button className="btn btn-ghost btn-sm" style={{color:'var(--c-danger)'}} onClick={()=>setConfirmDel(ev.id)}></button>
-                            </div>
-                          )}
+                          <div style={{display:'flex',gap:6,flexShrink:0,flexDirection:'column',alignItems:'flex-end'}}>
+                            <button className="btn btn-ghost btn-sm" style={{fontSize:11,whiteSpace:'nowrap'}}
+                              onClick={() => setRsvpEvento(ev)}>
+                              ✅ Confirmaciones
+                            </button>
+                            {canManage && (
+                              <div style={{display:'flex',gap:6}}>
+                                <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(ev)}>Editar</button>
+                                <button className="btn btn-ghost btn-sm" style={{color:'var(--c-danger)'}} onClick={()=>setConfirmDel(ev.id)}></button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )
                     })}
@@ -242,6 +327,14 @@ export default function Eventos() {
         message="Este evento será eliminado permanentemente."
         confirmLabel="Eliminar" cancelLabel="Cancelar"
       />
+
+      {/* ── Modal RSVP ── */}
+      {rsvpEvento && (
+        <RsvpModal
+          evento={rsvpEvento}
+          onClose={() => { setRsvpEvento(null); setRsvpData(null) }}
+        />
+      )}
     </div>
   )
 }

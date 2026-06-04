@@ -80,4 +80,122 @@ router.delete('/:id', requireAuth, async (req, res) => {
   res.json({ ok: true })
 })
 
+// ── RSVP — Confirmación de asistencia ────────────────────────
+
+// GET /eventos/:id/rsvp — obtener resumen de confirmaciones (requiere auth)
+router.get('/:id/rsvp', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  const eventoId  = Number(req.params.id)
+
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS "EventoRSVP" (
+      "id"         SERIAL PRIMARY KEY,
+      "iglesiaId"  INT NOT NULL,
+      "eventoId"   INT NOT NULL,
+      "personaId"  INT,
+      "nombre"     TEXT NOT NULL DEFAULT '',
+      "respuesta"  TEXT NOT NULL DEFAULT 'SI',   -- SI | NO | TALVEZ
+      "token"      TEXT UNIQUE,
+      "createdAt"  TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `).catch(() => {})
+  await pgExec(`CREATE INDEX IF NOT EXISTS "EventoRSVP_evento_idx" ON "EventoRSVP"("eventoId")`).catch(() => {})
+
+  const resumen = await pgMany(
+    `SELECT r."respuesta", COUNT(*)::int AS total
+     FROM "EventoRSVP" r WHERE r."eventoId"=$1 AND r."iglesiaId"=$2
+     GROUP BY r."respuesta"`,
+    [eventoId, iglesiaId]
+  )
+  const detalle = await pgMany(
+    `SELECT r."id",r."nombre",r."respuesta",r."createdAt",p."apellido"
+     FROM "EventoRSVP" r
+     LEFT JOIN "Persona" p ON r."personaId"=p."id"
+     WHERE r."eventoId"=$1 AND r."iglesiaId"=$2
+     ORDER BY r."createdAt" DESC`,
+    [eventoId, iglesiaId]
+  )
+  const si     = resumen.find(r => r.respuesta === 'SI')?.total || 0
+  const no     = resumen.find(r => r.respuesta === 'NO')?.total || 0
+  const talvez = resumen.find(r => r.respuesta === 'TALVEZ')?.total || 0
+  res.json({ si, no, talvez, total: si + no + talvez, detalle })
+})
+
+// POST /eventos/:id/rsvp — crear/actualizar confirmación por token único
+// Requiere auth o token anónimo (para links de WhatsApp/email)
+router.post('/:id/rsvp', async (req, res) => {
+  const eventoId = Number(req.params.id)
+  const { respuesta, nombre, personaId, token, iglesiaId: bodyIglesiaId } = req.body || {}
+
+  if (!['SI','NO','TALVEZ'].includes(respuesta)) {
+    return res.status(400).json({ error: 'respuesta debe ser SI, NO o TALVEZ' })
+  }
+
+  // Resolución del iglesiaId: viene del body (link público) o del user autenticado
+  const iglesiaId = Number(req.user?.iglesiaId || bodyIglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'iglesiaId requerido' })
+
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS "EventoRSVP" (
+      "id"         SERIAL PRIMARY KEY,
+      "iglesiaId"  INT NOT NULL,
+      "eventoId"   INT NOT NULL,
+      "personaId"  INT,
+      "nombre"     TEXT NOT NULL DEFAULT '',
+      "respuesta"  TEXT NOT NULL DEFAULT 'SI',
+      "token"      TEXT UNIQUE,
+      "createdAt"  TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `).catch(() => {})
+
+  // Si viene token, upsert por token; si viene personaId, upsert por persona+evento
+  if (token) {
+    await pgExec(
+      `INSERT INTO "EventoRSVP"("iglesiaId","eventoId","personaId","nombre","respuesta","token")
+       VALUES($1,$2,$3,$4,$5,$6)
+       ON CONFLICT("token") DO UPDATE SET "respuesta"=EXCLUDED."respuesta","updatedAt"=NOW()`,
+      [iglesiaId, eventoId, personaId||null, nombre||'Anónimo', respuesta, token]
+    )
+  } else if (personaId) {
+    await pgExec(
+      `INSERT INTO "EventoRSVP"("iglesiaId","eventoId","personaId","nombre","respuesta")
+       VALUES($1,$2,$3,$4,$5)
+       ON CONFLICT DO NOTHING`,
+      [iglesiaId, eventoId, Number(personaId), nombre||'', respuesta]
+    )
+    await pgExec(
+      `UPDATE "EventoRSVP" SET "respuesta"=$1,"updatedAt"=NOW()
+       WHERE "eventoId"=$2 AND "personaId"=$3 AND "iglesiaId"=$4`,
+      [respuesta, eventoId, Number(personaId), iglesiaId]
+    )
+  } else {
+    return res.status(400).json({ error: 'Se requiere token o personaId' })
+  }
+
+  const ev = await pgOne('SELECT "titulo","fecha" FROM "Evento" WHERE "id"=$1', [eventoId])
+  res.json({ ok: true, evento: ev?.titulo, fecha: ev?.fecha, respuesta })
+})
+
+// GET /eventos/rsvp/confirmar — endpoint público para links de WhatsApp
+// ?token=xxx&r=SI&ig=123
+router.get('/rsvp/confirmar', async (req, res) => {
+  const { token, r, ig } = req.query
+  if (!token || !r || !ig) return res.status(400).send('<p>Link inválido</p>')
+  if (!['SI','NO','TALVEZ'].includes(r)) return res.status(400).send('<p>Respuesta inválida</p>')
+
+  try {
+    await pgExec(
+      `UPDATE "EventoRSVP" SET "respuesta"=$1,"updatedAt"=NOW() WHERE "token"=$2`,
+      [r, token]
+    )
+    const label = r === 'SI' ? '✅ ¡Confirmado! Te esperamos.' : r === 'NO' ? '❌ Entendido, gracias por avisarnos.' : '🤔 Anotado como "Tal vez", ¡esperamos verte!'
+    res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Confirmación</title><style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#F8FAFC}.card{background:#fff;border-radius:16px;padding:32px;max-width:400px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)}h2{font-size:22px;margin-bottom:8px}p{color:#64748B;font-size:14px}</style></head><body><div class="card"><h2>${label}</h2><p>Podés cerrar esta ventana.</p></div></body></html>`)
+  } catch {
+    res.status(500).send('<p>Error al procesar la confirmación</p>')
+  }
+})
+
 export default router
+
