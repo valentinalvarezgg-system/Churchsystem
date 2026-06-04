@@ -56,6 +56,78 @@ function Avatar({ nombre, apellido, fotoUrl, size = 56 }) {
   )
 }
 
+// ── Panel de acceso al Portal del Miembro ───────────────────
+function PortalAccesoPanel({ personaId, personaNombre, personaEmail }) {
+  const currentUser = getUser()
+  const canActivate = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION'].includes(currentUser?.rol)
+  const [modal, setModal]   = useState(false)
+  const [form, setForm]     = useState({ email: personaEmail || '', password: '', confirmar: '' })
+  const [loading, setLoading] = useState(false)
+  const [msg, setMsg]       = useState(null)
+  const portalUrl = `${window.location.origin}/portal`
+
+  if (!canActivate) return null
+
+  async function activar(e) {
+    e.preventDefault()
+    if (form.password !== form.confirmar) { setMsg({ type:'error', text:'Las contraseñas no coinciden' }); return }
+    if (form.password.length < 6) { setMsg({ type:'error', text:'Mínimo 6 caracteres' }); return }
+    setLoading(true); setMsg(null)
+    try {
+      await apiFetch('/miembro/auth/set-password', {
+        method: 'POST',
+        body: JSON.stringify({ personaId, email: form.email, password: form.password, activar: true })
+      })
+      setMsg({ type:'success', text:`Acceso activado. ${personaNombre} puede ingresar en ${portalUrl}` })
+      setTimeout(() => setModal(false), 3000)
+    } catch(e) { setMsg({ type:'error', text: e.message }) }
+    setLoading(false)
+  }
+
+  return (
+    <div style={{ marginTop:16, padding:'14px', background:'var(--c-info-bg)', borderRadius:10, border:'1px solid var(--c-info)' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <div>
+          <div style={{ fontSize:13, fontWeight:700, color:'var(--c-info)' }}>⛪ Portal del Miembro</div>
+          <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:2 }}>Activá el acceso para que {personaNombre.split(' ')[0]} pueda ver su perfil, asistencia y eventos.</div>
+        </div>
+        <button className="btn btn-ghost btn-sm" style={{ fontSize:11, whiteSpace:'nowrap' }} onClick={() => setModal(true)}>
+          Activar acceso
+        </button>
+      </div>
+
+      {modal && (
+        <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setModal(false)}>
+          <div className="modal" style={{ maxWidth:400 }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Activar acceso — {personaNombre}</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setModal(false)}>×</button>
+            </div>
+            <form onSubmit={activar}>
+              <div className="modal-body" style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                <p style={{ fontSize:13, color:'var(--text-muted)', margin:0 }}>
+                  Configurá el email y contraseña con los que {personaNombre.split(' ')[0]} va a ingresar al portal en <strong>{portalUrl}</strong>
+                </p>
+                <div><label style={{ fontSize:12, color:'var(--text-muted)', display:'block', marginBottom:4 }}>Email de acceso</label>
+                  <input type="email" className="form-input" value={form.email} onChange={e => setForm(f=>({...f,email:e.target.value}))} required /></div>
+                <div><label style={{ fontSize:12, color:'var(--text-muted)', display:'block', marginBottom:4 }}>Contraseña inicial</label>
+                  <input type="password" className="form-input" value={form.password} onChange={e => setForm(f=>({...f,password:e.target.value}))} required minLength={6} /></div>
+                <div><label style={{ fontSize:12, color:'var(--text-muted)', display:'block', marginBottom:4 }}>Confirmar contraseña</label>
+                  <input type="password" className="form-input" value={form.confirmar} onChange={e => setForm(f=>({...f,confirmar:e.target.value}))} required minLength={6} /></div>
+                {msg && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
+              </div>
+              <div className="modal-footer" style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 20px' }}>
+                <button type="button" className="btn btn-ghost" onClick={() => setModal(false)}>Cancelar</button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Activando...' : 'Activar acceso'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Perfil() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -394,6 +466,11 @@ export default function Perfil() {
                     )}
                   </div>
                 )
+              )}
+
+              {/* ── PORTAL DEL MIEMBRO ─────────────────────────────────── */}
+              {tab === 'info' && !editando && (
+                <PortalAccesoPanel personaId={persona.id} personaNombre={`${persona.nombre} ${persona.apellido}`} personaEmail={persona.email} />
               )}
 
               {/* ── FAMILIA ────────────────────────────────────────────── */}

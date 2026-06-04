@@ -57,6 +57,41 @@ export async function requireAuth(req, res, next) {
   }
 }
 
+// ── Middleware exclusivo para el portal del miembro ──────────
+export async function requireMiembro(req, res, next) {
+  const header = req.headers.authorization || ''
+  const token = header.startsWith('Bearer ')
+    ? header.slice(7)
+    : (req.query.token || null)
+
+  if (!token) return res.status(401).json({ error: 'Token requerido' })
+
+  try {
+    const payload = jwt.verify(token, requiredSecret())
+
+    // El portal del miembro usa scope 'MIEMBRO'
+    if (payload.scope !== 'MIEMBRO') {
+      return res.status(403).json({ error: 'Token no válido para el portal del miembro' })
+    }
+
+    // Verificar que la persona sigue activa
+    const p = await pgOne(
+      `SELECT p."id", p."nombre", p."apellido", p."email", p."estado", p."iglesiaId", p."grupoId"
+       FROM "Persona" p
+       WHERE p."id"=$1 AND p."iglesiaId"=$2 AND p."deletedAt" IS NULL LIMIT 1`,
+      [payload.personaId, payload.iglesiaId]
+    )
+    if (!p) return res.status(401).json({ error: 'Miembro no encontrado' })
+    if (p.estado === 'INACTIVO') return res.status(403).json({ error: 'Cuenta inactiva' })
+
+    req.miembro = { ...payload, ...p }
+    return next()
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') return res.status(401).json({ error: 'Sesión expirada' })
+    return res.status(401).json({ error: 'Token inválido' })
+  }
+}
+
 export function requireRol(...roles) {
   return (req, res, next) => {
     if (!req.user?.rol || !roles.includes(req.user.rol)) {

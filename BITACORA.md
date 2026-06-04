@@ -1960,3 +1960,45 @@ Implementado en el mismo módulo que #17.
 **`frontend/public/manifest.json`** — actualizado con theme color, icons, display standalone.
 **`frontend/public/offline.html`** — página de fallback cuando no hay caché ni red.
 **`frontend/index.html`** — registro del SW mejorado con detección de actualización disponible.
+
+---
+
+### v3.5.0 — Portal del Miembro con login propio (#30 + #19 parcial) — 2026-06-04
+
+#### Feature #30 — Portal del miembro
+
+**Backend — `backend/src/middlewares/auth.js`**
+- Nuevo middleware `requireMiembro`: verifica JWT con `scope: 'MIEMBRO'`, resuelve la Persona desde DB, verifica que esté activa.
+
+**Backend — `backend/src/routes/miembro.js`** (nuevo router, montado en `/miembro`)
+- Columnas auto-creadas en `Persona`: `portalEmail`, `portalPassword` (bcrypt), `portalActivo`.
+- `POST /miembro/auth/login` — login por email+password del miembro, acepta iglesiaToken opcional para desambiguar iglesia. Devuelve JWT con `scope: MIEMBRO`, válido 30 días.
+- `POST /miembro/auth/set-password` — requiere Bearer de admin (PASTOR_GENERAL/PASTOR_CULTO/CONSOLIDACION). Activa el acceso con contraseña hasheada. Idempotente.
+- `POST /miembro/auth/cambiar-password` — requiere Bearer de miembro. Valida contraseña actual antes de cambiar.
+- `GET /miembro/perfil` — datos del miembro incluyendo grupo e iglesia.
+- `PUT /miembro/perfil` — edición limitada (teléfono, email portal, ocupación).
+- `GET /miembro/asistencia` — historial + stats (total, presentes, porcentaje).
+- `GET /miembro/eventos` — próximos eventos de la iglesia.
+- `GET /miembro/comunicados` — comunicados públicos (destinatarios=TODOS).
+- `GET /miembro/discipulado` — etapa espiritual + materiales completados.
+
+**Frontend — `frontend/src/pages/LoginMiembro.jsx`** (nuevo)
+- Pantalla de login con diseño premium dark, campo de iglesiaToken colapsable.
+- Guarda token y datos en localStorage bajo claves `miembro_token` / `miembro_persona`.
+
+**Frontend — `frontend/src/pages/PortalMiembro.jsx`** (nuevo, 343 líneas)
+- Portal completo con tabs: Inicio / Asistencia / Eventos / Comunicados / Mi perfil.
+- Header sticky con nombre del miembro, botón Salir.
+- Bottom navigation fija estilo app móvil.
+- Inicio: card de presentación con etapa espiritual + badges bautismo, feed de últimos comunicados y próximos eventos.
+- Asistencia: KPIs total/presentes/porcentaje con barra de color según rendimiento, historial cronológico.
+- Perfil: edición inline de email/teléfono/ocupación, badges espirituales, cambio de contraseña.
+- Carga datos en paralelo con Promise.allSettled (falla graciosamente si una sección falla).
+
+**Frontend — `frontend/src/pages/Perfil.jsx`**
+- Componente `PortalAccesoPanel` inyectado en el tab "info" del perfil del staff.
+- Solo visible para PASTOR_GENERAL/PASTOR_CULTO/CONSOLIDACION.
+- Modal para activar acceso: email + contraseña + confirmar, llama a `/miembro/auth/set-password` con el Bearer del admin actual.
+- Muestra la URL del portal al activar.
+
+**Rutas (`App.jsx`):** `/portal` y `/portal/*` — rutas públicas, sin ProtectedRoute, con auth propia del portal.

@@ -42,6 +42,7 @@ const Analytics        = lazy(() => import('./pages/Analytics.jsx'))
 const Documentos       = lazy(() => import('./pages/Documentos.jsx'))
 const Liderazgo        = lazy(() => import('./pages/Liderazgo.jsx'))
 const MapaGrupos       = lazy(() => import('./pages/MapaGrupos.jsx'))
+const PortalMiembro    = lazy(() => import('./pages/PortalMiembro.jsx'))
 const Planes            = lazy(() => import('./pages/Planes.jsx'))
 const RecuperarPassword = lazy(() => import('./pages/RecuperarPassword.jsx'))
 const Ministerios       = lazy(() => import('./pages/Ministerios.jsx'))
@@ -177,6 +178,9 @@ export default function App() {
           <Route path="/documentos"    element={<ProtectedRoute roles={AUDIT} element={<Documentos />} />} />
           <Route path="/liderazgo"     element={<ProtectedRoute roles={AUDIT} element={<Liderazgo />} />} />
           <Route path="/mapa-grupos"   element={<ProtectedRoute roles={MID}   element={<MapaGrupos />} />} />
+          {/* Portal del miembro — ruta pública con auth propia */}
+          <Route path="/portal"        element={<PortalMiembro />} />
+          <Route path="/portal/*"      element={<PortalMiembro />} />
           <Route path="/analytics"    element={<ProtectedRoute roles={ALL}   element={<Analytics />} />} />
           <Route path="/planes"       element={<ProtectedRoute roles={ALL}   element={<Planes />} />} />
           <Route path="*"              element={<Navigate to="/" replace />} />

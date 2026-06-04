@@ -51,6 +51,7 @@ import notificacionesRouter from './routes/notificaciones.js'
 import checkinRouter from './routes/checkin.js'
 import documentosRouter from './routes/documentos.js'
 import chatRouter from './routes/chat.js'
+import miembroRouter from './routes/miembro.js'
 import oracionRouter from './routes/oracion.js'
 import comunicadosRouter from './routes/comunicados.js'
 import consolidacionRouter from './routes/consolidacion.js'
@@ -183,6 +184,7 @@ app.use('/analytics', analyticsRouter)
 app.use('/checkin', checkinRouter)
 app.use('/documentos', documentosRouter)
 app.use('/chat', chatRouter)
+app.use('/miembro', miembroRouter)
 app.use('/oracion', blockLegalModule, oracionRouter)
 app.use('/comunicados', comunicadosRouter)
 app.use('/consolidacion', consolidacionRouter)
