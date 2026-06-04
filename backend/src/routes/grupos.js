@@ -103,5 +103,70 @@ router.delete('/:id', requireAuth, async (req, res) => {
   res.json({ ok: true })
 })
 
+// ── Estadísticas de crecimiento del grupo ───────────────────
+router.get('/:id/stats', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId)
+  const grupoId   = Number(req.params.id)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+
+  const g = await pgOne(
+    'SELECT "id","nombre" FROM "Grupo" WHERE "id"=$1 AND "iglesiaId"=$2 AND "deletedAt" IS NULL',
+    [grupoId, iglesiaId]
+  )
+  if (!g) return res.status(404).json({ error: 'Grupo no encontrado' })
+
+  // Crecimiento mensual: cuántas personas se unieron al grupo cada mes (últimos 12 meses)
+  const crecimiento = []
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i)
+    const mes = d.toISOString().slice(0, 7)
+    const row = await pgOne(
+      `SELECT COUNT(*)::int AS c FROM "Persona"
+       WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL
+         AND to_char("createdAt",'YYYY-MM')=$3`,
+      [iglesiaId, grupoId, mes]
+    )
+    crecimiento.push({ mes, nuevos: Number(row?.c || 0) })
+  }
+
+  // Distribución por etapa espiritual
+  const porEtapa = await pgMany(
+    `SELECT "estadoEspiritual", COUNT(*)::int AS total
+     FROM "Persona"
+     WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL
+     GROUP BY "estadoEspiritual"`,
+    [iglesiaId, grupoId]
+  )
+
+  // Distribución por estado (ACTIVO / VISITANTE / INACTIVO)
+  const porEstado = await pgMany(
+    `SELECT "estado", COUNT(*)::int AS total
+     FROM "Persona"
+     WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL
+     GROUP BY "estado"`,
+    [iglesiaId, grupoId]
+  )
+
+  // Total actual y bautizados
+  const resumen = await pgOne(
+    `SELECT COUNT(*)::int AS total,
+            SUM(CASE WHEN "bautizadoAgua" THEN 1 ELSE 0 END)::int AS bautizados,
+            SUM(CASE WHEN "discipuladoCompletado" THEN 1 ELSE 0 END)::int AS discipulados
+     FROM "Persona"
+     WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL`,
+    [iglesiaId, grupoId]
+  )
+
+  // Miembro más reciente
+  const ultimo = await pgOne(
+    `SELECT "nombre","apellido","createdAt" FROM "Persona"
+     WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL
+     ORDER BY "createdAt" DESC LIMIT 1`,
+    [iglesiaId, grupoId]
+  )
+
+  res.json({ grupo: g, crecimiento, porEtapa, porEstado, resumen: resumen || {}, ultimo })
+})
+
 export default router
 
