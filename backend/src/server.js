@@ -49,6 +49,7 @@ import verificacionRouter from './routes/verificacion.js'
 import registroRouter from './routes/registro.js'
 import notificacionesRouter from './routes/notificaciones.js'
 import checkinRouter from './routes/checkin.js'
+import documentosRouter from './routes/documentos.js'
 import oracionRouter from './routes/oracion.js'
 import comunicadosRouter from './routes/comunicados.js'
 import consolidacionRouter from './routes/consolidacion.js'
@@ -179,6 +180,7 @@ app.use('/transferencia', transferenciaRouter)
 app.use('/culto-asignaciones', cultoAsignacionesRouter)
 app.use('/analytics', analyticsRouter)
 app.use('/checkin', checkinRouter)
+app.use('/documentos', documentosRouter)
 app.use('/oracion', blockLegalModule, oracionRouter)
 app.use('/comunicados', comunicadosRouter)
 app.use('/consolidacion', consolidacionRouter)

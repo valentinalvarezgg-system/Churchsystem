@@ -1838,3 +1838,61 @@ Implementado en el mismo módulo que #17.
 
 **Frontend — `frontend/src/pages/MinisterioDetalle.jsx`**
 - Nuevo componente `TabInventario`: grid de cards por recurso, colores por categoría y estado, alerta de mantenimiento próximo (≤14 días), modal editar/crear con todos los campos.
+
+---
+
+### v3.3.0 — Sprint Features: Segmentación + Documentos + Cobertura + Onboarding — 2026-06-04
+
+#### Feature #16 — Segmentación avanzada de mensajes
+
+**Backend — `backend/src/routes/mensajes.js`**
+- `POST /mensajes/segmentar` — filtra personas con combinación de: estados, grupos, etapas espirituales, género, bautismos, discipulado, inactividad (semanas sin asistir), solo con teléfono/email. Devuelve total, muestra y lista de ids.
+- `POST /mensajes/masivo-segmentado` — envío a ids precalculados con interpolación de variables.
+
+**Frontend — `frontend/src/pages/Mensajes.jsx`**
+- Tab "🎯 Segmentar" nuevo en la barra de navegación.
+- Componente `SegmentadorAvanzado`: chips multi-select por estado/grupo/etapa, triple-toggle para booleans (bautismo/discipulado), campo de semanas de inactividad, checkboxes de canal requerido.
+- Panel de resultado con KPIs (total / con tel / con email) y muestra de primeros 20 destinatarios.
+- Panel de envío integrado con selector WHATSAPP/EMAIL y variables disponibles.
+
+---
+
+#### Feature #26 — Sistema de documentos
+
+**Backend — `backend/src/routes/documentos.js`** (nuevo router)
+- Tabla `Documento` auto-creada: nombre, tipo, descripción, archivo (path local), mimeType, tamaño, fechaVencimiento, alerta, uploadedBy.
+- `GET /documentos` con filtros por tipo y búsqueda, devuelve alertas de vencimiento próximo (≤30 días).
+- `POST /documentos` con multer para upload de archivos hasta 20MB (PDF, imágenes, Word).
+- `PUT /documentos/:id`, `DELETE /documentos/:id` (soft), `GET /documentos/:id/descargar`.
+- Registrado en `server.js` como `/documentos`.
+
+**Frontend — `frontend/src/pages/Documentos.jsx`** (nuevo)
+- Grid de cards por documento con ícono por tipo, badge de vencimiento con 4 niveles de urgencia.
+- Modal de creación con upload de archivo, tipo, fecha de vencimiento y alerta.
+- Alerta banner cuando hay documentos con vencimiento en ≤30 días.
+- Enlace de descarga directa desde cada card.
+- Ruta `/documentos` en `App.jsx`, ítem en menú lateral.
+
+---
+
+#### Feature #14 — Pedidos de cobertura automáticos
+
+**Backend — `backend/src/routes/ministerios.js`**
+- Tabla `MinisterioCobertura` auto-creada: solicitanteId, fecha, rol, motivo, estado (PENDIENTE/CUBIERTO/SIN_COBERTURA), cubiertoPorId.
+- `GET /ministerios/:id/coberturas`, `POST` (crea pedido + notifica por WhatsApp a todos los miembros del ministerio), `PUT /:id/coberturas/:cobId` (asigna cobertura).
+
+**Frontend — `frontend/src/pages/MinisterioDetalle.jsx`**
+- Nuevo tab "🔄 Cobertura" en todos los tipos de ministerio.
+- `TabCobertura`: lista de pedidos agrupados, badge de estado, selector de voluntario para cubrir, botón "Sin cobertura", badge de pendientes en el header.
+
+---
+
+#### Feature #15 — Onboarding de voluntarios
+
+**Backend — `backend/src/routes/ministerios.js`**
+- Tabla `MinisterioOnboarding` auto-creada: etapa (FORMULARIO/ENTREVISTA/COMPROMISO/ACTIVO), dones espirituales (JSON), disponibilidad (JSON), notasEntrevista, firmaCompromiso, fechaFirma, asignadoA.
+- `GET /ministerios/:id/onboarding` (devuelve filas + catálogo de dones y días), `POST` (upsert por ministerio+persona), `PUT /:id/onboarding/:obId` (avanzar etapa).
+
+**Frontend — `frontend/src/pages/MinisterioDetalle.jsx`**
+- Nuevo tab "🧭 Onboarding" en todos los tipos de ministerio.
+- `TabOnboarding`: pipeline de etapas visual, chips de dones y disponibilidad, botón "→ Avanzar etapa", modal de detalle con toda la ficha del voluntario.

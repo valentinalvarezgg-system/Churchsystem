@@ -751,5 +751,183 @@ router.delete('/:id/recursos/:recursoId', requireAuth, wrap(async (req, res) => 
   res.json({ ok: true })
 }))
 
+// ════════════════════════════════════════════════════════════
+// PEDIDOS DE COBERTURA (#14)
+// ════════════════════════════════════════════════════════════
+
+const initCobertura = async () => {
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS "MinisterioCobertura" (
+      "id"           SERIAL PRIMARY KEY,
+      "iglesiaId"    INT NOT NULL,
+      "ministerioId" INT NOT NULL,
+      "turnoId"      INT,
+      "solicitanteId" INT NOT NULL,
+      "fecha"        DATE NOT NULL,
+      "rol"          TEXT NOT NULL DEFAULT 'SERVIDOR',
+      "motivo"       TEXT,
+      "estado"       TEXT NOT NULL DEFAULT 'PENDIENTE',  -- PENDIENTE | CUBIERTO | SIN_COBERTURA
+      "cubiertoPorId" INT,
+      "createdAt"    TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+  await pgExec(`CREATE INDEX IF NOT EXISTS "MC_ministerio_idx" ON "MinisterioCobertura"("ministerioId","fecha")`)
+}
+
+// GET /ministerios/:id/coberturas
+router.get('/:id/coberturas', requireAuth, wrap(async (req, res) => {
+  const iglesiaId   = Number(req.user.iglesiaId)
+  const ministerioId = Number(req.params.id)
+  await initCobertura()
+  const rows = await pgMany(
+    `SELECT c.*,
+            p."nombre" AS "solicitanteNombre", p."apellido" AS "solicitanteApellido",
+            p2."nombre" AS "cubiertoPorNombre", p2."apellido" AS "cubiertoPorApellido"
+     FROM "MinisterioCobertura" c
+     LEFT JOIN "Persona" p  ON c."solicitanteId"=p."id"
+     LEFT JOIN "Persona" p2 ON c."cubiertoPorId"=p2."id"
+     WHERE c."ministerioId"=$1 AND c."iglesiaId"=$2
+     ORDER BY c."fecha" DESC`,
+    [ministerioId, iglesiaId]
+  )
+  res.json(rows)
+}))
+
+// POST /ministerios/:id/coberturas — crear pedido
+router.post('/:id/coberturas', requireAuth, wrap(async (req, res) => {
+  const iglesiaId   = Number(req.user.iglesiaId)
+  const ministerioId = Number(req.params.id)
+  await initCobertura()
+  const { solicitanteId, fecha, rol='SERVIDOR', motivo='', turnoId=null } = req.body || {}
+  if (!solicitanteId || !fecha) return res.status(400).json({ error: 'solicitanteId y fecha requeridos' })
+
+  const row = await pgOne(
+    `INSERT INTO "MinisterioCobertura"("iglesiaId","ministerioId","turnoId","solicitanteId","fecha","rol","motivo")
+     VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [iglesiaId, ministerioId, turnoId||null, Number(solicitanteId), fecha, rol, motivo]
+  )
+
+  // Notificar a los otros miembros del ministerio por WhatsApp (best-effort)
+  try {
+    const miembros = await pgMany(
+      `SELECT p."nombre", p."apellido", p."telefono"
+       FROM "MinisterioMiembro" mm
+       JOIN "Persona" p ON mm."personaId"=p."id"
+       WHERE mm."ministerioId"=$1 AND mm."personaId"!=$2 AND NULLIF(p."telefono",'') IS NOT NULL`,
+      [ministerioId, Number(solicitanteId)]
+    )
+    const ministerio = await pgOne('SELECT "nombre" FROM "Ministerio" WHERE "id"=$1', [ministerioId])
+    const solicitante = await pgOne('SELECT "nombre","apellido" FROM "Persona" WHERE "id"=$1', [Number(solicitanteId)])
+    if (miembros.length && ministerio && solicitante) {
+      const { sendWhatsAppText } = await import('../services/whatsapp.js')
+      const texto = `📢 *Pedido de cobertura — ${ministerio.nombre}*\n\n${solicitante.nombre} ${solicitante.apellido} necesita cobertura para el *${fecha}* (rol: ${rol}).\n${motivo ? `Motivo: ${motivo}\n` : ''}¿Podés cubrirlo? Avisá al coordinador.`
+      for (const m of miembros) {
+        try { await sendWhatsAppText({ iglesiaId, to: m.telefono, text: texto }) } catch {}
+      }
+    }
+  } catch {}
+
+  res.status(201).json(row)
+}))
+
+// PUT /ministerios/:id/coberturas/:cobId — asignar cobertura
+router.put('/:id/coberturas/:cobId', requireAuth, wrap(async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId)
+  const { estado, cubiertoPorId } = req.body || {}
+  await pgExec(
+    `UPDATE "MinisterioCobertura" SET "estado"=COALESCE($1,"estado"),"cubiertoPorId"=COALESCE($2,"cubiertoPorId"),"updatedAt"=NOW()
+     WHERE "id"=$3 AND "iglesiaId"=$4`,
+    [estado||null, cubiertoPorId ? Number(cubiertoPorId) : null, Number(req.params.cobId), iglesiaId]
+  )
+  res.json({ ok: true })
+}))
+
+// ════════════════════════════════════════════════════════════
+// ONBOARDING DE VOLUNTARIOS (#15)
+// ════════════════════════════════════════════════════════════
+
+const initOnboarding = async () => {
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS "MinisterioOnboarding" (
+      "id"            SERIAL PRIMARY KEY,
+      "iglesiaId"     INT NOT NULL,
+      "ministerioId"  INT NOT NULL,
+      "personaId"     INT NOT NULL,
+      "etapa"         TEXT NOT NULL DEFAULT 'FORMULARIO',  -- FORMULARIO | ENTREVISTA | COMPROMISO | ACTIVO
+      "dones"         TEXT,          -- JSON array de dones espirituales
+      "disponibilidad" TEXT,         -- JSON array de días
+      "notasEntrevista" TEXT,
+      "firmaCompromiso" BOOLEAN NOT NULL DEFAULT false,
+      "fechaFirma"    DATE,
+      "asignadoA"     INT,           -- userId del entrevistador/líder
+      "createdAt"     TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"     TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE("ministerioId","personaId")
+    )
+  `)
+  await pgExec(`CREATE INDEX IF NOT EXISTS "MO_ministerio_idx" ON "MinisterioOnboarding"("ministerioId")`)
+}
+
+const DONES_DISPONIBLES = ['Enseñanza','Liderazgo','Misericordia','Ayuda','Administración','Evangelismo','Profecía','Exhortación','Dar','Fe','Sanidad','Lenguas','Servicio']
+const DIAS_SEMANA = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo']
+
+// GET /ministerios/:id/onboarding
+router.get('/:id/onboarding', requireAuth, wrap(async (req, res) => {
+  const iglesiaId   = Number(req.user.iglesiaId)
+  const ministerioId = Number(req.params.id)
+  await initOnboarding()
+  const rows = await pgMany(
+    `SELECT o.*, p."nombre", p."apellido", p."telefono", p."email",
+            u."nombre" AS "asignadoNombre"
+     FROM "MinisterioOnboarding" o
+     LEFT JOIN "Persona" p ON o."personaId"=p."id"
+     LEFT JOIN "User" u   ON o."asignadoA"=u."id"
+     WHERE o."ministerioId"=$1 AND o."iglesiaId"=$2
+     ORDER BY o."createdAt" DESC`,
+    [ministerioId, iglesiaId]
+  )
+  res.json({ rows, dones: DONES_DISPONIBLES, dias: DIAS_SEMANA })
+}))
+
+// POST /ministerios/:id/onboarding
+router.post('/:id/onboarding', requireAuth, wrap(async (req, res) => {
+  const iglesiaId   = Number(req.user.iglesiaId)
+  const ministerioId = Number(req.params.id)
+  await initOnboarding()
+  const { personaId, dones=[], disponibilidad=[], notasEntrevista='', asignadoA=null } = req.body || {}
+  if (!personaId) return res.status(400).json({ error: 'personaId requerido' })
+  const row = await pgOne(
+    `INSERT INTO "MinisterioOnboarding"("iglesiaId","ministerioId","personaId","dones","disponibilidad","notasEntrevista","asignadoA")
+     VALUES($1,$2,$3,$4,$5,$6,$7)
+     ON CONFLICT("ministerioId","personaId") DO UPDATE
+     SET "dones"=EXCLUDED."dones","disponibilidad"=EXCLUDED."disponibilidad",
+         "notasEntrevista"=EXCLUDED."notasEntrevista","asignadoA"=EXCLUDED."asignadoA","updatedAt"=NOW()
+     RETURNING *`,
+    [iglesiaId, ministerioId, Number(personaId),
+     JSON.stringify(dones), JSON.stringify(disponibilidad), notasEntrevista, asignadoA||null]
+  )
+  res.status(201).json(row)
+}))
+
+// PUT /ministerios/:id/onboarding/:obId — avanzar etapa / firmar compromiso
+router.put('/:id/onboarding/:obId', requireAuth, wrap(async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId)
+  const { etapa, firmaCompromiso, notasEntrevista, asignadoA } = req.body || {}
+  const fechaFirma = firmaCompromiso ? new Date().toISOString().slice(0,10) : null
+  await pgExec(
+    `UPDATE "MinisterioOnboarding"
+     SET "etapa"=COALESCE($1,"etapa"),
+         "firmaCompromiso"=COALESCE($2,"firmaCompromiso"),
+         "fechaFirma"=COALESCE($3,"fechaFirma"),
+         "notasEntrevista"=COALESCE($4,"notasEntrevista"),
+         "asignadoA"=COALESCE($5,"asignadoA"),
+         "updatedAt"=NOW()
+     WHERE "id"=$6 AND "iglesiaId"=$7`,
+    [etapa||null, firmaCompromiso!=null?!!firmaCompromiso:null, fechaFirma, notasEntrevista||null, asignadoA?Number(asignadoA):null, Number(req.params.obId), iglesiaId]
+  )
+  res.json({ ok: true })
+}))
+
 export default router
 

@@ -78,6 +78,242 @@ const PLANTILLAS_DEFAULT = [
   { id: 'd4', nombre: 'Cumpleaños', tipo: 'WHATSAPP', contenido: ' Feliz cumpleaños {nombre}! Que Dios te colme de bendiciones en este nuevo año de vida. Te queremos mucho! ' },
 ]
 
+// ── Segmentador avanzado (#16) ───────────────────────────────
+const ETAPAS_ESPIRITALES = ['NUEVO_CREYENTE','CONSOLIDADO','DISCIPULO','LIDER','MINISTRO']
+
+function SegmentadorAvanzado({ grupos }) {
+  const [filtros, setFiltros] = useState({
+    estados: [],
+    grupos: [],
+    etapas: [],
+    genero: '',
+    bautizadoAgua: null,
+    bautizadoEspiritu: null,
+    discipuladoCompletado: null,
+    inactivoDesde: '',
+    soloConTelefono: false,
+    soloConEmail: false,
+  })
+  const [resultado, setResultado]   = useState(null)
+  const [buscando, setBuscando]     = useState(false)
+  const [mensaje, setMensaje]       = useState('')
+  const [asunto, setAsunto]         = useState('Mensaje de la iglesia')
+  const [tipo, setTipo]             = useState('WHATSAPP')
+  const [enviando, setEnviando]     = useState(false)
+  const [resultado2, setResultado2] = useState(null)
+
+  function toggleArr(key, val) {
+    setFiltros(f => ({
+      ...f,
+      [key]: f[key].includes(val) ? f[key].filter(v => v !== val) : [...f[key], val]
+    }))
+  }
+
+  async function buscar() {
+    setBuscando(true); setResultado(null); setResultado2(null)
+    try {
+      const body = { ...filtros, inactivoDesde: filtros.inactivoDesde ? Number(filtros.inactivoDesde) : null }
+      const r = await apiFetch('/mensajes/segmentar', { method:'POST', body: JSON.stringify(body) })
+      setResultado(r)
+    } catch(e) { toast.error(e.message) }
+    setBuscando(false)
+  }
+
+  async function enviar() {
+    if (!resultado?.ids?.length) return toast.error('Buscá destinatarios primero')
+    if (!mensaje.trim()) return toast.error('Escribí un mensaje')
+    if (!confirm(`¿Enviar a ${resultado.total} personas?`)) return
+    setEnviando(true); setResultado2(null)
+    try {
+      const r = await apiFetch('/mensajes/masivo-segmentado', {
+        method: 'POST',
+        body: JSON.stringify({ ids: resultado.ids, tipo, mensaje, asunto })
+      })
+      setResultado2(r)
+      toast.success(`${r.enviados} mensajes enviados`)
+    } catch(e) { toast.error(e.message) }
+    setEnviando(false)
+  }
+
+  const ChipBtn = ({ label, active, onClick }) => (
+    <button type="button" onClick={onClick}
+      style={{ padding:'4px 12px', borderRadius:20, fontSize:12, cursor:'pointer', fontWeight:active?700:400,
+        background: active ? 'var(--primary)' : 'var(--bg-2)',
+        color: active ? '#fff' : 'var(--text)', border: active ? 'none' : '1px solid var(--border)' }}>
+      {label}
+    </button>
+  )
+
+  const TriToggle = ({ label, campo }) => {
+    const val = filtros[campo]
+    return (
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+        <span style={{ fontSize:12, color:'var(--text-muted)', minWidth:120 }}>{label}</span>
+        <div style={{ display:'flex', gap:4 }}>
+          {[null,'Sí','No'].map((v, i) => {
+            const boolVal = v === 'Sí' ? true : v === 'No' ? false : null
+            const active = filtros[campo] === boolVal
+            return (
+              <button key={i} type="button" onClick={() => setFiltros(f=>({...f,[campo]:boolVal}))}
+                style={{ padding:'3px 10px', borderRadius:20, fontSize:11, cursor:'pointer', fontWeight:active?700:400,
+                  background: active ? (boolVal===true?'var(--c-success)':boolVal===false?'var(--c-danger)':'var(--primary)') : 'var(--bg-2)',
+                  color: active ? '#fff' : 'var(--text)', border: active ? 'none' : '1px solid var(--border)' }}>
+                {v ?? 'Indiferente'}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 320px', gap:16, alignItems:'start' }}>
+      {/* Panel de filtros */}
+      <div className="card">
+        <h3 style={{ fontSize:15, fontWeight:700, marginBottom:16 }}>🎯 Segmentación avanzada</h3>
+        <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:16 }}>Combiná filtros para definir exactamente quién recibe el mensaje.</p>
+
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          {/* Estado */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:6 }}>Estado</div>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {['ACTIVO','VISITANTE','INACTIVO'].map(e => (
+                <ChipBtn key={e} label={e} active={filtros.estados.includes(e)} onClick={() => toggleArr('estados', e)} />
+              ))}
+            </div>
+          </div>
+
+          {/* Grupos */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:6 }}>Grupos</div>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {(grupos||[]).map(g => (
+                <ChipBtn key={g.id} label={g.nombre} active={filtros.grupos.includes(g.id)} onClick={() => toggleArr('grupos', g.id)} />
+              ))}
+            </div>
+          </div>
+
+          {/* Etapa espiritual */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:6 }}>Etapa espiritual</div>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {ETAPAS_ESPIRITALES.map(e => (
+                <ChipBtn key={e} label={e.replace(/_/g,' ')} active={filtros.etapas.includes(e)} onClick={() => toggleArr('etapas', e)} />
+              ))}
+            </div>
+          </div>
+
+          {/* Booleans */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:8 }}>Indicadores espirituales</div>
+            <TriToggle label="Bautizado en agua" campo="bautizadoAgua" />
+            <TriToggle label="Bautizado espíritu" campo="bautizadoEspiritu" />
+            <TriToggle label="Discipulado completo" campo="discipuladoCompletado" />
+          </div>
+
+          {/* Género */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:6 }}>Género</div>
+            <div style={{ display:'flex', gap:6 }}>
+              {[['', 'Todos'], ['M', 'Masculino'], ['F', 'Femenino']].map(([v, l]) => (
+                <ChipBtn key={v} label={l} active={filtros.genero === v} onClick={() => setFiltros(f=>({...f,genero:v}))} />
+              ))}
+            </div>
+          </div>
+
+          {/* Inactividad */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:6 }}>Sin asistir hace más de</div>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              <input type="number" min="1" max="52" className="form-input" style={{ width:80 }}
+                placeholder="Sem." value={filtros.inactivoDesde} onChange={e => setFiltros(f=>({...f,inactivoDesde:e.target.value}))} />
+              <span style={{ fontSize:12, color:'var(--text-muted)' }}>semanas (vacío = sin filtro)</span>
+            </div>
+          </div>
+
+          {/* Canal requerido */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', marginBottom:6 }}>Requerir contacto</div>
+            <div style={{ display:'flex', gap:12 }}>
+              <label style={{ display:'flex', gap:6, alignItems:'center', fontSize:12, cursor:'pointer' }}>
+                <input type="checkbox" checked={filtros.soloConTelefono} onChange={e => setFiltros(f=>({...f,soloConTelefono:e.target.checked}))} style={{ accentColor:'var(--primary)' }} />
+                Solo con teléfono
+              </label>
+              <label style={{ display:'flex', gap:6, alignItems:'center', fontSize:12, cursor:'pointer' }}>
+                <input type="checkbox" checked={filtros.soloConEmail} onChange={e => setFiltros(f=>({...f,soloConEmail:e.target.checked}))} style={{ accentColor:'var(--primary)' }} />
+                Solo con email
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <button className="btn btn-primary" style={{ marginTop:20, width:'100%' }} onClick={buscar} disabled={buscando}>
+          {buscando ? 'Calculando...' : '🔍 Calcular destinatarios'}
+        </button>
+      </div>
+
+      {/* Panel de resultado y envío */}
+      <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+        {resultado && (
+          <div className="card">
+            <div style={{ fontSize:14, fontWeight:700, marginBottom:12 }}>Resultado</div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:12 }}>
+              {[['Total', resultado.total, 'var(--primary)'], ['📱 Con tel.', resultado.conTelefono, 'var(--c-success)'], ['✉️ Con email', resultado.conEmail, 'var(--c-info)']].map(([l,v,c]) => (
+                <div key={l} style={{ textAlign:'center', background:'var(--bg-2)', borderRadius:8, padding:'10px 6px' }}>
+                  <div style={{ fontSize:22, fontWeight:800, color:c }}>{v}</div>
+                  <div style={{ fontSize:10, color:'var(--text-muted)' }}>{l}</div>
+                </div>
+              ))}
+            </div>
+            {resultado.muestra?.length > 0 && (
+              <div style={{ maxHeight:160, overflowY:'auto', marginBottom:12 }}>
+                <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:4 }}>Muestra (primeros {resultado.muestra.length})</div>
+                {resultado.muestra.map(p => (
+                  <div key={p.id} style={{ fontSize:12, padding:'3px 0', borderBottom:'1px solid var(--border)' }}>
+                    {p.nombre} {p.apellido}
+                    {p.grupoNombre && <span style={{ color:'var(--text-muted)', marginLeft:6 }}>— {p.grupoNombre}</span>}
+                  </div>
+                ))}
+                {resultado.total > resultado.muestra.length && <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:4 }}>…y {resultado.total - resultado.muestra.length} más</div>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {resultado && resultado.total > 0 && (
+          <div className="card">
+            <div style={{ fontSize:14, fontWeight:700, marginBottom:12 }}>Enviar mensaje</div>
+            <div style={{ display:'flex', gap:8, marginBottom:10 }}>
+              {['WHATSAPP','EMAIL'].map(c => (
+                <button key={c} type="button" onClick={() => setTipo(c)}
+                  style={{ flex:1, padding:'8px', borderRadius:8, border:'1px solid var(--border)', cursor:'pointer', fontWeight:tipo===c?700:400, background: tipo===c?'var(--primary)':'var(--bg-2)', color: tipo===c?'#fff':'var(--text)' }}>
+                  {c}
+                </button>
+              ))}
+            </div>
+            {tipo === 'EMAIL' && (
+              <input className="form-input" style={{ marginBottom:8 }} placeholder="Asunto" value={asunto} onChange={e => setAsunto(e.target.value)} />
+            )}
+            <textarea className="form-input" rows={5} placeholder="Hola {nombre}, ..." value={mensaje} onChange={e => setMensaje(e.target.value)} />
+            <p style={{ fontSize:11, color:'var(--text-muted)', margin:'6px 0 12px' }}>Variables: {'{nombre}'} {'{apellido}'}</p>
+            <button className="btn btn-primary" style={{ width:'100%' }} onClick={enviar} disabled={enviando}>
+              {enviando ? 'Enviando...' : `↑ Enviar a ${resultado.total} personas`}
+            </button>
+          </div>
+        )}
+
+        {resultado2 && (
+          <div className={`alert alert-${resultado2.errores > 0 ? 'warning' : 'success'}`}>
+            ✅ {resultado2.enviados} enviados · ❌ {resultado2.errores} errores de {resultado2.total}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function Mensajes() {
   const t = makeI18n(MSG_I18N)
   const user = getUser()
@@ -238,7 +474,7 @@ export default function Mensajes() {
           <div className="empty" style={{marginTop:40}}><div className="spinner" /><p style={{marginTop:16}}>{t('loadingMsg')}</p></div>
         ) : (<>
         <div className="mobile-tabs" style={{ display: 'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap: 8, marginBottom: 20 }}>
-          {[['enviar', t('tabSend')], ['plantillas', t('tabTemplates')], ['historial', t('tabHistory')]].map(([k, l]) => (
+          {[['enviar', t('tabSend')], ['segmentar', '🎯 Segmentar'], ['plantillas', t('tabTemplates')], ['historial', t('tabHistory')]].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={tab === k ? 'btn btn-primary' : 'btn btn-ghost'}>{l}</button>
           ))}
         </div>
@@ -463,6 +699,12 @@ export default function Mensajes() {
             )}
           </div>
         )}
+
+        {/* ── SEGMENTADOR AVANZADO (#16) ── */}
+        {tab === 'segmentar' && (
+          <SegmentadorAvanzado grupos={grupos} />
+        )}
+
         </>)}
       </main>
       <ConfirmModal

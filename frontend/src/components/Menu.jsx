@@ -308,6 +308,7 @@ export default function Menu() {
             {lnk('/users',         <Icons.Profile />,    tt('users'))}
             {lnk('/permisos',      <Icons.Shield />,     tt('permissions'))}
             {lnk('/historial',     <Icons.History />,    tt('history'))}
+            {lnk('/documentos',    <span style={{fontSize:16}}>📁</span>, 'Documentos')}
             {lnk('/configuracion', <Icons.Settings />,   tt('settings'))}
           </>}
         </nav>

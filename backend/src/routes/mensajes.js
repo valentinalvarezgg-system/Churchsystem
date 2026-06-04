@@ -309,4 +309,122 @@ router.delete('/plantillas/:id', requireAuth, wrap(async (req, res) => {
   return res.json({ ok: true })
 }))
 
+// ── Segmentación avanzada (#16) ──────────────────────────────
+// POST /mensajes/segmentar — previsualizar destinatarios con filtros combinados
+router.post('/segmentar', requireAuth, wrap(async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId)
+  const {
+    estados = [],          // ['ACTIVO','VISITANTE','INACTIVO']
+    grupos = [],           // [grupoId, ...]
+    etapas = [],           // estadoEspiritual
+    genero,                // 'M' | 'F' | null
+    bautizadoAgua,         // true | false | null
+    bautizadoEspiritu,
+    discipuladoCompletado,
+    inactivoDesde,         // número de semanas sin asistir (null = sin filtro)
+    soloConTelefono,       // boolean
+    soloConEmail,
+  } = req.body || {}
+
+  const filters = [`p."iglesiaId"=$1`, `p."deletedAt" IS NULL`]
+  const params  = [iglesiaId]
+  let idx = 2
+
+  if (estados.length)  { filters.push(`p."estado" = ANY($${idx++}::text[])`);  params.push(estados) }
+  if (grupos.length)   { filters.push(`p."grupoId" = ANY($${idx++}::int[])`);  params.push(grupos.map(Number)) }
+  if (etapas.length)   { filters.push(`p."estadoEspiritual" = ANY($${idx++}::text[])`); params.push(etapas) }
+  if (genero)          { filters.push(`p."genero"=$${idx++}`);                 params.push(genero) }
+  if (bautizadoAgua       != null) { filters.push(`p."bautizadoAgua"=$${idx++}`);      params.push(!!bautizadoAgua) }
+  if (bautizadoEspiritu   != null) { filters.push(`p."bautizadoEspiritu"=$${idx++}`);  params.push(!!bautizadoEspiritu) }
+  if (discipuladoCompletado != null) { filters.push(`p."discipuladoCompletado"=$${idx++}`); params.push(!!discipuladoCompletado) }
+  if (soloConTelefono)   { filters.push(`NULLIF(p."telefono",'') IS NOT NULL`) }
+  if (soloConEmail)      { filters.push(`NULLIF(p."email",'') IS NOT NULL`) }
+
+  // Inactividad: personas que no tienen registros de asistencia en los últimos N semanas
+  if (inactivoDesde && Number(inactivoDesde) > 0) {
+    const semanas = Number(inactivoDesde)
+    filters.push(`p."id" NOT IN (
+      SELECT DISTINCT a."personaId"
+      FROM "Asistencia" a
+      WHERE a."iglesiaId"=$${idx++} AND a."createdAt" >= NOW() - INTERVAL '${semanas} weeks'
+    )`)
+    params.push(iglesiaId)
+  }
+
+  const personas = await pgMany(
+    `SELECT p."id", p."nombre", p."apellido", p."telefono", p."email",
+            p."estado", p."estadoEspiritual", p."grupoId",
+            g."nombre" AS "grupoNombre"
+     FROM "Persona" p
+     LEFT JOIN "Grupo" g ON p."grupoId"=g."id"
+     WHERE ${filters.join(' AND ')}
+     ORDER BY p."nombre" ASC
+     LIMIT 500`,
+    params
+  )
+
+  res.json({
+    total: personas.length,
+    conTelefono: personas.filter(p => p.telefono).length,
+    conEmail: personas.filter(p => p.email).length,
+    muestra: personas.slice(0, 20),  // primeras 20 para preview
+    ids: personas.map(p => p.id),
+  })
+}))
+
+// POST /mensajes/masivo-segmentado — envío con segmentación avanzada
+router.post('/masivo-segmentado', requireAuth, wrap(async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId)
+  const {
+    ids = [],       // lista de personaIds ya calculada desde /segmentar
+    tipo = 'WHATSAPP',
+    mensaje,
+    asunto = 'Mensaje de la iglesia',
+  } = req.body || {}
+
+  if (!mensaje)      return res.status(400).json({ error: 'mensaje requerido' })
+  if (!ids.length)   return res.status(400).json({ error: 'No hay destinatarios seleccionados' })
+
+  const cfg = await getCfg(iglesiaId)
+  const personas = await pgMany(
+    `SELECT "id","nombre","apellido","telefono","email"
+     FROM "Persona" WHERE "iglesiaId"=$1 AND "id" = ANY($2::int[]) AND "deletedAt" IS NULL`,
+    [iglesiaId, ids.map(Number)]
+  )
+
+  let enviados = 0, errores = 0
+  const detalles = []
+
+  for (const p of personas) {
+    const destino = tipo === 'WHATSAPP' ? p.telefono : p.email
+    if (!destino) { errores++; continue }
+
+    const texto = String(mensaje)
+      .replace(/{nombre}/g, p.nombre || '')
+      .replace(/{apellido}/g, p.apellido || '')
+
+    let enviado = false, error = null
+    try {
+      if (tipo === 'WHATSAPP') { await enviarWhatsApp(cfg, destino, texto); enviado = true }
+      else if (tipo === 'EMAIL') {
+        const html = buildEmailHTML(cfg, p.nombre || 'Miembro', texto)
+        await enviarEmail(cfg, destino, asunto, html, texto)
+        enviado = true
+      }
+    } catch (e) { error = e.message; errores++ }
+
+    await pgExec(
+      `INSERT INTO "Mensaje"("iglesiaId","personaId","userId","tipo","destino","mensaje","enviado","error","createdAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,CURRENT_TIMESTAMP)`,
+      [iglesiaId, p.id, req.user.id, String(tipo), String(destino), texto, !!enviado, error || null]
+    )
+    if (enviado) enviados++
+    detalles.push({ nombre: `${p.nombre||''} ${p.apellido||''}`.trim(), enviado, error })
+  }
+
+  registrar({ userId: req.user.id, email: req.user.email, rol: req.user.rol, accion: 'MASIVO_SEGMENTADO', entidad: 'MENSAJE', entidadId: '', detalle: `${tipo} · ${enviados}/${personas.length}`, iglesiaId })
+  return res.json({ ok: true, enviados, errores, total: personas.length, detalles: detalles.slice(0, 15) })
+}))
+
 export default router
+

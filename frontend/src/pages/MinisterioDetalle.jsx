@@ -8,13 +8,13 @@ import { toast } from '../components/Toast.jsx'
 import MinIcons, { MINISTERIO_ICONS } from './MinIcons.jsx'
 
 const TABS_POR_TIPO = {
-  ALABANZA:     ['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'canciones', 'setlists', 'archivos', 'checklists'],
-  SONIDO:       ['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'equipos', 'inventario', 'archivos', 'checklists'],
-  PROYECCION:   ['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'equipos', 'inventario', 'archivos', 'checklists'],
-  NINOS:        ['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'salas', 'checkin', 'archivos', 'checklists'],
-  MANTENIMIENTO:['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'equipos', 'inventario', 'archivos', 'checklists'],
-  SEGURIDAD:    ['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'equipos', 'inventario', 'archivos', 'checklists'],
-  default:      ['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'inventario', 'archivos', 'checklists'],
+  ALABANZA:     ['panel', 'tareas', 'miembros', 'turnos', 'cobertura', 'evaluaciones', 'onboarding', 'canciones', 'setlists', 'archivos', 'checklists'],
+  SONIDO:       ['panel', 'tareas', 'miembros', 'turnos', 'cobertura', 'evaluaciones', 'onboarding', 'equipos', 'inventario', 'archivos', 'checklists'],
+  PROYECCION:   ['panel', 'tareas', 'miembros', 'turnos', 'cobertura', 'evaluaciones', 'onboarding', 'equipos', 'inventario', 'archivos', 'checklists'],
+  NINOS:        ['panel', 'tareas', 'miembros', 'turnos', 'cobertura', 'evaluaciones', 'onboarding', 'salas', 'checkin', 'archivos', 'checklists'],
+  MANTENIMIENTO:['panel', 'tareas', 'miembros', 'turnos', 'cobertura', 'evaluaciones', 'onboarding', 'equipos', 'inventario', 'archivos', 'checklists'],
+  SEGURIDAD:    ['panel', 'tareas', 'miembros', 'turnos', 'cobertura', 'evaluaciones', 'onboarding', 'equipos', 'inventario', 'archivos', 'checklists'],
+  default:      ['panel', 'tareas', 'miembros', 'turnos', 'cobertura', 'evaluaciones', 'onboarding', 'inventario', 'archivos', 'checklists'],
 }
 
 const TAB_LABELS = {
@@ -29,8 +29,10 @@ const TAB_LABELS = {
   salas:       'Salas',
   checkin:     'Check-in',
   turnos:      '🗓 Turnos',
+  cobertura:   '🔄 Cobertura',
   evaluaciones:'⭐ Evaluaciones',
   inventario:  '📦 Inventario',
+  onboarding:  '🧭 Onboarding',
 }
 
 const PRIOR_COLOR = {
@@ -1260,6 +1262,293 @@ function TabInventario({ ministerioId }) {
   )
 }
 
+// ── Tab Cobertura (#14) ──────────────────────────────────────
+const ESTADO_COB_COLOR = { PENDIENTE:'var(--c-warning)', CUBIERTO:'var(--c-success)', SIN_COBERTURA:'var(--c-danger)' }
+
+function TabCobertura({ ministerioId }) {
+  const [coberturas, setCoberturas] = useState([])
+  const [miembros, setMiembros]     = useState([])
+  const [modal, setModal]           = useState(false)
+  const [loading, setLoading]       = useState(true)
+  const [form, setForm]             = useState({ solicitanteId:'', fecha:'', rol:'SERVIDOR', motivo:'' })
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try { setCoberturas(await apiFetch(`/ministerios/${ministerioId}/coberturas`) || []) } catch {}
+    setLoading(false)
+  }, [ministerioId])
+
+  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    apiFetch(`/ministerios/${ministerioId}/miembros`).then(m => setMiembros(m||[])).catch(()=>{})
+  }, [ministerioId])
+
+  async function crear() {
+    if (!form.solicitanteId || !form.fecha) return toast.error('Completá solicitante y fecha')
+    try {
+      await apiFetch(`/ministerios/${ministerioId}/coberturas`, { method:'POST', body:JSON.stringify(form) })
+      toast.success('Pedido de cobertura creado — se notificó al equipo por WhatsApp')
+      setModal(false); setForm({ solicitanteId:'', fecha:'', rol:'SERVIDOR', motivo:'' }); load()
+    } catch(e) { toast.error(e.message) }
+  }
+
+  async function cambiarEstado(c, estado, cubiertoPorId = null) {
+    try {
+      await apiFetch(`/ministerios/${ministerioId}/coberturas/${c.id}`, { method:'PUT', body:JSON.stringify({ estado, cubiertoPorId }) })
+      load()
+    } catch(e) { toast.error(e.message) }
+  }
+
+  const pendientes = coberturas.filter(c => c.estado === 'PENDIENTE')
+  const resueltos  = coberturas.filter(c => c.estado !== 'PENDIENTE')
+
+  return (
+    <div>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+        <div style={{ display:'flex', gap:8 }}>
+          {pendientes.length > 0 && (
+            <span style={{ fontSize:12, padding:'3px 10px', borderRadius:20, background:'var(--c-warning-bg)', color:'var(--c-warning)', fontWeight:700 }}>
+              {pendientes.length} pendiente(s)
+            </span>
+          )}
+        </div>
+        <button className="btn btn-primary btn-sm" onClick={() => setModal(true)}>+ Pedir cobertura</button>
+      </div>
+
+      {loading ? <p style={{ color:'var(--text-muted)' }}>Cargando...</p>
+      : coberturas.length === 0 ? <div style={{ textAlign:'center', padding:'32px 0', color:'var(--text-muted)' }}>Sin pedidos de cobertura</div>
+      : coberturas.map(c => (
+        <div key={c.id} style={{ background:'var(--bg-2)', borderRadius:10, padding:'12px 14px', marginBottom:8, display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10 }}>
+          <div style={{ flex:1 }}>
+            <div style={{ fontWeight:600, fontSize:13 }}>{c.solicitanteNombre} {c.solicitanteApellido}</div>
+            <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:2 }}>
+              📅 {c.fecha} · {c.rol}
+              {c.motivo && <span> — {c.motivo}</span>}
+            </div>
+            {c.cubiertoPorNombre && (
+              <div style={{ fontSize:12, color:'var(--c-success)', marginTop:3 }}>
+                ✓ Cubierto por {c.cubiertoPorNombre} {c.cubiertoPorApellido}
+              </div>
+            )}
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
+            <span style={{ fontSize:11, fontWeight:700, color:ESTADO_COB_COLOR[c.estado], padding:'2px 8px', borderRadius:20, background:ESTADO_COB_COLOR[c.estado]+'18' }}>{c.estado}</span>
+            {c.estado === 'PENDIENTE' && (
+              <div style={{ display:'flex', gap:4 }}>
+                <select
+                  onChange={e => { if (e.target.value) cambiarEstado(c, 'CUBIERTO', Number(e.target.value)) }}
+                  defaultValue=""
+                  style={{ fontSize:11, padding:'3px 8px', borderRadius:8, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', cursor:'pointer' }}>
+                  <option value="">Asignar cobertura...</option>
+                  {miembros.filter(m => m.id !== c.solicitanteId).map(m => (
+                    <option key={m.id} value={m.id}>{m.nombre} {m.apellido}</option>
+                  ))}
+                </select>
+                <button onClick={() => cambiarEstado(c, 'SIN_COBERTURA')}
+                  style={{ fontSize:11, padding:'3px 8px', borderRadius:8, border:'1px solid var(--c-danger)', color:'var(--c-danger)', background:'none', cursor:'pointer' }}>
+                  Sin cobertura
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {modal && (
+        <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setModal(false)}>
+          <div className="modal">
+            <div className="modal-header"><h3 className="modal-title">Pedir cobertura</h3><button className="btn btn-ghost btn-sm" onClick={() => setModal(false)}>×</button></div>
+            <div className="modal-body" style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <div><label style={{ fontSize:12, color:'var(--text-muted)', display:'block', marginBottom:4 }}>¿Quién no puede asistir? *</label>
+                <select className="form-input" value={form.solicitanteId} onChange={e => setForm(f => ({...f, solicitanteId:e.target.value}))}>
+                  <option value="">— Seleccionar —</option>
+                  {miembros.map(m => <option key={m.id} value={m.id}>{m.nombre} {m.apellido}</option>)}
+                </select>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                <div><label style={{ fontSize:12, color:'var(--text-muted)', display:'block', marginBottom:4 }}>Fecha *</label>
+                  <input type="date" className="form-input" value={form.fecha} onChange={e => setForm(f => ({...f, fecha:e.target.value}))} /></div>
+                <div><label style={{ fontSize:12, color:'var(--text-muted)', display:'block', marginBottom:4 }}>Rol</label>
+                  <select className="form-input" value={form.rol} onChange={e => setForm(f => ({...f, rol:e.target.value}))}>
+                    {['SERVIDOR','COORDINADOR','TECNICO','APOYO'].map(r => <option key={r}>{r}</option>)}
+                  </select></div>
+              </div>
+              <div><label style={{ fontSize:12, color:'var(--text-muted)', display:'block', marginBottom:4 }}>Motivo</label>
+                <input className="form-input" placeholder="Opcional..." value={form.motivo} onChange={e => setForm(f => ({...f, motivo:e.target.value}))} /></div>
+              <p style={{ fontSize:11, color:'var(--text-muted)' }}>Se enviará un mensaje de WhatsApp a todos los miembros del ministerio.</p>
+            </div>
+            <div className="modal-footer" style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 20px' }}>
+              <button className="btn btn-ghost" onClick={() => setModal(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={crear}>Crear pedido</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Tab Onboarding (#15) ─────────────────────────────────────
+const ETAPAS_OB = ['FORMULARIO','ENTREVISTA','COMPROMISO','ACTIVO']
+const ETAPA_OB_COLOR = { FORMULARIO:'#3B82F6', ENTREVISTA:'#F59E0B', COMPROMISO:'#8B5CF6', ACTIVO:'#22C55E' }
+
+function TabOnboarding({ ministerioId }) {
+  const [data, setData]         = useState({ rows:[], dones:[], dias:[] })
+  const [miembros, setMiembros] = useState([])
+  const [modal, setModal]       = useState(false)
+  const [verDetalle, setVerDetalle] = useState(null)
+  const [loading, setLoading]   = useState(true)
+  const [form, setForm]         = useState({ personaId:'', dones:[], disponibilidad:[], notasEntrevista:'' })
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try { setData(await apiFetch(`/ministerios/${ministerioId}/onboarding`) || { rows:[], dones:[], dias:[] }) } catch {}
+    setLoading(false)
+  }, [ministerioId])
+
+  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    apiFetch(`/ministerios/${ministerioId}/miembros`).then(m => setMiembros(m||[])).catch(()=>{})
+  }, [ministerioId])
+
+  function toggleArr(key, val) {
+    setForm(f => ({ ...f, [key]: f[key].includes(val) ? f[key].filter(v => v !== val) : [...f[key], val] }))
+  }
+
+  async function guardar() {
+    if (!form.personaId) return toast.error('Seleccioná una persona')
+    try {
+      await apiFetch(`/ministerios/${ministerioId}/onboarding`, { method:'POST', body:JSON.stringify(form) })
+      toast.success('Ficha de onboarding guardada')
+      setModal(false); setForm({ personaId:'', dones:[], disponibilidad:[], notasEntrevista:'' }); load()
+    } catch(e) { toast.error(e.message) }
+  }
+
+  async function avanzarEtapa(ob) {
+    const idx = ETAPAS_OB.indexOf(ob.etapa)
+    if (idx >= ETAPAS_OB.length - 1) return
+    const nextEtapa = ETAPAS_OB[idx + 1]
+    const firmaCompromiso = nextEtapa === 'ACTIVO'
+    try {
+      await apiFetch(`/ministerios/${ministerioId}/onboarding/${ob.id}`, { method:'PUT', body:JSON.stringify({ etapa:nextEtapa, firmaCompromiso }) })
+      toast.success(`Etapa avanzada a ${nextEtapa}`)
+      load()
+    } catch(e) { toast.error(e.message) }
+  }
+
+  const ChipBtn = ({ label, active, onClick }) => (
+    <button type="button" onClick={onClick}
+      style={{ padding:'3px 10px', borderRadius:20, fontSize:11, cursor:'pointer', fontWeight:active?700:400,
+        background: active?'var(--primary)':'var(--bg-2)', color: active?'#fff':'var(--text)',
+        border: active?'none':'1px solid var(--border)' }}>
+      {label}
+    </button>
+  )
+
+  return (
+    <div>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+        <span style={{ fontSize:12, color:'var(--text-muted)' }}>{data.rows?.length || 0} voluntarios en proceso</span>
+        <button className="btn btn-primary btn-sm" onClick={() => setModal(true)}>+ Iniciar onboarding</button>
+      </div>
+
+      {loading ? <p style={{ color:'var(--text-muted)' }}>Cargando...</p>
+      : (!data.rows?.length) ? <div style={{ textAlign:'center', padding:'32px 0', color:'var(--text-muted)' }}>Sin procesos de onboarding activos</div>
+      : data.rows.map(ob => {
+        const donesArr = (() => { try { return JSON.parse(ob.dones||'[]') } catch { return [] } })()
+        const diasArr  = (() => { try { return JSON.parse(ob.disponibilidad||'[]') } catch { return [] } })()
+        return (
+          <div key={ob.id} style={{ background:'var(--bg-2)', borderRadius:10, padding:'12px 14px', marginBottom:8 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+              <div>
+                <div style={{ fontWeight:700, fontSize:13 }}>{ob.nombre} {ob.apellido}</div>
+                <div style={{ display:'flex', gap:6, marginTop:4, flexWrap:'wrap' }}>
+                  {ETAPAS_OB.map((e, i) => {
+                    const current = ob.etapa === e
+                    const done = ETAPAS_OB.indexOf(ob.etapa) > i
+                    return (
+                      <span key={e} style={{ fontSize:10, padding:'2px 8px', borderRadius:20, fontWeight:600,
+                        background: done ? ETAPA_OB_COLOR[e]+'30' : current ? ETAPA_OB_COLOR[e] : 'var(--bg)',
+                        color: done ? ETAPA_OB_COLOR[e] : current ? '#fff' : 'var(--text-muted)',
+                        border: `1px solid ${done||current ? ETAPA_OB_COLOR[e] : 'var(--border)'}` }}>
+                        {done ? '✓ ' : ''}{e}
+                      </span>
+                    )
+                  })}
+                </div>
+                {donesArr.length > 0 && <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:4 }}>Dones: {donesArr.join(', ')}</div>}
+                {diasArr.length > 0  && <div style={{ fontSize:11, color:'var(--text-muted)' }}>Disponibilidad: {diasArr.join(', ')}</div>}
+                {ob.firmaCompromiso && <div style={{ fontSize:11, color:'var(--c-success)', marginTop:2 }}>✓ Compromiso firmado {ob.fechaFirma?.slice(0,10)}</div>}
+              </div>
+              <div style={{ display:'flex', gap:6 }}>
+                <button className="btn btn-ghost btn-sm" style={{ fontSize:11 }} onClick={() => setVerDetalle(ob)}>Ver</button>
+                {ob.etapa !== 'ACTIVO' && (
+                  <button className="btn btn-primary btn-sm" style={{ fontSize:11 }} onClick={() => avanzarEtapa(ob)}>
+                    → {ETAPAS_OB[ETAPAS_OB.indexOf(ob.etapa)+1]}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Modal nuevo */}
+      {modal && (
+        <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setModal(false)}>
+          <div className="modal" style={{ maxWidth:500 }}>
+            <div className="modal-header"><h3 className="modal-title">🧭 Iniciar onboarding</h3><button className="btn btn-ghost btn-sm" onClick={() => setModal(false)}>×</button></div>
+            <div className="modal-body" style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <div><label style={{ fontSize:12, color:'var(--text-muted)', display:'block', marginBottom:4 }}>Persona *</label>
+                <select className="form-input" value={form.personaId} onChange={e => setForm(f => ({...f, personaId:e.target.value}))}>
+                  <option value="">— Seleccionar —</option>
+                  {miembros.map(m => <option key={m.id} value={m.id}>{m.nombre} {m.apellido}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:6, fontWeight:600 }}>Dones espirituales</div>
+                <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                  {(data.dones||[]).map(d => <ChipBtn key={d} label={d} active={form.dones.includes(d)} onClick={() => toggleArr('dones', d)} />)}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:6, fontWeight:600 }}>Disponibilidad</div>
+                <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                  {(data.dias||[]).map(d => <ChipBtn key={d} label={d} active={form.disponibilidad.includes(d)} onClick={() => toggleArr('disponibilidad', d)} />)}
+                </div>
+              </div>
+              <div><label style={{ fontSize:12, color:'var(--text-muted)', display:'block', marginBottom:4 }}>Notas de entrevista</label>
+                <textarea className="form-input" rows={3} value={form.notasEntrevista} onChange={e => setForm(f => ({...f, notasEntrevista:e.target.value}))} placeholder="Observaciones del proceso de admisión..."/>
+              </div>
+            </div>
+            <div className="modal-footer" style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 20px' }}>
+              <button className="btn btn-ghost" onClick={() => setModal(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={guardar}>Iniciar proceso</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal detalle */}
+      {verDetalle && (
+        <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setVerDetalle(null)}>
+          <div className="modal">
+            <div className="modal-header"><h3 className="modal-title">{verDetalle.nombre} {verDetalle.apellido}</h3><button className="btn btn-ghost btn-sm" onClick={() => setVerDetalle(null)}>×</button></div>
+            <div className="modal-body">
+              <p style={{ fontSize:13, fontWeight:600, marginBottom:8 }}>Etapa: <span style={{ color:ETAPA_OB_COLOR[verDetalle.etapa] }}>{verDetalle.etapa}</span></p>
+              {verDetalle.dones && <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:6 }}>Dones: {(() => { try { return JSON.parse(verDetalle.dones).join(', ') } catch { return '—' } })()}</p>}
+              {verDetalle.disponibilidad && <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:6 }}>Disponibilidad: {(() => { try { return JSON.parse(verDetalle.disponibilidad).join(', ') } catch { return '—' } })()}</p>}
+              {verDetalle.notasEntrevista && <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:6 }}>Notas: {verDetalle.notasEntrevista}</p>}
+              {verDetalle.firmaCompromiso && <p style={{ fontSize:12, color:'var(--c-success)' }}>✓ Compromiso firmado el {verDetalle.fechaFirma?.slice(0,10)}</p>}
+              {verDetalle.asignadoNombre && <p style={{ fontSize:12, color:'var(--text-muted)' }}>Asignado a: {verDetalle.asignadoNombre}</p>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function MinisterioDetalle() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -1346,8 +1635,10 @@ export default function MinisterioDetalle() {
           {tab === 'miembros' && <TabMiembros ministerioId={id} />}
           {tab === 'canciones' && <TabCanciones ministerioId={id} />}
           {tab === 'turnos'       && <TabTurnos ministerioId={id} />}
+          {tab === 'cobertura'    && <TabCobertura ministerioId={id} />}
           {tab === 'evaluaciones' && <TabEvaluaciones ministerioId={id} />}
           {tab === 'inventario'   && <TabInventario ministerioId={id} />}
+          {tab === 'onboarding'   && <TabOnboarding ministerioId={id} />}
           {tab === 'equipos' && <TabEquipos ministerioId={id} />}
           {tab === 'archivos' && <TabArchivos ministerioId={id} />}
           {tab === 'checklists' && <TabChecklists ministerioId={id} />}
