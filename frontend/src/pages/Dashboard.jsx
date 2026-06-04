@@ -165,15 +165,15 @@ export default function Dashboard() {
         {/* ── Stats principales ──────────────────────────────────── */}
         <div className="stats-grid dashboard-stats" style={{ gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12, marginBottom: 20 }}>
           {[
-            { val: t.personas || 0,    lbl: txt('total'),      icon:'Totales', color:'var(--primary)',   path:'/personas' },
-            { val: t.activos  || 0,    lbl: txt('active'),     icon:'OK', color:'var(--c-success)', path:'/personas' },
-            { val: t.visitantes|| 0,   lbl: txt('visitors'),   icon:'Totales', color:'var(--c-warning)', path:'/personas' },
-            { val: t.grupos   || 0,    lbl: txt('groups'),     icon:'⊞', color:'var(--c-info)',    path:'/grupos' },
-            { val: t.cultos   || 0,    lbl: txt('services'),   icon:'OK', color:'var(--c-purple)',  path:'/asistencia' },
-            { val: pct+'%',            lbl: txt('attendance'), icon:'▤', color: pctColor,          path:'/asistencia' },
+            { val: t.personas || 0,    lbl: txt('total'),      icon:<Icons.Users size={20} color='var(--primary)' />,          color:'var(--primary)',   path:'/personas' },
+            { val: t.activos  || 0,    lbl: txt('active'),     icon:<Icons.CheckCircle size={20} color='var(--c-success)' />,    color:'var(--c-success)', path:'/personas' },
+            { val: t.visitantes|| 0,   lbl: txt('visitors'),   icon:<Icons.UserPlus size={20} color='var(--c-warning)' />,       color:'var(--c-warning)', path:'/personas' },
+            { val: t.grupos   || 0,    lbl: txt('groups'),     icon:<Icons.Groups size={20} color='var(--c-info)' />,            color:'var(--c-info)',    path:'/grupos' },
+            { val: t.cultos   || 0,    lbl: txt('services'),   icon:<Icons.Attendance size={20} color='var(--c-purple)' />,      color:'var(--c-purple)',  path:'/asistencia' },
+            { val: pct+'%',            lbl: txt('attendance'), icon:<Icons.Reports size={20} color={pctColor} />,                color: pctColor,          path:'/asistencia' },
           ].map(s => (
             <div key={s.lbl} className="stat-card" onClick={() => navigate(s.path)}>
-              <div style={{ fontSize:18, marginBottom:6 }}>{s.icon}</div>
+              <div style={{ marginBottom:6 }}>{s.icon}</div>
               <div className="stat-val" style={{ color: s.color, fontSize:26 }}>{s.val}</div>
               <div className="stat-lbl">{s.lbl}</div>
             </div>
@@ -188,7 +188,7 @@ export default function Dashboard() {
             background:'var(--c-danger-bg)', border:'1px solid rgba(220,38,38,0.18)',
             transition:'opacity .15s',
           }}>
-            <span style={{ fontSize:20 }}></span>
+            <Icons.AlertTriangle size={20} color='var(--c-danger)' />
             <div style={{ flex:1 }}>
               <span style={{ fontSize:13, fontWeight:700, color:'var(--c-danger)' }}>
                 {[
@@ -231,12 +231,12 @@ export default function Dashboard() {
           {/* Próximos seguimientos */}
           <div className="card">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}>Historial {txt('followUps')}</h3>
+              <h3 style={{ fontSize:13, fontWeight:700, margin:0, display:'flex', alignItems:'center', gap:6 }}><Icons.History size={14} />{txt('followUps')}</h3>
               <button className="btn btn-ghost btn-xs" onClick={() => navigate('/alertas')}>{txt('seeAll')}</button>
             </div>
             {(stats?.proximosContactos || []).length === 0
               ? <div className="empty" style={{ padding:'20px 0' }}>
-                  <div className="empty-icon" style={{ fontSize:24 }}></div>
+                  <div className="empty-icon"><Icons.History size={24} color='var(--text-muted)' /></div>
                   <p>{txt('noFollowUps')}</p>
                 </div>
               : (stats?.proximosContactos || []).slice(0, 6).map((s, i) => {
@@ -268,41 +268,34 @@ export default function Dashboard() {
           {/* Cumpleaños */}
           <div className="card">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}>🎂 {txt('birthdays')}</h3>
+              <h3 style={{ fontSize:13, fontWeight:700, margin:0, display:'flex', alignItems:'center', gap:6 }}><Icons.Heart size={14} />{txt('birthdays')}</h3>
               <span style={{ fontSize:11, color:'var(--text-muted)' }}>{txt('next30')}</span>
             </div>
             {(stats?.cumpleanos || []).length === 0
               ? <div className="empty" style={{ padding:'20px 0' }}><p>{txt('noBirthdays')}</p></div>
-              : (stats?.cumpleanos || []).slice(0, 6).map((p, i) => {
-                  const dias = Number(p.dias ?? 0)
-                  const badgeBg = dias === 0 ? 'var(--c-success-bg)' : dias <= 3 ? 'var(--c-warning-bg)' : dias <= 7 ? 'var(--c-info-bg)' : 'var(--bg-2)'
-                  const badgeColor = dias === 0 ? 'var(--c-success)' : dias <= 3 ? 'var(--c-warning)' : dias <= 7 ? 'var(--c-info)' : 'var(--text-muted)'
-                  const badgeLabel = dias === 0 ? '¡Hoy! 🎉' : dias === 1 ? 'Mañana' : `en ${dias}d`
-                  const waLink = p.telefono
-                    ? `https://wa.me/${p.telefono.replace(/\D/g,'')}?text=${encodeURIComponent(`¡Feliz cumpleaños ${p.nombre}! 🎂🎉 La iglesia te desea un día lleno de bendiciones.`)}`
-                    : null
+              : (stats?.cumpleanos || []).slice(0, 5).map((p, i) => {
+                  const [m, d] = (p.cumDia || '').split('-').map(Number)
+                  const f = new Date(new Date().getFullYear(), m - 1, d)
+                  if (f < new Date()) f.setFullYear(f.getFullYear() + 1)
+                  const dias = Math.round((f - new Date()) / 86400000)
                   return (
-                    <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 0', borderBottom:'1px solid var(--border)' }}>
+                    <div key={i}
+                      style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 0', borderBottom:'1px solid var(--border)', cursor:'pointer' }}
+                      onClick={() => navigate(`/personas/${p.id}`)}>
                       <Avatar nombre={p.nombre} apellido={p.apellido} size={32} />
-                      <div style={{ flex:1, cursor:'pointer' }} onClick={() => navigate(`/personas/${p.id}`)}>
+                      <div style={{ flex:1 }}>
                         <div style={{ fontSize:12, fontWeight:600 }}>{p.nombre} {p.apellido}</div>
                         <div style={{ fontSize:11, color:'var(--text-muted)' }}>
                           {new Date(p.fechaNacimiento+'T12:00:00').toLocaleDateString(txt('locale'),{day:'numeric',month:'long'})}
                         </div>
                       </div>
-                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                        <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, whiteSpace:'nowrap', background:badgeBg, color:badgeColor }}>
-                          {badgeLabel}
-                        </span>
-                        {waLink && (
-                          <a href={waLink} target="_blank" rel="noopener noreferrer"
-                            title="Enviar saludo por WhatsApp"
-                            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:'#25D366', color:'#fff', fontSize:13, flexShrink:0, textDecoration:'none' }}
-                            onClick={e => e.stopPropagation()}>
-                            💬
-                          </a>
-                        )}
-                      </div>
+                      <span style={{
+                        fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, whiteSpace:'nowrap',
+                        background: dias === 0 ? 'var(--c-success-bg)' : 'var(--bg)',
+                        color: dias === 0 ? 'var(--c-success)' : 'var(--text-muted)',
+                      }}>
+                        {dias === 0 ? txt('todayBang') : txt('inDays').replace('{days}', dias)}
+                      </span>
                     </div>
                   )
                 })
@@ -311,16 +304,16 @@ export default function Dashboard() {
 
           {/* Acceso rápido */}
           <div className="card">
-            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>Groq {txt('quick')}</h3>
+            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>{txt('quick')}</h3>
             <div className="quick-actions-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.isPhone && ori.portrait ? 2 : ori.cols4},minmax(0,1fr))`, gap: ori.isPhone ? 7 : 7 }}>
               {[
-                { icon:'○', label:copy.actions[0][0], desc:copy.actions[0][1], path:'/personas',     color:'#2563EB' },
-                { icon:'OK', label:copy.actions[1][0], desc:copy.actions[1][1], path:'/asistencia',   color:'#16A34A' },
-                { icon:'WhatsApp', label:copy.actions[2][0], desc:copy.actions[2][1], path:'/checkin',      color:'#0891B2' },
-                { icon:'Email', label:copy.actions[3][0], desc:copy.actions[3][1], path:'/mensajes',     color:'#D97706' },
-                { icon:'IA', label:copy.actions[4][0], desc:copy.actions[4][1], path:'/asistente-ia', color:'#7C3AED' },
-                { icon:'Pago', label:copy.actions[5][0], desc:copy.actions[5][1], path:'/alertas',      color:'#DC2626' },
-                { icon:'▤', label:copy.actions[6][0], desc:copy.actions[6][1], path:'/reportes',     color:'#9333EA' },
+                { icon:<Icons.UserPlus />,   label:copy.actions[0][0], desc:copy.actions[0][1], path:'/personas',     color:'#2563EB' },
+                { icon:<Icons.Attendance />, label:copy.actions[1][0], desc:copy.actions[1][1], path:'/asistencia',   color:'#16A34A' },
+                { icon:<Icons.QrCode />,     label:copy.actions[2][0], desc:copy.actions[2][1], path:'/checkin',      color:'#0891B2' },
+                { icon:<Icons.Messages />,   label:copy.actions[3][0], desc:copy.actions[3][1], path:'/mensajes',     color:'#D97706' },
+                { icon:<Icons.AI />,         label:copy.actions[4][0], desc:copy.actions[4][1], path:'/asistente-ia', color:'#7C3AED' },
+                { icon:<Icons.Comunicados />,label:copy.actions[5][0], desc:copy.actions[5][1], path:'/alertas',      color:'#DC2626' },
+                { icon:<Icons.Reports />,    label:copy.actions[6][0], desc:copy.actions[6][1], path:'/reportes',     color:'#9333EA' },
               ].map(a => (
                 <button key={a.path} className="quick-action-btn" onClick={() => navigate(a.path)}
                   style={{
@@ -332,7 +325,7 @@ export default function Dashboard() {
                   }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = a.color; e.currentTarget.style.color = a.color }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)' }}>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{ fontSize:15 }}>{a.icon}</span>{a.label}</div>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>{a.icon}{a.label}</div>
                   <span style={{fontSize:11,fontWeight:400,color:'var(--text-muted)',lineHeight:1.3}}>{a.desc}</span>
                 </button>
               ))}
@@ -386,18 +379,18 @@ export default function Dashboard() {
 
           {/* Panel de estado */}
           <div className="card">
-            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}> {txt('status')}</h3>
+            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14, display:'flex', alignItems:'center', gap:6 }}><Icons.Shield size={14} />{txt('status')}</h3>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {[
-                { lbl:txt('consolidation'), val: t.consolidacionActiva || 0, icon:'Totales', path:'/consolidacion', warn: t.consolidacionActiva > 0 },
-                { lbl:txt('noTracking'), val: t.sinSeguimiento    || 0, icon:'Historial', path:'/alertas',       danger: t.sinSeguimiento > 0 },
+                { lbl:txt('consolidation'), val: t.consolidacionActiva || 0, icon:<Icons.Heart size={14} />,          path:'/consolidacion', warn: t.consolidacionActiva > 0 },
+                { lbl:txt('noTracking'), val: t.sinSeguimiento    || 0, icon:<Icons.AlertTriangle size={14} />,   path:'/alertas',       danger: t.sinSeguimiento > 0 },
               ].map(s => (
                 <div key={s.lbl} onClick={() => navigate(s.path)}
                   style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 10px', borderRadius:8, cursor:'pointer', background:'var(--bg)', border:'1px solid var(--border)', transition:'background .15s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'var(--bg)'}>
                   <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                    <span style={{ fontSize:14 }}>{s.icon}</span>
+                    {s.icon}
                     <span style={{ fontSize:12, fontWeight:500, color:'var(--text-2)' }}>{s.lbl}</span>
                   </div>
                   <span style={{
@@ -416,12 +409,12 @@ export default function Dashboard() {
             <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}><Icons.History /> {txt('recentActivity')}</h3>
             <div className="dashboard-activity-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.cols2},1fr)`, gap:0 }}>
               {(stats?.actividadReciente || []).slice(0, 8).map((a, i) => {
-                const iconMap = { CREAR:'Crear', ACTUALIZAR:'Sistema', ELIMINAR:'Sistema', MENSAJE:'Email', MASIVO:'Pago', IMPORTAR_EXCEL:'▤', BACKUP:'', LOGIN:'' }
-                const ico = iconMap[a.accion] || 'Email'
+                const iconMap = { CREAR:<Icons.Plus size={13} />, ACTUALIZAR:<Icons.Edit size={13} />, ELIMINAR:<Icons.Delete size={13} />, MENSAJE:<Icons.Messages size={13} />, MASIVO:<Icons.Send size={13} />, IMPORTAR_EXCEL:<Icons.Excel size={13} />, BACKUP:<Icons.Archive size={13} />, LOGIN:<Icons.Profile size={13} /> }
+                const ico = iconMap[a.accion] || <Icons.Mail size={13} />
                 const time = a.createdAt ? new Date(a.createdAt).toLocaleTimeString(txt('locale'),{hour:'2-digit',minute:'2-digit'}) : ''
                 return (
                   <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 0', borderBottom: i < 6 ? '1px solid var(--border)' : 'none' }}>
-                    <span style={{ fontSize:13, flexShrink:0 }}>{ico}</span>
+                    <span style={{ flexShrink:0, color:'var(--text-muted)' }}>{ico}</span>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:11, fontWeight:600, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                         {a.detalle || `${a.accion} ${a.entidad}`}
