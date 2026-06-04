@@ -5,6 +5,7 @@ import webpush from 'web-push'
 import logger from '../lib/logger.js'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
+import { sendWhatsAppText } from '../services/whatsapp.js'
 
 const router = Router()
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
@@ -120,6 +121,39 @@ export async function enviarAlertas() {
          AND to_char((NULLIF("fechaNacimiento",'')::date), 'MM-DD') = to_char(CURRENT_DATE, 'MM-DD')`,
       [iglesiaId]
     ))?.n || 0)
+
+    // ── Enviar WhatsApp de cumpleaños a cada persona que cumpla hoy ──
+    if (cumpleanos > 0) {
+      try {
+        const cumpleaneros = await pgMany(
+          `SELECT p."id", p."nombre", p."apellido", p."telefono"
+           FROM "Persona" p
+           WHERE p."iglesiaId"=$1
+             AND p."deletedAt" IS NULL
+             AND p."estado" <> 'INACTIVO'
+             AND NULLIF(p."telefono",'') IS NOT NULL
+             AND NULLIF(p."fechaNacimiento",'') IS NOT NULL
+             AND to_char((NULLIF(p."fechaNacimiento",'')::date), 'MM-DD') = to_char(CURRENT_DATE, 'MM-DD')`,
+          [iglesiaId]
+        )
+        const nombreIglesia = (await pgOne(
+          `SELECT c."valor" FROM "Configuracion" c WHERE c."iglesiaId"=$1 AND c."clave"='nombre_iglesia'`,
+          [iglesiaId]
+        ))?.valor || 'tu iglesia'
+
+        for (const p of cumpleaneros) {
+          try {
+            const mensaje = `¡Feliz cumpleaños ${p.nombre}! 🎂🎉\nToda la familia de ${nombreIglesia} te desea un día lleno de bendiciones. ¡Que Dios te siga colmando de su gracia!`
+            await sendWhatsAppText({ iglesiaId, personaId: p.id, userId: null, to: p.telefono, text: mensaje })
+            logger.info({ iglesiaId, personaId: p.id }, 'Saludo de cumpleaños enviado por WhatsApp')
+          } catch (err) {
+            logger.warn({ iglesiaId, personaId: p.id, err: err.message }, 'No se pudo enviar saludo de cumpleaños')
+          }
+        }
+      } catch (err) {
+        logger.warn({ iglesiaId, err: err.message }, 'Error procesando saludos de cumpleaños')
+      }
+    }
 
     const vencidos = Number((await pgOne(
       `SELECT COUNT(*)::int as n

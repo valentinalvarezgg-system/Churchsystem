@@ -147,22 +147,25 @@ async function dashboardStats(iglesiaId) {
   )
 
   const cumpleanosRaw = await pgMany(
-    `SELECT "id","nombre","apellido","fechaNacimiento"
+    `SELECT "id","nombre","apellido","fechaNacimiento","telefono"
        FROM "Persona"
       WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "fechaNacimiento" IS NOT NULL AND "fechaNacimiento" != ''`,
     [iglesiaId]
   )
-  const cumpleanos = cumpleanosRaw.map(p => ({ ...p, cumDia: String(p.fechaNacimiento || '').slice(5, 10) }))
-    .filter(p => {
-      const [m, d] = String(p.cumDia || '').split('-').map(Number)
-      if (!m || !d) return false
-      const target = new Date(new Date().getFullYear(), m - 1, d)
-      if (target < new Date()) target.setFullYear(target.getFullYear() + 1)
-      const days = Math.ceil((target - new Date()) / 86400000)
-      return days >= 0 && days <= 30
-    })
-    .sort((a, b) => String(a.cumDia).localeCompare(String(b.cumDia)))
-    .slice(0, 8)
+  const hoyMs = Date.now()
+  const cumpleanos = cumpleanosRaw.map(p => {
+    const cumDia = String(p.fechaNacimiento || '').slice(5, 10)
+    const [m, d] = cumDia.split('-').map(Number)
+    if (!m || !d) return null
+    const target = new Date(new Date().getFullYear(), m - 1, d)
+    target.setHours(0, 0, 0, 0)
+    if (target.getTime() < new Date().setHours(0,0,0,0)) target.setFullYear(target.getFullYear() + 1)
+    const dias = Math.ceil((target.getTime() - new Date().setHours(0,0,0,0)) / 86400000)
+    return { ...p, cumDia, dias }
+  })
+    .filter(p => p && p.dias >= 0 && p.dias <= 30)
+    .sort((a, b) => a.dias - b.dias)
+    .slice(0, 10)
 
   const crecimientoMensual = []
   for (let i = 11; i >= 0; i--) {

@@ -1680,3 +1680,59 @@ Fecha: 2026-05-31
 - Verificación:
   - `pnpm -C frontend build` ✅
   - `node -e "import('./backend/src/server.js').then(()=>console.log('server ok'))"` ✅ con `DATABASE_URL` válido
+
+---
+
+### v3.1.0 — Sprint Features: Árbol de discipulado + Cumpleaños mejorado — 2026-06-04
+
+#### Feature #1 — Árbol de discipulado visual
+
+**Objetivo:** visualizar la red de discipulado de la iglesia como un árbol interactivo, con capacidad de crear y eliminar relaciones entre personas.
+
+**Backend — `backend/src/routes/discipulado.js`**
+- Tabla `DiscipuladoRelacion` auto-creada al primer request (CREATE TABLE IF NOT EXISTS): `id`, `iglesiaId`, `discipuladorId`, `discipuladoId`, `fechaInicio`, `activo`, `notas`.
+- `GET /discipulado/arbol` → devuelve `{ nodos, links, raices }` para renderizar el grafo.
+- `GET /discipulado/arbol/personas` → lista liviana de personas con búsqueda (selector del modal).
+- `POST /discipulado/arbol` → crea relación; desactiva automáticamente la relación activa previa del discipulado (una persona solo tiene un mentor activo a la vez).
+- `DELETE /discipulado/arbol/:id` → desactiva relación (soft delete).
+- Auditoría registrada en todas las mutaciones.
+
+**Migración — `backend/migrations/v3-discipulado-arbol.sql`**
+- Script idempotente con tabla, FK y 3 índices. Opcional: el backend la crea igual en el primer uso.
+
+**Frontend — `frontend/src/pages/Discipulado.jsx`** (reescrito)
+- Tabs **Lista / Árbol** en el header de la página.
+- Tab Lista: idéntica a la anterior, sin regresiones.
+- Tab Árbol:
+  - D3 v7 cargado dinámicamente solo cuando se abre el tab (no penaliza carga inicial).
+  - Visualización jerárquica con `d3.tree()`, colores por etapa espiritual (5 paletas).
+  - Zoom con rueda + drag libre sobre el canvas SVG.
+  - Clic en nodo → panel lateral con indicadores de bautismo, mentor y lista de discípulos.
+  - Botón "Quitar" por relación desde el panel lateral.
+  - Modal "Agregar relación" con selector de personas filtrable.
+  - Estado vacío con ilustración SVG e instrucciones.
+
+**App.jsx**
+- `/discipulado` ya no redirige a `/grupos`; renderiza `Discipulado` con título "Discipulado".
+
+---
+
+#### Feature #5 — Cumpleaños y fechas importantes
+
+**Objetivo:** mejorar el widget de cumpleaños del Dashboard con urgencia visual, botón de saludo directo por WhatsApp, y envío automático de mensaje en el día.
+
+**Backend — `backend/src/routes/stats.js`**
+- Query mejorado: incluye campo `telefono` y calcula `dias` exactos server-side (ordenado más próximo primero).
+- Muestra hasta 10 personas (antes 8).
+
+**Backend — `backend/src/routes/notificaciones.js`**
+- `enviarAlertas()` ya enviaba push "N cumpleaños hoy" al staff.
+- Ahora además itera sobre cada cumpleañero con teléfono cargado y envía WhatsApp personalizado con nombre de la iglesia interpolado desde `Configuracion`.
+- Import de `sendWhatsAppText` desde `../services/whatsapp.js`.
+- Falla silenciosamente por persona (no corta el cron si un envío individual falla).
+
+**Frontend — `frontend/src/pages/Dashboard.jsx`**
+- Badge con 4 niveles de urgencia: **¡Hoy! 🎉** verde / **Mañana** naranja / **en Nd** ≤7 azul / **en Nd** resto gris.
+- Botón 💬 verde por fila que abre WhatsApp web con mensaje pre-escrito listo para enviar.
+- Click en nombre navega al perfil.
+- Muestra hasta 6 personas (antes 5).

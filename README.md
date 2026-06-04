@@ -1,4 +1,4 @@
-# Church System — v2.8.4 beta
+# Church System — v3.1.0
 
 Sistema integral de gestión pastoral para iglesias evangélicas.  
 Multi-tenant · SaaS · Mobile-first · Productivo en `churchsystem.com.ar`
@@ -265,10 +265,12 @@ Churchsystem/
 | Alertas | `/alertas` | CONSOLIDACION | ✅ |
 | Reportes | `/reportes` | CONSOLIDACION | ✅ |
 | Consolidación | `/consolidacion` | CONSOLIDACION | ✅ |
+| **Discipulado + Árbol** | `/discipulado` | CONSOLIDACION | ✅ nuevo |
 | Comunicados | `/comunicados` | GENERAL | ✅ |
 | Asistente IA | `/asistente-ia` | PREMIUM | ✅ |
 | Excel + IA | `/excel-ia` | ADMINISTRACION | ✅ |
 | Historial | `/historial` | ADMINISTRACION | ✅ |
+| Ministerios | `/ministerios` | GENERAL | ✅ |
 | Configuración | `/configuracion` | admin rol | ✅ |
 | Permisos | `/permisos` | admin rol | ✅ |
 | Usuarios | `/users` | admin rol | ✅ |

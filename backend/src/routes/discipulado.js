@@ -118,4 +118,126 @@ router.put('/:id/materiales/:material', requireAuth, async (req, res) => {
   res.json({ ok: true })
 })
 
+
+// ── Árbol de discipulado ─────────────────────────────────────
+
+// GET /discipulado/arbol — devuelve nodos + links para el grafo
+router.get('/arbol', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+
+  // Aseguramos que la tabla exista (idempotente)
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS "DiscipuladoRelacion" (
+      "id"             SERIAL PRIMARY KEY,
+      "iglesiaId"      INT NOT NULL,
+      "discipuladorId" INT NOT NULL,
+      "discipuladoId"  INT NOT NULL,
+      "fechaInicio"    DATE,
+      "activo"         BOOLEAN NOT NULL DEFAULT true,
+      "notas"          TEXT,
+      "createdAt"      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updatedAt"      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+  await pgExec(`CREATE INDEX IF NOT EXISTS "DR_iglesia_idx" ON "DiscipuladoRelacion"("iglesiaId")`)
+
+  const relaciones = await pgMany(
+    `SELECT r."id", r."discipuladorId", r."discipuladoId", r."fechaInicio", r."activo", r."notas"
+     FROM "DiscipuladoRelacion" r
+     WHERE r."iglesiaId"=$1`,
+    [iglesiaId]
+  )
+
+  // IDs de personas involucradas en relaciones
+  const ids = new Set()
+  relaciones.forEach(r => { ids.add(r.discipuladorId); ids.add(r.discipuladoId) })
+
+  let personas = []
+  if (ids.size > 0) {
+    const idList = [...ids].join(',')
+    personas = await pgMany(
+      `SELECT p."id", p."nombre", p."apellido", p."estadoEspiritual", p."bautizadoAgua", p."bautizadoEspiritu",
+              p."discipuladoCompletado",
+              (SELECT COUNT(*)::int FROM "DiscipuladoRelacion" dr2
+               WHERE dr2."iglesiaId"=$1 AND dr2."discipuladorId"=p."id" AND dr2."activo"=true) AS "totalDiscipulos"
+       FROM "Persona" p
+       WHERE p."iglesiaId"=$1 AND p."deletedAt" IS NULL AND p."id" IN (${idList})`,
+      [iglesiaId]
+    )
+  }
+
+  // Raíces: personas que discipulan pero nadie las discipula dentro de la iglesia
+  const discipuladosIds = new Set(relaciones.filter(r => r.activo).map(r => r.discipuladoId))
+  const discipuladoresIds = new Set(relaciones.filter(r => r.activo).map(r => r.discipuladorId))
+  const raices = [...discipuladoresIds].filter(id => !discipuladosIds.has(id))
+
+  res.json({
+    nodos: personas,
+    links: relaciones,
+    raices
+  })
+})
+
+// GET /discipulado/arbol/personas — lista liviana para el selector del árbol
+router.get('/arbol/personas', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  const { search } = req.query
+  const params = [iglesiaId]
+  let extraWhere = ''
+  if (search) { extraWhere = ` AND (p."nombre" ILIKE $2 OR p."apellido" ILIKE $2)`; params.push(`%${search}%`) }
+  const rows = await pgMany(
+    `SELECT p."id", p."nombre", p."apellido", p."estadoEspiritual"
+     FROM "Persona" p WHERE p."iglesiaId"=$1 AND p."deletedAt" IS NULL${extraWhere}
+     ORDER BY p."nombre" LIMIT 60`,
+    params
+  )
+  res.json(rows)
+})
+
+// POST /discipulado/arbol — crear relación
+router.post('/arbol', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  const { discipuladorId, discipuladoId, fechaInicio, notas } = req.body || {}
+  if (!discipuladorId || !discipuladoId) return res.status(400).json({ error: 'discipuladorId y discipuladoId son requeridos' })
+  if (Number(discipuladorId) === Number(discipuladoId)) return res.status(400).json({ error: 'Una persona no puede discipularse a sí misma' })
+
+  // Verificar que ambas personas pertenecen a la iglesia
+  const count = await pgOne(
+    `SELECT COUNT(*)::int AS c FROM "Persona" WHERE "iglesiaId"=$1 AND "id" IN ($2,$3) AND "deletedAt" IS NULL`,
+    [iglesiaId, Number(discipuladorId), Number(discipuladoId)]
+  )
+  if (count?.c !== 2) return res.status(404).json({ error: 'Una o ambas personas no existen en esta iglesia' })
+
+  // Si ya existe una relación activa para el discipulado, desactivarla primero
+  await pgExec(
+    `UPDATE "DiscipuladoRelacion" SET "activo"=false, "updatedAt"=NOW()
+     WHERE "iglesiaId"=$1 AND "discipuladoId"=$2 AND "activo"=true`,
+    [iglesiaId, Number(discipuladoId)]
+  )
+
+  const row = await pgOne(
+    `INSERT INTO "DiscipuladoRelacion"("iglesiaId","discipuladorId","discipuladoId","fechaInicio","notas")
+     VALUES($1,$2,$3,$4,$5) RETURNING *`,
+    [iglesiaId, Number(discipuladorId), Number(discipuladoId), fechaInicio || null, notas || null]
+  )
+  registrar({ userId: req.user.id, email: req.user.email, rol: req.user.rol, accion: 'ARBOL_CREATE', entidad: 'DISCIPULADO', entidadId: String(row.id), detalle: `${discipuladorId}→${discipuladoId}`, iglesiaId })
+  res.status(201).json(row)
+})
+
+// DELETE /discipulado/arbol/:id — eliminar / desactivar relación
+router.delete('/arbol/:id', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  await pgExec(
+    `UPDATE "DiscipuladoRelacion" SET "activo"=false,"updatedAt"=NOW()
+     WHERE "id"=$1 AND "iglesiaId"=$2`,
+    [Number(req.params.id), iglesiaId]
+  )
+  registrar({ userId: req.user.id, email: req.user.email, rol: req.user.rol, accion: 'ARBOL_DELETE', entidad: 'DISCIPULADO', entidadId: req.params.id, detalle: 'relacion desactivada', iglesiaId })
+  res.json({ ok: true })
+})
+
 export default router

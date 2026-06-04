@@ -268,34 +268,41 @@ export default function Dashboard() {
           {/* Cumpleaños */}
           <div className="card">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}> {txt('birthdays')}</h3>
+              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}>🎂 {txt('birthdays')}</h3>
               <span style={{ fontSize:11, color:'var(--text-muted)' }}>{txt('next30')}</span>
             </div>
             {(stats?.cumpleanos || []).length === 0
               ? <div className="empty" style={{ padding:'20px 0' }}><p>{txt('noBirthdays')}</p></div>
-              : (stats?.cumpleanos || []).slice(0, 5).map((p, i) => {
-                  const [m, d] = (p.cumDia || '').split('-').map(Number)
-                  const f = new Date(new Date().getFullYear(), m - 1, d)
-                  if (f < new Date()) f.setFullYear(f.getFullYear() + 1)
-                  const dias = Math.round((f - new Date()) / 86400000)
+              : (stats?.cumpleanos || []).slice(0, 6).map((p, i) => {
+                  const dias = Number(p.dias ?? 0)
+                  const badgeBg = dias === 0 ? 'var(--c-success-bg)' : dias <= 3 ? 'var(--c-warning-bg)' : dias <= 7 ? 'var(--c-info-bg)' : 'var(--bg-2)'
+                  const badgeColor = dias === 0 ? 'var(--c-success)' : dias <= 3 ? 'var(--c-warning)' : dias <= 7 ? 'var(--c-info)' : 'var(--text-muted)'
+                  const badgeLabel = dias === 0 ? '¡Hoy! 🎉' : dias === 1 ? 'Mañana' : `en ${dias}d`
+                  const waLink = p.telefono
+                    ? `https://wa.me/${p.telefono.replace(/\D/g,'')}?text=${encodeURIComponent(`¡Feliz cumpleaños ${p.nombre}! 🎂🎉 La iglesia te desea un día lleno de bendiciones.`)}`
+                    : null
                   return (
-                    <div key={i}
-                      style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 0', borderBottom:'1px solid var(--border)', cursor:'pointer' }}
-                      onClick={() => navigate(`/personas/${p.id}`)}>
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 0', borderBottom:'1px solid var(--border)' }}>
                       <Avatar nombre={p.nombre} apellido={p.apellido} size={32} />
-                      <div style={{ flex:1 }}>
+                      <div style={{ flex:1, cursor:'pointer' }} onClick={() => navigate(`/personas/${p.id}`)}>
                         <div style={{ fontSize:12, fontWeight:600 }}>{p.nombre} {p.apellido}</div>
                         <div style={{ fontSize:11, color:'var(--text-muted)' }}>
                           {new Date(p.fechaNacimiento+'T12:00:00').toLocaleDateString(txt('locale'),{day:'numeric',month:'long'})}
                         </div>
                       </div>
-                      <span style={{
-                        fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, whiteSpace:'nowrap',
-                        background: dias === 0 ? 'var(--c-success-bg)' : 'var(--bg)',
-                        color: dias === 0 ? 'var(--c-success)' : 'var(--text-muted)',
-                      }}>
-                        {dias === 0 ? txt('todayBang') : txt('inDays').replace('{days}', dias)}
-                      </span>
+                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, whiteSpace:'nowrap', background:badgeBg, color:badgeColor }}>
+                          {badgeLabel}
+                        </span>
+                        {waLink && (
+                          <a href={waLink} target="_blank" rel="noopener noreferrer"
+                            title="Enviar saludo por WhatsApp"
+                            style={{ display:'flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, background:'#25D366', color:'#fff', fontSize:13, flexShrink:0, textDecoration:'none' }}
+                            onClick={e => e.stopPropagation()}>
+                            💬
+                          </a>
+                        )}
+                      </div>
                     </div>
                   )
                 })

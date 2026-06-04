@@ -154,7 +154,7 @@ export default function App() {
           <Route path="/mensajes"      element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="mensajes"><Mensajes /></UpgradeGate>} />} />
           <Route path="/alertas"       element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="alertas"><Alertas /></UpgradeGate>} />} />
           <Route path="/reportes"      element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="reportes"><Reportes /></UpgradeGate>} />} />
-          <Route path="/discipulado"   element={<Navigate to="/grupos" replace />} />
+          <Route path="/discipulado"   element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="consolidacion"><Consolidacion title="Discipulado" /></UpgradeGate>} />} />
           <Route path="/consolidacion" element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="consolidacion"><Consolidacion title="Consolidación" /></UpgradeGate>} />} />
           <Route path="/finanzas"      element={<Navigate to="/" replace />} />
           <Route path="/oracion"       element={<Navigate to="/" replace />} />
