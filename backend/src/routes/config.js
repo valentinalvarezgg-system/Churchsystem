@@ -3,19 +3,12 @@ import jwt from 'jsonwebtoken'
 import { pgExec } from '../lib/pg.js'
 import { requireAuth, requireRol } from '../middlewares/auth.js'
 import { sendNotificationEmail, systemFrom } from '../lib/email.js'
+import { getContactMailStatus, runContactMailSmoke } from '../lib/contact-mail.js'
 import { buildGoogleDriveAuthUrl } from '../lib/google-drive.js'
 import { readTenantConfig } from '../lib/tenant-config.js'
 
 const router = Router()
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
-
-const CONTACT_EMAILS = [
-  'contacto@churchsystem.com.ar',
-  'ventas@churchsystem.com.ar',
-  'soporte@churchsystem.com.ar',
-  'legal@churchsystem.com.ar',
-  'seguridad@churchsystem.com.ar',
-]
 
 const ALLOWED = [
   'nombre_iglesia', 'direccion', 'telefono_iglesia', 'email_iglesia', 'pastor_nombre', 'sitio_web',
@@ -89,7 +82,7 @@ function emailDiagnostics(cfg = {}) {
     fromEmail,
     domain,
     domainLooksValid: expectedDomains.includes(domain),
-    contactEmails: CONTACT_EMAILS,
+    contactMail: getContactMailStatus(),
     render: {
       requiredVars: renderVars.map(name => ({ name, configured: !!process.env[name] })),
       missing,
@@ -273,6 +266,21 @@ router.post('/email-test', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async
   } catch (err) {
     return res.status(500).json({ ok: false, error: err.message, diagnostics: diag })
   }
+}))
+
+router.post('/contact-mail-smoke', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res) => {
+  const mode = String(req.body?.mode || 'outbound').toLowerCase()
+  const alias = String(req.body?.alias || 'soporte').toLowerCase()
+  if (!['outbound', 'inbound'].includes(mode)) {
+    return res.status(400).json({ ok: false, error: 'mode debe ser outbound o inbound' })
+  }
+  const result = await runContactMailSmoke({
+    mode,
+    alias,
+    actorEmail: req.user.email,
+    source: `config:${req.user.iglesiaId || 'global'}`,
+  })
+  return res.json({ ok: true, ...result, contactMail: getContactMailStatus() })
 }))
 
 router.put('/', requireAuth, requireRol('PASTOR_GENERAL'), wrap(async (req, res) => {

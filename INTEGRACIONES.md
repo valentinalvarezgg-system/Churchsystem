@@ -13,16 +13,28 @@ Todas las variables van en `backend/.env` (ver `backend/.env.example`).
 |----------|-------------|
 | `RESEND_API_KEY` | API key obtenida en resend.com |
 | `EMAIL_FROM` | Dirección remitente (ej. `Church System <no-reply@churchsystem.com.ar>`) |
+| `RESEND_INBOUND_SECRET` | Secreto compartido para el webhook inbound de Resend |
+| `ADMIN_CONTACT_EMAIL` | Fallback seguro para aliases de contacto (default: `admin@churchsystem.com.ar`) |
+| `CONTACT_EMAIL` | Inbox real para `contacto@churchsystem.com.ar` |
+| `SALES_EMAIL` | Inbox real para `ventas@churchsystem.com.ar` |
+| `SUPPORT_EMAIL` | Inbox real para `soporte@churchsystem.com.ar` |
+| `LEGAL_EMAIL` | Inbox real para `legal@churchsystem.com.ar` |
+| `SECURITY_EMAIL` | Inbox real para `seguridad@churchsystem.com.ar` |
+| `OWNER_REPORTS_EMAIL` | Inbox dueña/operativa; sigue siendo válido como fallback secundario |
 
 **Archivos que lo usan:**
 - `backend/src/lib/email.js` — inicialización lazy, funciones `sendSystemEmail()` y `sendNotificationEmail()`
+- `backend/src/lib/contact-mail.js` — resolución centralizada de aliases, fallback a admin y smoke tests outbound/inbound
 - `backend/src/routes/auth.js` — email de bienvenida al registrarse
 - `backend/src/routes/verificacion.js` — código de verificación de 6 dígitos
 - `backend/src/routes/iglesia.js` — aviso al regenerar token
 - `backend/src/routes/bug-report.js` — reenvío de bug reports
-- `backend/src/routes/config.js` — diagnóstico del estado del servicio
+- `backend/src/routes/config.js` — diagnóstico del estado del servicio + smoke test de contacto
+- `backend/src/routes/godmode.js` — estado global de aliases + smoke test operativo
+- `backend/src/routes/resend-inbound.js` — webhook inbound de Resend con ruteo centralizado
+- `backend/scripts/smoke-contact-mail.sh` — smoke flow CLI para outbound + inbound
 
-**Notas:** Si `RESEND_API_KEY` no está definida, el servidor arranca igual y los emails se saltean sin crash.
+**Notas:** Si `RESEND_API_KEY` no está definida, el servidor arranca igual y los emails se saltean sin crash. Si los aliases de Google Workspace todavía no existen, el sistema enruta `ventas/soporte/legal/seguridad/contacto` hacia `admin@churchsystem.com.ar` sin romper el flujo.
 
 ---
 

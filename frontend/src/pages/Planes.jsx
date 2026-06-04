@@ -3,6 +3,7 @@ import Layout from '../components/Layout.jsx'
 import { apiFetch, getStoredContext } from '../services/api.js'
 import { usePlan } from '../hooks/usePlan.js'
 import { COMMERCIAL_PLAN_ORDER, getCommercialPlanUi } from '../lib/commercialPlans.js'
+import { EMAILS } from '../utils/legal.js'
 
 function CheckIcon({ color = '#22c55e', size = 16 }) {
   return (
@@ -402,7 +403,7 @@ export default function Planes() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)' }}>
             <CheckIcon color="var(--primary)" />
-            <a href="mailto:ventas@churchsystem.com.ar" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+            <a href={`mailto:${EMAILS.ventas}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>
               {tt.contact}
             </a>
           </div>

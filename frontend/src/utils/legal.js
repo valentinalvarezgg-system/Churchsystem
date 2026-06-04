@@ -1,12 +1,24 @@
-export const EMAILS = {
-  contacto:   'contacto@churchsystem.com.ar',
-  ventas:     'ventas@churchsystem.com.ar',
-  soporte:    'soporte@churchsystem.com.ar',
-  legal:      'legal@churchsystem.com.ar',
-  seguridad:  'seguridad@churchsystem.com.ar',
-  privacidad: 'legal@churchsystem.com.ar',
-  noreply:    'no-reply@send.churchsystem.com.ar',
+export const CONTACT_ADMIN_EMAIL = 'admin@churchsystem.com.ar'
+export const CONTACT_ALIAS_EMAILS = {
+  contacto: 'contacto@churchsystem.com.ar',
+  ventas: 'ventas@churchsystem.com.ar',
+  soporte: 'soporte@churchsystem.com.ar',
+  legal: 'legal@churchsystem.com.ar',
+  seguridad: 'seguridad@churchsystem.com.ar',
 }
+export const EMAILS = {
+  ...CONTACT_ALIAS_EMAILS,
+  admin: CONTACT_ADMIN_EMAIL,
+  privacidad: CONTACT_ALIAS_EMAILS.legal,
+  noreply: 'no-reply@send.churchsystem.com.ar',
+}
+export const CONTACT_CHANNELS = [
+  { key: 'soporte', label: 'Soporte general', email: EMAILS.soporte, desc: 'Problemas y consultas técnicas' },
+  { key: 'ventas', label: 'Ventas', email: EMAILS.ventas, desc: 'Planes, precios y demos' },
+  { key: 'contacto', label: 'Contacto', email: EMAILS.contacto, desc: 'Consultas generales' },
+  { key: 'legal', label: 'Legal / Privacidad', email: EMAILS.legal, desc: 'Contratos, datos y baja' },
+  { key: 'seguridad', label: 'Seguridad', email: EMAILS.seguridad, desc: 'Vulnerabilidades e incidentes' },
+]
 export const SITIO = 'https://churchsystem.com.ar'
 export const VERSION_LEGAL = '0.1-beta'
 export const FECHA_LEGAL = '28 de mayo de 2026'
@@ -16,4 +28,4 @@ export const TEXTOS = {
   beta: 'Esta cuenta está en etapa beta. Algunas funciones pueden cambiar o fallar. No uses Church System como único respaldo de información crítica.',
   login: 'Ingresá solo desde dispositivos confiables. Cerrá sesión al terminar en computadoras compartidas.',
 }
-export default { EMAILS, SITIO, VERSION_LEGAL, TEXTOS }
+export default { EMAILS, CONTACT_ALIAS_EMAILS, CONTACT_ADMIN_EMAIL, CONTACT_CHANNELS, SITIO, VERSION_LEGAL, TEXTOS }

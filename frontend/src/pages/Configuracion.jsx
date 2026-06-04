@@ -4,6 +4,7 @@ import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import BtnNotificaciones from '../components/BtnNotificaciones.jsx'
 import { apiFetch, getStoredContext } from '../services/api.js'
+import { CONTACT_CHANNELS, EMAILS } from '../utils/legal.js'
 import { APP_VERSION } from '../version.js'
 
 const CATEGORIAS = [
@@ -286,6 +287,8 @@ export default function Configuracion() {
   const [collapsed, setCollapsed]   = useState({})
   const [emailDiag, setEmailDiag]   = useState(null)
   const [testingEmail, setTestingEmail] = useState(false)
+  const [contactAlias, setContactAlias] = useState('soporte')
+  const [smokeRunning, setSmokeRunning] = useState('')
   const [loadError, setLoadError] = useState(null)
   const [driveConnecting, setDriveConnecting] = useState(false)
   const publicOrigin = window.location.origin.replace('/app', '')
@@ -382,6 +385,26 @@ export default function Configuracion() {
       setMsg({ type:'error', text: err.message })
     } finally {
       setTestingEmail(false)
+    }
+  }
+
+  async function runContactMailSmoke(mode) {
+    setSmokeRunning(mode)
+    setMsg(null)
+    try {
+      const res = await apiFetch('/config/contact-mail-smoke', {
+        method: 'POST',
+        body: JSON.stringify({ mode, alias: contactAlias }),
+      })
+      setEmailDiag(prev => ({ ...(prev || {}), contactMail: res.contactMail || prev?.contactMail }))
+      setMsg({
+        type: 'success',
+        text: `${mode === 'inbound' ? 'Smoke inbound' : 'Smoke outbound'} enviado para ${res.publicEmail} y ruteado a ${res.routedTo}.`,
+      })
+    } catch (err) {
+      setMsg({ type: 'error', text: err.message })
+    } finally {
+      setSmokeRunning('')
     }
   }
 
@@ -731,6 +754,47 @@ export default function Configuracion() {
                     )}
                   </div>
                 )}
+                {emailDiag?.contactMail && (
+                  <div style={{marginTop:16,padding:'14px 16px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,marginBottom:12,flexWrap:'wrap'}}>
+                      <div>
+                        <p style={{fontSize:11,fontWeight:600,marginBottom:4,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Aliases de contacto</p>
+                        <div style={{fontSize:13,color:'var(--text)'}}>
+                          Fallback seguro actual: <strong>{emailDiag.contactMail.adminFallbackEmail}</strong>
+                        </div>
+                      </div>
+                      <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                        <select className="form-input" value={contactAlias} onChange={e => setContactAlias(e.target.value)} style={{minWidth:140}}>
+                          {(emailDiag.contactMail.aliases || []).map(alias => (
+                            <option key={alias.key} value={alias.key}>{alias.label}</option>
+                          ))}
+                        </select>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => runContactMailSmoke('outbound')} disabled={!!smokeRunning}>
+                          {smokeRunning === 'outbound' ? 'Enviando...' : 'Smoke outbound'}
+                        </button>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => runContactMailSmoke('inbound')} disabled={!!smokeRunning}>
+                          {smokeRunning === 'inbound' ? 'Probando...' : 'Smoke inbound'}
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:8}}>
+                      {(emailDiag.contactMail.aliases || []).map(alias => (
+                        <div key={alias.key} style={{padding:'10px 12px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r)'}}>
+                          <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.4,marginBottom:4}}>{alias.label}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:'var(--text)',marginBottom:2}}>{alias.publicEmail}</div>
+                          <div style={{fontSize:11,color:'var(--text-muted)',lineHeight:1.5}}>
+                            Destino: {alias.targetEmail}
+                            <br />
+                            {alias.usingFallback ? 'Fallback admin activo' : `Configurado via ${alias.resolvedFrom}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:10,lineHeight:1.6}}>
+                      {emailDiag.contactMail.recommendedNextStep}
+                    </div>
+                  </div>
+                )}
                 <div style={{marginTop:16,padding:'14px 16px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
                   <p style={{fontSize:11,fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Para activar Resend</p>
                   <ol style={{paddingLeft:16,fontSize:13,color:'var(--text-2)',lineHeight:2}}>
@@ -852,13 +916,7 @@ export default function Configuracion() {
       <div style={{marginTop:32}}>
         <h2 style={{fontSize:13,fontWeight:700,textTransform:'uppercase',letterSpacing:.5,color:'var(--text-muted)',marginBottom:16}}>Contacto y soporte</h2>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:10}}>
-          {[
-            {label:'Soporte general',email:'soporte@churchsystem.com.ar',desc:'Problemas y consultas técnicas'},
-            {label:'Ventas',email:'ventas@churchsystem.com.ar',desc:'Planes, precios y demos'},
-            {label:'Contacto',email:'contacto@churchsystem.com.ar',desc:'Consultas generales'},
-            {label:'Legal / Privacidad',email:'legal@churchsystem.com.ar',desc:'Contratos, datos y baja'},
-            {label:'Seguridad',email:'seguridad@churchsystem.com.ar',desc:'Vulnerabilidades e incidentes'},
-          ].map(item=>(
+          {CONTACT_CHANNELS.map(item=>(
             <a key={item.label} href={`mailto:${item.email}`}
               style={{padding:'14px 16px',background:'var(--surface)',border:'1px solid var(--border)',
                 borderRadius:12,textDecoration:'none',display:'block',transition:'border-color .15s'}}
@@ -897,7 +955,7 @@ export default function Configuracion() {
           <strong style={{color:'var(--c-warning)'}}>Advertencia Beta v{APP_VERSION}:</strong>{' '}
           Plataforma en etapa beta. Algunas funciones pueden cambiar o fallar.
           Para baja o exportación de datos:{' '}
-          <a href="mailto:legal@churchsystem.com.ar" style={{color:'var(--primary)'}}>legal@churchsystem.com.ar</a>
+          <a href={`mailto:${EMAILS.legal}`} style={{color:'var(--primary)'}}>{EMAILS.legal}</a>
         </div>
       </div>
 

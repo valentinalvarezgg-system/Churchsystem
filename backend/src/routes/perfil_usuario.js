@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import { pgExec, pgOne } from '../lib/pg.js'
+import { getPublicContactEmail } from '../lib/contact-mail.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { sendNotificationEmail } from '../lib/email.js'
 
@@ -69,7 +70,7 @@ router.put('/', requireAuth, wrap(async (req, res) => {
         lines: [
           `Codigo: ${code}`,
           'Expira en 10 minutos.',
-          'Si no fuiste vos, cambia tu password y avisa a seguridad@churchsystem.com.ar.',
+          `Si no fuiste vos, cambiá tu password y avisá a ${getPublicContactEmail('seguridad')}.`,
         ],
       }).catch(() => {})
 
@@ -99,7 +100,7 @@ router.put('/', requireAuth, wrap(async (req, res) => {
       subject: 'Password actualizado - Church System',
       title: 'Tu password fue actualizado',
       intro: 'Este aviso confirma un cambio de password en tu cuenta.',
-      lines: ['Si no reconoces esta accion, contacta a seguridad@churchsystem.com.ar.'],
+      lines: [`Si no reconocés esta acción, contactá a ${getPublicContactEmail('seguridad')}.`],
     }).catch(() => {})
 
     return res.json({ ok: true })
@@ -134,7 +135,7 @@ router.delete('/cuenta', requireAuth, wrap(async (req, res) => {
     subject: 'Cuenta eliminada — Church System',
     title: 'Tu cuenta fue eliminada',
     intro: 'Tus datos serán eliminados en los próximos 30 días.',
-    lines: ['Si fue un error, contactá a soporte@churchsystem.com.ar dentro de 48 horas.'],
+    lines: [`Si fue un error, contactá a ${getPublicContactEmail('soporte')} dentro de 48 horas.`],
   }).catch(() => {})
 
   return res.json({ ok: true })

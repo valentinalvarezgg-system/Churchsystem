@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { getContactMailRecipients } from '../lib/contact-mail.js'
 import logger from '../lib/logger.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { sendSystemEmail } from '../lib/email.js'
@@ -10,9 +11,7 @@ router.post('/', requireAuth, async (req, res) => {
   const { email, nombre, iglesia } = req.user
 
   try {
-    const ownerInbox = String(process.env.OWNER_REPORTS_EMAIL || '').trim()
-    const supportInbox = String(process.env.SUPPORT_EMAIL || 'soporte@churchsystem.com.ar').trim()
-    const recipients = [ownerInbox, supportInbox].filter(Boolean)
+    const recipients = getContactMailRecipients(['contacto', 'soporte'])
     const result = await sendSystemEmail({
       to: recipients,
       subject: ` Bug Report - ${iglesia || 'Usuario'}`,

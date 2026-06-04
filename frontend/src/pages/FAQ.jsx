@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { EMAILS } from '../utils/legal.js'
+import { CONTACT_CHANNELS, EMAILS } from '../utils/legal.js'
 
 const c = { bg:'#0A0E1A', surf:'rgba(30,41,59,0.85)', border:'rgba(255,255,255,0.08)',
   text:'#F1F5F9', text2:'#CBD5E1', muted:'#64748B', pri:'#6B5CFF' }
@@ -23,7 +23,7 @@ const FAQS = [
       { q:'¿Puedo cargar datos de miembros?', a:'Sí, siempre que la organización tenga base legal o consentimiento suficiente y los datos sean necesarios para la gestión comunitaria.' },
       { q:'¿Puedo cargar datos de menores?', a:'Solo si la organización cuenta con autorización de padres, tutores o representantes legales, y si la carga es estrictamente necesaria.' },
       { q:'¿Puedo exportar mis datos?', a:'Sí. La organización puede solicitar exportación de su información desde el panel o contactando a soporte.' },
-      { q:'¿Puedo eliminar mi cuenta?', a:'Sí. Escribí a legal@churchsystem.com.ar. Algunos datos pueden conservarse temporalmente por obligaciones legales o backups técnicos.' },
+      { q:'¿Puedo eliminar mi cuenta?', a:`Sí. Escribí a ${EMAILS.legal}. Algunos datos pueden conservarse temporalmente por obligaciones legales o backups técnicos.` },
     ]
   },
   {
@@ -39,7 +39,7 @@ const FAQS = [
     items: [
       { q:'¿Qué planes están disponibles?', a:'Líder ($15/mes), Culto ($30/mes), Consolidación ($50/mes), Administración ($80/mes) y General ($120/mes). Todos con 14 días de prueba gratis.' },
       { q:'¿Cómo se procesa el pago?', a:'Los pagos se gestionan a través de MercadoPago. Church System no almacena datos de tarjetas.' },
-      { q:'¿Puedo cambiar de plan?', a:'Sí. Podés solicitar cambio de plan desde Configuración o escribiendo a ventas@churchsystem.com.ar.' },
+      { q:'¿Puedo cambiar de plan?', a:`Sí. Podés solicitar cambio de plan desde Configuración o escribiendo a ${EMAILS.ventas}.` },
       { q:'¿Qué pasa si no pago?', a:'El acceso a funcionalidades pagas puede suspenderse. La información se conserva durante un período razonable.' },
     ]
   },
@@ -121,12 +121,7 @@ export default function FAQ() {
             Escribinos directamente. Te respondemos a la brevedad.
           </p>
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:10}}>
-            {[
-              { label:'Soporte general', email:EMAILS.soporte, desc:'Problemas técnicos y consultas' },
-              { label:'Ventas', email:EMAILS.ventas, desc:'Planes, precios y demos' },
-              { label:'Legal / Privacidad', email:EMAILS.legal, desc:'Contratos y datos personales' },
-              { label:'Seguridad', email:EMAILS.seguridad, desc:'Vulnerabilidades e incidentes' },
-            ].map(item => (
+            {CONTACT_CHANNELS.filter(item => item.key !== 'contacto').map(item => (
               <a key={item.label} href={`mailto:${item.email}`}
                 style={{padding:'14px', background:'rgba(107,92,255,0.06)',
                   border:'1px solid rgba(107,92,255,0.15)', borderRadius:12,

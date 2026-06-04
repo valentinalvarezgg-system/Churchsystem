@@ -9,7 +9,8 @@
     "start": "node src/server.js",
     "backup:postgres": "bash ./scripts/backup-postgres.sh",
     "audit:launch": "node ./scripts/launch-audit.mjs",
-    "verify:whatsapp": "node ./scripts/verify-whatsapp.mjs"
+    "verify:whatsapp": "node ./scripts/verify-whatsapp.mjs",
+    "smoke:contact-mail": "bash ./scripts/smoke-contact-mail.sh"
   },
   "dependencies": {
     "@prisma/client": "^6.11.1",

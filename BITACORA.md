@@ -201,6 +201,14 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 ## EN CURSO
 - Ninguno. Último bloque cerrado: `v2.8.3/block-01`.
 
+### 2026-06-03 — Contact mail hardening (Resend + Workspace)
+- **Centralizado:** se creó `backend/src/lib/contact-mail.js` para resolver `contacto/ventas/soporte/legal/seguridad` desde un único lugar, con fallback seguro a `admin@churchsystem.com.ar` cuando el alias real todavía no está configurado en Google Workspace.
+- **Sin romper rutas existentes:** el webhook inbound de Resend ahora reutiliza la misma resolución centralizada, y bug reports / avisos de seguridad dejaron de depender de direcciones hardcodeadas dispersas.
+- **Smoke tests:** se agregaron smoke tests outbound + inbound desde backend (`POST /config/contact-mail-smoke`, `POST /godmode/mail-test`) y un script CLI `backend/scripts/smoke-contact-mail.sh`.
+- **Visibilidad operativa:** Configuración → Email y GodMode ahora muestran el estado real de cada alias, el destino efectivo, si está corriendo con fallback admin y botones para disparar pruebas rápidas.
+- **Frontend:** se centralizaron los mails de contacto en `frontend/src/utils/legal.js` para FAQ, Planes, Setup Wizard y tarjetas de soporte.
+- **Verificación:** `cd frontend && pnpm build` ✅ · `cd backend && pnpm audit:launch` ✅ · smoke helper local outbound/inbound en modo demo ✅
+
 ### 2026-06-03 — Landing comercial alineado a catálogo v2.9.0
 - **Actualizado:** `landing/index.html` ahora comunica la propuesta actual del producto: onboarding, QR, IA, multi-iglesia, ministerios conectados a Google Drive y operación por roles.
 - **Planes nuevos:** la landing dejó atrás la grilla vieja de 3 planes y ahora muestra las 2 líneas comerciales reales:

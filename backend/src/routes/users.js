@@ -2,6 +2,7 @@ import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth, requireRol } from '../middlewares/auth.js'
+import { getPublicContactEmail } from '../lib/contact-mail.js'
 import { registrar } from '../utils/auditoria.js'
 import { sendNotificationEmail } from '../lib/email.js'
 
@@ -97,7 +98,7 @@ router.put('/:id', requireAuth, ADMIN, async (req, res) => {
       subject: 'Password actualizado por administrador - Church System',
       title: 'Tu password fue actualizado',
       intro: `${req.user.email} actualizó tu password desde gestión de usuarios.`,
-      lines: ['Si no reconocés esta acción, contactá a seguridad@churchsystem.com.ar.'],
+      lines: [`Si no reconocés esta acción, contactá a ${getPublicContactEmail('seguridad')}.`],
     }).catch(() => {})
   }
 

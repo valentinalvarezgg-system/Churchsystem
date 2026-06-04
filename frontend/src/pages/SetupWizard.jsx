@@ -3,6 +3,7 @@ import Icons from '../components/Icons.jsx'
 import BrandLogo from '../components/BrandLogo.jsx'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, getUser } from '../services/api.js'
+import { EMAILS } from '../utils/legal.js'
 
 const PASOS = [
   { id: 'iglesia',      icon: '▦', titulo: 'Tu iglesia',          sub: 'Nombre, dirección y pastor' },
@@ -243,7 +244,7 @@ export default function SetupWizard({ onCompleto }) {
                     Email con Resend configurado
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
-                    Los emails salen desde noreply@churchsystem.com.ar
+                    Los emails salen desde {EMAILS.noreply}
                   </div>
                 </div>
 

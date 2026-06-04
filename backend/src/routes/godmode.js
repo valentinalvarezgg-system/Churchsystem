@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { normalizePlan, PLANES } from '../lib/billing.js'
-import { sendNotificationEmail } from '../lib/email.js'
+import { getContactMailStatus, runContactMailSmoke } from '../lib/contact-mail.js'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
@@ -217,8 +217,9 @@ router.get('/overview', requireAuth, requireGodMode, async (_req, res) => {
     pagoRegistrado: paidChurchIds.has(Number(ch.id)),
   }))
 
+  const contactMail = getContactMailStatus()
   const ownerInbox = String(process.env.OWNER_REPORTS_EMAIL || '').trim().toLowerCase()
-  const supportInbox = String(process.env.SUPPORT_EMAIL || 'soporte@churchsystem.com.ar').trim().toLowerCase()
+  const supportInbox = contactMail.aliases.find(alias => alias.key === 'soporte')?.targetEmail || contactMail.adminFallbackEmail
 
   res.json({
     kpis: {
@@ -232,9 +233,10 @@ router.get('/overview', requireAuth, requireGodMode, async (_req, res) => {
     recentPayments: payments,
     oauthAccounts: oauth,
     mailConfigs: mailCfg,
+    contactMail,
     mailboxHint: {
-      info: 'Para centralizar reportes, usar OWNER_REPORTS_EMAIL y reenviar soporte/bugs ahí.',
-      recommended: ownerInbox || 'reports@churchsystem.com.ar',
+      info: 'Para centralizar reportes, usar aliases/forwards de Workspace y dejar admin@churchsystem.com.ar como fallback.',
+      recommended: ownerInbox || contactMail.adminFallbackEmail,
       ownerInboxConfigured: !!ownerInbox,
       ownerInbox,
       supportInbox,
@@ -294,20 +296,20 @@ router.post('/transferencias/aprobar', requireAuth, requireGodMode, async (req, 
 })
 
 router.post('/mail-test', requireAuth, requireGodMode, async (req, res) => {
-  const ownerInbox = String(process.env.OWNER_REPORTS_EMAIL || '').trim()
-  if (!ownerInbox) return res.status(400).json({ ok: false, error: 'OWNER_REPORTS_EMAIL no configurado' })
-  const result = await sendNotificationEmail({
-    to: ownerInbox,
-    subject: 'GodMode mail test - Church System',
-    title: 'Prueba de inbox central',
-    intro: 'Este es un envío de verificación desde GodMode.',
-    lines: [
-      `Usuario: ${req.user.email}`,
-      `Fecha: ${new Date().toISOString()}`,
-      'Si recibiste este mail, la ruta de reportes central está operativa.',
-    ],
+  const mode = String(req.body?.mode || 'outbound').toLowerCase()
+  const alias = String(req.body?.alias || 'soporte').toLowerCase()
+
+  if (!['outbound', 'inbound'].includes(mode)) {
+    return res.status(400).json({ ok: false, error: 'mode debe ser outbound o inbound' })
+  }
+
+  const result = await runContactMailSmoke({
+    mode,
+    alias,
+    actorEmail: req.user.email,
+    source: 'godmode',
   })
-  return res.json({ ok: true, result, ownerInbox })
+  return res.json({ ok: true, ...result, contactMail: getContactMailStatus() })
 })
 
 export default router
