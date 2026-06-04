@@ -1736,3 +1736,55 @@ Fecha: 2026-05-31
 - Botón 💬 verde por fila que abre WhatsApp web con mensaje pre-escrito listo para enviar.
 - Click en nombre navega al perfil.
 - Muestra hasta 6 personas (antes 5).
+
+---
+
+#### Feature #8 — Estadísticas de crecimiento por grupo
+
+**Backend — `backend/src/routes/grupos.js`**
+- `GET /grupos/:id/stats` → crecimiento mensual (12 meses), distribución por etapa espiritual, por estado (ACTIVO/VISITANTE/INACTIVO), KPIs (total/bautizados/discipulado completo), último miembro ingresado.
+
+**Frontend — `frontend/src/pages/Grupos.jsx`** (reescrito)
+- Modal de detalle ahora tiene tabs **Miembros / 📊 Estadísticas**.
+- Tab Estadísticas: Chart.js cargado dinámicamente, barra de crecimiento mensual + 2 donuts (etapa espiritual y estado), 3 KPIs y badge del último ingreso.
+- Colores de etapa y estado consistentes con el resto del sistema.
+
+---
+
+#### Feature #17 — Programación de mensajes
+
+**Backend — `backend/src/routes/comunicados.js`** (reescrito)
+- `POST /comunicados` acepta `scheduledAt` (datetime). `ALTER TABLE IF NOT EXISTS` agrega la columna idempotentemente.
+- `GET /comunicados` filtra solo publicados (`scheduledAt IS NULL OR scheduledAt <= NOW()`).
+- `GET /comunicados/programados` → lista de pendientes de publicar para admins.
+- `PUT /comunicados/:id` persiste `scheduledAt`.
+
+**Frontend — `frontend/src/pages/Comunicados.jsx`** (reescrito)
+- Campo `datetime-local` de programación en el modal con preview de fecha/hora.
+- Panel de "Programados" con badge de conteo, visible solo para creadores.
+- Botón cambia entre "🕐 Programar" y "Publicar ahora" según si la fecha es futura.
+
+---
+
+#### Feature #18 — Plantillas con variables dinámicas
+
+Implementado en el mismo módulo que #17.
+
+- Variables disponibles: `{nombre}`, `{fecha}`, `{evento}`, `{lugar}`, `{hora}`, `{iglesia}`.
+- Botones de inserción en el cursor desde la barra de variables.
+- Toggle "Vista previa" muestra el texto con variables reemplazadas por ejemplos.
+- Backend exporta `VARIABLES_DISPONIBLES` e `interpolarVariables()` para uso futuro.
+
+---
+
+#### Feature #20 — Confirmación de asistencia a eventos (RSVP)
+
+**Backend — `backend/src/routes/eventos.js`**
+- Tabla `EventoRSVP` auto-creada: `id`, `iglesiaId`, `eventoId`, `personaId`, `nombre`, `respuesta` (SI/NO/TALVEZ), `token`, timestamps.
+- `GET /eventos/:id/rsvp` → resumen (si/no/talvez/total) + detalle por persona.
+- `POST /eventos/:id/rsvp` → upsert por token (links públicos) o por personaId. No requiere auth.
+- `GET /eventos/rsvp/confirmar?token=&r=&ig=` → endpoint público HTML. Al hacer clic desde WhatsApp actualiza la respuesta y muestra página de confirmación.
+
+**Frontend — `frontend/src/pages/Eventos.jsx`**
+- Botón "✅ Confirmaciones" en cada evento card.
+- `RsvpModal`: KPIs SI/NO/TALVEZ, botón "💬 Compartir link de confirmación" que abre WhatsApp con texto pre-armado con los dos links (Sí / No), lista de respuestas con colores.
