@@ -518,4 +518,238 @@ router.put('/:id/checkin-ninos/:checkinId/salida', requireAuth, wrap(async (req,
   return res.json(c)
 }))
 
+// ════════════════════════════════════════════════════════════
+// TURNOS — Planificación de servicio por ministerio (#11)
+// ════════════════════════════════════════════════════════════
+
+const initTurnos = async () => {
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS "MinisterioTurno" (
+      "id"           SERIAL PRIMARY KEY,
+      "iglesiaId"    INT NOT NULL,
+      "ministerioId" INT NOT NULL,
+      "miembroId"    INT NOT NULL,
+      "fecha"        DATE NOT NULL,
+      "rol"          TEXT NOT NULL DEFAULT 'SERVIDOR',
+      "confirmado"   BOOLEAN NOT NULL DEFAULT false,
+      "notas"        TEXT,
+      "createdAt"    TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+  await pgExec(`CREATE INDEX IF NOT EXISTS "MT_ministerio_idx" ON "MinisterioTurno"("ministerioId","fecha")`)
+}
+
+// GET /ministerios/:id/turnos?mes=YYYY-MM
+router.get('/:id/turnos', requireAuth, wrap(async (req, res) => {
+  const iglesiaId   = Number(req.user.iglesiaId)
+  const ministerioId = Number(req.params.id)
+  await initTurnos()
+  const mes = req.query.mes || new Date().toISOString().slice(0,7)
+  const rows = await pgMany(
+    `SELECT t.*, p."nombre", p."apellido", p."telefono"
+     FROM "MinisterioTurno" t
+     LEFT JOIN "Persona" p ON t."miembroId"=p."id"
+     WHERE t."ministerioId"=$1 AND t."iglesiaId"=$2
+       AND to_char(t."fecha",'YYYY-MM')=$3
+     ORDER BY t."fecha" ASC`,
+    [ministerioId, iglesiaId, mes]
+  )
+  res.json(rows)
+}))
+
+// POST /ministerios/:id/turnos
+router.post('/:id/turnos', requireAuth, wrap(async (req, res) => {
+  const iglesiaId   = Number(req.user.iglesiaId)
+  const ministerioId = Number(req.params.id)
+  await initTurnos()
+  const { miembroId, fecha, rol = 'SERVIDOR', notas = '' } = req.body || {}
+  if (!miembroId || !fecha) return res.status(400).json({ error: 'miembroId y fecha requeridos' })
+  const row = await pgOne(
+    `INSERT INTO "MinisterioTurno"("iglesiaId","ministerioId","miembroId","fecha","rol","notas")
+     VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [iglesiaId, ministerioId, Number(miembroId), fecha, rol, notas]
+  )
+  res.status(201).json(row)
+}))
+
+// PUT /ministerios/:id/turnos/:turnoId
+router.put('/:id/turnos/:turnoId', requireAuth, wrap(async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId)
+  const { confirmado, rol, notas, fecha } = req.body || {}
+  const row = await pgOne(
+    `UPDATE "MinisterioTurno"
+     SET "confirmado"=COALESCE($1,"confirmado"),
+         "rol"=COALESCE($2,"rol"),
+         "notas"=COALESCE($3,"notas"),
+         "fecha"=COALESCE($4,"fecha"),
+         "updatedAt"=NOW()
+     WHERE "id"=$5 AND "iglesiaId"=$6 RETURNING *`,
+    [confirmado ?? null, rol ?? null, notas ?? null, fecha ?? null, Number(req.params.turnoId), iglesiaId]
+  )
+  res.json(row)
+}))
+
+// DELETE /ministerios/:id/turnos/:turnoId
+router.delete('/:id/turnos/:turnoId', requireAuth, wrap(async (req, res) => {
+  await pgExec('DELETE FROM "MinisterioTurno" WHERE "id"=$1 AND "iglesiaId"=$2', [Number(req.params.turnoId), Number(req.user.iglesiaId)])
+  res.json({ ok: true })
+}))
+
+// ════════════════════════════════════════════════════════════
+// EVALUACIONES de voluntarios (#12)
+// ════════════════════════════════════════════════════════════
+
+const initEval = async () => {
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS "MinisterioEvaluacion" (
+      "id"            SERIAL PRIMARY KEY,
+      "iglesiaId"     INT NOT NULL,
+      "ministerioId"  INT NOT NULL,
+      "miembroId"     INT NOT NULL,
+      "evaluadorId"   INT,
+      "tipo"          TEXT NOT NULL DEFAULT 'AUTOEVALUACION',  -- AUTOEVALUACION | LIDER
+      "puntualidad"   INT CHECK("puntualidad" BETWEEN 1 AND 5),
+      "compromiso"    INT CHECK("compromiso" BETWEEN 1 AND 5),
+      "habilidad"     INT CHECK("habilidad" BETWEEN 1 AND 5),
+      "actitud"       INT CHECK("actitud" BETWEEN 1 AND 5),
+      "comentarios"   TEXT,
+      "periodo"       TEXT,   -- ej: '2026-Q2'
+      "createdAt"     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+  await pgExec(`CREATE INDEX IF NOT EXISTS "ME_ministerio_idx" ON "MinisterioEvaluacion"("ministerioId","miembroId")`)
+}
+
+// GET /ministerios/:id/evaluaciones?miembroId=
+router.get('/:id/evaluaciones', requireAuth, wrap(async (req, res) => {
+  const iglesiaId   = Number(req.user.iglesiaId)
+  const ministerioId = Number(req.params.id)
+  await initEval()
+  const params = [ministerioId, iglesiaId]
+  let extra = ''
+  if (req.query.miembroId) { extra = ' AND e."miembroId"=$3'; params.push(Number(req.query.miembroId)) }
+  const rows = await pgMany(
+    `SELECT e.*, p."nombre", p."apellido",
+            ev."nombre" AS "evaluadorNombre"
+     FROM "MinisterioEvaluacion" e
+     LEFT JOIN "Persona" p ON e."miembroId"=p."id"
+     LEFT JOIN "User" ev ON e."evaluadorId"=ev."id"
+     WHERE e."ministerioId"=$1 AND e."iglesiaId"=$2${extra}
+     ORDER BY e."createdAt" DESC`,
+    params
+  )
+  res.json(rows)
+}))
+
+// POST /ministerios/:id/evaluaciones
+router.post('/:id/evaluaciones', requireAuth, wrap(async (req, res) => {
+  const iglesiaId   = Number(req.user.iglesiaId)
+  const ministerioId = Number(req.params.id)
+  await initEval()
+  const { miembroId, tipo='AUTOEVALUACION', puntualidad, compromiso, habilidad, actitud, comentarios='', periodo='' } = req.body || {}
+  if (!miembroId) return res.status(400).json({ error: 'miembroId requerido' })
+  const row = await pgOne(
+    `INSERT INTO "MinisterioEvaluacion"("iglesiaId","ministerioId","miembroId","evaluadorId","tipo","puntualidad","compromiso","habilidad","actitud","comentarios","periodo")
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+    [iglesiaId, ministerioId, Number(miembroId), req.user.id, tipo,
+     puntualidad||null, compromiso||null, habilidad||null, actitud||null, comentarios, periodo]
+  )
+  res.status(201).json(row)
+}))
+
+// DELETE /ministerios/:id/evaluaciones/:evalId
+router.delete('/:id/evaluaciones/:evalId', requireAuth, wrap(async (req, res) => {
+  await pgExec('DELETE FROM "MinisterioEvaluacion" WHERE "id"=$1 AND "iglesiaId"=$2', [Number(req.params.evalId), Number(req.user.iglesiaId)])
+  res.json({ ok: true })
+}))
+
+// ════════════════════════════════════════════════════════════
+// INVENTARIO de recursos ministeriales (#13)
+// ════════════════════════════════════════════════════════════
+
+const initInventario = async () => {
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS "MinisterioRecurso" (
+      "id"              SERIAL PRIMARY KEY,
+      "iglesiaId"       INT NOT NULL,
+      "ministerioId"    INT NOT NULL,
+      "nombre"          TEXT NOT NULL,
+      "descripcion"     TEXT,
+      "categoria"       TEXT NOT NULL DEFAULT 'OTRO',   -- INSTRUMENTO | AUDIO | VIDEO | MOBILIARIO | OTRO
+      "estado"          TEXT NOT NULL DEFAULT 'BUENO',  -- BUENO | REGULAR | REPARACION | BAJA
+      "responsableId"   INT,
+      "fechaCompra"     DATE,
+      "fechaMantenimiento" DATE,
+      "valorEstimado"   NUMERIC(12,2),
+      "notas"           TEXT,
+      "createdAt"       TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"       TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+  await pgExec(`CREATE INDEX IF NOT EXISTS "MR_ministerio_idx" ON "MinisterioRecurso"("ministerioId")`)
+}
+
+// GET /ministerios/:id/recursos
+router.get('/:id/recursos', requireAuth, wrap(async (req, res) => {
+  const iglesiaId   = Number(req.user.iglesiaId)
+  const ministerioId = Number(req.params.id)
+  await initInventario()
+  const rows = await pgMany(
+    `SELECT r.*, p."nombre" AS "responsableNombre", p."apellido" AS "responsableApellido"
+     FROM "MinisterioRecurso" r
+     LEFT JOIN "Persona" p ON r."responsableId"=p."id"
+     WHERE r."ministerioId"=$1 AND r."iglesiaId"=$2
+     ORDER BY r."categoria", r."nombre"`,
+    [ministerioId, iglesiaId]
+  )
+  res.json(rows)
+}))
+
+// POST /ministerios/:id/recursos
+router.post('/:id/recursos', requireAuth, wrap(async (req, res) => {
+  const iglesiaId   = Number(req.user.iglesiaId)
+  const ministerioId = Number(req.params.id)
+  await initInventario()
+  const { nombre, descripcion='', categoria='OTRO', estado='BUENO', responsableId=null, fechaCompra=null, fechaMantenimiento=null, valorEstimado=null, notas='' } = req.body || {}
+  if (!nombre?.trim()) return res.status(400).json({ error: 'nombre requerido' })
+  const row = await pgOne(
+    `INSERT INTO "MinisterioRecurso"("iglesiaId","ministerioId","nombre","descripcion","categoria","estado","responsableId","fechaCompra","fechaMantenimiento","valorEstimado","notas")
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+    [iglesiaId, ministerioId, nombre.trim(), descripcion, categoria, estado,
+     responsableId ? Number(responsableId) : null,
+     fechaCompra || null, fechaMantenimiento || null,
+     valorEstimado ? Number(valorEstimado) : null, notas]
+  )
+  res.status(201).json(row)
+}))
+
+// PUT /ministerios/:id/recursos/:recursoId
+router.put('/:id/recursos/:recursoId', requireAuth, wrap(async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId)
+  const recursoId = Number(req.params.recursoId)
+  const actual = await pgOne('SELECT * FROM "MinisterioRecurso" WHERE "id"=$1 AND "iglesiaId"=$2', [recursoId, iglesiaId])
+  if (!actual) return res.status(404).json({ error: 'No encontrado' })
+  const m = { ...actual, ...req.body }
+  await pgExec(
+    `UPDATE "MinisterioRecurso"
+     SET "nombre"=$1,"descripcion"=$2,"categoria"=$3,"estado"=$4,"responsableId"=$5,
+         "fechaCompra"=$6,"fechaMantenimiento"=$7,"valorEstimado"=$8,"notas"=$9,"updatedAt"=NOW()
+     WHERE "id"=$10 AND "iglesiaId"=$11`,
+    [m.nombre, m.descripcion||'', m.categoria, m.estado,
+     m.responsableId ? Number(m.responsableId) : null,
+     m.fechaCompra||null, m.fechaMantenimiento||null,
+     m.valorEstimado ? Number(m.valorEstimado) : null,
+     m.notas||'', recursoId, iglesiaId]
+  )
+  res.json({ ok: true })
+}))
+
+// DELETE /ministerios/:id/recursos/:recursoId
+router.delete('/:id/recursos/:recursoId', requireAuth, wrap(async (req, res) => {
+  await pgExec('DELETE FROM "MinisterioRecurso" WHERE "id"=$1 AND "iglesiaId"=$2', [Number(req.params.recursoId), Number(req.user.iglesiaId)])
+  res.json({ ok: true })
+}))
+
 export default router
+

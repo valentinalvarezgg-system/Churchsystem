@@ -8,26 +8,29 @@ import { toast } from '../components/Toast.jsx'
 import MinIcons, { MINISTERIO_ICONS } from './MinIcons.jsx'
 
 const TABS_POR_TIPO = {
-  ALABANZA: ['panel', 'tareas', 'miembros', 'canciones', 'setlists', 'archivos', 'checklists'],
-  SONIDO: ['panel', 'tareas', 'miembros', 'equipos', 'archivos', 'checklists'],
-  PROYECCION: ['panel', 'tareas', 'miembros', 'equipos', 'archivos', 'checklists'],
-  NINOS: ['panel', 'tareas', 'miembros', 'salas', 'checkin', 'archivos', 'checklists'],
-  MANTENIMIENTO: ['panel', 'tareas', 'miembros', 'equipos', 'archivos', 'checklists'],
-  SEGURIDAD: ['panel', 'tareas', 'miembros', 'equipos', 'archivos', 'checklists'],
-  default: ['panel', 'tareas', 'miembros', 'archivos', 'checklists'],
+  ALABANZA:     ['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'canciones', 'setlists', 'archivos', 'checklists'],
+  SONIDO:       ['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'equipos', 'inventario', 'archivos', 'checklists'],
+  PROYECCION:   ['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'equipos', 'inventario', 'archivos', 'checklists'],
+  NINOS:        ['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'salas', 'checkin', 'archivos', 'checklists'],
+  MANTENIMIENTO:['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'equipos', 'inventario', 'archivos', 'checklists'],
+  SEGURIDAD:    ['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'equipos', 'inventario', 'archivos', 'checklists'],
+  default:      ['panel', 'tareas', 'miembros', 'turnos', 'evaluaciones', 'inventario', 'archivos', 'checklists'],
 }
 
 const TAB_LABELS = {
-  panel: 'Panel',
-  tareas: 'Tareas',
-  miembros: 'Miembros',
-  canciones: 'Repertorio',
-  setlists: 'Setlists',
-  archivos: 'Archivos',
-  checklists: 'Checklists',
-  equipos: 'Equipos',
-  salas: 'Salas',
-  checkin: 'Check-in',
+  panel:       'Panel',
+  tareas:      'Tareas',
+  miembros:    'Miembros',
+  canciones:   'Repertorio',
+  setlists:    'Setlists',
+  archivos:    'Archivos',
+  checklists:  'Checklists',
+  equipos:     'Equipos',
+  salas:       'Salas',
+  checkin:     'Check-in',
+  turnos:      '🗓 Turnos',
+  evaluaciones:'⭐ Evaluaciones',
+  inventario:  '📦 Inventario',
 }
 
 const PRIOR_COLOR = {
@@ -876,6 +879,387 @@ function TabArchivos({ ministerioId }) {
   )
 }
 
+// ── Tab Turnos (#11) ─────────────────────────────────────────
+const ROLES_TURNO = ['SERVIDOR','COORDINADOR','TECNICO','APOYO']
+function TabTurnos({ ministerioId }) {
+  const [mes, setMes]         = useState(new Date().toISOString().slice(0,7))
+  const [turnos, setTurnos]   = useState([])
+  const [miembros, setMiembros] = useState([])
+  const [modal, setModal]     = useState(false)
+  const [form, setForm]       = useState({ miembroId:'', fecha:'', rol:'SERVIDOR', notas:'' })
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try { setTurnos(await apiFetch(`/ministerios/${ministerioId}/turnos?mes=${mes}`) || []) } catch {}
+    setLoading(false)
+  }, [ministerioId, mes])
+
+  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    apiFetch(`/ministerios/${ministerioId}/miembros`).then(m => setMiembros(m||[])).catch(()=>{})
+  }, [ministerioId])
+
+  async function guardar() {
+    if (!form.miembroId || !form.fecha) return toast.error('Completá miembro y fecha')
+    try { await apiFetch(`/ministerios/${ministerioId}/turnos`,{method:'POST',body:JSON.stringify(form)}); toast.success('Turno agregado'); setModal(false); setForm({miembroId:'',fecha:'',rol:'SERVIDOR',notas:''}); load() }
+    catch(e) { toast.error(e.message) }
+  }
+
+  async function toggleConfirmado(t) {
+    try { await apiFetch(`/ministerios/${ministerioId}/turnos/${t.id}`,{method:'PUT',body:JSON.stringify({confirmado:!t.confirmado})}); load() }
+    catch(e) { toast.error(e.message) }
+  }
+
+  async function eliminar(id) {
+    if (!confirm('¿Eliminar turno?')) return
+    try { await apiFetch(`/ministerios/${ministerioId}/turnos/${id}`,{method:'DELETE'}); load() }
+    catch(e) { toast.error(e.message) }
+  }
+
+  // Agrupar por fecha
+  const porFecha = turnos.reduce((acc, t) => {
+    const k = t.fecha?.slice(0,10) || ''
+    ;(acc[k] = acc[k]||[]).push(t)
+    return acc
+  }, {})
+
+  return (
+    <div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <input type="month" value={mes} onChange={e=>setMes(e.target.value)}
+            style={{padding:'6px 10px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:13}}/>
+          <span style={{fontSize:12,color:'var(--text-muted)'}}>{turnos.length} turnos</span>
+        </div>
+        <button className="btn btn-primary btn-sm" onClick={()=>setModal(true)}>+ Agregar turno</button>
+      </div>
+
+      {loading ? <p style={{color:'var(--text-muted)'}}>Cargando...</p>
+      : Object.keys(porFecha).length === 0
+      ? <div style={{textAlign:'center',padding:'32px 0',color:'var(--text-muted)'}}>Sin turnos para este mes</div>
+      : Object.entries(porFecha).sort().map(([fecha, ts]) => (
+        <div key={fecha} style={{marginBottom:16}}>
+          <div style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',marginBottom:6}}>
+            {new Date(fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}
+          </div>
+          {ts.map(t => (
+            <div key={t.id} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:'var(--bg-2)',borderRadius:8,marginBottom:4}}>
+              <div style={{width:10,height:10,borderRadius:'50%',flexShrink:0,background:t.confirmado?'var(--c-success)':'var(--c-warning)'}} />
+              <div style={{flex:1}}>
+                <span style={{fontWeight:600,fontSize:13}}>{t.nombre} {t.apellido}</span>
+                <span style={{fontSize:11,color:'var(--text-muted)',marginLeft:8,padding:'1px 7px',borderRadius:20,border:'1px solid var(--border)'}}>{t.rol}</span>
+                {t.notas && <span style={{fontSize:11,color:'var(--text-muted)',marginLeft:8}}>— {t.notas}</span>}
+              </div>
+              <button onClick={()=>toggleConfirmado(t)}
+                style={{fontSize:11,padding:'3px 10px',borderRadius:20,border:'1px solid var(--border)',background:t.confirmado?'var(--c-success-bg)':'var(--bg)',color:t.confirmado?'var(--c-success)':'var(--text-muted)',cursor:'pointer',fontWeight:600}}>
+                {t.confirmado ? '✓ Confirmado' : 'Confirmar'}
+              </button>
+              <button onClick={()=>eliminar(t.id)} style={{background:'none',border:'none',color:'var(--c-danger)',cursor:'pointer',fontSize:16,padding:0}}>×</button>
+            </div>
+          ))}
+        </div>
+      ))}
+
+      {modal && (
+        <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(false)}>
+          <div className="modal">
+            <div className="modal-header"><h3 className="modal-title">Agregar turno</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>×</button></div>
+            <div className="modal-body" style={{display:'flex',flexDirection:'column',gap:12}}>
+              <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Miembro *</label>
+                <select className="form-input" value={form.miembroId} onChange={e=>setForm(f=>({...f,miembroId:e.target.value}))}>
+                  <option value="">— Seleccionar —</option>
+                  {miembros.map(m=><option key={m.id} value={m.id}>{m.nombre} {m.apellido}</option>)}
+                </select>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Fecha *</label>
+                  <input type="date" className="form-input" value={form.fecha} onChange={e=>setForm(f=>({...f,fecha:e.target.value}))}/>
+                </div>
+                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Rol</label>
+                  <select className="form-input" value={form.rol} onChange={e=>setForm(f=>({...f,rol:e.target.value}))}>
+                    {ROLES_TURNO.map(r=><option key={r}>{r}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Notas</label>
+                <input className="form-input" placeholder="Opcional..." value={form.notas} onChange={e=>setForm(f=>({...f,notas:e.target.value}))}/>
+              </div>
+            </div>
+            <div className="modal-footer" style={{display:'flex',justifyContent:'flex-end',gap:8,padding:'12px 20px'}}>
+              <button className="btn btn-ghost" onClick={()=>setModal(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={guardar}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Tab Evaluaciones (#12) ───────────────────────────────────
+const STARS = n => '★'.repeat(n) + '☆'.repeat(5-n)
+
+function TabEvaluaciones({ ministerioId }) {
+  const [evals, setEvals]     = useState([])
+  const [miembros, setMiembros] = useState([])
+  const [modal, setModal]     = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [form, setForm]       = useState({ miembroId:'', tipo:'AUTOEVALUACION', puntualidad:3, compromiso:3, habilidad:3, actitud:3, comentarios:'', periodo:'' })
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try { setEvals(await apiFetch(`/ministerios/${ministerioId}/evaluaciones`) || []) } catch {}
+    setLoading(false)
+  }, [ministerioId])
+
+  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    apiFetch(`/ministerios/${ministerioId}/miembros`).then(m => setMiembros(m||[])).catch(()=>{})
+  }, [ministerioId])
+
+  async function guardar() {
+    if (!form.miembroId) return toast.error('Seleccioná un miembro')
+    try { await apiFetch(`/ministerios/${ministerioId}/evaluaciones`,{method:'POST',body:JSON.stringify(form)}); toast.success('Evaluación guardada'); setModal(false); load() }
+    catch(e) { toast.error(e.message) }
+  }
+
+  async function eliminar(id) {
+    if (!confirm('¿Eliminar evaluación?')) return
+    try { await apiFetch(`/ministerios/${ministerioId}/evaluaciones/${id}`,{method:'DELETE'}); load() }
+    catch(e) { toast.error(e.message) }
+  }
+
+  const RangeInput = ({label, campo}) => (
+    <div style={{marginBottom:8}}>
+      <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:3}}>
+        <span style={{color:'var(--text-muted)'}}>{label}</span>
+        <span style={{color:'#F59E0B',fontWeight:700}}>{STARS(form[campo])}</span>
+      </div>
+      <input type="range" min={1} max={5} value={form[campo]}
+        onChange={e=>setForm(f=>({...f,[campo]:Number(e.target.value)}))}
+        style={{width:'100%',accentColor:'#F59E0B'}}/>
+    </div>
+  )
+
+  return (
+    <div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+        <span style={{fontSize:12,color:'var(--text-muted)'}}>{evals.length} evaluaciones</span>
+        <button className="btn btn-primary btn-sm" onClick={()=>setModal(true)}>+ Nueva evaluación</button>
+      </div>
+
+      {loading ? <p style={{color:'var(--text-muted)'}}>Cargando...</p>
+      : evals.length === 0 ? <div style={{textAlign:'center',padding:'32px 0',color:'var(--text-muted)'}}>Sin evaluaciones registradas</div>
+      : evals.map(e => {
+        const prom = ((Number(e.puntualidad||0)+Number(e.compromiso||0)+Number(e.habilidad||0)+Number(e.actitud||0))/4).toFixed(1)
+        return (
+          <div key={e.id} style={{background:'var(--bg-2)',borderRadius:10,padding:'12px 14px',marginBottom:8}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+              <div>
+                <span style={{fontWeight:700,fontSize:13}}>{e.nombre} {e.apellido}</span>
+                <span style={{fontSize:11,marginLeft:8,padding:'1px 7px',borderRadius:20,border:'1px solid var(--border)',color:'var(--text-muted)'}}>{e.tipo}</span>
+                {e.periodo && <span style={{fontSize:11,marginLeft:6,color:'var(--text-muted)'}}>{e.periodo}</span>}
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:18,fontWeight:800,color:'#F59E0B'}}>{prom}</span>
+                <button onClick={()=>eliminar(e.id)} style={{background:'none',border:'none',color:'var(--c-danger)',cursor:'pointer',fontSize:16,padding:0}}>×</button>
+              </div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,fontSize:11,marginBottom:6}}>
+              {[['Puntualidad',e.puntualidad],['Compromiso',e.compromiso],['Habilidad',e.habilidad],['Actitud',e.actitud]].map(([l,v])=>(
+                <div key={l} style={{textAlign:'center',background:'var(--bg)',borderRadius:6,padding:'4px 6px'}}>
+                  <div style={{color:'#F59E0B'}}>{STARS(Number(v||0))}</div>
+                  <div style={{color:'var(--text-muted)',marginTop:2}}>{l}</div>
+                </div>
+              ))}
+            </div>
+            {e.comentarios && <p style={{fontSize:12,color:'var(--text-muted)',margin:0,fontStyle:'italic'}}>"{e.comentarios}"</p>}
+          </div>
+        )
+      })}
+
+      {modal && (
+        <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(false)}>
+          <div className="modal">
+            <div className="modal-header"><h3 className="modal-title">Nueva evaluación</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>×</button></div>
+            <div className="modal-body" style={{display:'flex',flexDirection:'column',gap:10}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Miembro *</label>
+                  <select className="form-input" value={form.miembroId} onChange={e=>setForm(f=>({...f,miembroId:e.target.value}))}>
+                    <option value="">— Seleccionar —</option>
+                    {miembros.map(m=><option key={m.id} value={m.id}>{m.nombre} {m.apellido}</option>)}
+                  </select>
+                </div>
+                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Tipo</label>
+                  <select className="form-input" value={form.tipo} onChange={e=>setForm(f=>({...f,tipo:e.target.value}))}>
+                    <option value="AUTOEVALUACION">Autoevaluación</option>
+                    <option value="LIDER">Por líder</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Período (ej: 2026-Q2)</label>
+                  <input className="form-input" placeholder="Opcional" value={form.periodo} onChange={e=>setForm(f=>({...f,periodo:e.target.value}))}/>
+                </div>
+              </div>
+              <div style={{background:'var(--bg-2)',borderRadius:8,padding:'12px'}}>
+                <RangeInput label="Puntualidad" campo="puntualidad"/>
+                <RangeInput label="Compromiso" campo="compromiso"/>
+                <RangeInput label="Habilidad" campo="habilidad"/>
+                <RangeInput label="Actitud" campo="actitud"/>
+              </div>
+              <div><label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:4}}>Comentarios</label>
+                <textarea className="form-input" rows={3} value={form.comentarios} onChange={e=>setForm(f=>({...f,comentarios:e.target.value}))} placeholder="Observaciones..."/>
+              </div>
+            </div>
+            <div className="modal-footer" style={{display:'flex',justifyContent:'flex-end',gap:8,padding:'12px 20px'}}>
+              <button className="btn btn-ghost" onClick={()=>setModal(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={guardar}>Guardar evaluación</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Tab Inventario (#13) ─────────────────────────────────────
+const CAT_COLOR = { INSTRUMENTO:'#6D5DFB', AUDIO:'#3B82F6', VIDEO:'#8B5CF6', MOBILIARIO:'#F59E0B', OTRO:'#64748B' }
+const ESTADO_REC_COLOR = { BUENO:'var(--c-success)', REGULAR:'var(--c-warning)', REPARACION:'var(--c-danger)', BAJA:'#94A3B8' }
+const CATEGORIAS = ['INSTRUMENTO','AUDIO','VIDEO','MOBILIARIO','OTRO']
+const ESTADOS_REC = ['BUENO','REGULAR','REPARACION','BAJA']
+
+function TabInventario({ ministerioId }) {
+  const [recursos, setRecursos] = useState([])
+  const [miembros, setMiembros] = useState([])
+  const [modal, setModal]       = useState(false)
+  const [editando, setEditando] = useState(null)
+  const [loading, setLoading]   = useState(true)
+  const FORM0 = { nombre:'', descripcion:'', categoria:'OTRO', estado:'BUENO', responsableId:'', fechaCompra:'', fechaMantenimiento:'', valorEstimado:'', notas:'' }
+  const [form, setForm]         = useState(FORM0)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try { setRecursos(await apiFetch(`/ministerios/${ministerioId}/recursos`) || []) } catch {}
+    setLoading(false)
+  }, [ministerioId])
+
+  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    apiFetch(`/ministerios/${ministerioId}/miembros`).then(m => setMiembros(m||[])).catch(()=>{})
+  }, [ministerioId])
+
+  function openModal(r=null) {
+    setEditando(r)
+    setForm(r ? {...FORM0,...r,responsableId:r.responsableId||'',fechaCompra:r.fechaCompra?.slice(0,10)||'',fechaMantenimiento:r.fechaMantenimiento?.slice(0,10)||''} : FORM0)
+    setModal(true)
+  }
+
+  async function guardar() {
+    if (!form.nombre?.trim()) return toast.error('El nombre es requerido')
+    const body = {...form, responsableId: form.responsableId || null, fechaCompra: form.fechaCompra || null, fechaMantenimiento: form.fechaMantenimiento || null, valorEstimado: form.valorEstimado || null }
+    try {
+      if (editando) await apiFetch(`/ministerios/${ministerioId}/recursos/${editando.id}`,{method:'PUT',body:JSON.stringify(body)})
+      else await apiFetch(`/ministerios/${ministerioId}/recursos`,{method:'POST',body:JSON.stringify(body)})
+      toast.success(editando ? 'Recurso actualizado' : 'Recurso agregado')
+      setModal(false); load()
+    } catch(e) { toast.error(e.message) }
+  }
+
+  async function eliminar(id) {
+    if (!confirm('¿Eliminar recurso?')) return
+    try { await apiFetch(`/ministerios/${ministerioId}/recursos/${id}`,{method:'DELETE'}); load() }
+    catch(e) { toast.error(e.message) }
+  }
+
+  // Alertas de mantenimiento próximo
+  const hoy = new Date(); hoy.setHours(0,0,0,0)
+  const alertas = recursos.filter(r => {
+    if (!r.fechaMantenimiento) return false
+    const d = new Date(r.fechaMantenimiento+'T12:00:00')
+    return (d - hoy) / 86400000 <= 14
+  })
+
+  return (
+    <div>
+      {alertas.length > 0 && (
+        <div style={{background:'var(--c-warning-bg)',borderRadius:8,padding:'10px 14px',marginBottom:12,fontSize:12,color:'#92400E'}}>
+          ⚠️ {alertas.length} recurso(s) con mantenimiento próximo: {alertas.map(a=>a.nombre).join(', ')}
+        </div>
+      )}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+        <span style={{fontSize:12,color:'var(--text-muted)'}}>{recursos.length} recursos</span>
+        <button className="btn btn-primary btn-sm" onClick={()=>openModal()}>+ Agregar recurso</button>
+      </div>
+
+      {loading ? <p style={{color:'var(--text-muted)'}}>Cargando...</p>
+      : recursos.length === 0 ? <div style={{textAlign:'center',padding:'32px 0',color:'var(--text-muted)'}}>Sin recursos en el inventario</div>
+      : <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:8}}>
+          {recursos.map(r => (
+            <div key={r.id} style={{background:'var(--bg-2)',borderRadius:10,padding:'12px',border:`1px solid var(--border)`}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700}}>{r.nombre}</div>
+                  <span style={{fontSize:10,padding:'1px 7px',borderRadius:20,background:CAT_COLOR[r.categoria]+'20',color:CAT_COLOR[r.categoria],fontWeight:600}}>{r.categoria}</span>
+                </div>
+                <span style={{fontSize:11,fontWeight:700,color:ESTADO_REC_COLOR[r.estado]}}>{r.estado}</span>
+              </div>
+              {r.descripcion && <p style={{fontSize:11,color:'var(--text-muted)',margin:'4px 0',lineHeight:1.4}}>{r.descripcion}</p>}
+              {(r.responsableNombre) && <p style={{fontSize:11,color:'var(--text-muted)',margin:'4px 0'}}>👤 {r.responsableNombre} {r.responsableApellido||''}</p>}
+              {r.fechaMantenimiento && <p style={{fontSize:11,color: (new Date(r.fechaMantenimiento+'T12:00:00')-hoy)/86400000<=14 ? 'var(--c-warning)' : 'var(--text-muted)',margin:'4px 0'}}>🔧 Mant: {r.fechaMantenimiento?.slice(0,10)}</p>}
+              {r.valorEstimado && <p style={{fontSize:11,color:'var(--text-muted)',margin:'4px 0'}}>💰 ${Number(r.valorEstimado).toLocaleString('es-AR')}</p>}
+              <div style={{display:'flex',gap:6,marginTop:8}}>
+                <button className="btn btn-ghost btn-sm" style={{flex:1,fontSize:11}} onClick={()=>openModal(r)}>Editar</button>
+                <button className="btn btn-ghost btn-sm" style={{color:'var(--c-danger)',fontSize:11}} onClick={()=>eliminar(r.id)}>×</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      }
+
+      {modal && (
+        <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(false)}>
+          <div className="modal" style={{maxWidth:520}}>
+            <div className="modal-header"><h3 className="modal-title">{editando?'Editar recurso':'Nuevo recurso'}</h3><button className="btn btn-ghost btn-sm" onClick={()=>setModal(false)}>×</button></div>
+            <div className="modal-body" style={{display:'flex',flexDirection:'column',gap:10}}>
+              <div className="form-group" style={{margin:0}}><label>Nombre *</label><input className="form-input" value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))}/></div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div className="form-group" style={{margin:0}}><label>Categoría</label>
+                  <select className="form-input" value={form.categoria} onChange={e=>setForm(f=>({...f,categoria:e.target.value}))}>
+                    {CATEGORIAS.map(c=><option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="form-group" style={{margin:0}}><label>Estado</label>
+                  <select className="form-input" value={form.estado} onChange={e=>setForm(f=>({...f,estado:e.target.value}))}>
+                    {ESTADOS_REC.map(c=><option key={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="form-group" style={{margin:0}}><label>Responsable</label>
+                <select className="form-input" value={form.responsableId} onChange={e=>setForm(f=>({...f,responsableId:e.target.value}))}>
+                  <option value="">Sin responsable</option>
+                  {miembros.map(m=><option key={m.id} value={m.id}>{m.nombre} {m.apellido}</option>)}
+                </select>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+                <div className="form-group" style={{margin:0}}><label>Fecha compra</label><input type="date" className="form-input" value={form.fechaCompra} onChange={e=>setForm(f=>({...f,fechaCompra:e.target.value}))}/></div>
+                <div className="form-group" style={{margin:0}}><label>Próx. mantenimiento</label><input type="date" className="form-input" value={form.fechaMantenimiento} onChange={e=>setForm(f=>({...f,fechaMantenimiento:e.target.value}))}/></div>
+                <div className="form-group" style={{margin:0}}><label>Valor estimado $</label><input type="number" className="form-input" value={form.valorEstimado} onChange={e=>setForm(f=>({...f,valorEstimado:e.target.value}))}/></div>
+              </div>
+              <div className="form-group" style={{margin:0}}><label>Notas</label><textarea className="form-input" rows={2} value={form.notas} onChange={e=>setForm(f=>({...f,notas:e.target.value}))}/></div>
+            </div>
+            <div className="modal-footer" style={{display:'flex',justifyContent:'flex-end',gap:8,padding:'12px 20px'}}>
+              <button className="btn btn-ghost" onClick={()=>setModal(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={guardar}>{editando?'Guardar cambios':'Agregar recurso'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function MinisterioDetalle() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -961,6 +1345,9 @@ export default function MinisterioDetalle() {
           {tab === 'tareas' && <TabTareas ministerioId={id} />}
           {tab === 'miembros' && <TabMiembros ministerioId={id} />}
           {tab === 'canciones' && <TabCanciones ministerioId={id} />}
+          {tab === 'turnos'       && <TabTurnos ministerioId={id} />}
+          {tab === 'evaluaciones' && <TabEvaluaciones ministerioId={id} />}
+          {tab === 'inventario'   && <TabInventario ministerioId={id} />}
           {tab === 'equipos' && <TabEquipos ministerioId={id} />}
           {tab === 'archivos' && <TabArchivos ministerioId={id} />}
           {tab === 'checklists' && <TabChecklists ministerioId={id} />}

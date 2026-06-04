@@ -168,5 +168,89 @@ router.get('/:id/stats', requireAuth, async (req, res) => {
   res.json({ grupo: g, crecimiento, porEtapa, porEstado, resumen: resumen || {}, ultimo })
 })
 
+// ── Grupos temáticos / estacionales (#9) ────────────────────
+
+// Tabla de inscripciones (auto-creada)
+const initInscripciones = async () => {
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS "GrupoInscripcion" (
+      "id"         SERIAL PRIMARY KEY,
+      "iglesiaId"  INT NOT NULL,
+      "grupoId"    INT NOT NULL,
+      "personaId"  INT NOT NULL,
+      "estado"     TEXT NOT NULL DEFAULT 'INSCRIPTO',  -- INSCRIPTO | COMPLETADO | BAJA
+      "createdAt"  TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt"  TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE("grupoId","personaId")
+    )
+  `)
+  await pgExec(`CREATE INDEX IF NOT EXISTS "GI_grupo_idx" ON "GrupoInscripcion"("grupoId")`)
+  // Agregar columnas de grupo temporal si no existen
+  await pgExec(`ALTER TABLE "Grupo" ADD COLUMN IF NOT EXISTS "tipo" TEXT NOT NULL DEFAULT 'REGULAR'`).catch(()=>{})
+  await pgExec(`ALTER TABLE "Grupo" ADD COLUMN IF NOT EXISTS "fechaFin" DATE`).catch(()=>{})
+  await pgExec(`ALTER TABLE "Grupo" ADD COLUMN IF NOT EXISTS "cupo" INT`).catch(()=>{})
+}
+
+// GET /grupos/:id/inscripciones
+router.get('/:id/inscripciones', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId)
+  const grupoId   = Number(req.params.id)
+  await initInscripciones()
+  const rows = await pgMany(
+    `SELECT i.*, p."nombre", p."apellido", p."telefono", p."email"
+     FROM "GrupoInscripcion" i
+     LEFT JOIN "Persona" p ON i."personaId"=p."id"
+     WHERE i."grupoId"=$1 AND i."iglesiaId"=$2
+     ORDER BY i."createdAt" ASC`,
+    [grupoId, iglesiaId]
+  )
+  res.json(rows)
+})
+
+// POST /grupos/:id/inscripciones
+router.post('/:id/inscripciones', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId)
+  const grupoId   = Number(req.params.id)
+  await initInscripciones()
+
+  const g = await pgOne('SELECT * FROM "Grupo" WHERE "id"=$1 AND "iglesiaId"=$2 AND "deletedAt" IS NULL', [grupoId, iglesiaId])
+  if (!g) return res.status(404).json({ error: 'Grupo no encontrado' })
+
+  // Verificar cupo
+  if (g.cupo) {
+    const count = await pgOne('SELECT COUNT(*)::int AS c FROM "GrupoInscripcion" WHERE "grupoId"=$1 AND "estado"!=\'BAJA\'', [grupoId])
+    if (count?.c >= g.cupo) return res.status(400).json({ error: 'Cupo completo' })
+  }
+
+  const { personaId } = req.body || {}
+  if (!personaId) return res.status(400).json({ error: 'personaId requerido' })
+
+  const row = await pgOne(
+    `INSERT INTO "GrupoInscripcion"("iglesiaId","grupoId","personaId")
+     VALUES($1,$2,$3)
+     ON CONFLICT("grupoId","personaId") DO UPDATE SET "estado"='INSCRIPTO',"updatedAt"=NOW()
+     RETURNING *`,
+    [iglesiaId, grupoId, Number(personaId)]
+  )
+  res.status(201).json(row)
+})
+
+// PUT /grupos/:id/inscripciones/:inscId — cambiar estado
+router.put('/:id/inscripciones/:inscId', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId)
+  const { estado } = req.body || {}
+  await pgExec(
+    `UPDATE "GrupoInscripcion" SET "estado"=$1,"updatedAt"=NOW() WHERE "id"=$2 AND "iglesiaId"=$3`,
+    [estado, Number(req.params.inscId), iglesiaId]
+  )
+  res.json({ ok: true })
+})
+
+// DELETE /grupos/:id/inscripciones/:inscId
+router.delete('/:id/inscripciones/:inscId', requireAuth, async (req, res) => {
+  await pgExec('DELETE FROM "GrupoInscripcion" WHERE "id"=$1 AND "iglesiaId"=$2', [Number(req.params.inscId), Number(req.user.iglesiaId)])
+  res.json({ ok: true })
+})
+
 export default router
 

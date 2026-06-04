@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
@@ -32,7 +32,91 @@ const GRUP_I18N = {
 }
 
 const CULTOS = ['','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO']
-const EMPTY  = {nombre:'',cultoDia:'',cultoTurno:0,liderId:'',descripcion:''}
+const EMPTY  = {nombre:'',cultoDia:'',cultoTurno:0,liderId:'',descripcion:'',tipo:'REGULAR',fechaFin:'',cupo:''}
+
+// ── Tab Inscripciones para grupos temporales ─────────────────
+function TabInscripciones({ grupoId, cupo }) {
+  const [inscripciones, setInscripciones] = useState([])
+  const [personas, setPersonas]           = useState([])
+  const [search, setSearch]               = useState('')
+  const [loading, setLoading]             = useState(true)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try { setInscripciones(await apiFetch(`/grupos/${grupoId}/inscripciones`) || []) } catch {}
+    setLoading(false)
+  }, [grupoId])
+
+  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    apiFetch(`/personas?search=${encodeURIComponent(search)}&limit=30`)
+      .then(r => setPersonas(r?.data || r || []))
+      .catch(() => {})
+  }, [search])
+
+  const inscritos = inscripciones.filter(i => i.estado !== 'BAJA')
+  const cupoUsado = inscritos.length
+  const pct = cupo ? Math.round(cupoUsado / cupo * 100) : null
+
+  async function inscribir(personaId) {
+    try { await apiFetch(`/grupos/${grupoId}/inscripciones`,{method:'POST',body:JSON.stringify({personaId})}); toast.success('Inscripto'); load() }
+    catch(e) { toast.error(e.message) }
+  }
+
+  async function cambiarEstado(i, estado) {
+    try { await apiFetch(`/grupos/${grupoId}/inscripciones/${i.id}`,{method:'PUT',body:JSON.stringify({estado})}); load() }
+    catch(e) { toast.error(e.message) }
+  }
+
+  const ESTADO_COLOR = { INSCRIPTO:'var(--c-info)', COMPLETADO:'var(--c-success)', BAJA:'var(--c-danger)' }
+
+  return (
+    <div>
+      {cupo && (
+        <div style={{marginBottom:14}}>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}>
+            <span style={{color:'var(--text-muted)'}}>Cupo utilizado</span>
+            <span style={{fontWeight:700}}>{cupoUsado} / {cupo} ({pct}%)</span>
+          </div>
+          <div style={{height:8,background:'var(--bg-2)',borderRadius:4,overflow:'hidden'}}>
+            <div style={{width:`${Math.min(pct,100)}%`,height:'100%',background: pct>=100?'var(--c-danger)':pct>=80?'var(--c-warning)':'var(--c-success)',transition:'width .3s'}}/>
+          </div>
+        </div>
+      )}
+
+      <div style={{marginBottom:12}}>
+        <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:6,fontWeight:600}}>Inscribir persona</div>
+        <input className="input" placeholder="Buscar por nombre..." value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:6}}/>
+        <div style={{maxHeight:150,overflowY:'auto',border:'1px solid var(--border)',borderRadius:8}}>
+          {personas.filter(p => !inscripciones.find(i=>i.personaId===p.id && i.estado!=='BAJA')).slice(0,15).map(p=>(
+            <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',borderBottom:'1px solid var(--border)',fontSize:12}}>
+              <span>{p.nombre} {p.apellido}</span>
+              <button className="btn btn-primary btn-sm" style={{fontSize:11,padding:'2px 8px'}} onClick={()=>inscribir(p.id)}>Inscribir</button>
+            </div>
+          ))}
+          {personas.length===0 && <p style={{padding:'8px 10px',color:'var(--text-muted)',fontSize:12}}>Escribí un nombre para buscar</p>}
+        </div>
+      </div>
+
+      <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:6,fontWeight:600}}>Inscriptos ({cupoUsado})</div>
+      {loading ? <p style={{color:'var(--text-muted)'}}>Cargando...</p>
+      : inscripciones.length === 0 ? <p style={{color:'var(--text-muted)',textAlign:'center',padding:'16px 0'}}>Sin inscriptos aún</p>
+      : inscripciones.map(i => (
+        <div key={i.id} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 10px',background:'var(--bg-2)',borderRadius:8,marginBottom:4,fontSize:12}}>
+          <div style={{flex:1}}>
+            <span style={{fontWeight:600}}>{i.nombre} {i.apellido}</span>
+            {i.telefono && <span style={{color:'var(--text-muted)',marginLeft:8}}>{i.telefono}</span>}
+          </div>
+          <select value={i.estado}
+            onChange={e=>cambiarEstado(i,e.target.value)}
+            style={{fontSize:11,padding:'2px 8px',borderRadius:20,border:`1px solid ${ESTADO_COLOR[i.estado]}`,color:ESTADO_COLOR[i.estado],background:'transparent',cursor:'pointer'}}>
+            {['INSCRIPTO','COMPLETADO','BAJA'].map(s=><option key={s}>{s}</option>)}
+          </select>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 const ETAPA_COLOR = {
   NUEVO_CREYENTE:'#3B82F6', CONSOLIDADO:'#F59E0B', DISCIPULO:'#22C55E',
@@ -280,6 +364,16 @@ export default function Grupos() {
                   {msg && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
                   <div className="form-grid">
                     <div className="form-group full"><label>{t('nameLabel')}</label><input name="nombre" className="form-input" value={form.nombre} onChange={e=>f('nombre',e.target.value)} required /></div>
+                    <div className="form-group"><label>Tipo</label>
+                      <select name="tipo" className="form-input" value={form.tipo} onChange={e=>f('tipo',e.target.value)}>
+                        <option value="REGULAR">Regular</option>
+                        <option value="TEMPORAL">Temporal / Estacional</option>
+                      </select>
+                    </div>
+                    {form.tipo==='TEMPORAL' && <>
+                      <div className="form-group"><label>Fecha de fin</label><input type="date" name="fechaFin" className="form-input" value={form.fechaFin} onChange={e=>f('fechaFin',e.target.value)}/></div>
+                      <div className="form-group"><label>Cupo máximo</label><input type="number" min="1" name="cupo" className="form-input" value={form.cupo} placeholder="Sin límite" onChange={e=>f('cupo',e.target.value)}/></div>
+                    </>}
                     <div className="form-group"><label>{t('serviceLabel')}</label>
                       <select name="cultoDia" className="form-input" value={form.cultoDia} onChange={e=>f('cultoDia',e.target.value)}>
                         {CULTOS.map(c=><option key={c} value={c}>{c||t('notAssigned')}</option>)}</select></div>
@@ -313,6 +407,7 @@ export default function Grupos() {
                 </div>
                 <div style={{display:'flex',gap:4,background:'var(--bg-2)',borderRadius:8,padding:3}}>
                   <button style={TAB(detalleTab==='members')} onClick={()=>setDetalleTab('members')}>{t('memberList')} ({detalle.miembros?.length||0})</button>
+                  {detalle.tipo==='TEMPORAL' && <button style={TAB(detalleTab==='inscripciones')} onClick={()=>setDetalleTab('inscripciones')}>📋 Inscripciones</button>}
                   <button style={TAB(detalleTab==='stats')} onClick={()=>setDetalleTab('stats')}>📊 {t('stats')}</button>
                 </div>
               </div>
@@ -346,6 +441,9 @@ export default function Grupos() {
                   </> : <div className="empty"><p>{t('noMembers')}</p></div>
                 )}
 
+                {detalleTab === 'inscripciones' && (
+                  <TabInscripciones grupoId={detalle.id} cupo={detalle.cupo} />
+                )}
                 {detalleTab === 'stats' && (
                   <StatsPanel grupoId={detalle.id} />
                 )}

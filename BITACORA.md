@@ -1788,3 +1788,53 @@ Implementado en el mismo módulo que #17.
 **Frontend — `frontend/src/pages/Eventos.jsx`**
 - Botón "✅ Confirmaciones" en cada evento card.
 - `RsvpModal`: KPIs SI/NO/TALVEZ, botón "💬 Compartir link de confirmación" que abre WhatsApp con texto pre-armado con los dos links (Sí / No), lista de respuestas con colores.
+
+---
+
+### v3.2.0 — Sprint Features: Grupos Temporales + Ministerios expandidos — 2026-06-04
+
+#### Feature #9 — Grupos temáticos / estacionales
+
+**Backend — `backend/src/routes/grupos.js`**
+- `ALTER TABLE "Grupo" ADD COLUMN IF NOT EXISTS` para `tipo` (REGULAR/TEMPORAL), `fechaFin`, `cupo`.
+- Tabla `GrupoInscripcion` auto-creada con UNIQUE(grupoId, personaId) y verificación de cupo.
+- `GET /grupos/:id/inscripciones`, `POST /grupos/:id/inscripciones`, `PUT /:id/inscripciones/:inscId`, `DELETE /:id/inscripciones/:inscId`.
+
+**Frontend — `frontend/src/pages/Grupos.jsx`**
+- Formulario de creación/edición: campo `tipo` (Regular / Temporal), campos condicionales `fechaFin` y `cupo` solo para TEMPORAL.
+- Modal de detalle: tab "📋 Inscripciones" visible solo en grupos TEMPORAL con barra de cupo, buscador de personas, selector de estado por inscripto.
+
+---
+
+#### Feature #11 — Planificación de turnos automatizada
+
+**Backend — `backend/src/routes/ministerios.js`**
+- Tabla `MinisterioTurno` auto-creada: `id`, `iglesiaId`, `ministerioId`, `miembroId`, `fecha`, `rol`, `confirmado`, `notas`.
+- `GET /ministerios/:id/turnos?mes=YYYY-MM`, `POST`, `PUT /:id/turnos/:turnoId`, `DELETE`.
+- `PUT` usa COALESCE para actualización parcial.
+
+**Frontend — `frontend/src/pages/MinisterioDetalle.jsx`**
+- Nuevo componente `TabTurnos`: selector de mes, listado agrupado por fecha, toggle "Confirmar" por turno, modal de agregar con selector de miembro/fecha/rol.
+- Tab habilitado en todos los tipos de ministerio.
+
+---
+
+#### Feature #12 — Evaluación de voluntarios
+
+**Backend — `backend/src/routes/ministerios.js`**
+- Tabla `MinisterioEvaluacion` auto-creada: puntualidad, compromiso, habilidad, actitud (1-5), tipo (AUTOEVALUACION/LIDER), período, comentarios.
+- `GET /ministerios/:id/evaluaciones`, `POST`, `DELETE`.
+
+**Frontend — `frontend/src/pages/MinisterioDetalle.jsx`**
+- Nuevo componente `TabEvaluaciones`: cards con promedio calculado, estrellas ★☆ por dimensión, sliders de range en el formulario, período libre.
+
+---
+
+#### Feature #13 — Inventario de recursos ministeriales
+
+**Backend — `backend/src/routes/ministerios.js`**
+- Tabla `MinisterioRecurso` auto-creada: nombre, categoría (INSTRUMENTO/AUDIO/VIDEO/MOBILIARIO/OTRO), estado (BUENO/REGULAR/REPARACION/BAJA), responsableId, fechaCompra, fechaMantenimiento, valorEstimado.
+- CRUD completo: `GET`, `POST`, `PUT /:id/recursos/:recursoId`, `DELETE`.
+
+**Frontend — `frontend/src/pages/MinisterioDetalle.jsx`**
+- Nuevo componente `TabInventario`: grid de cards por recurso, colores por categoría y estado, alerta de mantenimiento próximo (≤14 días), modal editar/crear con todos los campos.
