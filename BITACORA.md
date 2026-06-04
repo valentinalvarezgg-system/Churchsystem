@@ -1896,3 +1896,67 @@ Implementado en el mismo módulo que #17.
 **Frontend — `frontend/src/pages/MinisterioDetalle.jsx`**
 - Nuevo tab "🧭 Onboarding" en todos los tipos de ministerio.
 - `TabOnboarding`: pipeline de etapas visual, chips de dones y disponibilidad, botón "→ Avanzar etapa", modal de detalle con toda la ficha del voluntario.
+
+---
+
+### v3.4.0 — Sprint Features: Liderazgo + Mapa + Chat + PWA — 2026-06-04
+
+#### Feature #7 — Rotación de liderazgo
+
+**Backend — `backend/src/routes/grupos.js`**
+- Tablas `LiderazgoPipeline` (etapas: IDENTIFICADO/EN_FORMACION/APRENDIZ/ASISTENTE/LIDER) y `LiderazgoChecklist` (7 ítems default por persona).
+- `GET /grupos/liderazgo`, `POST` (crea + genera checklist automático), `PUT /:id` (actualiza etapa/progreso/mentor), `PUT /:id/check/:checkId` (toggle + recalcula progreso automáticamente), `DELETE`.
+
+**Frontend — `frontend/src/pages/Liderazgo.jsx`** (nueva página)
+- Dashboard de pipeline con contadores por etapa, filtro por etapa.
+- `PipelineCard`: barra de progreso, badge de etapa, botón "→ avanzar", panel expandible con checklist interactivo y selector de mentor.
+- Modal de incorporación con selector de persona, etapa inicial, grupo, mentor y notas.
+- Ruta `/liderazgo` en App.jsx e ítem en menú.
+
+---
+
+#### Feature #6 — Mapa de grupos
+
+**Backend — `backend/src/routes/grupos.js`**
+- `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` para `lat`, `lng`, `direccion` en Persona y `lat`, `lng`, `direccionSede` en Grupo.
+- `GET /grupos/mapa` — personas con coords + grupos con sede, filtrado por iglesia.
+- `PUT /grupos/mapa/persona/:id` y `PUT /grupos/mapa/grupo/:id` — guardar coordenadas.
+
+**Frontend — `frontend/src/pages/MapaGrupos.jsx`** (nueva página)
+- Leaflet.js cargado dinámicamente (OpenStreetMap, sin costo).
+- Marcadores: sedes de grupos (pin coloreado) y personas (punto coloreado por grupo).
+- Filtros: todos / por grupo / sin grupo. Ajuste automático de zoom a los marcadores.
+- `EditCoordsModal`: geocodificación por dirección vía Nominatim (gratuito) o entrada manual de lat/lng.
+- Panel lateral de información al hacer clic en marcador de sede.
+- Ruta `/mapa-grupos` en App.jsx e ítem en menú.
+
+---
+
+#### Feature #10 — Chat interno del grupo
+
+**Backend — `backend/src/routes/chat.js`** (nuevo router)
+- Tabla `GrupoMensaje` auto-creada.
+- `GET /chat/:grupoId/mensajes` — historial con paginación por cursor (before).
+- `POST /chat/:grupoId/mensajes` — envío + broadcast SSE inmediato.
+- `GET /chat/:grupoId/stream` — endpoint SSE con ping cada 25s para mantener conexión.
+- Broadcast en memoria via Map de clientes activos (sin dependencias externas).
+
+**Frontend — `frontend/src/components/ChatGrupo.jsx`** (nuevo componente)
+- Mensajes agrupados por día, burbujas diferenciadas propio/ajeno, nombre del autor.
+- SSE via EventSource para updates en tiempo real sin polling.
+- Auto-scroll al último mensaje, input con Enter para enviar.
+- Integrado como tab "💬 Chat" en el modal de detalle de grupos.
+
+---
+
+#### Feature #29 — PWA con modo offline
+
+**`frontend/public/sw.js`** (Service Worker)
+- Cache-first para assets estáticos (JS, CSS, fonts, imágenes).
+- Network-first con fallback a cache para rutas de API seleccionadas (grupos, personas, stats, eventos, comunicados).
+- Navigate fallback a `/` o `/offline.html` cuando no hay red.
+- Background Sync API (`sync-asistencia`) para sincronizar asistencia pendiente cuando vuelve la conexión. Cola en IndexedDB.
+
+**`frontend/public/manifest.json`** — actualizado con theme color, icons, display standalone.
+**`frontend/public/offline.html`** — página de fallback cuando no hay caché ni red.
+**`frontend/index.html`** — registro del SW mejorado con detección de actualización disponible.

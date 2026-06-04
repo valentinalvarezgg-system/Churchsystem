@@ -309,6 +309,8 @@ export default function Menu() {
             {lnk('/permisos',      <Icons.Shield />,     tt('permissions'))}
             {lnk('/historial',     <Icons.History />,    tt('history'))}
             {lnk('/documentos',    <span style={{fontSize:16}}>📁</span>, 'Documentos')}
+            {lnk('/liderazgo',     <span style={{fontSize:16}}>🌱</span>, 'Liderazgo')}
+            {lnk('/mapa-grupos',   <span style={{fontSize:16}}>🗺️</span>, 'Mapa de grupos')}
             {lnk('/configuracion', <Icons.Settings />,   tt('settings'))}
           </>}
         </nav>

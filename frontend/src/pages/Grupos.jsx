@@ -6,6 +6,7 @@ import { apiFetch, getUser } from '../services/api.js'
 import { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
 import { makeI18n } from '../lib/i18n.js'
+import ChatGrupo from '../components/ChatGrupo.jsx'
 
 const GRUP_I18N = {
   es: { title:'Grupos', newGroup:'+ Nuevo grupo', noGroups:'No hay grupos',
@@ -408,6 +409,7 @@ export default function Grupos() {
                 <div style={{display:'flex',gap:4,background:'var(--bg-2)',borderRadius:8,padding:3}}>
                   <button style={TAB(detalleTab==='members')} onClick={()=>setDetalleTab('members')}>{t('memberList')} ({detalle.miembros?.length||0})</button>
                   {detalle.tipo==='TEMPORAL' && <button style={TAB(detalleTab==='inscripciones')} onClick={()=>setDetalleTab('inscripciones')}>📋 Inscripciones</button>}
+                  <button style={TAB(detalleTab==='chat')} onClick={()=>setDetalleTab('chat')}>💬 Chat</button>
                   <button style={TAB(detalleTab==='stats')} onClick={()=>setDetalleTab('stats')}>📊 {t('stats')}</button>
                 </div>
               </div>
@@ -443,6 +445,9 @@ export default function Grupos() {
 
                 {detalleTab === 'inscripciones' && (
                   <TabInscripciones grupoId={detalle.id} cupo={detalle.cupo} />
+                )}
+                {detalleTab === 'chat' && (
+                  <ChatGrupo grupoId={detalle.id} grupoNombre={detalle.nombre} />
                 )}
                 {detalleTab === 'stats' && (
                   <StatsPanel grupoId={detalle.id} />

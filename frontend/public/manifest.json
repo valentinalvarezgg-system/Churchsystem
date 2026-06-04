@@ -1,25 +1,16 @@
 {
   "name": "Church System",
   "short_name": "Church",
-  "description": "Plataforma de gestión pastoral para iglesias",
-  "start_url": "/app/",
-  "scope": "/app/",
+  "description": "Sistema de gestión pastoral integral",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#08090D",
-  "theme_color": "#08090D",
-  "orientation": "any",
-  "id": "com.churchsystem.app",
+  "background_color": "#0F172A",
+  "theme_color": "#6D5DFB",
+  "orientation": "portrait-primary",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ],
-  "screenshots": [
-    { "src": "/screenshot-mobile.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "categories": ["productivity", "utilities"],
-  "lang": "es",
-  "dir": "ltr"
+  "lang": "es-AR"
 }
