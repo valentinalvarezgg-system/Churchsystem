@@ -142,8 +142,9 @@ export default function Dashboard() {
         {/* ── Bienvenida ─────────────────────────────────────────── */}
         <div className="dashboard-welcome" style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:24, flexWrap:'wrap', gap:12 }}>
           <div>
-            <h1 style={{ fontSize:23, fontWeight:800, letterSpacing:'-0.6px', margin:'0 0 3px' }}>
-              {saludo}, {user?.nombre?.split(' ')[0] || txt('pastor')} <Icons.Users />
+            <h1 style={{ fontSize:23, fontWeight:800, letterSpacing:'-0.6px', margin:'0 0 3px', display:'flex', alignItems:'center', gap:8 }}>
+              {saludo}, {user?.nombre?.split(' ')[0] || txt('pastor')}
+              <Icons.Users size={20} color='var(--text-muted)' />
             </h1>
             <p style={{ fontSize:13, color:'var(--text-muted)', margin:0 }}>{hoyStr.charAt(0).toUpperCase() + hoyStr.slice(1)}</p>
           </div>
@@ -153,7 +154,7 @@ export default function Dashboard() {
               background:'var(--c-success-bg)', border:'1px solid rgba(22,163,74,0.2)',
               display:'flex', alignItems:'center', gap:8,
             }}>
-              <span style={{ fontSize:18 }}><Icons.Users /></span>
+              <Icons.TrendingUp size={18} color='var(--c-success)' />
               <div>
                 <div style={{ fontSize:13, fontWeight:700, color:'var(--c-success)' }}>+{t.nuevosMes} {txt('newThisMonth')}</div>
                 <div style={{ fontSize:11, color:'var(--text-muted)' }}>{txt('newPeople')}</div>
@@ -163,19 +164,33 @@ export default function Dashboard() {
         </div>
 
         {/* ── Stats principales ──────────────────────────────────── */}
-        <div className="stats-grid dashboard-stats" style={{ gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12, marginBottom: 20 }}>
+        <div style={{ display:'grid', gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12, marginBottom: 20 }}>
           {[
-            { val: t.personas || 0,    lbl: txt('total'),      icon:<Icons.Users size={20} color='var(--primary)' />,          color:'var(--primary)',   path:'/personas' },
-            { val: t.activos  || 0,    lbl: txt('active'),     icon:<Icons.CheckCircle size={20} color='var(--c-success)' />,    color:'var(--c-success)', path:'/personas' },
-            { val: t.visitantes|| 0,   lbl: txt('visitors'),   icon:<Icons.UserPlus size={20} color='var(--c-warning)' />,       color:'var(--c-warning)', path:'/personas' },
-            { val: t.grupos   || 0,    lbl: txt('groups'),     icon:<Icons.Groups size={20} color='var(--c-info)' />,            color:'var(--c-info)',    path:'/grupos' },
-            { val: t.cultos   || 0,    lbl: txt('services'),   icon:<Icons.Attendance size={20} color='var(--c-purple)' />,      color:'var(--c-purple)',  path:'/asistencia' },
-            { val: pct+'%',            lbl: txt('attendance'), icon:<Icons.Reports size={20} color={pctColor} />,                color: pctColor,          path:'/asistencia' },
+            { val: t.personas || 0,  lbl: txt('total'),      Ic: Icons.Users,       color:'#6366F1', path:'/personas' },
+            { val: t.activos  || 0,  lbl: txt('active'),     Ic: Icons.CheckCircle, color:'#16A34A', path:'/personas' },
+            { val: t.visitantes||0,  lbl: txt('visitors'),   Ic: Icons.UserPlus,    color:'#D97706', path:'/personas' },
+            { val: t.grupos   || 0,  lbl: txt('groups'),     Ic: Icons.Groups,      color:'#0891B2', path:'/grupos' },
+            { val: t.cultos   || 0,  lbl: txt('services'),   Ic: Icons.Attendance,  color:'#7C3AED', path:'/asistencia' },
+            { val: pct+'%',          lbl: txt('attendance'), Ic: Icons.Reports,     color: pctColor, path:'/asistencia' },
           ].map(s => (
-            <div key={s.lbl} className="stat-card" onClick={() => navigate(s.path)}>
-              <div style={{ marginBottom:6 }}>{s.icon}</div>
-              <div className="stat-val" style={{ color: s.color, fontSize:26 }}>{s.val}</div>
-              <div className="stat-lbl">{s.lbl}</div>
+            <div key={s.lbl} onClick={() => navigate(s.path)}
+              style={{
+                background:'var(--surface)', border:'1px solid var(--border)',
+                borderRadius:14, padding: ori.isPhone ? '14px 10px' : '18px 16px',
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                gap:6, cursor:'pointer', transition:'box-shadow .15s, transform .15s', textAlign:'center',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow=`0 0 0 2px ${s.color}40`; e.currentTarget.style.transform='translateY(-1px)' }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow=''; e.currentTarget.style.transform='' }}>
+              <div style={{
+                width:38, height:38, borderRadius:10,
+                background:`${s.color}18`,
+                display:'flex', alignItems:'center', justifyContent:'center',
+              }}>
+                <s.Ic size={18} color={s.color} />
+              </div>
+              <div style={{ fontSize: ori.isPhone ? 22 : 26, fontWeight:800, color:s.color, lineHeight:1, letterSpacing:'-1px' }}>{s.val}</div>
+              <div style={{ fontSize:11, fontWeight:500, color:'var(--text-muted)', lineHeight:1.2 }}>{s.lbl}</div>
             </div>
           ))}
         </div>
@@ -305,28 +320,34 @@ export default function Dashboard() {
           {/* Acceso rápido */}
           <div className="card">
             <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}>{txt('quick')}</h3>
-            <div className="quick-actions-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.isPhone && ori.portrait ? 2 : ori.cols4},minmax(0,1fr))`, gap: ori.isPhone ? 7 : 7 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(100px,1fr))', gap:8 }}>
               {[
-                { icon:<Icons.UserPlus />,   label:copy.actions[0][0], desc:copy.actions[0][1], path:'/personas',     color:'#2563EB' },
-                { icon:<Icons.Attendance />, label:copy.actions[1][0], desc:copy.actions[1][1], path:'/asistencia',   color:'#16A34A' },
-                { icon:<Icons.QrCode />,     label:copy.actions[2][0], desc:copy.actions[2][1], path:'/checkin',      color:'#0891B2' },
-                { icon:<Icons.Messages />,   label:copy.actions[3][0], desc:copy.actions[3][1], path:'/mensajes',     color:'#D97706' },
-                { icon:<Icons.AI />,         label:copy.actions[4][0], desc:copy.actions[4][1], path:'/asistente-ia', color:'#7C3AED' },
-                { icon:<Icons.Comunicados />,label:copy.actions[5][0], desc:copy.actions[5][1], path:'/alertas',      color:'#DC2626' },
-                { icon:<Icons.Reports />,    label:copy.actions[6][0], desc:copy.actions[6][1], path:'/reportes',     color:'#9333EA' },
+                { Ic: Icons.UserPlus,   label:copy.actions[0][0], desc:copy.actions[0][1], path:'/personas',     color:'#2563EB' },
+                { Ic: Icons.Attendance, label:copy.actions[1][0], desc:copy.actions[1][1], path:'/asistencia',   color:'#16A34A' },
+                { Ic: Icons.QrCode,     label:copy.actions[2][0], desc:copy.actions[2][1], path:'/checkin',      color:'#0891B2' },
+                { Ic: Icons.Messages,   label:copy.actions[3][0], desc:copy.actions[3][1], path:'/mensajes',     color:'#D97706' },
+                { Ic: Icons.AI,         label:copy.actions[4][0], desc:copy.actions[4][1], path:'/asistente-ia', color:'#7C3AED' },
+                { Ic: Icons.Comunicados,label:copy.actions[5][0], desc:copy.actions[5][1], path:'/alertas',      color:'#DC2626' },
+                { Ic: Icons.Reports,    label:copy.actions[6][0], desc:copy.actions[6][1], path:'/reportes',     color:'#9333EA' },
               ].map(a => (
-                <button key={a.path} className="quick-action-btn" onClick={() => navigate(a.path)}
+                <button key={a.path} onClick={() => navigate(a.path)}
                   style={{
-                    display:'flex', flexDirection:'column', alignItems:'flex-start', gap:4,
-                    padding:'12px 14px', borderRadius:10, cursor:'pointer',
+                    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start',
+                    gap:0, padding:'14px 8px 12px', borderRadius:12, cursor:'pointer',
                     background:'var(--bg)', border:'1px solid var(--border)',
-                    fontSize:12, fontWeight:600, color:'var(--text-2)',
-                    transition:'all .15s', textAlign:'left', minHeight: 88,
+                    transition:'all .15s', textAlign:'center', width:'100%',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = a.color; e.currentTarget.style.color = a.color }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)' }}>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>{a.icon}{a.label}</div>
-                  <span style={{fontSize:11,fontWeight:400,color:'var(--text-muted)',lineHeight:1.3}}>{a.desc}</span>
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = a.color; e.currentTarget.style.background = `${a.color}08` }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg)' }}>
+                  <div style={{
+                    width:40, height:40, borderRadius:12, marginBottom:8,
+                    background:`${a.color}18`,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                  }}>
+                    <a.Ic size={18} color={a.color} />
+                  </div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'var(--text)', lineHeight:1.3, marginBottom:2 }}>{a.label}</div>
+                  <div style={{ fontSize:10, fontWeight:400, color:'var(--text-muted)', lineHeight:1.3 }}>{a.desc}</div>
                 </button>
               ))}
             </div>
@@ -339,7 +360,7 @@ export default function Dashboard() {
           {/* Crecimiento mensual (barras) */}
           <div className="card">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}><Icons.Reports /> {txt('growth')}</h3>
+              <h3 style={{ fontSize:13, fontWeight:700, margin:0, display:'flex', alignItems:'center', gap:6 }}><Icons.Reports size={14} />{txt('growth')}</h3>
               <span style={{ fontSize:11, color:'var(--text-muted)' }}>{txt('last12')}</span>
             </div>
             {(stats?.crecimientoMensual || []).length === 0
@@ -406,7 +427,7 @@ export default function Dashboard() {
         {/* ── Actividad reciente ─────────────────────────────────────── */}
         {(stats?.actividadReciente || []).length > 0 && (
           <div className="card">
-            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14 }}><Icons.History /> {txt('recentActivity')}</h3>
+            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14, display:'flex', alignItems:'center', gap:6 }}><Icons.History size={14} />{txt('recentActivity')}</h3>
             <div className="dashboard-activity-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.cols2},1fr)`, gap:0 }}>
               {(stats?.actividadReciente || []).slice(0, 8).map((a, i) => {
                 const iconMap = { CREAR:<Icons.Plus size={13} />, ACTUALIZAR:<Icons.Edit size={13} />, ELIMINAR:<Icons.Delete size={13} />, MENSAJE:<Icons.Messages size={13} />, MASIVO:<Icons.Send size={13} />, IMPORTAR_EXCEL:<Icons.Excel size={13} />, BACKUP:<Icons.Archive size={13} />, LOGIN:<Icons.Profile size={13} /> }
