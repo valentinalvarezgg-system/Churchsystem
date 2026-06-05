@@ -17,20 +17,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.5
+
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Activate pnpm
-        run: corepack prepare pnpm@9.15.5 --activate
-
-      - name: Verify pnpm is available
-        run: pnpm --version
 
       - name: Install frontend deps
         working-directory: frontend
@@ -54,20 +49,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.5
+
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: "pnpm"
           cache-dependency-path: backend/pnpm-lock.yaml
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Activate pnpm
-        run: corepack prepare pnpm@9.15.5 --activate
-
-      - name: Verify pnpm is available
-        run: pnpm --version
 
       - name: Install backend deps
         working-directory: backend
@@ -80,14 +70,7 @@ jobs:
           done
           echo "All backend files pass syntax check ✓"
 
-  # ── Deploy info (Mac local — no SSH needed) ────────────────
-  # El servidor corre en Mac local via launchd + Cloudflare Tunnel.
-  # El "deploy" es automático: la Mac sirve directamente desde frontend/dist/
-  # que está en el repo clonado. Solo hay que hacer git pull en la Mac.
-  #
-  # Para habilitar deploy automático vía SSH a un VPS en el futuro,
-  # configurar estos secrets en GitHub:
-  #   SSH_HOST, SSH_USER, SSH_PRIVATE_KEY, SSH_PORT (opcional, default 22)
+  # ── Deploy info ────────────────────────────────────────────
   deploy-info:
     name: Deploy status
     needs: [build-frontend, check-backend]
@@ -97,14 +80,5 @@ jobs:
       - name: Deployment mode
         run: |
           echo "✅ Build y checks pasaron."
-          echo ""
-          echo "Servidor: Mac local (launchd + Cloudflare Tunnel)"
-          echo "Deploy: git pull manual o automático en la Mac"
+          echo "Servidor: Render (auto-deploy on push to master)"
           echo "URL: https://churchsystem.com.ar"
-          echo ""
-          if [ -n "${{ secrets.SSH_HOST }}" ]; then
-            echo "SSH secrets detectados — deploy SSH disponible pero deshabilitado en este workflow."
-            echo "Habilitar editando deploy.yml cuando se migre a VPS."
-          else
-            echo "Sin SSH secrets — deploy local únicamente."
-          fi
