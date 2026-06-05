@@ -11,7 +11,7 @@ const icon = (path, viewBox = '0 0 24 24') =>
       viewBox={viewBox}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      style={{ display: 'inline-block', flexShrink: 0, ...style }}
+      style={{ display: 'inline-block', flexShrink: 0, color, ...style }}
       aria-hidden="true"
     >
       {path}

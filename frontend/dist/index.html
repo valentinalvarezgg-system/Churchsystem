@@ -24,7 +24,7 @@
     <link rel="apple-touch-icon" href="/app/icon-192.png" />
 
     <title>Church System</title>
-    <script type="module" crossorigin src="/app/assets/index-DumeyiEd.js"></script>
+    <script type="module" crossorigin src="/app/assets/index-C_4-Nuta.js"></script>
     <link rel="modulepreload" crossorigin href="/app/assets/vendor-B7kKumf0.js">
     <link rel="modulepreload" crossorigin href="/app/assets/charts-CDJ-HL7w.js">
     <link rel="stylesheet" crossorigin href="/app/assets/index-CJdPg3rf.css">
@@ -35,15 +35,18 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.getRegistrations()
-            .then(registrations => Promise.all(registrations.map(reg => {
-              try {
-                const scopePath = new URL(reg.scope).pathname
-                if (scopePath === '/') return reg.unregister()
-              } catch {}
-              return Promise.resolve(false)
-            })))
-            .finally(() => navigator.serviceWorker.register('/app/sw.js', { scope: '/app/' }).catch(() => {}))
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then(reg => {
+              reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('Church System: nueva versión disponible')
+                  }
+                })
+              })
+            })
+            .catch(err => console.warn('SW registration failed:', err))
         })
       }
     </script>

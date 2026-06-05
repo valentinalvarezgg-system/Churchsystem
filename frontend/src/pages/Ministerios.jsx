@@ -191,7 +191,7 @@ export default function Ministerios() {
             </p>
           </div>
           <button onClick={() => setModal(true)} style={S.btnPrimary}>
-            <MinIcons.Plus size={16} color="#fff" style={{ marginRight: 6 }} />
+            <MinIcons.Plus size={16} color="#fff" />
             Nuevo
           </button>
         </div>
@@ -204,7 +204,7 @@ export default function Ministerios() {
               Cada ministerio tiene su propio panel, tareas, miembros, checklists y reportes.
             </p>
             <button onClick={() => setModal(true)} style={{ ...S.btnPrimary, padding: '12px 28px' }}>
-              <MinIcons.Plus size={18} color="#fff" style={{ marginRight: 8 }} />
+              <MinIcons.Plus size={18} color="#fff" />
               Crear primer ministerio
             </button>
           </div>
@@ -218,39 +218,44 @@ export default function Ministerios() {
               return (
                 <div
                   key={ministerio.id}
-                  style={{ ...S.card, borderTopColor: color }}
+                  style={S.card}
                   onClick={() => navigate(`/ministerios/${ministerio.id}`)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={e => e.key === 'Enter' && navigate(`/ministerios/${ministerio.id}`)}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow=`0 4px 16px ${color}28`; e.currentTarget.style.transform='translateY(-2px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow=''; e.currentTarget.style.transform='' }}
                 >
-                  <div style={S.cardTop}>
-                    <div style={{ ...S.cardIcono, background: `${color}20`, border: `1.5px solid ${color}40` }}>
-                      <IconComp size={22} color={color} />
+                  <div style={{ ...S.cardAccent, background: color }} />
+                  <div style={S.cardBody}>
+                    <div style={S.cardTop}>
+                      <div style={{ ...S.cardIcono, background: `${color}18`, border: `1.5px solid ${color}35` }}>
+                        <IconComp size={22} color={color} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={S.cardNombre}>{ministerio.nombre}</h3>
+                        <span style={{ ...S.tipoBadge, color, background: `${color}12` }}>{meta.label}</span>
+                      </div>
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <h3 style={S.cardNombre}>{ministerio.nombre}</h3>
-                      <span style={{ ...S.tipoBadge, color, background: `${color}15` }}>{meta.label}</span>
-                    </div>
-                  </div>
 
-                  {ministerio.descripcion && <p style={S.cardDesc}>{ministerio.descripcion}</p>}
+                    {ministerio.descripcion && <p style={S.cardDesc}>{ministerio.descripcion}</p>}
 
-                  <div style={S.cardFooter}>
-                    <div style={S.cardStats}>
-                      <span style={S.statItem}>
-                        <MinIcons.Users size={13} color="var(--text-muted)" />
-                        {ministerio.totalMiembros ?? 0}
-                      </span>
-                      <span style={{ ...S.statItem, color: hasPendingTasks ? 'var(--c-warning)' : 'var(--text-muted)' }}>
-                        <MinIcons.CheckSquare size={13} color={hasPendingTasks ? 'var(--c-warning)' : 'var(--text-muted)'} />
-                        {ministerio.tareasPendientes ?? 0} tareas
+                    <div style={S.cardFooter}>
+                      <div style={S.cardStats}>
+                        <span style={S.statItem}>
+                          <MinIcons.Users size={13} color="var(--text-muted)" />
+                          {ministerio.totalMiembros ?? 0}
+                        </span>
+                        <span style={{ ...S.statItem, color: hasPendingTasks ? 'var(--c-warning)' : 'var(--text-muted)' }}>
+                          <MinIcons.CheckSquare size={13} color={hasPendingTasks ? 'var(--c-warning)' : 'var(--text-muted)'} />
+                          {ministerio.tareasPendientes ?? 0} tareas
+                        </span>
+                      </div>
+                      <span style={{ ...S.cardLink, color }}>
+                        Ver panel
+                        <MinIcons.ArrowRight size={14} color={color} />
                       </span>
                     </div>
-                    <span style={{ ...S.cardLink, color }}>
-                      Ver panel
-                      <MinIcons.ArrowRight size={14} color={color} style={{ marginLeft: 4 }} />
-                    </span>
                   </div>
                 </div>
               )
@@ -265,28 +270,28 @@ export default function Ministerios() {
 }
 
 const S = {
-  page: { display:'flex', minHeight:'100vh', background:'var(--bg)', color:'var(--text)' },
+  page: { display:'flex', minHeight:'100dvh', background:'var(--bg)', color:'var(--text)' },
   main: { flex:1, padding:'20px 16px 80px', maxWidth:1100, margin:'0 auto', width:'100%', boxSizing:'border-box' },
-  pageHeader: { display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:24 },
-  titulo: { margin:0, fontSize:22, fontWeight:800, color:'var(--text)' },
+  pageHeader: { display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:24 },
+  titulo: { margin:0, fontSize:22, fontWeight:800, color:'var(--text)', lineHeight:1.2 },
   subtitulo: { margin:'4px 0 0', fontSize:13, color:'var(--text-muted)' },
-  grid: { display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(min(260px,100%),1fr))', gap:14 },
+  grid: { display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(min(280px,100%),1fr))', gap:14 },
   card: {
     background:'var(--bg-2)',
     border:'1px solid var(--border)',
-    borderTop:'3px solid',
     borderRadius:14,
-    padding:16,
+    overflow:'hidden',
     cursor:'pointer',
-    transition:'box-shadow .15s',
+    transition:'box-shadow .15s, transform .15s',
     display:'flex',
     flexDirection:'column',
-    gap:10,
     WebkitTapHighlightColor:'transparent',
   },
+  cardAccent: { height:4, flexShrink:0 },
+  cardBody: { padding:16, display:'flex', flexDirection:'column', gap:10, flex:1 },
   cardTop: { display:'flex', alignItems:'flex-start', gap:12 },
-  cardIcono: { width:44, height:44, borderRadius:11, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
-  cardNombre: { margin:0, fontSize:14, fontWeight:700, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
+  cardIcono: { width:44, height:44, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
+  cardNombre: { margin:0, fontSize:15, fontWeight:700, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
   cardDesc: {
     margin:0,
     fontSize:12,
@@ -297,32 +302,34 @@ const S = {
     WebkitBoxOrient:'vertical',
     overflow:'hidden',
   },
-  cardFooter: { display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:'auto', gap:8 },
+  cardFooter: { display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:'auto', paddingTop:4, gap:8 },
   cardStats: { display:'flex', gap:12, flexWrap:'wrap' },
   statItem: { display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:'var(--text-muted)', fontWeight:500 },
-  cardLink: { display:'inline-flex', alignItems:'center', fontSize:12, fontWeight:700, flexShrink:0 },
-  tipoBadge: { display:'inline-block', fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:6 },
-  emptyState: { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:380, textAlign:'center' },
+  cardLink: { display:'inline-flex', alignItems:'center', gap:4, fontSize:12, fontWeight:700, flexShrink:0 },
+  tipoBadge: { display:'inline-block', fontSize:11, fontWeight:600, padding:'3px 8px', borderRadius:6, marginTop:3 },
+  emptyState: { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:340, textAlign:'center', gap:12 },
   spinner: { width:32, height:32, border:'3px solid var(--border)', borderTopColor:'#6B5CFF', borderRadius:'50%', animation:'spin 1s linear infinite', margin:'100px auto' },
-  overlay: { position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:1000, display:'flex', alignItems:'flex-end', justifyContent:'center', paddingBottom:'env(safe-area-inset-bottom,0px)' },
-  modal: { background:'var(--bg)', borderRadius:'20px 20px 0 0', width:'100%', maxWidth:600, maxHeight:'88dvh', overflowY:'auto', padding:24, paddingBottom:'calc(24px + env(safe-area-inset-bottom,0px))', boxSizing:'border-box' },
+  overlay: { position:'fixed', inset:0, background:'rgba(0,0,0,.55)', zIndex:1000, display:'flex', alignItems:'flex-end', justifyContent:'center' },
+  modal: { background:'var(--bg)', borderRadius:'20px 20px 0 0', width:'100%', maxWidth:560, maxHeight:'90dvh', overflowY:'auto', padding:'24px 20px', paddingBottom:'calc(24px + env(safe-area-inset-bottom,0px))', boxSizing:'border-box' },
   modalHeader: { display:'flex', alignItems:'center', gap:12, marginBottom:20 },
   iconBox: { width:44, height:44, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
-  modalFooter: { display:'flex', gap:10, justifyContent:'flex-end', marginTop:20 },
-  btnClose: { marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', padding:4, borderRadius:6 },
-  tiposGrid: { display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(80px,1fr))', gap:8, marginBottom:18 },
+  modalFooter: { display:'flex', gap:10, justifyContent:'flex-end', marginTop:20, flexWrap:'wrap' },
+  btnClose: { marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', padding:6, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center' },
+  tiposGrid: { display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(76px,1fr))', gap:8, marginBottom:18 },
   tipoBtn: {
     display:'flex',
     flexDirection:'column',
     alignItems:'center',
     gap:5,
-    padding:'10px 4px',
+    padding:'10px 6px',
     border:'1.5px solid',
     borderRadius:10,
     cursor:'pointer',
     transition:'all .12s',
     background:'transparent',
     WebkitTapHighlightColor:'transparent',
+    minHeight:72,
+    justifyContent:'center',
   },
   label: { display:'block', fontSize:11, fontWeight:700, color:'var(--text-2)', textTransform:'uppercase', letterSpacing:'.04em', marginBottom:6 },
   input: {
@@ -337,10 +344,12 @@ const S = {
     boxSizing:'border-box',
     marginBottom:14,
     WebkitAppearance:'none',
+    display:'block',
   },
   btnPrimary: {
     display:'inline-flex',
     alignItems:'center',
+    gap:6,
     padding:'10px 18px',
     background:'#6B5CFF',
     color:'#fff',
@@ -350,6 +359,7 @@ const S = {
     fontWeight:700,
     fontSize:14,
     WebkitTapHighlightColor:'transparent',
+    whiteSpace:'nowrap',
   },
   btnSec: {
     display:'inline-flex',
