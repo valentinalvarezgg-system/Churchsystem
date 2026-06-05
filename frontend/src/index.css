@@ -804,6 +804,14 @@ tbody tr:last-child td { border-bottom: none; }
 ::-webkit-scrollbar-thumb { background: var(--border-med); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
+/* ── Desktop: garantía explícita sin depender de CSS variables ── */
+@media (min-width: 1024px) {
+  .main {
+    margin-left: 240px !important;
+    max-width: calc(100vw - 240px) !important;
+  }
+}
+
 @media (max-width: 1023px) {
   :root { --sidebar-w: 0px; }
 

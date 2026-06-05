@@ -1,4 +1,4 @@
-const CACHE_NAME = 'church-system-v2'
+const CACHE_NAME = 'church-system-v3'
 const OFFLINE_URL = '/offline.html'
 
 // Assets que se cachean en la instalación

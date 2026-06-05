@@ -145,7 +145,7 @@ app.get('/health', async (_req, res) => {
 })
 
 const fotosDir = path.join(process.cwd(), 'uploads', 'fotos')
-if (!fs.existsSync(fotosDir)) fs.mkdirSync(fotosDir, { recursive: true })
+try { if (!fs.existsSync(fotosDir)) fs.mkdirSync(fotosDir, { recursive: true }) } catch {}
 app.use('/fotos', express.static(fotosDir))
 
 app.use('/auth', authRouter)
