@@ -1584,7 +1584,7 @@ export default function MinisterioDetalle() {
   return (
     <div className="layout">
       <Menu />
-      <main className="main" style={{ maxWidth:900 }}>
+      <main className="main">
         <div style={S.pageHeader}>
           <button onClick={() => navigate('/ministerios')} style={S.btnBack} aria-label="Volver">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">

@@ -180,7 +180,7 @@ export default function Ministerios() {
   return (
     <div className="layout">
       <Menu />
-      <main className="main" style={{ maxWidth:1100 }}>
+      <main className="main">
         <div style={S.pageHeader}>
           <div>
             <h1 style={S.titulo}>Ministerios</h1>
