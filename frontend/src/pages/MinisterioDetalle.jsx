@@ -1568,10 +1568,10 @@ export default function MinisterioDetalle() {
 
   if (loading) {
     return (
-      <div className="layout">
+      <>
         <Menu />
         <main className="main"><div style={S.spinner} /></main>
-      </div>
+      </>
     )
   }
 
@@ -1582,7 +1582,7 @@ export default function MinisterioDetalle() {
   const IconComponent = MINISTERIO_ICONS[ministerio.tipo] || MinIcons.Building
 
   return (
-    <div className="layout">
+    <>
       <Menu />
       <main className="main">
         <div style={S.pageHeader}>
@@ -1662,7 +1662,7 @@ export default function MinisterioDetalle() {
           )}
         </div>
       </main>
-    </div>
+    </>
   )
 }
 
