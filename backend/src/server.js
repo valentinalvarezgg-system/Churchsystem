@@ -206,24 +206,48 @@ const distDir = path.join(process.cwd(), '..', 'frontend', 'dist')
 const landingFile = path.join(process.cwd(), '..', 'landing', 'index.html')
 const registroFile = path.join(process.cwd(), '..', 'landing', 'registro.html')
 
+// Cache-Control helpers
+function noCache(res) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  res.setHeader('Pragma', 'no-cache')
+  res.setHeader('Expires', '0')
+  res.setHeader('Surrogate-Control', 'no-store')
+}
+function longCache(res) {
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+}
+
+function staticOpts() {
+  return {
+    etag: true,
+    lastModified: true,
+    setHeaders(res, filePath) {
+      if (filePath.endsWith('.html')) noCache(res)
+      else if (/\.(js|css|woff2?|png|svg|ico|webp)$/.test(filePath)) longCache(res)
+    },
+  }
+}
+
 if (fs.existsSync(landingFile)) {
-  app.get('/', (_req, res) => res.sendFile(landingFile))
+  app.get('/', (_req, res) => { noCache(res); res.sendFile(landingFile) })
   app.get('/registro', (_req, res) => {
+    noCache(res)
     if (fs.existsSync(registroFile)) return res.sendFile(registroFile)
     return res.sendFile(landingFile)
   })
-  app.use('/app', express.static(distDir))
-  app.get('/app/*', (_req, res) => res.sendFile(path.join(distDir, 'index.html')))
+  app.use('/app', express.static(distDir, staticOpts()))
+  app.get('/app/*', (_req, res) => { noCache(res); res.sendFile(path.join(distDir, 'index.html')) })
   logger.info({ route: '/', mode: 'landing' }, 'Landing activa')
   logger.info({ route: '/app', mode: 'spa' }, 'App React activa')
 }
 
 if (fs.existsSync(distDir)) {
-  app.use(express.static(distDir))
+  app.use(express.static(distDir, staticOpts()))
   app.get('*', (req, res) => {
     const isCheckinApi = /^\/checkin\/(token|info|registrar|descriptores)\//.test(req.path)
     const isApi = isCheckinApi || /^\/(api|auth|personas|grupos|cultos|stats|alertas|mensajes|config|ia|fotos|export|finanzas|historial|reportes|discipulado|consolidacion|seguimiento|oracion|comunicados|eventos|backup|users|permisos|perfil|import|busqueda|mp|stripe|paypal|transferencia|plan|oauth|verificacion|iglesia|notificaciones|promo-codes|bug-report|mi-perfil|excel-ia|godmode|culto-asignaciones|analytics|whatsapp|webhooks)/.test(req.path)
     if (isApi) return res.status(404).json({ error: 'Ruta no encontrada' })
+    noCache(res)
     return res.sendFile(path.join(distDir, 'index.html'))
   })
   logger.info({ dist: distDir }, 'Frontend estatico activo')
