@@ -1441,14 +1441,17 @@ tbody tr:last-child td { border-bottom: none; }
 }
 
 /* ═══ SAFE AREA (iPhone X+ notch & home bar) ═════════════════ */
-@supports (padding: env(safe-area-inset-bottom)) {
-  .main {
-    padding-left:  max(14px, env(safe-area-inset-left)) !important;
-    padding-right: max(14px, env(safe-area-inset-right)) !important;
-  }
-  .mobile-header {
-    padding-left:  max(12px, env(safe-area-inset-left));
-    padding-right: max(12px, env(safe-area-inset-right));
+/* Solo aplicar en móvil/tablet — en desktop se mantiene el padding base de 32px */
+@media (max-width: 1023px) {
+  @supports (padding: env(safe-area-inset-bottom)) {
+    .main {
+      padding-left:  max(14px, env(safe-area-inset-left)) !important;
+      padding-right: max(14px, env(safe-area-inset-right)) !important;
+    }
+    .mobile-header {
+      padding-left:  max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+    }
   }
 }
 

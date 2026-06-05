@@ -11,8 +11,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const router = Router()
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 
-// Directorio de uploads local (como fallback sin S3)
-const UPLOAD_DIR = path.join(__dirname, '../../../../uploads/documentos')
+// Directorio de uploads — usa /tmp en producción (ephemeral) o ./uploads en dev
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads', 'documentos')
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true })
 
 const storage = multer.diskStorage({
