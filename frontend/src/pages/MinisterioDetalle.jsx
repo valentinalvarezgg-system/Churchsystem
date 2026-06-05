@@ -1568,9 +1568,9 @@ export default function MinisterioDetalle() {
 
   if (loading) {
     return (
-      <div style={S.page}>
+      <div className="layout">
         <Menu />
-        <main style={S.main}><div style={S.spinner} /></main>
+        <main className="main"><div style={S.spinner} /></main>
       </div>
     )
   }
@@ -1582,9 +1582,9 @@ export default function MinisterioDetalle() {
   const IconComponent = MINISTERIO_ICONS[ministerio.tipo] || MinIcons.Building
 
   return (
-    <div style={S.page}>
+    <div className="layout">
       <Menu />
-      <main style={S.main}>
+      <main className="main" style={{ maxWidth:900 }}>
         <div style={S.pageHeader}>
           <button onClick={() => navigate('/ministerios')} style={S.btnBack} aria-label="Volver">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -1667,8 +1667,6 @@ export default function MinisterioDetalle() {
 }
 
 const S = {
-  page: { display:'flex', minHeight:'100vh', background:'var(--bg)', color:'var(--text)' },
-  main: { flex:1, padding:'20px 16px 80px', maxWidth:900, margin:'0 auto', width:'100%', boxSizing:'border-box' },
   pageHeader: { display:'flex', alignItems:'center', gap:12, marginBottom:20 },
   pageTitle: { margin:0, fontSize:20, fontWeight:800, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' },
   btnBack: {

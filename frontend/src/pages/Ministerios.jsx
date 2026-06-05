@@ -170,17 +170,17 @@ export default function Ministerios() {
 
   if (loading) {
     return (
-      <div style={S.page}>
+      <div className="layout">
         <Menu />
-        <main style={S.main}><div style={S.spinner} /></main>
+        <main className="main"><div style={S.spinner} /></main>
       </div>
     )
   }
 
   return (
-    <div style={S.page}>
+    <div className="layout">
       <Menu />
-      <main style={S.main}>
+      <main className="main" style={{ maxWidth:1100 }}>
         <div style={S.pageHeader}>
           <div>
             <h1 style={S.titulo}>Ministerios</h1>
@@ -270,8 +270,6 @@ export default function Ministerios() {
 }
 
 const S = {
-  page: { display:'flex', minHeight:'100dvh', background:'var(--bg)', color:'var(--text)' },
-  main: { flex:1, padding:'20px 16px 80px', maxWidth:1100, margin:'0 auto', width:'100%', boxSizing:'border-box' },
   pageHeader: { display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:24 },
   titulo: { margin:0, fontSize:22, fontWeight:800, color:'var(--text)', lineHeight:1.2 },
   subtitulo: { margin:'4px 0 0', fontSize:13, color:'var(--text-muted)' },
