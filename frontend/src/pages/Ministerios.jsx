@@ -170,15 +170,15 @@ export default function Ministerios() {
 
   if (loading) {
     return (
-      <>
+      <div className="layout">
         <Menu />
         <main className="main"><div style={S.spinner} /></main>
-      </>
+      </div>
     )
   }
 
   return (
-    <>
+    <div className="layout">
       <Menu />
       <main className="main">
         <div style={S.pageHeader}>
@@ -265,7 +265,7 @@ export default function Ministerios() {
 
         {modal && <ModalNuevo onClose={() => setModal(false)} onCreado={handleCreado} />}
       </main>
-    </>
+    </div>
   )
 }
 
