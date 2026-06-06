@@ -954,7 +954,7 @@ Cuando ese momento llegue: configurar un host con la IP del servidor, usuario `d
 - `~/Library/LaunchAgents/com.churchsystem.backend.plist` — `QR_SECRET` agregado al entorno de launchd.
 
 **Frontend:**
-- `frontend/src/pages/Planes.jsx` — **nueva página** `/planes`. Muestra los 3 planes (Starter/Pro/Max) con precios multimoneda, módulos incluidos, limitaciones, y CTA que inicia el flujo de suscripción vía `/subscriptions/create`. Detecta el plan actual del usuario y lo marca como activo.
+- `frontend/src/pages/Planes.jsx` — **nueva página** `/planes`. Muestra los planes comerciales vigentes con precios multimoneda, módulos incluidos, limitaciones, y CTA que inicia checkout estable vía `/mp/crear-preferencia` o `/paypal/crear-orden` según la moneda. Detecta el plan actual del usuario y lo marca como activo.
 - `frontend/src/components/UpgradeGate.jsx` — el botón "Mejorar mi plan" ahora navega a `/planes` en lugar de abrir un `mailto:`.
 - `frontend/src/App.jsx` — importación lazy de `Planes.jsx` y route `/planes` protegida para todos los roles.
 - `frontend/src/components/Menu.jsx` — ítem "Planes" (★) agregado al sidebar en la sección principal, visible para todos los planes.
@@ -1289,8 +1289,8 @@ Fecha: 2026-05-31
 
 3) Pagos
 - Flujo operativo hoy para checkout: ✅ `POST /mp/crear-preferencia` devuelve `initPoint` válido de Mercado Pago.
-- Flujo alternativo `/subscriptions/create`: ⚠️ incompleto para uso inmediato (error `payer_email is required`).
-- Decisión para demo: usar `mp/crear-preferencia` como camino oficial 2.8.2.
+- Flujo alternativo `/subscriptions/create`: ⚠️ se estaba rompiendo por `payer_email`; se corrigió la compatibilidad para Mercado Pago y el frontend de planes dejó de depender de ese flujo para redirigir.
+- Decisión para demo: usar `mp/crear-preferencia` y `paypal/crear-orden` como caminos operativos estables; `subscriptions/create` queda como compatibilidad híbrida.
 
 4) Aislamiento multi-tenant
 - Usuarios demo en iglesias distintas: ✅ (`iglesiaId` 46/47/48).

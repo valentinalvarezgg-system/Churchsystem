@@ -175,23 +175,21 @@ export default function Planes() {
     setLoading(plan.key)
     setMsg(null)
     try {
-      const res = await apiFetch('/subscriptions/create', {
+      const usePayPal = String(ctx.currency || 'ARS').toUpperCase() === 'USD'
+      const endpoint = usePayPal ? '/paypal/crear-orden' : '/mp/crear-preferencia'
+      const payload = usePayPal
+        ? { plan: plan.key, promo: ctx.promo || '' }
+        : { plan: plan.key, country: ctx.country || 'AR', currency: ctx.currency || 'ARS', promo: ctx.promo || '' }
+      const res = await apiFetch(endpoint, {
         method: 'POST',
-        body: JSON.stringify({ plan: plan.key, frecuencia: 'mensual', metodo: 'mp' }),
+        body: JSON.stringify(payload),
       })
-      if (res?.checkout_url || res?.init_point) {
-        window.location.href = res.checkout_url || res.init_point
+      const checkoutUrl = res?.checkoutUrl || res?.checkout_url || res?.init_point || res?.approvalUrl || res?.approveUrl
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl
         return
       }
-      if (res?.approvalUrl) {
-        window.location.href = res.approvalUrl
-        return
-      }
-      if (res?.error) {
-        setMsg({ tipo: 'error', texto: res.error })
-        return
-      }
-      setMsg({ tipo: 'info', texto: 'Preparando checkout...' })
+      setMsg({ tipo: 'error', texto: res?.error || 'No se pudo iniciar el checkout.' })
     } catch (error) {
       setMsg({ tipo: 'error', texto: error.message || 'No se pudo iniciar el checkout.' })
     } finally {
