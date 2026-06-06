@@ -6,6 +6,7 @@ import { apiFetch, getUser } from '../services/api.js'
 import Modal, { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
 import { makeI18n } from '../lib/i18n.js'
+import { useOrientation } from '../hooks/useOrientation.js'
 
 const PERS_I18N = {
   es: { title:'Personas', importExcel:'Importar Excel', newPerson:'+ Nueva persona',
@@ -103,6 +104,7 @@ export default function Personas() {
   const isAdmin = ['PASTOR_GENERAL','CONSOLIDACION'].includes(user?.rol)
   const canDelete = user?.rol === 'PASTOR_GENERAL'
   const navigate = useNavigate()
+  const { isPhone } = useOrientation()
   const fileRef = useRef()
 
   const [data, setData]         = useState([])
@@ -275,59 +277,62 @@ export default function Personas() {
           </div>
         )}
 
-        <div className="mobile-list">
-          {loading ? (
-            <div className="mobile-empty">{t('loadingPeople')}</div>
-          ) : data.length === 0 ? (
-            <div className="mobile-empty">{t('noResults')}</div>
-          ) : data.map(p => (
-            <article className="mobile-person-card" key={p.id}>
-              <button className="mobile-person-main" onClick={() => setPersonaPreview(p)}>
-                <div className="mobile-person-avatar">{(p.nombre || '?').slice(0,1).toUpperCase()}</div>
-                <div className="mobile-person-info">
-                  <strong>{p.nombre} {p.apellido}</strong>
-                  <span>{p.email || p.telefono || t('noContact')}</span>
+        {/* ── PHONE: cards ────────────────────────────────────── */}
+        {isPhone ? (
+          <div className="mobile-list">
+            {loading ? (
+              <div className="mobile-empty">{t('loadingPeople')}</div>
+            ) : data.length === 0 ? (
+              <div className="mobile-empty">{t('noResults')}</div>
+            ) : data.map(p => (
+              <article className="mobile-person-card" key={p.id}>
+                <button className="mobile-person-main" onClick={() => setPersonaPreview(p)}>
+                  <div className="mobile-person-avatar">{(p.nombre || '?').slice(0,1).toUpperCase()}</div>
+                  <div className="mobile-person-info">
+                    <strong>{p.nombre} {p.apellido}</strong>
+                    <span>{p.email || p.telefono || t('noContact')}</span>
+                  </div>
+                  <span className={`badge badge-${String(p.estado || '').toLowerCase()}`}>{p.estado}</span>
+                </button>
+                <div className="mobile-person-meta">
+                  <span>{p.grupoNombre || t('noGroup')}</span>
+                  <span>{p.cultoDia || t('noService')}</span>
                 </div>
-                <span className={`badge badge-${String(p.estado || '').toLowerCase()}`}>{p.estado}</span>
-              </button>
-              <div className="mobile-person-meta">
-                <span>{p.grupoNombre || t('noGroup')}</span>
-                <span>{p.cultoDia || t('noService')}</span>
-              </div>
-              <div className="mobile-person-actions">
-                <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /> {t('followUpTitle').replace(':','')}</button>
-                <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /> {t('edit')}</button>
-                {canDelete&&<button className="btn btn-ghost btn-sm danger-action" onClick={()=>setConfirmDel({id:p.id,nombre:`${p.nombre} ${p.apellido||''}`.trim()})}><Icons.Delete /></button>}
-              </div>
-            </article>
-          ))}
-        </div>
-
-        {/* Tabla */}
-        <div className="table-responsive">
-          <table>
-            <thead><tr><th>{t('colName')}</th><th>{t('colContact')}</th><th>{t('colService')}</th><th>{t('colGroup')}</th><th>{t('status')}</th><th></th></tr></thead>
-            <tbody>
-              {loading ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>{t('loading')}</td></tr>
-                : data.length===0 ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>{t('noResults')}</td></tr>
-                : data.map(p => (
-                  <tr key={p.id}>
-                    <td onClick={()=>setPersonaPreview(p)} style={{cursor:'pointer',fontWeight:600}}>{p.nombre} {p.apellido}</td>
-                    <td>{p.email}<br/><small>{p.telefono}</small></td>
-                    <td>{p.cultoDia}</td>
-                    <td><small>{p.grupoNombre||'-'}</small></td>
-                    <td><span className={`badge badge-${p.estado.toLowerCase()}`}>{p.estado}</span></td>
-                    <td style={{whiteSpace:'nowrap'}}>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /></button>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /></button>
-                      {canDelete&&<button className="btn btn-ghost btn-sm" onClick={()=>setConfirmDel({id:p.id,nombre:`${p.nombre} ${p.apellido||''}`.trim()})} style={{color:'var(--c-error)'}}><Icons.Delete /></button>}
-                    </td>
-                  </tr>
-                ))
-              }
-            </tbody>
-          </table>
-        </div>
+                <div className="mobile-person-actions">
+                  <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /> {t('followUpTitle').replace(':','')}</button>
+                  <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /> {t('edit')}</button>
+                  {canDelete&&<button className="btn btn-ghost btn-sm danger-action" onClick={()=>setConfirmDel({id:p.id,nombre:`${p.nombre} ${p.apellido||''}`.trim()})}><Icons.Delete /></button>}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          /* ── TABLET / DESKTOP: tabla ────────────────────── */
+          <div className="table-responsive">
+            <table>
+              <thead><tr><th>{t('colName')}</th><th>{t('colContact')}</th><th>{t('colService')}</th><th>{t('colGroup')}</th><th>{t('status')}</th><th></th></tr></thead>
+              <tbody>
+                {loading ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>{t('loading')}</td></tr>
+                  : data.length===0 ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>{t('noResults')}</td></tr>
+                  : data.map(p => (
+                    <tr key={p.id}>
+                      <td onClick={()=>setPersonaPreview(p)} style={{cursor:'pointer',fontWeight:600}}>{p.nombre} {p.apellido}</td>
+                      <td>{p.email}<br/><small>{p.telefono}</small></td>
+                      <td>{p.cultoDia}</td>
+                      <td><small>{p.grupoNombre||'-'}</small></td>
+                      <td><span className={`badge badge-${p.estado.toLowerCase()}`}>{p.estado}</span></td>
+                      <td style={{whiteSpace:'nowrap'}}>
+                        <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /></button>
+                        <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /></button>
+                        {canDelete&&<button className="btn btn-ghost btn-sm" onClick={()=>setConfirmDel({id:p.id,nombre:`${p.nombre} ${p.apellido||''}`.trim()})} style={{color:'var(--c-error)'}}><Icons.Delete /></button>}
+                      </td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Paginación */}
         {pages>1&&<div className="mobile-pagination" style={{display:'flex',justifyContent:'center',gap:8,marginTop:20}}>

@@ -1,6 +1,7 @@
 import { TokenIglesiaAdmin } from '../components/TokenIglesia.jsx'
 import React, { useEffect, useState } from 'react'
 import Icons from '../components/Icons.jsx'
+import { useOrientation } from '../hooks/useOrientation.js'
 import Menu from '../components/Menu.jsx'
 import BtnNotificaciones from '../components/BtnNotificaciones.jsx'
 import { apiFetch, getStoredContext } from '../services/api.js'
@@ -277,6 +278,7 @@ function SuscripcionTab() {
 }
 
 export default function Configuracion() {
+  const { isPhone } = useOrientation()
   const [sec, setSec]         = useState(() => new URLSearchParams(window.location.search).get('sec') || 'general')
   const [config, setConfig]   = useState({})
   const [form, setForm]       = useState({})
@@ -445,39 +447,60 @@ export default function Configuracion() {
             <p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>{catActiva?.label} · {secActiva?.label}</p>
           </div>
         </div>
-        <div className="settings-shell" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16,alignItems:'start'}}>
-
-          {/* Sidebar */}
-          <nav className="card settings-nav" style={{padding:6}}>
-            {CATEGORIAS.map(cat => {
-              const open = !collapsed[cat.key]
+        {/* ── PHONE: tabs horizontales scrollables ───────────────── */}
+        {isPhone && (
+          <nav style={{overflowX:'auto',display:'flex',gap:6,paddingBottom:8,marginBottom:8,scrollbarWidth:'none'}}>
+            {CATEGORIAS.flatMap(cat => (cat.secciones||[]).map(s => {
+              const b = badge(s.key, config)
+              const active = sec === s.key
               return (
-                <div key={cat.key} style={{marginBottom:4}}>
-                  <button onClick={() => setCollapsed(p=>({...p,[cat.key]:!p[cat.key]}))}
-                    style={{width:'100%',padding:'7px 10px',border:'none',background:'transparent',cursor:'pointer',display:'flex',alignItems:'center',gap:8,borderRadius:'var(--r)'}}>
-                    <span style={{fontSize:13, display:'flex', alignItems:'center'}}>{typeof cat.icon === 'function' ? <cat.icon size={14} /> : cat.icon}</span>
-                    <span style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.6px',color:'var(--text-muted)',flex:1,textAlign:'left'}}>{cat.label}</span>
-                    <span style={{fontSize:10,color:'var(--text-faint)'}}>{open?'▾':'▸'}</span>
-                  </button>
-                  {open && (cat?.secciones || []).map(s => {
-                    const b = badge(s.key, config)
-                    const active = sec === s.key
-                    return (
-                      <button key={s.key} onClick={() => { setSec(s.key); setMsg(null) }}
-                        style={{width:'100%',padding:'8px 10px 8px 28px',border:'none',borderRadius:'var(--r)',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:9,marginBottom:1,background:active?'var(--primary)':'transparent',color:active?'var(--surface)':'var(--text)'}}>
-                        <span style={{fontSize:13,flexShrink:0,display:'flex',alignItems:'center'}}>{typeof s.icon === 'function' ? <s.icon size={14} /> : s.icon}</span>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:13,fontWeight:active?600:450,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.label}</div>
-                          {!active && <div style={{fontSize:10,opacity:.55,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.desc}</div>}
-                        </div>
-                        {b && <span style={{width:7,height:7,borderRadius:'50%',flexShrink:0,background:b==='ok'?'#16A34A':'#F59E0B'}}/>}
-                      </button>
-                    )
-                  })}
-                </div>
+                <button key={s.key} onClick={() => { setSec(s.key); setMsg(null) }}
+                  style={{flexShrink:0,padding:'8px 14px',border:'none',borderRadius:20,cursor:'pointer',fontSize:13,fontWeight:active?700:500,
+                    background:active?'var(--primary)':'var(--bg-2)',color:active?'#fff':'var(--text)',whiteSpace:'nowrap',
+                    position:'relative',transition:'background .15s'}}>
+                  {s.label}
+                  {b && <span style={{position:'absolute',top:4,right:6,width:6,height:6,borderRadius:'50%',background:b==='ok'?'#16A34A':'#F59E0B'}}/>}
+                </button>
               )
-            })}
+            }))}
           </nav>
+        )}
+
+        <div className="settings-shell" style={{display:'grid',gridTemplateColumns: isPhone ? '1fr' : 'repeat(auto-fit,minmax(220px,1fr))',gap:16,alignItems:'start'}}>
+
+          {/* ── TABLET / DESKTOP: sidebar ────────────────────────── */}
+          {!isPhone && (
+            <nav className="card settings-nav" style={{padding:6}}>
+              {CATEGORIAS.map(cat => {
+                const open = !collapsed[cat.key]
+                return (
+                  <div key={cat.key} style={{marginBottom:4}}>
+                    <button onClick={() => setCollapsed(p=>({...p,[cat.key]:!p[cat.key]}))}
+                      style={{width:'100%',padding:'7px 10px',border:'none',background:'transparent',cursor:'pointer',display:'flex',alignItems:'center',gap:8,borderRadius:'var(--r)'}}>
+                      <span style={{fontSize:13, display:'flex', alignItems:'center'}}>{typeof cat.icon === 'function' ? <cat.icon size={14} /> : cat.icon}</span>
+                      <span style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.6px',color:'var(--text-muted)',flex:1,textAlign:'left'}}>{cat.label}</span>
+                      <span style={{fontSize:10,color:'var(--text-faint)'}}>{open?'▾':'▸'}</span>
+                    </button>
+                    {open && (cat?.secciones || []).map(s => {
+                      const b = badge(s.key, config)
+                      const active = sec === s.key
+                      return (
+                        <button key={s.key} onClick={() => { setSec(s.key); setMsg(null) }}
+                          style={{width:'100%',padding:'8px 10px 8px 28px',border:'none',borderRadius:'var(--r)',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:9,marginBottom:1,background:active?'var(--primary)':'transparent',color:active?'var(--surface)':'var(--text)'}}>
+                          <span style={{fontSize:13,flexShrink:0,display:'flex',alignItems:'center'}}>{typeof s.icon === 'function' ? <s.icon size={14} /> : s.icon}</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:13,fontWeight:active?600:450,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.label}</div>
+                            {!active && <div style={{fontSize:10,opacity:.55,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.desc}</div>}
+                          </div>
+                          {b && <span style={{width:7,height:7,borderRadius:'50%',flexShrink:0,background:b==='ok'?'#16A34A':'#F59E0B'}}/>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </nav>
+          )}
 
           {/* Panel */}
           <form className="settings-form" onSubmit={handleSave}>
