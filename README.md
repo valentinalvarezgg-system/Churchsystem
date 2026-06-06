@@ -1,4 +1,4 @@
-# Church System — v3.1.0
+# Church System — v2.9
 
 Sistema integral de gestión pastoral para iglesias evangélicas.  
 Multi-tenant · SaaS · Mobile-first · Productivo en `churchsystem.com.ar`
@@ -9,20 +9,21 @@ Multi-tenant · SaaS · Mobile-first · Productivo en `churchsystem.com.ar`
 
 | Capa | Tecnología |
 |------|-----------|
-| Backend | Node.js 20 + Express (ESM) |
+| Backend | Node.js 20 + Express 4 (ESM) |
 | Base de datos | PostgreSQL via [Neon](https://neon.tech) |
 | Frontend | React 18 + Vite 5 |
-| Deploy | Render (web service) |
-| Email | Resend (salida + inbound) |
-| Pagos | Mercado Pago |
-| IA | Anthropic Claude API |
-| CSS | Vanilla CSS dark (mobile-first) |
+| Deploy | Render (web service) / Mac + Cloudflare Tunnel |
+| Email | Resend (salida + inbound `@churchsystem.com.ar`) |
+| Pagos | Mercado Pago · Stripe · PayPal · Transferencia bancaria |
+| Mensajería | WhatsApp Cloud API (Meta oficial) con fallback Twilio |
+| IA | Anthropic Claude API (chat pastoral + análisis Excel) |
 | Notificaciones | Web Push (VAPID) |
+| CSS | Vanilla CSS dark/light (mobile-first) |
 | Build | pnpm |
 
 ---
 
-## Inicio rápido (desarrollo local)
+## Inicio rápido
 
 ```bash
 git clone git@github.com:valentinalvarezgg-system/Churchsystem.git
@@ -30,7 +31,7 @@ cd Churchsystem
 
 # Backend
 cd backend
-cp .env.example .env   # completar variables
+cp .env.example .env   # completar variables obligatorias
 pnpm install
 node src/server.js
 
@@ -41,8 +42,7 @@ pnpm dev
 ```
 
 **Backend:** `http://localhost:4000`  
-**Frontend dev:** `http://localhost:5173`  
-**Admin seed (solo dev):** `admin@iglesia.com` / `admin123`
+**Frontend dev:** `http://localhost:5173`
 
 ---
 
@@ -53,21 +53,31 @@ pnpm dev
 JWT_SECRET=min32chars_aleatorio
 DATABASE_URL=postgresql://user:pass@host/db?sslmode=require
 
-# Email
+# URLs
+BASE_URL=https://churchsystem.com.ar
+FRONTEND_URL=https://churchsystem.com.ar
+
+# Email (Resend)
 RESEND_API_KEY=re_xxxxx
 EMAIL_FROM=Church System <no-reply@send.churchsystem.com.ar>
 RESEND_INBOUND_SECRET=secreto_webhook_resend
 
-# URLs
-BASE_URL=https://churchsystem.com.ar
-FRONTEND_URL=https://churchsystem.com.ar
-PUBLIC_URL=https://churchsystem.com.ar
-
-# QR Check-in (si no se setea, los QR se invalidan en cada redeploy)
+# QR Check-in (sin esto los QR se invalidan en cada redeploy)
 QR_SECRET=aleatorio_estable_32chars
 
 # Pagos
 MP_ACCESS_TOKEN=APP_USR-xxxxx
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
+
+# WhatsApp Cloud API (Meta)
+META_PHONE_NUMBER_ID=
+META_WABA_ID=
+META_SYSTEM_TOKEN=
+META_VERIFY_TOKEN=
+META_GRAPH_VERSION=v23.0
 
 # IA
 ANTHROPIC_API_KEY=sk-ant-xxxxx
@@ -84,25 +94,11 @@ VAPID_SUBJECT=mailto:soporte@churchsystem.com.ar
 # OAuth (opcional)
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-xxxxx
-# Apple Sign In — obtener en developer.apple.com → Certificates, Identifiers & Profiles
-# Convertir .p8 a una línea: cat AuthKey_XXX.p8 | awk 'NF {printf "%s\\n", $0}'
-APPLE_CLIENT_ID=com.churchsystem.web       # Services ID identifier
-APPLE_TEAM_ID=XXXXXXXXXX                   # 10 chars, en Membership
-APPLE_KEY_ID=XXXXXXXXXX                    # ID de la Key con Sign In with Apple
+APPLE_CLIENT_ID=com.churchsystem.web
+APPLE_TEAM_ID=XXXXXXXXXX
+APPLE_KEY_ID=XXXXXXXXXX
 APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
 APPLE_REDIRECT_URI=https://churchsystem.com.ar/oauth/apple/callback
-
-# WhatsApp Cloud API (Meta oficial)
-META_APP_ID=
-META_APP_SECRET=
-META_SYSTEM_TOKEN=           # Token permanente de System User en Meta Business Manager
-META_PHONE_NUMBER_ID=        # ID del número en Getting Started
-META_WABA_ID=                # WhatsApp Business Account ID
-META_VERIFY_TOKEN=           # String secreto para verificación de webhook
-META_GRAPH_VERSION=v23.0
-
-# CORS adicional (opcional)
-CORS_ORIGINS=https://app.example.com
 ```
 
 ---
@@ -111,170 +107,161 @@ CORS_ORIGINS=https://app.example.com
 
 ```
 Churchsystem/
-├── backend/
-│   └── src/
-│       ├── server.js              # Entry point — rutas, CORS, rate-limit, seed
-│       ├── routes/                # 30 endpoints REST
-│       │   ├── auth.js            # Login, register, verify email, OAuth
-│       │   ├── personas.js        # CRUD personas
-│       │   ├── grupos.js          # Grupos + miembros
-│       │   ├── cultos.js          # Cultos y horarios
-│       │   ├── checkin.js         # QR check-in (público + admin)
-│       │   ├── mensajes.js        # Mensajería interna
-│       │   ├── alertas.js         # Alertas pastorales push
-│       │   ├── notificaciones.js  # Push subscriptions + envío diario
-│       │   ├── reportes.js        # Reportes de asistencia (semanal→anual)
-│       │   ├── export.js          # Export Excel/PDF de personas
-│       │   ├── import.js          # Import Excel de personas
-│       │   ├── excel_ia.js        # IA sobre hojas Excel cargadas
-│       │   ├── ia.js              # Chat IA pastoral (Claude)
-│       │   ├── eventos.js         # Calendario de eventos
-│       │   ├── comunicados.js     # Comunicados internos
-│       │   ├── consolidacion.js   # Flujo de consolidación
-│       │   ├── discipulado.js     # Discipulado / seguimiento espiritual
-│       │   ├── seguimiento.js     # Historial de seguimientos
-│       │   ├── historial.js       # Log de auditoría de acciones
-│       │   ├── stats.js           # KPIs dashboard
-│       │   ├── config.js          # Config iglesia + diagnóstico comercial
-│       │   ├── iglesia.js         # Token y gestión de iglesia
-│       │   ├── plan.js            # Planes y módulos habilitados
-│       │   ├── mercadopago.js     # Checkout + webhook de pago
-│       │   ├── registro.js        # Registro de nueva iglesia
-│       │   ├── verificacion.js    # Verificación de email
-│       │   ├── oauth.js           # Google + Apple OAuth
-│       │   ├── permisos.js        # Gestión de permisos por rol
-│       │   ├── users.js           # Gestión de usuarios de la iglesia
-│       │   ├── perfil_usuario.js  # Mi perfil (usuario actual)
-│       │   ├── persona_perfil.js  # Perfil de persona (foto, ficha)
-│       │   ├── backup.js          # Export backup general
-│       │   ├── busqueda.js        # Búsqueda global
-│       │   ├── godmode.js         # Panel dueño SaaS (GODMODE)
-│       │   ├── promo-codes.js     # Códigos promocionales (GODMODE)
-│       │   ├── bug-report.js      # Reporte de bugs vía email
-│       │   ├── resend-inbound.js  # Webhook correos entrantes
-│       │   ├── invitaciones.js    # Invitaciones por link (CRUD + verificar token)
-│       │   ├── sesiones.js        # Gestión de sesiones activas por dispositivo
-│       │   ├── whatsapp.js        # WhatsApp Cloud API (Meta oficial)
-│       │   ├── oracion.js         # [bloqueado — decisión legal]
-│       │   └── finanzas.js        # [bloqueado — decisión legal]
-│       ├── middlewares/
-│       │   ├── auth.js            # requireAuth, requireRol
-│       │   ├── plan.js            # requirePlan, PLANES
-│       │   ├── security.js        # sanitizeBody, errorHandler
-│       │   └── tenant.js          # iglesiaId en req.user
-│       ├── lib/
-│       │   ├── pg.js              # pgOne / pgMany / pgExec
-│       │   ├── billing.js         # Planes, precios, países, promo
-│       │   ├── email.js           # Resend helpers
-│       │   ├── env.js             # audit de entorno al arranque
-│       │   ├── logger.js          # pino logger
-│       │   ├── xlsx-safe.js       # XLSX wrapper
-│       │   ├── core-sync.js       # Migración legado SQLite→PG (no-op en prod)
-│       │   └── db.js              # SQLite legado [bloqueado en prod]
-│       └── utils/
-│           └── auditoria.js       # Log de auditoría por acción
+├── backend/src/
+│   ├── server.js              # Entry point
+│   ├── routes/                # ~40 endpoints REST
+│   │   ├── auth.js            # Login, registro, verify, OAuth, forgot/reset password
+│   │   ├── personas.js        # CRUD personas + búsqueda avanzada con filtros
+│   │   ├── grupos.js          # Grupos + miembros
+│   │   ├── cultos.js          # Cultos y horarios
+│   │   ├── checkin.js         # QR check-in (público + admin)
+│   │   ├── mensajes.js        # Mensajería (WhatsApp + fallback Twilio)
+│   │   ├── alertas.js         # Alertas pastorales push
+│   │   ├── notificaciones.js  # Push subscriptions + envío diario 8:30 AM
+│   │   ├── reportes.js        # Reportes asistencia (semanal→anual)
+│   │   ├── export.js          # Excel/PDF (fetch+blob, sin JWT en URL)
+│   │   ├── import.js          # Import Excel de personas
+│   │   ├── excel_ia.js        # IA sobre hojas Excel
+│   │   ├── ia.js              # Chat IA pastoral (Claude)
+│   │   ├── ministerios.js     # Ministerios + 10 sub-recursos
+│   │   ├── eventos.js         # Calendario de eventos
+│   │   ├── comunicados.js     # Comunicados internos
+│   │   ├── consolidacion.js   # Flujo de consolidación
+│   │   ├── discipulado.js     # Discipulado / seguimiento espiritual
+│   │   ├── analytics.js       # KPIs y gráficos (por plan)
+│   │   ├── stats.js           # KPIs dashboard rápido
+│   │   ├── config.js          # Config iglesia + diagnósticos
+│   │   ├── plan.js            # Plan activo + catálogo comercial
+│   │   ├── billing.js         # Planes, precios, países
+│   │   ├── mercadopago.js     # Checkout + webhook MP
+│   │   ├── stripe.js          # Checkout + webhook Stripe
+│   │   ├── paypal.js          # Órdenes + captura PayPal
+│   │   ├── transferencia.js   # Solicitud de pago manual
+│   │   ├── whatsapp.js        # WhatsApp Cloud API (Meta oficial)
+│   │   ├── godmode.js         # Panel dueño SaaS
+│   │   ├── promo-codes.js     # Códigos promo (GODMODE)
+│   │   ├── users.js           # Usuarios de la iglesia
+│   │   ├── permisos.js        # Permisos por rol
+│   │   ├── historial.js       # Log de auditoría
+│   │   ├── busqueda.js        # Búsqueda global full-text
+│   │   ├── invitaciones.js    # Invitaciones por link
+│   │   ├── sesiones.js        # Sesiones activas por dispositivo
+│   │   ├── backup.js          # Export backup general
+│   │   ├── oracion.js         # [bloqueado — decisión legal]
+│   │   └── finanzas.js        # [bloqueado — decisión legal]
+│   ├── middlewares/
+│   │   ├── auth.js            # requireAuth, requireRol
+│   │   ├── plan.js            # requirePlan, PLANES (STARTER/PRO/MAX)
+│   │   └── security.js        # sanitizeBody, errorHandler
+│   └── lib/
+│       ├── pg.js              # pgOne / pgMany / pgExec
+│       ├── billing.js         # Catálogo 7 planes + tier mapper
+│       ├── email.js           # Resend helpers
+│       └── env.js             # Audit de entorno al arranque
 │
-├── frontend/
-│   └── src/
-│       ├── main.jsx               # Entry point React (basename="/app")
-│       ├── App.jsx                # Router principal + lazy loading + ErrorBoundary
-│       ├── index.css              # Estilos globales dark + responsive
-│       ├── theme.css              # Variables CSS / design tokens
-│       ├── pages/                 # 29 páginas lazy-loaded
-│       │   ├── Login.jsx          # Login + OAuth
-│       │   ├── Registro.jsx       # Onboarding nueva iglesia
-│       │   ├── SetupWizard.jsx    # Wizard inicial para nueva iglesia
-│       │   ├── Dashboard.jsx      # KPIs y resumen ejecutivo
-│       │   ├── DashboardPremium.jsx # Vista pastor general avanzada
-│       │   ├── Personas.jsx       # Lista + ficha rápida de personas
-│       │   ├── Perfil.jsx         # Perfil completo de persona
-│       │   ├── Grupos.jsx         # Grupos + miembros
-│       │   ├── Asistencia.jsx     # Cultos + lista de asistencia
-│       │   ├── CheckIn.jsx        # QR check-in admin + página pública
-│       │   ├── Calendario.jsx     # Calendario mensual
-│       │   ├── Eventos.jsx        # Gestión de eventos
-│       │   ├── Mensajes.jsx       # Mensajería interna
-│       │   ├── Alertas.jsx        # Alertas pastorales
-│       │   ├── Reportes.jsx       # Reportes de asistencia con export
-│       │   ├── Comunicados.jsx    # Comunicados al equipo
-│       │   ├── Discipulado.jsx    # Consolidación de visitantes (ruta /consolidacion)
-│       │   ├── AsistenteIA.jsx    # Chat IA pastoral
-│       │   ├── ExcelIA.jsx        # Análisis de Excel con IA
-│       │   ├── Configuracion.jsx  # Config iglesia + notificaciones
-│       │   ├── GestionPermisos.jsx # Permisos por rol (legacy)
-│       │   ├── ConfiguracionOrganizacion.jsx # Organización estilo Clerk — Miembros/Roles/Invitaciones/Sesiones
-│       │   ├── Users.jsx          # Gestión de usuarios
-│       │   ├── MiPerfil.jsx       # Mi perfil de usuario
-│       │   ├── Historial.jsx      # Log de auditoría
-│       │   ├── GodMode.jsx        # Panel dueño SaaS
-│       │   ├── GodModeLogin.jsx   # Login GODMODE (/vault-login)
-│       │   ├── PromoCodes.jsx     # Admin códigos promo
-│       │   ├── Terminos.jsx       # Términos y condiciones
-│       │   ├── Privacidad.jsx     # Política de privacidad
-│       │   └── FAQ.jsx            # Preguntas frecuentes
-│       ├── components/
-│       │   ├── Layout.jsx         # Sidebar + mobile header + bottom nav + rail
-│       │   ├── Menu.jsx           # Navegación + i18n (es/pt/en)
-│       │   ├── Toast.jsx          # Notificaciones toast (global)
-│       │   ├── Modal.jsx          # Modales reutilizables
-│       │   ├── ProtectedRoute.jsx # Guard de autenticación y roles
-│       │   ├── UpgradeGate.jsx    # Guard de plan/módulo
-│       │   ├── BannerNotificaciones.jsx # Banner push opt-in
-│       │   ├── BtnNotificaciones.jsx    # Switch iOS push
-│       │   ├── BugReporter.jsx    # Botón flotante ? de reporte
-│       │   ├── BusquedaGlobal.jsx # Búsqueda global
-│       │   ├── CamaraFoto.jsx     # Captura de foto con cámara
-│       │   ├── EmailVerificacion.jsx # Flujo verificación de email
-│       │   ├── Icons.jsx          # Iconos SVG inline
-│       │   ├── QRScannerNativo.jsx # Scanner QR (Capacitor)
-│       │   └── TokenIglesia.jsx   # Input y admin de token de iglesia
-│       ├── hooks/
-│       │   ├── useNotificaciones.js  # Push subscription + test
-│       │   ├── useOrientation.js     # Detección portrait/landscape
-│       │   ├── usePlan.js            # Plan activo + módulos habilitados
-│       │   └── useRealtimeQuery.js   # Polling con retry
-│       ├── services/
-│       │   └── api.js             # getApiUrl(), apiFetch(), getUser(), auth
-│       └── utils/
-│           ├── i18n-auth.js       # Traducciones auth (es/pt/en)
-│           └── legal.js           # Emails, textos legales, versión
+├── frontend/src/
+│   ├── pages/                 # ~35 páginas lazy-loaded
+│   │   ├── Login.jsx          # Login + OAuth
+│   │   ├── Registro.jsx       # Onboarding (2 líneas: liderazgo / iglesia)
+│   │   ├── Dashboard.jsx      # KPIs y resumen ejecutivo
+│   │   ├── DashboardPremium.jsx # Vista pastor general avanzada
+│   │   ├── Analytics.jsx      # Gráficos de actividad pastoral (por plan)
+│   │   ├── Personas.jsx       # Lista + filtros avanzados + ficha rápida
+│   │   ├── Perfil.jsx         # Perfil completo de persona
+│   │   ├── Grupos.jsx         # Grupos + miembros
+│   │   ├── Asistencia.jsx     # Cultos + asistencia con check
+│   │   ├── CheckIn.jsx        # QR check-in admin + página pública
+│   │   ├── Calendario.jsx     # Calendario mensual
+│   │   ├── Eventos.jsx        # Gestión de eventos
+│   │   ├── Mensajes.jsx       # Mensajería interna
+│   │   ├── Alertas.jsx        # Alertas pastorales
+│   │   ├── Reportes.jsx       # Reportes con export Excel/PDF
+│   │   ├── Comunicados.jsx    # Comunicados al equipo
+│   │   ├── Discipulado.jsx    # Consolidación de visitantes
+│   │   ├── Ministerios.jsx    # Lista de ministerios
+│   │   ├── MinisterioDetalle.jsx # Detalle: panel, tareas, miembros, turnos, evaluaciones, inventario…
+│   │   ├── AsistenteIA.jsx    # Chat IA pastoral (Claude)
+│   │   ├── ExcelIA.jsx        # Análisis de Excel con IA
+│   │   ├── Planes.jsx         # Catálogo de planes + checkout (mobile-friendly)
+│   │   ├── Configuracion.jsx  # Config iglesia + pagos + notificaciones + WhatsApp
+│   │   ├── ConfiguracionOrganizacion.jsx # Miembros/Roles/Invitaciones/Sesiones
+│   │   ├── Users.jsx          # Gestión de usuarios
+│   │   ├── MiPerfil.jsx       # Mi perfil de usuario
+│   │   ├── Historial.jsx      # Log de auditoría
+│   │   ├── GodMode.jsx        # Panel dueño SaaS (cross-tenant)
+│   │   └── PromoCodes.jsx     # Admin códigos promo
+│   ├── components/
+│   │   ├── Menu.jsx           # Sidebar + i18n (es/pt/en) + plan logic
+│   │   ├── Layout.jsx         # Wrapper con sidebar/header/bottom-nav
+│   │   ├── Toast.jsx          # Notificaciones toast (no alert())
+│   │   ├── Modal.jsx          # Modal + ConfirmModal reutilizables
+│   │   ├── Icons.jsx          # Iconos SVG inline (lucide-react)
+│   │   ├── UpgradeGate.jsx    # Guard de plan/módulo → redirige a /planes
+│   │   └── BusquedaGlobal.jsx # Búsqueda global (⌘K)
+│   ├── hooks/
+│   │   ├── useOrientation.js  # portrait/landscape + isPhone/isTablet/isDesktop
+│   │   ├── usePlan.js         # Plan activo + commercialPlan
+│   │   └── useNotificaciones.js # Push subscription
+│   ├── lib/
+│   │   ├── i18n.js            # makeI18n() helper + COMMON dict
+│   │   └── commercialPlans.js # Catálogo 7 planes + resolveAccessTier()
+│   └── services/
+│       └── api.js             # apiFetch(), getUser(), getApiUrl()
 │
-├── landing/
-│   └── index.html                 # Landing pública (ruta /)
-│
-├── render.yaml                    # Config deploy Render
-├── CLAUDE.md                      # Instrucciones de trabajo para IA
-└── BITACORA.md                    # Estado real del proyecto (leer primero)
+├── landing/index.html         # Landing pública (ruta /)
+├── scripts/audit.mjs          # Auditoría integral (13 checks)
+├── render.yaml                # Config deploy Render
+├── CLAUDE.md                  # Instrucciones de trabajo para IA
+└── BITACORA.md                # Estado real del proyecto (leer primero)
 ```
+
+---
+
+## Planes comerciales
+
+| Plan | Audiencia | Personas | USD/mes |
+|------|-----------|----------|---------|
+| FREE | Nuevas cuentas | 50 | — |
+| STARTER | Líderes / pastores individuales | 300 | 29 |
+| PRO | Equipos pastorales | 1.000 | 59 |
+| MAX | Iglesias medianas | ilimitadas | 99 |
+| CHURCH 100 | Iglesia hasta 100 personas | 100 | 79 |
+| CHURCH 500 | Iglesia hasta 500 personas | 500 | 149 |
+| CHURCH 1000 | Iglesia hasta 1000 personas | 1.000 | 249 |
+
+Los planes se agrupan internamente en 3 **tiers de acceso**: `STARTER`, `PRO`, `MAX`.  
+El catálogo comercial y el sistema de permisos están desacoplados (`commercialPlans.js`).
 
 ---
 
 ## Módulos del sistema
 
-| Módulo | Ruta | Plan mínimo | Estado |
-|--------|------|------------|--------|
-| Dashboard | `/` | GENERAL | ✅ |
-| Dashboard Premium | `/premium` | GENERAL (admin) | ✅ |
-| Personas | `/personas` | GENERAL | ✅ |
-| Grupos | `/grupos` | GENERAL | ✅ |
-| Asistencia | `/asistencia` | CULTO | ✅ |
-| QR Check-in | `/checkin` | CULTO | ✅ |
-| Calendario | `/calendario` | CULTO | ✅ |
-| Eventos | `/eventos` | CULTO | ✅ |
-| Mensajes | `/mensajes` | ADMINISTRACION | ✅ |
-| Alertas | `/alertas` | CONSOLIDACION | ✅ |
-| Reportes | `/reportes` | CONSOLIDACION | ✅ |
-| Consolidación | `/consolidacion` | CONSOLIDACION | ✅ |
-| **Discipulado + Árbol** | `/discipulado` | CONSOLIDACION | ✅ nuevo |
-| Comunicados | `/comunicados` | GENERAL | ✅ |
-| Asistente IA | `/asistente-ia` | PREMIUM | ✅ |
-| Excel + IA | `/excel-ia` | ADMINISTRACION | ✅ |
-| Historial | `/historial` | ADMINISTRACION | ✅ |
-| Ministerios | `/ministerios` | GENERAL | ✅ |
-| Configuración | `/configuracion` | admin rol | ✅ |
-| Permisos | `/permisos` | admin rol | ✅ |
-| Usuarios | `/users` | admin rol | ✅ |
+| Módulo | Ruta | Tier mínimo | Estado |
+|--------|------|-------------|--------|
+| Dashboard | `/` | todos | ✅ |
+| Dashboard Premium | `/premium` | MAX | ✅ |
+| Analytics | `/analytics` | todos (KPIs por tier) | ✅ |
+| Personas + filtros | `/personas` | todos | ✅ |
+| Perfil de persona | `/personas/:id` | todos | ✅ |
+| Grupos | `/grupos` | todos | ✅ |
+| Asistencia | `/asistencia` | PRO | ✅ |
+| QR Check-in | `/checkin` | PRO | ✅ |
+| Calendario | `/calendario` | PRO | ✅ |
+| Eventos | `/eventos` | PRO | ✅ |
+| Consolidación | `/consolidacion` | PRO | ✅ |
+| Ministerios | `/ministerios` | todos | ✅ |
+| Mensajes | `/mensajes` | MAX | ✅ |
+| Alertas | `/alertas` | MAX | ✅ |
+| Reportes | `/reportes` | MAX | ✅ |
+| Comunicados | `/comunicados` | todos | ✅ |
+| Asistente IA | `/asistente-ia` | MAX | ✅ |
+| Excel + IA | `/excel-ia` | MAX | ✅ |
+| Planes | `/planes` | todos | ✅ |
+| Configuración | `/configuracion` | admin | ✅ |
+| Organización | `/organizacion` | MAX | ✅ |
+| Usuarios | `/users` | MAX | ✅ |
 | Mi perfil | `/mi-perfil` | todos | ✅ |
+| Historial | `/historial` | MAX | ✅ |
 | GodMode | `/vault` | GODMODE | ✅ |
 | Finanzas | — | — | 🔒 oculto |
 | Oración | — | — | 🔒 oculto |
@@ -285,41 +272,35 @@ Churchsystem/
 
 | Rol | Acceso |
 |-----|--------|
-| `PASTOR_GENERAL` | Admin completo de la iglesia |
-| `PASTOR_CULTO` | Personas, grupos, asistencia, mensajes |
+| `PASTOR_GENERAL` | Admin completo de la iglesia (tier MAX) |
+| `PASTOR_CULTO` | Personas, asistencia, mensajes del día |
 | `CONSOLIDACION` | Seguimientos, alertas, reportes, historial |
 | `STAFF` | Operaciones diarias (personas, grupos, mensajes) |
-| `LIDER` | Dashboard y vistas de solo lectura |
-| `GODMODE` | Panel dueño SaaS (cross-tenant, solo dueño del producto) |
+| `LIDER` | Dashboard y lectura básica |
+| `GODMODE` | Panel dueño SaaS (cross-tenant) |
 
 ---
 
 ## Deploy
 
-### Modo actual: Mac + Cloudflare Tunnel (`MODO_CLOUDFLARE_LOCAL`)
+### Modo actual: Mac + Cloudflare Tunnel
 
-El backend corre en la Mac gestionado por **launchd** y Cloudflare Tunnel expone `localhost:4000` como `churchsystem.com.ar`.
-
-**launchd** garantiza reinicio automático:
-- Si el proceso Node cae → se levanta solo en 10 segundos.
-- Si la Mac se reinicia → arranca automáticamente al loguear.
-- Plist: `~/Library/LaunchAgents/com.churchsystem.backend.plist`
+El backend corre en la Mac gestionado por **launchd**. Cloudflare Tunnel expone `localhost:4000` como `churchsystem.com.ar`.
 
 ```bash
-# Reiniciar el backend manualmente si fuera necesario
+# Reiniciar backend
 launchctl unload ~/Library/LaunchAgents/com.churchsystem.backend.plist
 launchctl load  ~/Library/LaunchAgents/com.churchsystem.backend.plist
 
-# Ver logs en vivo
+# Logs en vivo
 tail -f /tmp/church-back.log
-tail -f /tmp/church-back-err.log
 ```
 
-### Si se vuelve a Render
+### Deploy a Render
 
-La rama `master` se auto-despliega en Render cuando se hace push.
+La rama `master` dispara auto-deploy en Render.
 
-**Regla crítica:** `frontend/dist/` está commiteado en git. Render sirve esos archivos directamente. Después de cada cambio de frontend:
+**Regla crítica:** `frontend/dist/` está commiteado en git. Después de cada cambio de frontend:
 
 ```bash
 cd frontend && pnpm build
@@ -334,26 +315,18 @@ git push origin master
 
 ## Convenciones de código
 
-### Backend
-
 ```js
-// Multi-tenant siempre + soft-delete
+// Backend — multi-tenant siempre + soft-delete
 WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
-
 // Tablas: "PascalCase" | Columnas: "camelCase" | Params: $1 $2 $3
-
-// Helpers
 await pgOne(sql, params)   // → fila | null
 await pgMany(sql, params)  // → array
 await pgExec(sql, params)  // → void
-```
 
-### Frontend
-
-```js
+// Frontend
 import { apiFetch } from '../services/api.js'   // nunca localhost:4000
-import { toast }    from '../components/Toast.jsx' // nunca alert()
-// Mobile-first: inputs ≥44px, cards en móvil, tablas en desktop
+import { toast }    from '../components/Toast.jsx' // nunca alert()/confirm()
+// Mobile-first: inputs ≥44px, cards en móvil, no emojis (usar Icons.jsx)
 ```
 
 ---
@@ -361,31 +334,24 @@ import { toast }    from '../components/Toast.jsx' // nunca alert()
 ## QR Check-in
 
 1. Admin genera QR desde `/checkin` para un culto
-2. QR apunta a `/app/checkin/:cultoId/:token` (acceso sin login)
+2. QR apunta a `/app/checkin/:cultoId/:token` (sin login)
 3. Token = SHA-256(`QR_SECRET` + cultoId)
-4. Para URL pública permanente: configurar `FRONTEND_URL` en Render o ingresar la base URL desde el panel de Check-in
+4. Configurar `FRONTEND_URL` en Render o la URL base desde el panel
 
 ---
 
 ## Alertas push
 
-El servidor programa automáticamente `enviarAlertas()` a las 8:30 AM. Notifica:
+`enviarAlertas()` corre automáticamente a las 8:30 AM y notifica:
 - Cumpleaños del día
 - Seguimientos vencidos
 - Visitantes sin consolidar
 
 ---
 
-## Backups
-
-- **Neon:** backups automáticos nativos (activar retención ≥ 14 días)
-- **GitHub Actions:** workflow `db-backup.yml` — snapshot SQL diario como artifact (14 días)
-
----
-
 ## Estado
 
-**Versión:** 2.7-beta  
+**Versión:** v2.9  
 **Rama activa:** `master`  
 **Producción:** `https://churchsystem.com.ar`  
 **Fuente de verdad del estado:** `/BITACORA.md`

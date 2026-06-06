@@ -252,7 +252,7 @@ export default function Menu() {
           {lnk('/planes', <Icons.Premium />, 'Planes')}
 
           {/* STARTER — congregación básica + seguimiento y discipulado */}
-          {isStarter && !isPro && <>
+          {isStarter && !isPro && !isMax && <>
             <div className="nav-section">{tt('congregation')}</div>
             {lnk('/personas',      <Icons.Users />,      tt('people'))}
             {lnk('/grupos',        <Icons.Groups />,     tt('groups'))}
@@ -308,9 +308,9 @@ export default function Menu() {
             {lnk('/users',         <Icons.Profile />,    tt('users'))}
             {lnk('/permisos',      <Icons.Shield />,     tt('permissions'))}
             {lnk('/historial',     <Icons.History />,    tt('history'))}
-            {lnk('/documentos',    <span style={{fontSize:16}}>📁</span>, 'Documentos')}
-            {lnk('/liderazgo',     <span style={{fontSize:16}}>🌱</span>, 'Liderazgo')}
-            {lnk('/mapa-grupos',   <span style={{fontSize:16}}>🗺️</span>, 'Mapa de grupos')}
+            {lnk('/documentos',    <Icons.FileText />,    'Documentos')}
+            {lnk('/liderazgo',     <Icons.Discipleship />, 'Liderazgo')}
+            {lnk('/mapa-grupos',   <Icons.MapPin />,      'Mapa de grupos')}
             {lnk('/configuracion', <Icons.Settings />,   tt('settings'))}
           </>}
         </nav>
