@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import LoginMiembro from './LoginMiembro.jsx'
+import { toast } from '../components/Toast.jsx'
 
 const API = typeof window !== 'undefined'
   ? window.location.origin.replace(/:\d+/, ':4000') + '/api'
@@ -47,7 +48,7 @@ function SeccionPerfil({ perfil, onActualizar }) {
   async function guardar() {
     setGuardando(true)
     try { await apiFetch('/miembro/perfil', { method: 'PUT', body: JSON.stringify(form) }); setEditando(false); onActualizar() }
-    catch(e) { alert(e.message) }
+    catch(e) { toast.error(e.message) }
     setGuardando(false)
   }
 

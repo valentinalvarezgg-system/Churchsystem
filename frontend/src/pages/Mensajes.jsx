@@ -101,6 +101,7 @@ function SegmentadorAvanzado({ grupos }) {
   const [tipo, setTipo]             = useState('WHATSAPP')
   const [enviando, setEnviando]     = useState(false)
   const [resultado2, setResultado2] = useState(null)
+  const [confirmEnvio, setConfirmEnvio] = useState(false)
 
   function toggleArr(key, val) {
     setFiltros(f => ({
@@ -119,10 +120,14 @@ function SegmentadorAvanzado({ grupos }) {
     setBuscando(false)
   }
 
-  async function enviar() {
+  function solicitarEnvio() {
     if (!resultado?.ids?.length) return toast.error('Buscá destinatarios primero')
     if (!mensaje.trim()) return toast.error('Escribí un mensaje')
-    if (!confirm(`¿Enviar a ${resultado.total} personas?`)) return
+    setConfirmEnvio(true)
+  }
+
+  async function enviar() {
+    setConfirmEnvio(false)
     setEnviando(true); setResultado2(null)
     try {
       const r = await apiFetch('/mensajes/masivo-segmentado', {
@@ -298,7 +303,7 @@ function SegmentadorAvanzado({ grupos }) {
             )}
             <textarea className="form-input" rows={5} placeholder="Hola {nombre}, ..." value={mensaje} onChange={e => setMensaje(e.target.value)} />
             <p style={{ fontSize:11, color:'var(--text-muted)', margin:'6px 0 12px' }}>Variables: {'{nombre}'} {'{apellido}'}</p>
-            <button className="btn btn-primary" style={{ width:'100%' }} onClick={enviar} disabled={enviando}>
+            <button className="btn btn-primary" style={{ width:'100%' }} onClick={solicitarEnvio} disabled={enviando}>
               {enviando ? 'Enviando...' : `↑ Enviar a ${resultado.total} personas`}
             </button>
           </div>
@@ -310,6 +315,13 @@ function SegmentadorAvanzado({ grupos }) {
           </div>
         )}
       </div>
+      <ConfirmModal
+        open={confirmEnvio}
+        onClose={() => setConfirmEnvio(false)}
+        onConfirm={enviar}
+        title={`¿Enviar a ${resultado?.total ?? 0} personas?`}
+        message="Se enviará el mensaje a todos los destinatarios seleccionados."
+      />
     </div>
   )
 }
