@@ -2002,3 +2002,29 @@ Implementado en el mismo módulo que #17.
 - Muestra la URL del portal al activar.
 
 **Rutas (`App.jsx`):** `/portal` y `/portal/*` — rutas públicas, sin ProtectedRoute, con auth propia del portal.
+
+---
+
+### 2026-06-06 — Revisión exhaustiva + correcciones críticas (rama `claude/code-review-H1k1R`)
+
+#### Cambios aplicados
+1. **`alert()`/`confirm()` eliminados** — Reemplazados por `toast`/`ConfirmModal` en 4 páginas:
+   - `PortalMiembro.jsx`: `alert(e.message)` → `toast.error(e.message)` en `guardar()`.
+   - `Discipulado.jsx`: `confirm()` nativo → `ConfirmModal` para eliminar relación de discipulado.
+   - `Mensajes.jsx`: envío masivo directo → confirmación modal antes de enviar.
+   - `MinisterioDetalle.jsx`: 3 secciones (turnos, evaluaciones, inventario) migradas a `ConfirmModal`.
+2. **`backend/src/server.js` — parche global async Express 4**: monkey-patch en `Layer.prototype.handle_request` que intercepta cualquier Promise rechazada y la reenvía a `next(err)` → `errorHandler`. Sin este parche, cualquier handler `async` que lance sin try/catch deja la conexión HTTP colgada para siempre.
+3. **`frontend/src/hooks/useDevice.js`** (ya estaba en master): detección de dispositivo desktop/tablet/phone con rAF debouncing + fix iPhone landscape.
+
+#### Auditoría completada
+- ✅ 0 `alert()`/`confirm()` nativos en todas las páginas frontend.
+- ✅ Todos los handlers en `Perfil.jsx`, `Registro.jsx`, `invitaciones.js`, `sesiones.js`, `oracion.js`, `consolidacion.js`, `documentos.js`, `excel_ia.js`, `backup.js` tienen try/catch o wrap().
+- ✅ `comunicados.js`, `godmode.js`: 8 handlers sin try/catch — ahora cubiertos por el parche global del punto 2.
+- ✅ SQL table names correctas en todos los archivos auditados.
+- ✅ `ia.js` sin `NODE_TLS_REJECT_UNAUTHORIZED`.
+- ✅ `useToast.js` sin `innerHTML`.
+- ✅ `server.js` sin imports duplicados post-listen.
+
+#### Verificación
+- `cd frontend && pnpm build` ✅ (4.08s, 0 errores)
+- `git push -u origin claude/code-review-H1k1R` ✅
