@@ -2,7 +2,7 @@ import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getStoredContext, getUser } from '../services/api.js'
-import { useOrientation } from '../hooks/useOrientation.js'
+import { useDevice } from '../hooks/useDevice.js'
 import { useRealtimeQuery } from '../hooks/useRealtimeQuery.js'
 
 const DASH_I18N = {
@@ -97,7 +97,7 @@ function Avatar({ nombre = '', apellido = '', size = 34 }) {
 export default function Dashboard() {
   const navigate   = useNavigate()
   const user       = getUser()
-  const ori = useOrientation()
+  const ori = useDevice()
   const { data: stats, loading, error } = useRealtimeQuery('stats', () => apiFetch('/stats'), [], { intervalMs: 10000 })
   const lang = (localStorage.getItem('church_lang') || user?.idioma || getStoredContext().lang || 'es').slice(0, 2)
   const copy = DASH_I18N[lang] || DASH_I18N.es

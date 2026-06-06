@@ -1,0 +1,88 @@
+/* ═══════════════════════════════════════════════════════════════
+   DEVICE LAYER — Desktop  (data-device="desktop")
+   Equivale a ≥ 1024px pero usa [data-device] para especificidad
+   (0,2,0) → gana sobre las media queries genéricas de index.css.
+
+   Regla para agregar estilos de PC:
+     [data-device="desktop"] .mi-clase { ... }
+
+   NUNCA usar media queries aquí — este archivo ES el contexto PC.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Layout principal ─────────────────────────────────────── */
+[data-device="desktop"] .layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+[data-device="desktop"] .main {
+  margin-left: 240px !important;   /* sidebar fija */
+  max-width:   calc(100vw - 240px) !important;
+  padding:     32px 32px 56px !important;
+  min-height:  100vh;
+}
+
+/* ── Sidebar: siempre visible, nunca deslizable ─────────────── */
+[data-device="desktop"] .sidebar {
+  transform: translateX(0) !important;
+  width:     240px !important;
+  position:  fixed;
+  top: 0; left: 0; bottom: 0;
+  overflow-y: auto;
+}
+
+/* ── Ocultar controles de navegación móvil ─────────────────── */
+[data-device="desktop"] .mobile-header   { display: none !important; }
+[data-device="desktop"] .sidebar-overlay { display: none !important; }
+[data-device="desktop"] .bottom-nav      { display: none !important; }
+[data-device="desktop"] .landscape-rail  { display: none !important; }
+
+/* ── Grids ─────────────────────────────────────────────────── */
+[data-device="desktop"] .stats-grid {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+  gap: 14px !important;
+}
+[data-device="desktop"] .form-grid {
+  grid-template-columns: 1fr 1fr !important;
+  gap: 16px !important;
+}
+[data-device="desktop"] .kpi-grid {
+  grid-template-columns: repeat(5, 1fr) !important;
+}
+[data-device="desktop"] .grid-2 { grid-template-columns: 1fr 1fr; }
+[data-device="desktop"] .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+[data-device="desktop"] .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* ── Modales: centrados en pantalla ─────────────────────────── */
+[data-device="desktop"] .modal-overlay {
+  align-items: center !important;
+  padding:     20px !important;
+}
+[data-device="desktop"] .modal {
+  max-width:     540px !important;
+  border-radius: var(--r-2xl) !important;
+  max-height:    90vh !important;
+}
+[data-device="desktop"] .modal-body {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* ── Toast: esquina superior derecha ─────────────────────────── */
+[data-device="desktop"] #toast-container {
+  top:   20px;
+  right: 20px;
+}
+
+/* ── Tabla: mostrar versión completa, ocultar versión mobile ── */
+[data-device="desktop"] .mobile-list         { display: none !important; }
+[data-device="desktop"] .mobile-person-card  { display: none !important; }
+[data-device="desktop"] .table-responsive    { display: block !important; }
+
+/* ── Scrollbar estilo desktop ────────────────────────────────── */
+[data-device="desktop"] ::-webkit-scrollbar       { width: 5px; height: 5px; }
+[data-device="desktop"] ::-webkit-scrollbar-track { background: transparent; }
+[data-device="desktop"] ::-webkit-scrollbar-thumb {
+  background: var(--border-med);
+  border-radius: 3px;
+}

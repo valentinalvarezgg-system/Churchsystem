@@ -8,6 +8,7 @@ import CheckInAdmin, { CheckInPublico } from './pages/CheckIn.jsx'
 import { ToastContainer } from './components/Toast.jsx'
 import UpgradeGate from './components/UpgradeGate.jsx'
 import BugReporter from './components/BugReporter.jsx'
+import { useDevice } from './hooks/useDevice.js'
 
 // Lazy-loaded pages — cada página se descarga solo cuando el usuario navega a ella
 const Login            = lazy(() => import('./pages/Login.jsx'))
@@ -107,6 +108,10 @@ function useSetupCheck() {
 }
 
 export default function App() {
+  // Mantiene data-device / data-orient en <html> actualizados al rotar o cambiar tamaño.
+  // La inicialización sincrónica ya ocurrió al importar el módulo.
+  useDevice()
+
   const { mostrarWizard, setMostrarWizard, checkeado } = useSetupCheck()
   const user = getUser()
   const isLoggedIn = !!user
