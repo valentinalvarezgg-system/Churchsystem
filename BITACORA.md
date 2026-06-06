@@ -1,8 +1,8 @@
 # BITÁCORA — Church System
 
-Última actualización: 2026-06-03
-Versión base oficial: **v2.7-beta.0 (baseline)**  
-Versión previa consolidada: **v2.6.x (estable técnica)**  
+Última actualización: 2026-06-06
+Versión actual: **v2.9.5**
+Versión previa consolidada: **v2.8 (estable técnica)**  
 Rama oficial: **master**
 
 ## Propósito
@@ -236,7 +236,29 @@ Objetivo de v2.7 beta: **experiencia de navegación y uso sublime**.
 - **Cleanup:** se eliminó `frontend/pnpm-workspace.yaml` porque estaba mal formado y hacía que pnpm esperara `packages` en un archivo que solo debía contener política de builds.
 - **Motivo:** GitHub Actions estaba mostrando fallas intermitentes con la disponibilidad de `pnpm` en PATH y el frontend además tenía un archivo de workspace inválido que rompía `pnpm build`.
 
-## Versión actual: **v2.8** (inicio 2026-05-30)
+## Versión actual: **v2.9.5** (release 2026-06-06)
+
+### Changelog v2.9.5
+
+#### Backend
+- **Parche global async Express 4** (`server.js`): monkey-patch en `Layer.prototype.handle_request` que intercepta cualquier `async` handler sin `try/catch` y reenvía el error a `next(err)` → `errorHandler`. Sin esto ~15 rutas dejaban conexiones HTTP colgadas en silencio ante fallos de DB.
+
+#### Frontend — UX
+- **`alert()`/`confirm()` nativos eliminados** en `PortalMiembro`, `Discipulado`, `Mensajes`, `MinisterioDetalle` → reemplazados por `toast`/`ConfirmModal`.
+- **Sistema de detección de dispositivo en 3 capas** (`useOrientation.js`): phone / tablet / desktop con detección en tiempo real (resize + orientationchange).
+
+#### Frontend — Separación por dispositivo (Opción B)
+- **`Personas.jsx`**: phone → cards / tablet+desktop → tabla. Ya no se renderizan los dos simultáneamente con CSS hide/show.
+- **`Grupos.jsx`**: mismo patrón en la lista de miembros del modal de detalle.
+- **`Reportes.jsx`**: phone → header compacto con chips scrollables / desktop → header completo con todos los controles de exportación.
+- **`Configuracion.jsx`**: phone → tabs horizontales scrollables al tope de la página / tablet+desktop → sidebar vertical colapsable por categoría.
+
+#### Calidad
+- Auditoría exhaustiva de todas las rutas backend: 0 bugs de SQL table names, 0 `alert()`/`confirm()` nativos restantes en frontend, `ia.js` sin `NODE_TLS_REJECT_UNAUTHORIZED`, `useToast.js` sin `innerHTML`.
+
+---
+
+## Versión anterior: **v2.8** (inicio 2026-05-30)
 
 ## Avance global v2.7 (al 2026-05-30)
 
