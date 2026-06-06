@@ -2056,3 +2056,9 @@ Implementado en el mismo módulo que #17.
 - **Motivo:** varias rutas backend seguían leyendo `planInfo.label.es` y eso podía explotar con `Cannot read properties of undefined (reading 'es')` cuando se procesaban checkout, registro o transferencia.
 - **Impacto:** el catálogo nuevo sigue intacto y el código legado deja de romper sin tener que reescribir todas las rutas de pagos/alta.
 - **Verificación:** pendiente correr `frontend build` y `backend audit:launch` luego de este ajuste.
+
+### 2026-06-06 — Registro público alineado al catálogo actual
+- **Actualizado:** `landing/registro.html` dejó el catálogo viejo (Básico/Estándar/Pro) y ahora muestra los 7 planes vigentes: `Free`, `Starter`, `Pro`, `Max`, `Church 100`, `Church 500` y `Church 1000+`.
+- **UI:** se eliminó la iconografía emoji y se alineó el estilo al landing principal para que la superficie pública no quede desfasada respecto del core.
+- **Sync regional:** país, divisa e idioma se sincronizan desde el selector del formulario y se guardan en `localStorage` para el onboarding.
+- **Verificación:** `cd frontend && pnpm build` ✅ · `cd backend && pnpm audit:launch` ✅
