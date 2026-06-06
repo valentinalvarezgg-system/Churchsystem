@@ -894,7 +894,12 @@ function TabTurnos({ ministerioId }) {
 
   const load = useCallback(async () => {
     setLoading(true)
-    try { setTurnos(await apiFetch(`/ministerios/${ministerioId}/turnos?mes=${mes}`) || []) } catch {}
+    try {
+      const data = await apiFetch(`/ministerios/${ministerioId}/turnos?mes=${mes}`)
+      setTurnos(Array.isArray(data) ? data : [])
+    } catch {
+      setTurnos([])
+    }
     setLoading(false)
   }, [ministerioId, mes])
 
@@ -921,7 +926,8 @@ function TabTurnos({ ministerioId }) {
   }
 
   // Agrupar por fecha
-  const porFecha = turnos.reduce((acc, t) => {
+  const turnosList = Array.isArray(turnos) ? turnos : []
+  const porFecha = turnosList.reduce((acc, t) => {
     const k = t.fecha?.slice(0,10) || ''
     ;(acc[k] = acc[k]||[]).push(t)
     return acc

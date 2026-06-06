@@ -118,7 +118,12 @@ Formato obligatorio:
 - `feat(core): ...` (solo si no compromete estabilidad)
 - `docs(bitacora): ...`
 
-### Regla 6 — Evidencia mínima por bloque
+### Regla 6 — Lenguaje visual
+- En trabajo nuevo no se aceptan emojis como recurso visual en la interfaz.
+- Si un flujo necesita estado, iconografía o énfasis, usar iconos SVG/Lucide o texto estructural.
+- Los emojis existentes en legado se pueden ir retirando por bloques, pero no se agregan más en nuevas pantallas.
+
+### Regla 7 — Evidencia mínima por bloque
 - Captura o log breve de prueba.
 - Resultado esperado vs resultado observado.
 - Si falla, queda “BLOCKED” con causa exacta.
@@ -2061,4 +2066,10 @@ Implementado en el mismo módulo que #17.
 - **Actualizado:** `landing/registro.html` dejó el catálogo viejo (Básico/Estándar/Pro) y ahora muestra los 7 planes vigentes: `Free`, `Starter`, `Pro`, `Max`, `Church 100`, `Church 500` y `Church 1000+`.
 - **UI:** se eliminó la iconografía emoji y se alineó el estilo al landing principal para que la superficie pública no quede desfasada respecto del core.
 - **Sync regional:** país, divisa e idioma se sincronizan desde el selector del formulario y se guardan en `localStorage` para el onboarding.
+- **Verificación:** `cd frontend && pnpm build` ✅ · `cd backend && pnpm audit:launch` ✅
+
+### 2026-06-06 — Regla visual: sin emojis nuevos + fix ministerios
+- **Regla nueva:** no se aceptan más emojis en trabajo nuevo; la interfaz debe usar iconos SVG/Lucide o texto estructural.
+- **Fix app:** `frontend/src/pages/MinisterioDetalle.jsx` dejó de asumir que `turnos` siempre es array; ahora normaliza el payload antes de hacer `reduce` para evitar `O.reduce is not a function`.
+- **Fix menú:** la sección de `Ministerios` pasó a mostrarse como `Áreas` en el sidebar para evitar la sensación de ruta duplicada, y los accesos con emojis del menú se reemplazaron por iconos.
 - **Verificación:** `cd frontend && pnpm build` ✅ · `cd backend && pnpm audit:launch` ✅
