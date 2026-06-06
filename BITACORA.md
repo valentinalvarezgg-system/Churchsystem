@@ -2050,3 +2050,9 @@ Implementado en el mismo módulo que #17.
 #### Verificación
 - `cd frontend && pnpm build` ✅ (4.08s, 0 errores)
 - `git push -u origin claude/code-review-H1k1R` ✅
+
+### 2026-06-06 — Compatibilidad de catálogo comercial
+- **Fix:** `backend/src/lib/billing.js` ahora exporta `PLANES` con compatibilidad hacia atrás: cada plan expone `label` y `description` además de `labels` y `descriptions`.
+- **Motivo:** varias rutas backend seguían leyendo `planInfo.label.es` y eso podía explotar con `Cannot read properties of undefined (reading 'es')` cuando se procesaban checkout, registro o transferencia.
+- **Impacto:** el catálogo nuevo sigue intacto y el código legado deja de romper sin tener que reescribir todas las rutas de pagos/alta.
+- **Verificación:** pendiente correr `frontend build` y `backend audit:launch` luego de este ajuste.
