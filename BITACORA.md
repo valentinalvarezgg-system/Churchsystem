@@ -3,8 +3,8 @@
 > Fuente única de verdad operativa del proyecto.  
 > Leer esto antes de tocar cualquier archivo.
 
-**Versión:** v2.9.5 · **Fecha:** 2026-06-06 · **Rama:** `master`  
-**Deploy activo:** `MODO_CLOUDFLARE_LOCAL` (Mac + Cloudflare Tunnel → `churchsystem.com.ar`)
+**Versión:** v2.9.6 · **Fecha:** 2026-06-08 · **Rama:** `master`  
+**Deploy activo:** `MODO_RENDER` (Render Web Service → `churchsystem.com.ar`)
 
 ---
 
@@ -18,8 +18,8 @@
 | Grupos y discipulado | 85% | ✅ árbol, consolidación, ministerios |
 | Asistencia y QR | 87% | ✅ check-in QR, cultos, turnos |
 | Reportes | 82% | 🟡 PDF con logo pendiente |
-| Mensajería | 78% | 🟡 push on-message pendiente |
-| Comunicados | 80% | ✅ cards, programación, variables |
+| Mensajería | 87% | ✅ push on-message WA, historial ENTRANTE/SALIENTE |
+| Comunicados | 83% | ✅ cards, programación, variables, sin emojis |
 | Alertas push | 87% | ✅ VAPID, cumpleaños, seguimientos |
 | Calendario/Eventos | 72% | 🟡 recurrencias pendientes |
 | IA pastoral | 65% | 🟡 contexto histórico pendiente |
@@ -31,7 +31,7 @@
 | i18n | 72% | 🟡 Configuracion, Reportes, Eventos, Discipulado pendientes |
 | Testing | 20% | 🔴 prioridad baja aún |
 | Documentación | 90% | ✅ README, CLAUDE.md, audit.mjs |
-| **PROMEDIO GLOBAL** | **82%** | |
+| **PROMEDIO GLOBAL** | **83%** | |
 
 ---
 
@@ -43,7 +43,7 @@
 |---|-------|-------|-------|
 | 1 | **i18n restante** | `Configuracion`, `Reportes`, `Eventos`, `Discipulado` | 72% → 85%; usar `makeI18n()` |
 | 2 | **Estadísticas por culto** en Asistencia | `Asistencia.jsx` + `backend/routes/reportes.js` | Tendencias, ausencias, comparativo |
-| 3 | **Push on-message** en Mensajería | `mensajes.js` + `notificaciones.js` | Notificar al receptor en tiempo real |
+| ~~3~~ | ~~Push on-message en Mensajería~~ | ~~`mensajes.js` + `notificaciones.js`~~ | ✅ Completado — push WA + historial ENTRANTE/SALIENTE |
 
 ### P1 — Alta prioridad
 
@@ -79,6 +79,22 @@
 ---
 
 ## Changelog reciente
+
+### v2.9.6 — 2026-06-08
+
+**Infraestructura**
+- Migración de deploy: `MODO_CLOUDFLARE_LOCAL` → `MODO_RENDER`. El backend ya no depende de la Mac. `render.yaml` configurado con `plan: starter` (always-on, sin sleep), región ohio, `autoDeploy: true`.
+
+**Backend**
+- `notificaciones.js`: nueva función exportada `sendPushToAdmins(iglesiaId, payload)`.
+- `whatsapp.js`: mensajes WA entrantes se guardan como `ENTRANTE` en tabla `Mensaje` y disparan push a admins.
+- `mensajes.js`: `ensureMensajeSchema()` agrega `direccion` y hace nullable `userId`/`personaId`; filtro `?direccion=` en `GET /`.
+
+**Frontend**
+- `Mensajes.jsx`: i18n completo, `confirm()` → `<ConfirmModal>`, filtro ENTRANTE/SALIENTE en historial, badge de dirección en cards y tabla.
+- `Comunicados.jsx`: emojis 🕐/📌 eliminados de badges y botones.
+
+---
 
 ### v2.9.5 — 2026-06-06
 
@@ -126,9 +142,14 @@ git commit -m "tipo(scope): descripción"
 git push origin master
 ```
 
-### Reiniciar backend (Mac/launchd)
+### Reiniciar backend en Render
+
+El backend está en Render. Para reiniciar: Dashboard → church-system → **Manual Deploy** o esperar auto-deploy en cada push a `master`.
+
+Logs: Dashboard → church-system → Logs.
 
 ```bash
+# (Solo desarrollo local Mac — ya no es el deploy activo)
 launchctl unload ~/Library/LaunchAgents/com.churchsystem.backend.plist
 launchctl load   ~/Library/LaunchAgents/com.churchsystem.backend.plist
 tail -f /tmp/church-back.log
@@ -178,6 +199,24 @@ grep "^# Church System" README.md
 
 Antes de cualquier troubleshooting de infra, registrar aquí el modo activo:
 
-**Hoy:** `MODO_CLOUDFLARE_LOCAL` — `churchsystem.com.ar` resuelve a Mac → Cloudflare Tunnel → `localhost:4000`.
+**Hoy:** `MODO_RENDER` — `churchsystem.com.ar` apunta (CNAME) al servicio Render `church-system`. El backend corre en la nube 24/7, sin dependencia de la Mac.
 
-> Si se cambia a Render: actualizar esta línea y verificar que las variables de entorno en Render estén completas.
+### Variables requeridas en Render dashboard
+
+| Variable | Descripción |
+|----------|-------------|
+| `DATABASE_URL` | Neon PostgreSQL connection string |
+| `JWT_SECRET` | `openssl rand -hex 32` |
+| `QR_SECRET` | `openssl rand -hex 32` |
+| `RESEND_API_KEY` | Email (Resend) |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Push notifications |
+| `META_*` | WhatsApp Cloud API |
+| `ANTHROPIC_API_KEY` / `GROQ_API_KEY` | IA |
+| `MP_ACCESS_TOKEN` / `MP_PUBLIC_KEY` | MercadoPago |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth |
+
+### Cambiar DNS en Cloudflare
+
+En Cloudflare DNS para `churchsystem.com.ar`:
+- CNAME `@` → `<nombre-servicio>.onrender.com` (Proxy: ON)
+- CNAME `www` → `<nombre-servicio>.onrender.com` (Proxy: ON)
