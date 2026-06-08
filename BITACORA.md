@@ -17,7 +17,7 @@ Rama activa: **master**
 | Asistencia y QR | 85% | ✅ |
 | Ministerios | 85% | ✅ 10 sub-recursos |
 | Reportes | 80% | 🟡 PDF con logo pendiente |
-| Mensajería (WhatsApp) | 78% | 🟡 push on-message pendiente |
+| Mensajería (WhatsApp) | 87% | ✅ |
 | Comunicados | 75% | ✅ |
 | Alertas push | 85% | ✅ |
 | Calendario / Eventos | 72% | 🟡 recurrencias pendientes |
@@ -30,7 +30,7 @@ Rama activa: **master**
 | Testing | 20% | 🔴 prioridad baja por ahora |
 | Documentación | 90% | ✅ |
 | Deploy | 92% | ✅ |
-| **PROMEDIO GLOBAL** | **83%** | |
+| **PROMEDIO GLOBAL** | **84%** | |
 
 ---
 
@@ -39,8 +39,8 @@ Rama activa: **master**
 ### P0 — Urgente (próximo bloque)
 
 1. ~~**i18n restante** — Configuracion, Reportes, Eventos, Discipulado~~ ✅ (85%)
-2. **Estadísticas por culto en Asistencia** — tendencias de ausencias, promedio por día
-3. **Push on-message en Mensajería** — notificación cuando llega mensaje entrante por WhatsApp
+2. ~~**Estadísticas por culto en Asistencia** — tendencias de ausencias, promedio por día~~ ✅
+3. ~~**Push on-message en Mensajería** — notificación cuando llega mensaje entrante por WhatsApp~~ ✅
 
 ### P1 — Importante (siguiente)
 
@@ -81,6 +81,19 @@ Rama activa: **master**
 ---
 
 ## Changelog
+
+### v2.9.2 — 2026-06-08
+
+**Comunicaciones completo:**
+- `notificaciones.js` — export `sendPushToAdmins(iglesiaId, payload)` para enviar push web a todos los admins de una iglesia.
+- `whatsapp.js` — al recibir mensaje WhatsApp entrante: guarda en tabla `Mensaje` con `direccion='ENTRANTE'` y dispara push a admins vía `sendPushToAdmins`.
+- `mensajes.js` — `ensureMensajeSchema()`: agrega columna `direccion TEXT DEFAULT 'SALIENTE'` y hace nullable `userId`/`personaId` (necesario para mensajes externos). Nuevo filtro `?direccion=ENTRANTE|SALIENTE` en `GET /mensajes`.
+- `Mensajes.jsx` — filtro Todos/Recibidos/Enviados en historial; badge ENTRANTE (púrpura); fix i18n: `tabSend:'Email Enviar'`→`'Enviar'`, `tabHistory:'Historial Historial'`→`'Historial'`; nuevas keys `tabSegment`, `allMessages`, `incoming`, `outgoing`, etc. (es/pt/en); `confirm()` en `SegmentadorAvanzado` reemplazado por `<ConfirmModal>`; eliminados emojis 🎯🔍.
+- `Comunicados.jsx` — eliminados emojis 🕐📌 de la UI.
+
+**Estadísticas de asistencia (Asistencia.jsx + cultos.js):**
+- Backend: `GET /cultos/stats` — tendencias de los últimos N cultos + promedio por día de semana.
+- Frontend: panel colapsable en Asistencia con gráfico de barras CSS (rojo→verde según %) y cards de promedio por día.
 
 ### v2.9.1 — 2026-06-08
 
