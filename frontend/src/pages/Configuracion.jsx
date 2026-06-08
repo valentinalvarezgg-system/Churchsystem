@@ -1,11 +1,72 @@
 import { TokenIglesiaAdmin } from '../components/TokenIglesia.jsx'
 import React, { useEffect, useState } from 'react'
+import { makeI18n } from '../lib/i18n.js'
 import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import BtnNotificaciones from '../components/BtnNotificaciones.jsx'
 import { apiFetch, getStoredContext } from '../services/api.js'
 import { CONTACT_CHANNELS, EMAILS } from '../utils/legal.js'
 import { APP_VERSION } from '../version.js'
+
+const I18N = {
+  es: {
+    title:'Configuración',
+    catIglesia:'Iglesia', catSuscripcion:'Suscripción', catIntegraciones:'Integraciones',
+    catPastoral:'Pastoral', catSistema:'Sistema',
+    secGeneral:'General', secGeneralDesc:'Nombre, pastor, contacto',
+    secCultos:'Cultos', secCultosDesc:'Días, turnos y horarios',
+    secApariencia:'Apariencia', secAparienciaDesc:'Color y logo',
+    secWhatsApp:'WhatsApp', secWhatsAppDesc:'Meta Cloud API oficial',
+    secDrive:'Google Drive', secDriveDesc:'Carpetas y archivos por ministerio',
+    secIA:'Inteligencia Artificial', secIADesc:'Groq · Anthropic · OpenAI',
+    secEmail:'Email', secEmailDesc:'Resend — emails masivos',
+    secAlertas:'Alertas', secAlertasDesc:'Umbrales automáticos',
+    secSeguimiento:'Seguimiento', secSeguimientoDesc:'Frecuencias',
+    secSeguridad:'Seguridad', secSeguridadDesc:'Sesiones y acceso',
+    secBackup:'Backup y datos', secBackupDesc:'PostgreSQL · Neon',
+    saveChanges:'Guardar cambios', saving:'Guardando...', saved:'Guardado',
+    notifications:'Notificaciones', contactSupport:'Contacto y soporte', legalDocs:'Documentos legales',
+    preview:'Vista previa',
+  },
+  pt: {
+    title:'Configuração',
+    catIglesia:'Igreja', catSuscripcion:'Assinatura', catIntegraciones:'Integrações',
+    catPastoral:'Pastoral', catSistema:'Sistema',
+    secGeneral:'Geral', secGeneralDesc:'Nome, pastor, contato',
+    secCultos:'Cultos', secCultosDesc:'Dias, turnos e horários',
+    secApariencia:'Aparência', secAparienciaDesc:'Cor e logo',
+    secWhatsApp:'WhatsApp', secWhatsAppDesc:'Meta Cloud API oficial',
+    secDrive:'Google Drive', secDriveDesc:'Pastas e arquivos por ministério',
+    secIA:'Inteligência Artificial', secIADesc:'Groq · Anthropic · OpenAI',
+    secEmail:'Email', secEmailDesc:'Resend — emails em massa',
+    secAlertas:'Alertas', secAlertasDesc:'Limiares automáticos',
+    secSeguimiento:'Acompanhamento', secSeguimientoDesc:'Frequências',
+    secSeguridad:'Segurança', secSeguridadDesc:'Sessões e acesso',
+    secBackup:'Backup e dados', secBackupDesc:'PostgreSQL · Neon',
+    saveChanges:'Salvar alterações', saving:'Salvando...', saved:'Salvo',
+    notifications:'Notificações', contactSupport:'Contato e suporte', legalDocs:'Documentos legais',
+    preview:'Pré-visualização',
+  },
+  en: {
+    title:'Settings',
+    catIglesia:'Church', catSuscripcion:'Subscription', catIntegraciones:'Integrations',
+    catPastoral:'Pastoral', catSistema:'System',
+    secGeneral:'General', secGeneralDesc:'Name, pastor, contact',
+    secCultos:'Services', secCultosDesc:'Days, shifts and schedules',
+    secApariencia:'Appearance', secAparienciaDesc:'Color and logo',
+    secWhatsApp:'WhatsApp', secWhatsAppDesc:'Meta Cloud API',
+    secDrive:'Google Drive', secDriveDesc:'Folders and files by ministry',
+    secIA:'Artificial Intelligence', secIADesc:'Groq · Anthropic · OpenAI',
+    secEmail:'Email', secEmailDesc:'Resend — mass emails',
+    secAlertas:'Alerts', secAlertasDesc:'Automatic thresholds',
+    secSeguimiento:'Follow-up', secSeguimientoDesc:'Frequencies',
+    secSeguridad:'Security', secSeguridadDesc:'Sessions and access',
+    secBackup:'Backup & data', secBackupDesc:'PostgreSQL · Neon',
+    saveChanges:'Save changes', saving:'Saving...', saved:'Saved',
+    notifications:'Notifications', contactSupport:'Contact & support', legalDocs:'Legal documents',
+    preview:'Preview',
+  },
+}
 
 const CATEGORIAS = [
   { key:'iglesia', label:'Iglesia', icon:'', secciones:[
@@ -277,6 +338,12 @@ function SuscripcionTab() {
 }
 
 export default function Configuracion() {
+  const t = makeI18n(I18N)
+
+  const catLabel = k => ({ iglesia:t('catIglesia'), suscripcion:t('catSuscripcion'), integraciones:t('catIntegraciones'), pastoral:t('catPastoral'), sistema:t('catSistema') }[k] || k)
+  const secLabel = k => ({ general:t('secGeneral'), cultos:t('secCultos'), apariencia:t('secApariencia'), whatsapp:t('secWhatsApp'), drive:t('secDrive'), ia:t('secIA'), email:t('secEmail'), alertas:t('secAlertas'), seguimiento:t('secSeguimiento'), seguridad:t('secSeguridad'), backup:t('secBackup') }[k] || k)
+  const secDesc  = k => ({ general:t('secGeneralDesc'), cultos:t('secCultosDesc'), apariencia:t('secAparienciaDesc'), whatsapp:t('secWhatsAppDesc'), drive:t('secDriveDesc'), ia:t('secIADesc'), email:t('secEmailDesc'), alertas:t('secAlertasDesc'), seguimiento:t('secSeguimientoDesc'), seguridad:t('secSeguridadDesc'), backup:t('secBackupDesc') }[k] || '')
+
   const [sec, setSec]         = useState(() => new URLSearchParams(window.location.search).get('sec') || 'general')
   const [config, setConfig]   = useState({})
   const [form, setForm]       = useState({})
@@ -424,7 +491,7 @@ export default function Configuracion() {
   const catActiva = CATEGORIAS.find(c => c.secciones.some(s => s.key === sec))
   const secActiva = CATEGORIAS.flatMap(c => c.secciones).find(s => s.key === sec)
 
-  if (loading) return <div className="layout"><Menu /><main className="main"><div className="empty"><p>Cargando...</p></div></main></div>
+  if (loading) return <div className="layout"><Menu /><main className="main"><div className="empty"><p>{t('loading')}</p></div></main></div>
   if (loadError) return (
     <div className="layout"><Menu /><main className="main">
       <div className="empty">
@@ -441,8 +508,8 @@ export default function Configuracion() {
         <TokenIglesiaAdmin />
       <div className="page-header">
           <div>
-            <h1 className="page-title"><Icons.Settings /> Configuración</h1>
-            <p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>{catActiva?.label} · {secActiva?.label}</p>
+            <h1 className="page-title"><Icons.Settings /> {t('title')}</h1>
+            <p style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>{catActiva ? catLabel(catActiva.key) : ''} · {secActiva ? secLabel(secActiva.key) : ''}</p>
           </div>
         </div>
         <div className="settings-shell" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16,alignItems:'start'}}>
@@ -456,7 +523,7 @@ export default function Configuracion() {
                   <button onClick={() => setCollapsed(p=>({...p,[cat.key]:!p[cat.key]}))}
                     style={{width:'100%',padding:'7px 10px',border:'none',background:'transparent',cursor:'pointer',display:'flex',alignItems:'center',gap:8,borderRadius:'var(--r)'}}>
                     <span style={{fontSize:13, display:'flex', alignItems:'center'}}>{typeof cat.icon === 'function' ? <cat.icon size={14} /> : cat.icon}</span>
-                    <span style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.6px',color:'var(--text-muted)',flex:1,textAlign:'left'}}>{cat.label}</span>
+                    <span style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.6px',color:'var(--text-muted)',flex:1,textAlign:'left'}}>{catLabel(cat.key)}</span>
                     <span style={{fontSize:10,color:'var(--text-faint)'}}>{open?'▾':'▸'}</span>
                   </button>
                   {open && (cat?.secciones || []).map(s => {
@@ -467,8 +534,8 @@ export default function Configuracion() {
                         style={{width:'100%',padding:'8px 10px 8px 28px',border:'none',borderRadius:'var(--r)',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:9,marginBottom:1,background:active?'var(--primary)':'transparent',color:active?'var(--surface)':'var(--text)'}}>
                         <span style={{fontSize:13,flexShrink:0,display:'flex',alignItems:'center'}}>{typeof s.icon === 'function' ? <s.icon size={14} /> : s.icon}</span>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:13,fontWeight:active?600:450,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.label}</div>
-                          {!active && <div style={{fontSize:10,opacity:.55,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.desc}</div>}
+                          <div style={{fontSize:13,fontWeight:active?600:450,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{secLabel(s.key)}</div>
+                          {!active && <div style={{fontSize:10,opacity:.55,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{secDesc(s.key)}</div>}
                         </div>
                         {b && <span style={{width:7,height:7,borderRadius:'50%',flexShrink:0,background:b==='ok'?'#16A34A':'#F59E0B'}}/>}
                       </button>
@@ -484,7 +551,7 @@ export default function Configuracion() {
             <div className="card settings-panel">
               <div className="settings-panel-header" style={{display:'flex',alignItems:'center',gap:12,marginBottom:24,paddingBottom:16,borderBottom:'1px solid var(--border)'}}>
                 <span style={{fontSize:22}}>{secActiva?.icon}</span>
-                <div><h2 style={{fontSize:16,fontWeight:700,margin:0}}>{secActiva?.label}</h2><p style={{fontSize:12,color:'var(--text-muted)',margin:0}}>{secActiva?.desc}</p></div>
+                <div><h2 style={{fontSize:16,fontWeight:700,margin:0}}>{secActiva ? secLabel(secActiva.key) : ''}</h2><p style={{fontSize:12,color:'var(--text-muted)',margin:0}}>{secActiva ? secDesc(secActiva.key) : ''}</p></div>
               </div>
 
               {msg && <div className={`alert alert-${msg.type}`} style={{marginBottom:20}}>{msg.text}</div>}
@@ -518,7 +585,7 @@ export default function Configuracion() {
                   <div className="form-group"><label>Capacidad del lugar</label><input name="culto_capacidad" className="form-input" type="number" min={1} value={form.culto_capacidad} onChange={e=>f('culto_capacidad',e.target.value)} placeholder="200"/></div>
                 </div>
                 <div style={{marginTop:16,padding:'12px 16px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
-                  <p style={{fontSize:11,fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Vista previa</p>
+                  <p style={{fontSize:11,fontWeight:600,marginBottom:8,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>{t('preview')}</p>
                   <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                     {form.cultos_dias.split(',').filter(Boolean).map(dia=>
                       Array.from({length:Number(form.cultos_turnos)||1},(_,i)=>(
@@ -897,7 +964,7 @@ export default function Configuracion() {
 
               {sec!=='backup' && (
                 <div style={{marginTop:24,paddingTop:16,borderTop:'1px solid var(--border)',display:'flex',alignItems:'center',gap:12}}>
-                  <button type="submit" className="btn btn-primary" disabled={saving}>{saving?'Guardando...':'Guardar cambios'}</button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>{saving?t('saving'):t('saveChanges')}</button>
                   {msg?.type==='success'&&<span style={{fontSize:13,color:'var(--c-success)'}}>{msg.text}</span>}
                 </div>
               )}
@@ -907,14 +974,14 @@ export default function Configuracion() {
       {/* Notificaciones */}
       <div style={{marginTop:20}}>
         <h2 style={{fontSize:13,fontWeight:700,textTransform:'uppercase',letterSpacing:.5,color:'var(--text-muted)',marginBottom:12}}>
-          <Icons.Comunicados /> Notificaciones
+          <Icons.Comunicados /> {t('notifications')}
         </h2>
         <BtnNotificaciones />
       </div>
 
       {/* Contacto y soporte */}
       <div style={{marginTop:32}}>
-        <h2 style={{fontSize:13,fontWeight:700,textTransform:'uppercase',letterSpacing:.5,color:'var(--text-muted)',marginBottom:16}}>Contacto y soporte</h2>
+        <h2 style={{fontSize:13,fontWeight:700,textTransform:'uppercase',letterSpacing:.5,color:'var(--text-muted)',marginBottom:16}}>{t('contactSupport')}</h2>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:10}}>
           {CONTACT_CHANNELS.map(item=>(
             <a key={item.label} href={`mailto:${item.email}`}
@@ -932,7 +999,7 @@ export default function Configuracion() {
 
       {/* Documentos legales */}
       <div style={{marginTop:32}}>
-        <h2 style={{fontSize:13,fontWeight:700,textTransform:'uppercase',letterSpacing:.5,color:'var(--text-muted)',marginBottom:16}}>Documentos legales</h2>
+        <h2 style={{fontSize:13,fontWeight:700,textTransform:'uppercase',letterSpacing:.5,color:'var(--text-muted)',marginBottom:16}}>{t('legalDocs')}</h2>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:10}}>
           {[
             {label:'Términos y Condiciones',href:'/app/terminos'},

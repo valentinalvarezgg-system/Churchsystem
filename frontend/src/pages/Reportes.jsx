@@ -4,24 +4,66 @@ import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getApiUrl } from '../services/api.js'
 import { useRealtimeQuery } from '../hooks/useRealtimeQuery.js'
+import { makeI18n } from '../lib/i18n.js'
 
 const fmt = n => Number(n || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 })
 const pct  = (a, b) => b > 0 ? Math.round(a / b * 100) : 0
-const PERIODOS = [
-  ['semana', 'Semana'],
-  ['mes', 'Mes'],
-  ['bimestre', 'Bimestre'],
-  ['trimestre', 'Trimestre'],
-  ['cuatrimestre', 'Cuatrimestre'],
-  ['semestre', 'Semestre'],
-  ['anual', 'Anual'],
-]
+
+const I18N = {
+  es: {
+    title:'Reportes', thisWeek:'Esta semana', monthly:'Mensual', general:'General',
+    print:'Imprimir', generating:'Generando reporte...',
+    week:'Semana', month:'Mes', bimonth:'Bimestre', quarter:'Trimestre',
+    fourMonth:'Cuatrimestre', semester:'Semestre', annual:'Anual',
+    persons:'Personas', active:'Activos', visitors:'Visitantes', groups:'Grupos', followups:'Seguimientos',
+    servicesTitle:'Cultos del período', newPersonsTitle:'Nuevas personas',
+    followupsTitle:'Seguimientos realizados', noCultos:'Sin cultos en el período',
+    noNewPersons:'Sin nuevas personas en el período',
+    congregation:'Congregación', monthlyAttendance:'Asistencia del mes',
+    selectPeriod:'Seleccioná un período para generar el reporte',
+    periodLabel:'Período',
+  },
+  pt: {
+    title:'Relatórios', thisWeek:'Esta semana', monthly:'Mensal', general:'Geral',
+    print:'Imprimir', generating:'Gerando relatório...',
+    week:'Semana', month:'Mês', bimonth:'Bimestre', quarter:'Trimestre',
+    fourMonth:'Quadrimestre', semester:'Semestre', annual:'Anual',
+    persons:'Pessoas', active:'Ativos', visitors:'Visitantes', groups:'Grupos', followups:'Acompanhamentos',
+    servicesTitle:'Cultos do período', newPersonsTitle:'Novas pessoas',
+    followupsTitle:'Acompanhamentos realizados', noCultos:'Sem cultos no período',
+    noNewPersons:'Sem novas pessoas no período',
+    congregation:'Congregação', monthlyAttendance:'Presença do mês',
+    selectPeriod:'Selecione um período para gerar o relatório',
+    periodLabel:'Período',
+  },
+  en: {
+    title:'Reports', thisWeek:'This week', monthly:'Monthly', general:'General',
+    print:'Print', generating:'Generating report...',
+    week:'Week', month:'Month', bimonth:'Bimonth', quarter:'Quarter',
+    fourMonth:'Four-month', semester:'Semester', annual:'Annual',
+    persons:'People', active:'Active', visitors:'Visitors', groups:'Groups', followups:'Follow-ups',
+    servicesTitle:'Services in period', newPersonsTitle:'New people',
+    followupsTitle:'Follow-ups done', noCultos:'No services in period',
+    noNewPersons:'No new people in period',
+    congregation:'Congregation', monthlyAttendance:'Monthly attendance',
+    selectPeriod:'Select a period to generate the report',
+    periodLabel:'Period',
+  },
+}
 
 export default function Reportes() {
+  const t = makeI18n(I18N)
   const navigate  = useNavigate()
   const [tipo, setTipo]     = useState('semanal')
   const [mes, setMes]       = useState(new Date().toISOString().slice(0, 7))
   const [periodo, setPeriodo] = useState('semana')
+
+  const PERIODOS = [
+    ['semana', t('week')], ['mes', t('month')], ['bimestre', t('bimonth')],
+    ['trimestre', t('quarter')], ['cuatrimestre', t('fourMonth')],
+    ['semestre', t('semester')], ['anual', t('annual')],
+  ]
+
   const { data, loading, error } = useRealtimeQuery(
     'reportes',
     () => apiFetch(
@@ -96,11 +138,11 @@ export default function Reportes() {
       <main className="main">
         <div className="page-header">
           <div>
-            <h1 className="page-title"><Icons.Reports /> Reportes</h1>
+            <h1 className="page-title"><Icons.Reports /> {t('title')}</h1>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>
               {tipo === 'mensual'
                 ? `Mes ${mes}`
-                : `${r?.periodo?.label || (tipo === 'general' ? 'Período' : 'Semana')} ${r?.periodo?.desde || '...'} → ${r?.periodo?.hasta || '...'}`}
+                : `${r?.periodo?.label || (tipo === 'general' ? t('periodLabel') : t('week'))} ${r?.periodo?.desde || '...'} → ${r?.periodo?.hasta || '...'}`}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -113,63 +155,62 @@ export default function Reportes() {
               </select>
             )}
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {[['semanal', 'Esta semana'], ['mensual', 'Mensual'], ['general', 'General']].map(([k, l]) => (
+              {[['semanal', t('thisWeek')], ['mensual', t('monthly')], ['general', t('general')]].map(([k, l]) => (
                 <button key={k} onClick={() => setTipo(k)} className={tipo === k ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}>{l}</button>
               ))}
             </div>
             {r && <>
-              <button className="btn btn-ghost btn-sm" data-tip="Imprimir reporte" onClick={imprimirReporte}> Imprimir</button>
-              <button className="btn btn-ghost btn-sm" data-tip="Exportar membresía en Excel" onClick={exportarExcel}><Icons.Reports /> Excel</button>
-              {tipo !== 'general' && <button className="btn btn-ghost btn-sm" data-tip="Ver lista de membresía en PDF" onClick={exportarPDF}> PDF</button>}
+              <button className="btn btn-ghost btn-sm" onClick={imprimirReporte}> {t('print')}</button>
+              <button className="btn btn-ghost btn-sm" onClick={exportarExcel}><Icons.Reports /> Excel</button>
+              {tipo !== 'general' && <button className="btn btn-ghost btn-sm" onClick={exportarPDF}> PDF</button>}
             </>}
           </div>
         </div>
 
-        {loading && <div className="empty"><p>Generando reporte...</p></div>}
+        {loading && <div className="empty"><p>{t('generating')}</p></div>}
         {error && (
           <div className="alert alert-error" style={{marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center', gap:10}}>
             <span>{error.message}</span>
-            <button className="btn btn-ghost btn-sm" onClick={() => window.location.reload()}>Reintentar</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => window.location.reload()}>{t('retry')}</button>
           </div>
         )}
 
         {r && (
           <div id="reporte-contenido">
 
-            {/* Stats cards */}
+            {/* Stats */}
             <div className="stats-grid" style={{ marginBottom: 20 }}>
               <div className="stat-card" onClick={() => navigate('/personas')} style={{ cursor: 'pointer' }}>
                 <div className="stat-val">{r.totales?.personas || totalPersonas}</div>
-                <div className="stat-lbl"><Icons.Users /> Personas</div>
+                <div className="stat-lbl"><Icons.Users /> {t('persons')}</div>
               </div>
               <div className="stat-card" onClick={() => navigate('/personas')} style={{ cursor: 'pointer' }}>
                 <div className="stat-val" style={{ color: 'var(--c-success)' }}>{r.totales?.activos || 0}</div>
-                <div className="stat-lbl"><Icons.Attendance /> Activos</div>
+                <div className="stat-lbl"><Icons.Attendance /> {t('active')}</div>
               </div>
               <div className="stat-card" onClick={() => navigate('/personas')} style={{ cursor: 'pointer' }}>
                 <div className="stat-val" style={{ color: 'var(--c-warning)' }}>{r.totales?.visitantes || 0}</div>
-                <div className="stat-lbl">Visitantes</div>
+                <div className="stat-lbl">{t('visitors')}</div>
               </div>
               <div className="stat-card" onClick={() => navigate('/grupos')}>
                 <div className="stat-val" style={{ color: 'var(--c-info)' }}>{r.totales?.grupos || 0}</div>
-                <div className="stat-lbl"><Icons.Groups /> Grupos</div>
+                <div className="stat-lbl"><Icons.Groups /> {t('groups')}</div>
               </div>
               {tipo !== 'mensual' && (
                 <div className="stat-card">
                   <div className="stat-val" style={{ color: 'var(--c-purple)' }}>{r.seguimientos?.reduce((a, b) => a + Number(b.qty), 0) || 0}</div>
-                  <div className="stat-lbl">≡ Seguimientos</div>
+                  <div className="stat-lbl">≡ {t('followups')}</div>
                 </div>
               )}
             </div>
 
-            {/* Semanal */}
+            {/* Semanal / General */}
             {tipo !== 'mensual' && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
 
-                {/* Cultos */}
                 {(r.cultos || []).length > 0 && (
                   <div className="card">
-                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}><Icons.Attendance /> Cultos del período</h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}><Icons.Attendance /> {t('servicesTitle')}</h3>
                     {(r.cultos || []).map((c, i) => {
                       const p = pct(c.presentes, c.total)
                       const color = p >= 70 ? 'var(--c-success)' : p >= 50 ? 'var(--c-warning)' : 'var(--c-danger)'
@@ -186,17 +227,16 @@ export default function Reportes() {
                         </div>
                       )
                     })}
-                    {(r.cultos || []).length === 0 && <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sin cultos en el período</p>}
+                    {(r.cultos || []).length === 0 && <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('noCultos')}</p>}
                   </div>
                 )}
 
-                {/* Nuevas personas */}
                 <div className="card">
                   <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>
-                    <Icons.Users /> Nuevas personas ({(r.nuevasPersonas || []).length})
+                    <Icons.Users /> {t('newPersonsTitle')} ({(r.nuevasPersonas || []).length})
                   </h3>
                   {(r.nuevasPersonas || []).length === 0
-                    ? <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sin nuevas personas en el período</p>
+                    ? <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('noNewPersons')}</p>
                     : (r.nuevasPersonas || []).map((p, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
                         onClick={() => navigate(`/personas/${p.id}`)}>
@@ -207,10 +247,9 @@ export default function Reportes() {
                   }
                 </div>
 
-                {/* Seguimientos */}
                 {(r.seguimientos || []).length > 0 && (
                   <div className="card">
-                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>≡ Seguimientos realizados</h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>≡ {t('followupsTitle')}</h3>
                     {(r.seguimientos || []).map((s, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
                         <span>{s.tipo}</span><strong>{s.qty}</strong>
@@ -226,9 +265,8 @@ export default function Reportes() {
             {tipo === 'mensual' && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
 
-                {/* Congregación */}
                 <div className="card">
-                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}><Icons.Users /> Congregación</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}><Icons.Users /> {t('congregation')}</h3>
                   {(r.personas || []).map((p, i) => {
                     const total = (r.personas || []).reduce((a, b) => a + Number(b.total), 0)
                     const p2 = total > 0 ? Math.round(Number(p.total) / total * 100) : 0
@@ -247,10 +285,9 @@ export default function Reportes() {
                   })}
                 </div>
 
-                {/* Asistencia mensual */}
                 {(r.asistencia || []).length > 0 && (
                   <div className="card" style={{ gridColumn: '1 / -1' }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}><Icons.Attendance /> Asistencia del mes</h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}><Icons.Attendance /> {t('monthlyAttendance')}</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
                       {(r.asistencia || []).map((c, i) => {
                         const p = pct(c.presentes, c.total)
@@ -278,7 +315,7 @@ export default function Reportes() {
         )}
 
         {!r && !loading && (
-          <div className="empty"><div className="empty-icon"><Icons.Reports /></div><p>Seleccioná un período para generar el reporte</p></div>
+          <div className="empty"><div className="empty-icon"><Icons.Reports /></div><p>{t('selectPeriod')}</p></div>
         )}
       </main>
     </div>
