@@ -8,7 +8,8 @@ import { makeI18n } from '../lib/i18n.js'
 
 const MSG_I18N = {
   es: { title:'Mensajería', notConfigured:'sin configurar',
-        tabSend:'Email Enviar', tabTemplates:'Plantillas', tabHistory:'Historial Historial',
+        tabSend:'Enviar', tabTemplates:'Plantillas', tabHistory:'Historial',
+        tabSegment:'Segmentar',
         loadingMsg:'Cargando mensajería...', noMessages:'Sin mensajes aún',
         newMessage:'Nuevo mensaje', sendMode:'Modo de envío', channel:'Canal',
         individual:'Individual', mass:'Masivo',
@@ -20,15 +21,20 @@ const MSG_I18N = {
         sending:'Enviando...', sendMsg:'↑ Enviar mensaje', sendToAll:'↑ Enviar a todos',
         quickTemplates:'Plantillas rápidas', noTemplatesFor:'Sin plantillas para',
         customTemplates:'Plantillas personalizadas', newTemplate:'+ Nueva',
-        templateNote:'Las plantillas con  son predeterminadas del sistema.',
+        templateNote:'Las plantillas marcadas con * son predeterminadas del sistema.',
         templateName:'Nombre', templateType:'Tipo', content:'Contenido',
         variables:'variables:', use:'Usar',
-        sentMessages:'Mensajes enviados', sent:'Enviado', error:'Error', noPerson:'Sin persona',
-        colChannel:'Canal', colPerson:'Persona', colDest:'Destino', colMsg:'Mensaje', colStatus:'Estado',
+        allMessages:'Todos', incoming:'Recibidos', outgoing:'Enviados',
+        incomingLabel:'RECIBIDO', outgoingLabel:'ENVIADO',
+        sentMessages:'Mensajes', sent:'Enviado', error:'Error', noPerson:'Sin persona',
+        colChannel:'Canal', colPerson:'Persona', colDest:'Destino', colMsg:'Mensaje',
+        colStatus:'Estado', colDir:'Dirección',
         delTemplate:'¿Eliminar plantilla?', delTemplateMsg:'Esta plantilla será eliminada permanentemente.',
+        confirmSendTitle:'¿Enviar mensaje masivo?', confirmSendMsg:'Se enviará a todos los destinatarios seleccionados.',
   },
   pt: { title:'Mensagens', notConfigured:'sem configuração',
-        tabSend:'Email Enviar', tabTemplates:'Templates', tabHistory:'Historial Histórico',
+        tabSend:'Enviar', tabTemplates:'Templates', tabHistory:'Histórico',
+        tabSegment:'Segmentar',
         loadingMsg:'Carregando mensagens...', noMessages:'Sem mensagens ainda',
         newMessage:'Nova mensagem', sendMode:'Modo de envio', channel:'Canal',
         individual:'Individual', mass:'Em massa',
@@ -40,15 +46,20 @@ const MSG_I18N = {
         sending:'Enviando...', sendMsg:'↑ Enviar mensagem', sendToAll:'↑ Enviar para todos',
         quickTemplates:'Templates rápidos', noTemplatesFor:'Sem templates para',
         customTemplates:'Templates personalizados', newTemplate:'+ Novo',
-        templateNote:'Os templates com  são predefinidos do sistema.',
+        templateNote:'Os templates marcados com * são predefinidos do sistema.',
         templateName:'Nome', templateType:'Tipo', content:'Conteúdo',
         variables:'variáveis:', use:'Usar',
-        sentMessages:'Mensagens enviadas', sent:'Enviado', error:'Erro', noPerson:'Sem pessoa',
-        colChannel:'Canal', colPerson:'Pessoa', colDest:'Destino', colMsg:'Mensagem', colStatus:'Estado',
+        allMessages:'Todos', incoming:'Recebidos', outgoing:'Enviados',
+        incomingLabel:'RECEBIDO', outgoingLabel:'ENVIADO',
+        sentMessages:'Mensagens', sent:'Enviado', error:'Erro', noPerson:'Sem pessoa',
+        colChannel:'Canal', colPerson:'Pessoa', colDest:'Destino', colMsg:'Mensagem',
+        colStatus:'Estado', colDir:'Direção',
         delTemplate:'Excluir template?', delTemplateMsg:'Este template será excluído permanentemente.',
+        confirmSendTitle:'Enviar mensagem em massa?', confirmSendMsg:'Será enviado para todos os destinatários selecionados.',
   },
   en: { title:'Messaging', notConfigured:'not configured',
-        tabSend:'Email Send', tabTemplates:'Templates', tabHistory:'Historial History',
+        tabSend:'Send', tabTemplates:'Templates', tabHistory:'History',
+        tabSegment:'Segment',
         loadingMsg:'Loading messaging...', noMessages:'No messages yet',
         newMessage:'New message', sendMode:'Send mode', channel:'Channel',
         individual:'Individual', mass:'Mass',
@@ -60,12 +71,16 @@ const MSG_I18N = {
         sending:'Sending...', sendMsg:'↑ Send message', sendToAll:'↑ Send to all',
         quickTemplates:'Quick templates', noTemplatesFor:'No templates for',
         customTemplates:'Custom templates', newTemplate:'+ New',
-        templateNote:'Templates with  are system defaults.',
+        templateNote:'Templates marked with * are system defaults.',
         templateName:'Name', templateType:'Type', content:'Content',
         variables:'variables:', use:'Use',
-        sentMessages:'Sent messages', sent:'Sent', error:'Error', noPerson:'No person',
-        colChannel:'Channel', colPerson:'Person', colDest:'Destination', colMsg:'Message', colStatus:'Status',
+        allMessages:'All', incoming:'Received', outgoing:'Sent',
+        incomingLabel:'RECEIVED', outgoingLabel:'SENT',
+        sentMessages:'Messages', sent:'Sent', error:'Error', noPerson:'No person',
+        colChannel:'Channel', colPerson:'Person', colDest:'Destination', colMsg:'Message',
+        colStatus:'Status', colDir:'Direction',
         delTemplate:'Delete template?', delTemplateMsg:'This template will be permanently deleted.',
+        confirmSendTitle:'Send mass message?', confirmSendMsg:'Will be sent to all selected recipients.',
   },
 }
 
@@ -82,6 +97,7 @@ const PLANTILLAS_DEFAULT = [
 const ETAPAS_ESPIRITALES = ['NUEVO_CREYENTE','CONSOLIDADO','DISCIPULO','LIDER','MINISTRO']
 
 function SegmentadorAvanzado({ grupos }) {
+  const t = makeI18n(MSG_I18N)
   const [filtros, setFiltros] = useState({
     estados: [],
     grupos: [],
@@ -101,6 +117,7 @@ function SegmentadorAvanzado({ grupos }) {
   const [tipo, setTipo]             = useState('WHATSAPP')
   const [enviando, setEnviando]     = useState(false)
   const [resultado2, setResultado2] = useState(null)
+  const [confirmEnvio, setConfirmEnvio] = useState(false)
 
   function toggleArr(key, val) {
     setFiltros(f => ({
@@ -119,10 +136,8 @@ function SegmentadorAvanzado({ grupos }) {
     setBuscando(false)
   }
 
-  async function enviar() {
-    if (!resultado?.ids?.length) return toast.error('Buscá destinatarios primero')
-    if (!mensaje.trim()) return toast.error('Escribí un mensaje')
-    if (!confirm(`¿Enviar a ${resultado.total} personas?`)) return
+  async function doEnviar() {
+    setConfirmEnvio(false)
     setEnviando(true); setResultado2(null)
     try {
       const r = await apiFetch('/mensajes/masivo-segmentado', {
@@ -133,6 +148,12 @@ function SegmentadorAvanzado({ grupos }) {
       toast.success(`${r.enviados} mensajes enviados`)
     } catch(e) { toast.error(e.message) }
     setEnviando(false)
+  }
+
+  function enviar() {
+    if (!resultado?.ids?.length) return toast.error('Buscá destinatarios primero')
+    if (!mensaje.trim()) return toast.error('Escribí un mensaje')
+    setConfirmEnvio(true)
   }
 
   const ChipBtn = ({ label, active, onClick }) => (
@@ -169,9 +190,18 @@ function SegmentadorAvanzado({ grupos }) {
 
   return (
     <div style={{ display:'grid', gridTemplateColumns:'1fr 320px', gap:16, alignItems:'start' }}>
+      <ConfirmModal
+        open={confirmEnvio}
+        onClose={() => setConfirmEnvio(false)}
+        onConfirm={doEnviar}
+        title={`${t('confirmSendTitle')} (${resultado?.total || 0} ${t('people')})`}
+        message={t('confirmSendMsg')}
+        confirmLabel={t('sendToAll')}
+        cancelLabel={t('cancel')}
+      />
       {/* Panel de filtros */}
       <div className="card">
-        <h3 style={{ fontSize:15, fontWeight:700, marginBottom:16 }}>🎯 Segmentación avanzada</h3>
+        <h3 style={{ fontSize:15, fontWeight:700, marginBottom:16 }}>Segmentación avanzada</h3>
         <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:16 }}>Combiná filtros para definir exactamente quién recibe el mensaje.</p>
 
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
@@ -250,7 +280,7 @@ function SegmentadorAvanzado({ grupos }) {
         </div>
 
         <button className="btn btn-primary" style={{ marginTop:20, width:'100%' }} onClick={buscar} disabled={buscando}>
-          {buscando ? 'Calculando...' : '🔍 Calcular destinatarios'}
+          {buscando ? 'Calculando...' : 'Calcular destinatarios'}
         </button>
       </div>
 
@@ -326,6 +356,7 @@ export default function Mensajes() {
   const [historial, setHistorial]   = useState([])
   const [hTotal, setHTotal]         = useState(0)
   const [hPage, setHPage]           = useState(1)
+  const [hDir, setHDir]             = useState('')
   const [msg, setMsg]           = useState(null)
   const [sending, setSending]   = useState(false)
   const [config, setConfig]     = useState({})
@@ -363,11 +394,13 @@ export default function Mensajes() {
 
   const loadHistorial = useCallback(async () => {
     try {
-      const r = await apiFetch(`/mensajes?limit=30&page=${hPage}`)
+      const qs = new URLSearchParams({ limit:30, page:hPage })
+      if (hDir) qs.set('direccion', hDir)
+      const r = await apiFetch(`/mensajes?${qs}`)
       setHistorial(r?.data || [])
       setHTotal(r?.total || 0)
     } catch {}
-  }, [hPage])
+  }, [hPage, hDir])
 
   useEffect(() => { loadHistorial() }, [loadHistorial])
 
@@ -474,7 +507,7 @@ export default function Mensajes() {
           <div className="empty" style={{marginTop:40}}><div className="spinner" /><p style={{marginTop:16}}>{t('loadingMsg')}</p></div>
         ) : (<>
         <div className="mobile-tabs" style={{ display: 'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap: 8, marginBottom: 20 }}>
-          {[['enviar', t('tabSend')], ['segmentar', '🎯 Segmentar'], ['plantillas', t('tabTemplates')], ['historial', t('tabHistory')]].map(([k, l]) => (
+          {[['enviar', t('tabSend')], ['segmentar', t('tabSegment')], ['plantillas', t('tabTemplates')], ['historial', t('tabHistory')]].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={tab === k ? 'btn btn-primary' : 'btn btn-ghost'}>{l}</button>
           ))}
         </div>
@@ -628,7 +661,7 @@ export default function Mensajes() {
               <div key={p.id} className="template-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border)', gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 5 }}>
-                    <strong style={{ fontSize: 14 }}>{String(p.id).startsWith('d') ? ' ' : ''}{p.nombre}</strong>
+                    <strong style={{ fontSize: 14 }}>{String(p.id).startsWith('d') ? '* ' : ''}{p.nombre}</strong>
                     <span style={{ ...badgeColor(p.tipo), padding: '1px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{p.tipo}</span>
                   </div>
                   <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>{p.contenido}</p>
@@ -647,15 +680,24 @@ export default function Mensajes() {
         {/* ── HISTORIAL ── */}
         {tab === 'historial' && (
           <div className="card messages-history-card" style={{ padding: 0 }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap:10, flexWrap:'wrap' }}>
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>{t('sentMessages')} ({hTotal})</h3>
+              <div style={{ display:'flex', gap:6 }}>
+                {[['', t('allMessages')], ['SALIENTE', t('outgoing')], ['ENTRANTE', t('incoming')]].map(([v,l]) => (
+                  <button key={v} className={hDir===v ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}
+                    onClick={() => { setHDir(v); setHPage(1) }}>{l}</button>
+                ))}
+              </div>
             </div>
             {historial.length > 0 && (
               <div className="messages-mobile-history">
                 {historial.map(m => (
-                  <article className="message-history-card" key={m.id}>
-                    <div>
+                  <article className="message-history-card" key={m.id} style={m.direccion==='ENTRANTE'?{background:'var(--primary-soft)'}:{}}>
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
                       <span style={{ ...badgeColor(m.tipo), padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{m.tipo}</span>
+                      {m.direccion === 'ENTRANTE'
+                        ? <span style={{padding:'2px 8px',borderRadius:10,fontSize:11,fontWeight:600,background:'#EDE9FE',color:'#7C3AED'}}>{t('incomingLabel')}</span>
+                        : null}
                       {m.enviado
                         ? <span className="badge badge-activo">{t('sent')}</span>
                         : <span className="badge badge-inactivo">{t('error')}</span>}
@@ -673,8 +715,12 @@ export default function Mensajes() {
                   <thead><tr><th>{t('colChannel')}</th><th>{t('colPerson')}</th><th>{t('colDest')}</th><th>{t('colMsg')}</th><th>{t('colStatus')}</th><th>{t('date')}</th></tr></thead>
                   <tbody>
                     {historial.map(m => (
-                      <tr key={m.id}>
-                        <td><span style={{ ...badgeColor(m.tipo), padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{m.tipo}</span></td>
+                      <tr key={m.id} style={m.direccion==='ENTRANTE'?{background:'var(--primary-soft)'}:{}}>
+                        <td>
+                          <span style={{ ...badgeColor(m.tipo), padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{m.tipo}</span>
+                          {m.direccion === 'ENTRANTE' &&
+                            <span style={{marginLeft:4,padding:'2px 6px',borderRadius:10,fontSize:10,fontWeight:600,background:'#EDE9FE',color:'#7C3AED'}}>{t('incomingLabel')}</span>}
+                        </td>
                         <td style={{ fontSize: 13 }}>{m.personaNombre ? `${m.personaNombre} ${m.personaApellido || ''}` : t('noPerson')}</td>
                         <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{m.destino}</td>
                         <td style={{ maxWidth: 200, overflowX:'auto', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>{m.mensaje}</td>

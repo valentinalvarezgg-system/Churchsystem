@@ -103,6 +103,33 @@ router.post('/test', requireAuth, wrap(async (req, res) => {
   return res.json({ ok: true, enviadas: ok, errores: errors })
 }))
 
+export async function sendPushToAdmins(iglesiaId, payload) {
+  if (!process.env.VAPID_PUBLIC_KEY) return
+  const admins = await pgMany(
+    `SELECT "id" FROM "User"
+     WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
+       AND "rol" IN ('PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION')`,
+    [iglesiaId]
+  )
+  if (!admins.length) return
+  const ids = admins.map(a => Number(a.id))
+  const subs = await pgMany(
+    'SELECT "endpoint","keys" FROM "PushSubscription" WHERE "iglesiaId"=$1 AND "userId" = ANY($2::int[])',
+    [iglesiaId, ids]
+  )
+  if (!subs.length) return
+  const data = typeof payload === 'string' ? payload : JSON.stringify(payload)
+  for (const row of subs) {
+    try {
+      await pushSend({ endpoint: row.endpoint, keys: JSON.parse(row.keys) }, data)
+    } catch (err) {
+      if (err.statusCode === 410) {
+        await pgExec('DELETE FROM "PushSubscription" WHERE "endpoint"=$1', [row.endpoint])
+      }
+    }
+  }
+}
+
 export async function enviarAlertas() {
   if (!process.env.VAPID_PUBLIC_KEY) return
   const iglesias = await pgMany('SELECT "id" FROM "Iglesia" WHERE "deletedAt" IS NULL')

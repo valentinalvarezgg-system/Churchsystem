@@ -1,5 +1,6 @@
 import logger from '../lib/logger.js'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
+import { sendPushToAdmins } from '../routes/notificaciones.js'
 
 const GRAPH_VERSION = process.env.META_API_VERSION || process.env.META_GRAPH_VERSION || 'v23.0'
 const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_VERSION}`
@@ -495,6 +496,36 @@ export async function processWebhookPayload(payload = {}) {
           status: 'received',
           payload: message,
         })
+
+        if (iglesiaId) {
+          const text = message.type === 'text'
+            ? (message.text?.body || '')
+            : `[${message.type}]`
+          const contactName = persona
+            ? `${persona.nombre} ${persona.apellido || ''}`.trim()
+            : from
+
+          try {
+            await pgExec(
+              `INSERT INTO "Mensaje"("iglesiaId","personaId","tipo","destino","mensaje","enviado","direccion","createdAt")
+               VALUES ($1,$2,'WHATSAPP',$3,$4,true,'ENTRANTE',CURRENT_TIMESTAMP)`,
+              [iglesiaId, persona?.id || null, from, text]
+            )
+          } catch (err) {
+            logger.warn({ iglesiaId, err: err.message }, 'No se pudo guardar mensaje entrante en historial')
+          }
+
+          try {
+            await sendPushToAdmins(iglesiaId, {
+              title: 'Mensaje recibido por WhatsApp',
+              body: `${contactName}: ${text.slice(0, 120)}`,
+              url: '/mensajes',
+              icon: '/icon.svg',
+            })
+          } catch (err) {
+            logger.warn({ iglesiaId, err: err.message }, 'No se pudo enviar push por mensaje entrante')
+          }
+        }
       }
     }
   }
