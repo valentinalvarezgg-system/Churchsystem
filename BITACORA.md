@@ -1,6 +1,6 @@
 # BITÁCORA — Church System
 
-Última actualización: **2026-06-06**  
+Última actualización: **2026-06-08**  
 Versión: **v2.9**  
 Rama activa: **master**
 
@@ -26,11 +26,11 @@ Rama activa: **master**
 | Configuración | 85% | ✅ |
 | GodMode | 82% | ✅ |
 | Mobile / responsive | 90% | ✅ |
-| i18n | 72% | 🟡 Configuracion/Reportes/Eventos/Discipulado pendientes |
+| i18n | 85% | ✅ |
 | Testing | 20% | 🔴 prioridad baja por ahora |
 | Documentación | 90% | ✅ |
 | Deploy | 92% | ✅ |
-| **PROMEDIO GLOBAL** | **82%** | |
+| **PROMEDIO GLOBAL** | **83%** | |
 
 ---
 
@@ -38,7 +38,7 @@ Rama activa: **master**
 
 ### P0 — Urgente (próximo bloque)
 
-1. **i18n restante** — Configuracion, Reportes, Eventos, Discipulado (72% → 85%)
+1. ~~**i18n restante** — Configuracion, Reportes, Eventos, Discipulado~~ ✅ (85%)
 2. **Estadísticas por culto en Asistencia** — tendencias de ausencias, promedio por día
 3. **Push on-message en Mensajería** — notificación cuando llega mensaje entrante por WhatsApp
 
@@ -81,6 +81,15 @@ Rama activa: **master**
 ---
 
 ## Changelog
+
+### v2.9.1 — 2026-06-08
+
+**i18n completo (es/pt/en):**
+- `Reportes.jsx` — i18n de títulos, tabs, períodos, KPIs y mensajes vacíos.
+- `Eventos.jsx` — i18n completo; `diasRestantes()` recibe `t` como parámetro; subcomponente `RsvpModal` usa `makeI18n` internamente.
+- `Discipulado.jsx` — i18n en componente principal y sub-componentes (`ArbolDiscipulado`, `NodoPanel`, `ModalAgregarRelacion`). Fix: `confirm()` reemplazado por `<ConfirmModal>`.
+- `Configuracion.jsx` — i18n de categorías, secciones y todos los strings de UI; helpers `catLabel(k)` / `secLabel(k)` / `secDesc(k)` mapean keys a traducciones dinámicas.
+- `frontend/src/lib/i18n.js` — creado en rama de review (`makeI18n`, `getLang`, dict COMMON).
 
 ### v2.9 — 2026-06-06
 

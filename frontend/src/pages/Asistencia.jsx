@@ -17,6 +17,9 @@ const ASIS_I18N = {
         create:'Crear', delServiceTitle:'¿Eliminar culto?',
         delServiceMsg:'Se eliminará el culto y todo su registro de asistencia. Esta acción es permanente.',
         attendSaved:'Asistencia guardada:',
+        showStats:'Estadísticas', noStats:'Sin datos todavía',
+        attendanceTrend:'Tendencia de asistencia', byDay:'Promedio por día',
+        avgPresent:'prom.', cultosLabel:'cultos',
   },
   pt: { title:'Presença aos cultos', newService:'+ Novo culto', loadingServices:'Carregando cultos...',
         noServices:'Sem cultos carregados', present:'presentes', openAttend:'Abrir presença',
@@ -28,6 +31,9 @@ const ASIS_I18N = {
         create:'Criar', delServiceTitle:'Excluir culto?',
         delServiceMsg:'O culto e todo o seu registro de presença serão excluídos. Esta ação é permanente.',
         attendSaved:'Presença salva:',
+        showStats:'Estatísticas', noStats:'Sem dados ainda',
+        attendanceTrend:'Tendência de presença', byDay:'Média por dia',
+        avgPresent:'méd.', cultosLabel:'cultos',
   },
   en: { title:'Service attendance', newService:'+ New service', loadingServices:'Loading services...',
         noServices:'No services loaded', present:'present', openAttend:'Open attendance',
@@ -39,6 +45,9 @@ const ASIS_I18N = {
         create:'Create', delServiceTitle:'Delete service?',
         delServiceMsg:'The service and all its attendance records will be deleted. This action is permanent.',
         attendSaved:'Attendance saved:',
+        showStats:'Statistics', noStats:'No data yet',
+        attendanceTrend:'Attendance trend', byDay:'Average by day',
+        avgPresent:'avg.', cultosLabel:'services',
   },
 }
 
@@ -73,6 +82,15 @@ export default function Asistencia() {
   const [confirmDelCulto, setConfirmDelCulto] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
+  const [showStats, setShowStats]       = useState(false)
+  const [stats, setStats]               = useState(null)
+  const [statsLoading, setStatsLoading] = useState(false)
+
+  async function loadStats() {
+    setStatsLoading(true)
+    try { setStats(await apiFetch('/cultos/stats?limit=12')) } catch {}
+    setStatsLoading(false)
+  }
 
   async function loadCultos() {
     setLoading(true); setError(null)
@@ -146,8 +164,58 @@ export default function Asistencia() {
       <main className="main">
         <div className="page-header">
           <h1 className="page-title">{t('title')}</h1>
-          {canManage && <button className="btn btn-primary" data-tip="Crear un nuevo registro de culto" onClick={()=>setModal(true)}>{t('newService')}</button>}
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            <button className="btn btn-ghost btn-sm" onClick={() => { if (!showStats && !stats) loadStats(); setShowStats(s => !s) }}
+              style={{fontWeight: showStats ? 700 : 400}}>
+              {t('showStats')}
+            </button>
+            {canManage && <button className="btn btn-primary" data-tip="Crear un nuevo registro de culto" onClick={()=>setModal(true)}>{t('newService')}</button>}
+          </div>
         </div>
+        {showStats && (
+          <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:20,marginBottom:18}}>
+            {statsLoading ? (
+              <p style={{color:'var(--text-muted)',fontSize:13,margin:0}}>{t('loading')}</p>
+            ) : !stats || stats.tendencias.length === 0 ? (
+              <p style={{color:'var(--text-muted)',fontSize:13,margin:0}}>{t('noStats')}</p>
+            ) : (
+              <div style={{display:'grid',gap:20}}>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:10}}>{t('attendanceTrend')}</div>
+                  <div style={{display:'flex',alignItems:'flex-end',gap:3,height:72}}>
+                    {stats.tendencias.map(c => {
+                      const pct = c.total > 0 ? (c.presentes / c.total) * 100 : 0
+                      const barH = Math.max(3, Math.round(pct * 0.65))
+                      const label = c.cultoDia ? c.cultoDia.slice(0,3) : fechaCorta(c.fecha).slice(0,5)
+                      return (
+                        <div key={c.id} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2,minWidth:0}}
+                          title={`${c.nombre}\n${c.presentes}/${c.total} · ${Math.round(pct)}%`}>
+                          <div style={{width:'100%',background:`hsl(${Math.round(pct*1.2)},65%,48%)`,borderRadius:'2px 2px 0 0',height:barH,minHeight:3}} />
+                          <span style={{fontSize:8,color:'var(--text-faint)',overflow:'hidden',whiteSpace:'nowrap',maxWidth:'100%',textAlign:'center'}}>{label}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+                {stats.porDia.length > 0 && (
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.5,marginBottom:10}}>{t('byDay')}</div>
+                    <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                      {stats.porDia.map(d => (
+                        <div key={d.cultoDia} style={{padding:'8px 12px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)',minWidth:80}}>
+                          <div style={{fontSize:10,color:'var(--text-muted)',fontWeight:700,textTransform:'uppercase',marginBottom:2}}>{d.cultoDia}</div>
+                          <div style={{fontSize:22,fontWeight:800,color:'var(--text)',lineHeight:1.1}}>{d.promedio}</div>
+                          <div style={{fontSize:10,color:'var(--text-faint)',marginTop:2}}>{t('avgPresent')} · {d.cultos} {t('cultosLabel')}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {loading ? (
           <div className="empty"><p>{t('loadingServices')}</p></div>
         ) : error ? (
