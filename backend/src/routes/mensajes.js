@@ -7,6 +7,15 @@ import { resolveWhatsAppConnection, sendWhatsAppText } from '../services/whatsap
 const router = Router()
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 
+let schemaOk = false
+async function ensureMensajeSchema() {
+  if (schemaOk) return
+  await pgExec(`ALTER TABLE "Mensaje" ADD COLUMN IF NOT EXISTS "direccion" TEXT NOT NULL DEFAULT 'SALIENTE'`)
+  await pgExec(`ALTER TABLE "Mensaje" ALTER COLUMN "userId" DROP NOT NULL`)
+  await pgExec(`ALTER TABLE "Mensaje" ALTER COLUMN "personaId" DROP NOT NULL`)
+  schemaOk = true
+}
+
 async function getCfg(iglesiaId) {
   const rows = await pgMany(
     'SELECT "clave","valor" FROM "Configuracion" WHERE "iglesiaId"=$1 OR "iglesiaId" IS NULL ORDER BY "iglesiaId" NULLS FIRST',
@@ -92,7 +101,8 @@ function buildEmailHTML(cfg, nombre, mensaje) {
 }
 
 router.get('/', requireAuth, wrap(async (req, res) => {
-  const { page = 1, limit = 30, tipo, personaId } = req.query
+  await ensureMensajeSchema()
+  const { page = 1, limit = 30, tipo, personaId, direccion } = req.query
   const pageNumber = Math.max(1, Number(page) || 1)
   const pageSize = Math.max(1, Math.min(100, Number(limit) || 30))
   const offset = (pageNumber - 1) * pageSize
@@ -106,6 +116,10 @@ router.get('/', requireAuth, wrap(async (req, res) => {
   if (personaId) {
     params.push(Number(personaId))
     filters.push(`m."personaId"=$${params.length}`)
+  }
+  if (direccion === 'ENTRANTE' || direccion === 'SALIENTE') {
+    params.push(String(direccion))
+    filters.push(`m."direccion"=$${params.length}`)
   }
   const where = `WHERE ${filters.join(' AND ')}`
 

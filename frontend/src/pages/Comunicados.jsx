@@ -36,7 +36,7 @@ function ScheduledBadge({ scheduledAt }) {
   const d = new Date(scheduledAt)
   return (
     <span style={{fontSize:10,padding:'2px 8px',borderRadius:20,background:'#FEF3C7',color:'#92400E',fontWeight:600,display:'inline-flex',alignItems:'center',gap:4}}>
-      🕐 Programado: {d.toLocaleDateString('es-AR',{day:'numeric',month:'short'})} {d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}
+      Programado: {d.toLocaleDateString('es-AR',{day:'numeric',month:'short'})} {d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}
     </span>
   )
 }
@@ -130,7 +130,7 @@ export default function Comunicados() {
             {canCreate && programados.length > 0 && (
               <button className="btn btn-ghost btn-sm" onClick={() => setShowProgramados(v => !v)}
                 style={{position:'relative'}}>
-                🕐 Programados
+                Programados
                 <span style={{position:'absolute',top:-6,right:-6,background:'var(--c-warning)',color:'#fff',borderRadius:20,fontSize:10,padding:'1px 5px',fontWeight:700}}>
                   {programados.length}
                 </span>
@@ -147,7 +147,7 @@ export default function Comunicados() {
         {/* Panel de programados */}
         {showProgramados && canCreate && (
           <div className="card" style={{marginBottom:16,border:'1px solid var(--c-warning-bg)',background:'#FFFBEB'}}>
-            <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:'#92400E'}}>🕐 Comunicados programados ({programados.length})</div>
+            <div style={{fontWeight:700,fontSize:13,marginBottom:10,color:'#92400E'}}>Comunicados programados ({programados.length})</div>
             {programados.map(c => (
               <div key={c.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid rgba(0,0,0,.05)',fontSize:13}}>
                 <div>
@@ -172,7 +172,7 @@ export default function Comunicados() {
                   <div style={{display:'flex',gap:12,alignItems:'flex-start',justifyContent:'space-between'}}>
                     <div style={{flex:1}}>
                       <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:6,flexWrap:'wrap'}}>
-                        {c.fijado && <span style={{fontSize:11,fontWeight:700,color:'var(--c-warning)'}}>📌 FIJADO</span>}
+                        {c.fijado && <span style={{fontSize:11,fontWeight:700,color:'var(--c-warning)'}}>FIJADO</span>}
                         <span style={{padding:'2px 8px',borderRadius:3,fontSize:11,fontWeight:600,background:TBG[c.tipo],color:TCOLOR[c.tipo]}}>{c.tipo}</span>
                         <span style={{fontSize:11,color:'var(--text-muted)'}}>{c.createdAt?.slice(0,10)} · {c.autorNombre}</span>
                         {c.destinatarios && c.destinatarios !== 'TODOS' && (

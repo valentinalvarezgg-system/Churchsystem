@@ -8,6 +8,7 @@ import {
 import { Bar, Line, Doughnut } from 'react-chartjs-2'
 import Layout from '../components/Layout.jsx'
 import { apiFetch } from '../services/api.js'
+import Icons from '../components/Icons.jsx'
 
 ChartJS.register(
   CategoryScale, LinearScale,
@@ -235,13 +236,13 @@ export default function Analytics() {
 
         {/* ── KPIs STARTER (todos) ─────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 24 }}>
-          <KPI icon="" label="Total personas"   value={kpis.totalPersonas ?? 0}    color={C.primary} />
-          <KPI icon="Listo" label="Activos"           value={kpis.personasActivas ?? 0}  color={C.success} />
-          <KPI icon="" label="Visitantes"        value={kpis.visitantes ?? 0}       color={C.info} />
-          <KPI icon="" label="Grupos"            value={kpis.totalGrupos ?? 0}      color={C.purple} />
-          <KPI icon="" label="Seguimientos (30d)" value={kpis.seguimientosActivos ?? 0} color={C.warning} />
+          <KPI icon={<Icons.Users />}         label="Total personas"    value={kpis.totalPersonas ?? 0}       color={C.primary} />
+          <KPI icon={<Icons.CheckCircle />}   label="Activos"           value={kpis.personasActivas ?? 0}     color={C.success} />
+          <KPI icon={<Icons.UserPlus />}      label="Visitantes"        value={kpis.visitantes ?? 0}          color={C.info} />
+          <KPI icon={<Icons.Groups />}        label="Grupos"            value={kpis.totalGrupos ?? 0}         color={C.purple} />
+          <KPI icon={<Icons.Heart />}         label="Seguimientos (30d)" value={kpis.seguimientosActivos ?? 0} color={C.warning} />
           {typeof kpis.sinSeguimiento === 'number' && (
-            <KPI icon="Advertencia" label="Sin contacto (30d)" value={kpis.sinSeguimiento} color={C.danger}
+            <KPI icon={<Icons.AlertTriangle />} label="Sin contacto (30d)" value={kpis.sinSeguimiento} color={C.danger}
               sub="personas activas sin seguimiento" />
           )}
         </div>
@@ -249,13 +250,13 @@ export default function Analytics() {
         {/* ── KPIs PRO/MAX ─────────────────────────────────────── */}
         {(plan === 'PRO' || plan === 'MAX') && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 24 }}>
-            <KPI icon="Cultos" label="Cultos accesibles" value={kpis.totalCultos ?? 0}       color={C.teal} />
-            <KPI icon="" label="Promedio asistencia" value={kpis.promedioAsistencia ?? 0} color={C.success} />
-            <KPI icon="" label="Última asistencia"  value={kpis.ultimaAsistencia ?? 0}   color={C.info} />
-            <KPI icon="" label="Nuevos este mes"    value={kpis.nuevosMes ?? 0}           color={C.primary} />
-            <KPI icon="Email" label="Mensajes (30d)"     value={kpis.mensajesMes ?? 0}         color={C.warning} />
+            <KPI icon={<Icons.Attendance />}    label="Cultos accesibles"   value={kpis.totalCultos ?? 0}        color={C.teal} />
+            <KPI icon={<Icons.TrendingUp />}    label="Promedio asistencia" value={kpis.promedioAsistencia ?? 0} color={C.success} />
+            <KPI icon={<Icons.Calendar />}      label="Última asistencia"   value={kpis.ultimaAsistencia ?? 0}   color={C.info} />
+            <KPI icon={<Icons.UserPlus />}      label="Nuevos este mes"     value={kpis.nuevosMes ?? 0}          color={C.primary} />
+            <KPI icon={<Icons.Mail />}          label="Mensajes (30d)"      value={kpis.mensajesMes ?? 0}        color={C.warning} />
             {tasaRetencion !== null && (
-              <KPI icon="" label="Tasa retención" value={`${tasaRetencion}%`} color={C.purple}
+              <KPI icon={<Icons.TrendingUp />}  label="Tasa retención"      value={`${tasaRetencion}%`}          color={C.purple}
                 sub="presentes / total registrados" />
             )}
           </div>
@@ -264,21 +265,21 @@ export default function Analytics() {
         {/* ── KPIs MAX ─────────────────────────────────────────── */}
         {plan === 'MAX' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 24 }}>
-            <KPI icon="" label="Usuarios activos" value={kpis.totalUsuarios ?? 0} color={C.teal} />
+            <KPI icon={<Icons.Users />} label="Usuarios activos" value={kpis.totalUsuarios ?? 0} color={C.teal} />
           </div>
         )}
 
         {/* ── Insights rápidos ─────────────────────────────────── */}
         {kpis.sinSeguimiento > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 10, marginBottom: 24 }}>
-            <InsightBadge icon="Advertencia" color={C.danger}
+            <InsightBadge icon={<Icons.AlertTriangle />} color={C.danger}
               text={`${kpis.sinSeguimiento} persona${kpis.sinSeguimiento === 1 ? '' : 's'} activa${kpis.sinSeguimiento === 1 ? '' : 's'} sin contacto en los últimos 30 días`} />
             {tasaRetencion !== null && tasaRetencion < 70 && (
-              <InsightBadge icon="" color={C.warning}
+              <InsightBadge icon={<Icons.TrendingDown />} color={C.warning}
                 text={`Tasa de retención en ${tasaRetencion}% — por debajo del objetivo del 70%`} />
             )}
             {tasaRetencion !== null && tasaRetencion >= 70 && (
-              <InsightBadge icon="" color={C.success}
+              <InsightBadge icon={<Icons.TrendingUp />} color={C.success}
                 text={`Tasa de retención en ${tasaRetencion}% — por encima del objetivo del 70%`} />
             )}
           </div>

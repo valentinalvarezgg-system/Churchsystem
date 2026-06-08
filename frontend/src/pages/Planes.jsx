@@ -4,6 +4,7 @@ import { apiFetch, getStoredContext } from '../services/api.js'
 import { usePlan } from '../hooks/usePlan.js'
 import { COMMERCIAL_PLAN_ORDER, getCommercialPlanUi } from '../lib/commercialPlans.js'
 import { EMAILS } from '../utils/legal.js'
+import { useOrientation } from '../hooks/useOrientation.js'
 
 function CheckIcon({ color = '#22c55e', size = 16 }) {
   return (
@@ -123,6 +124,7 @@ export default function Planes() {
   const lang = (ctx.lang || 'es').slice(0, 2)
   const tt = SECTION_COPY[lang] || SECTION_COPY.es
   const { plan: accessTier, commercialPlan, loading: loadingPlan } = usePlan()
+  const { isPhone } = useOrientation()
   const [catalog, setCatalog] = useState([])
   const [loading, setLoading] = useState(null)
   const [msg, setMsg] = useState(null)
@@ -350,7 +352,12 @@ export default function Planes() {
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{tt.leadership}</div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{tt.leadershipSub}</div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+            <div style={{
+              display: isPhone ? 'flex' : 'grid',
+              flexDirection: isPhone ? 'column' : undefined,
+              gridTemplateColumns: isPhone ? undefined : 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: 16,
+            }}>
               {grouped.leadership.map(renderCard)}
             </div>
           </section>
@@ -360,7 +367,12 @@ export default function Planes() {
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{tt.church}</div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{tt.churchSub}</div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+            <div style={{
+              display: isPhone ? 'flex' : 'grid',
+              flexDirection: isPhone ? 'column' : undefined,
+              gridTemplateColumns: isPhone ? undefined : 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: 16,
+            }}>
               {grouped.church.map(renderCard)}
             </div>
           </section>
