@@ -14,6 +14,8 @@ const CHECK_INTERVAL_MS = 60_000          // cada 60 segundos
 const MAX_FAILURES  = 3                   // reiniciar después de 3 fallos consecutivos
 const LAUNCHD_LABEL = 'com.churchsystem.backend'
 const PLIST_PATH    = '/Users/Valentin/Library/LaunchAgents/com.churchsystem.backend.plist'
+const BACKEND_DIR   = '/Users/Valentin/Desktop/church-system-alpha/backend'
+const ERR_LOG_PATH  = '/tmp/church-back-err.log'
 const RESEND_KEY    = (() => {
   try {
     const env = readFileSync('/Users/Valentin/Desktop/church-system-alpha/backend/.env', 'utf8')
@@ -72,6 +74,22 @@ async function sendAlert(asunto, cuerpo) {
 
 async function reiniciarServicio() {
   log('🔄 Reiniciando servicio via launchctl...')
+  // Auto-recuperación de dependencias: si el backend crasheó por un paquete
+  // faltante (ERR_MODULE_NOT_FOUND), reiniciar no alcanza — hay que instalar.
+  try {
+    const errLog = readFileSync(ERR_LOG_PATH, 'utf8').slice(-4000)
+    if (errLog.includes('ERR_MODULE_NOT_FOUND') || errLog.includes('Cannot find package')) {
+      log('📦 Detectada dependencia faltante. Corriendo pnpm install...')
+      try {
+        execSync('/usr/local/bin/pnpm install', { cwd: BACKEND_DIR, timeout: 600000, stdio: 'ignore', env: { ...process.env, PATH: `/usr/local/bin:${process.env.PATH || '/usr/bin:/bin'}` } })
+        log('✅ pnpm install completado.')
+        await sendAlert('📦 Church System — dependencia faltante reparada',
+          `El backend había crasheado por un paquete faltante.\nSe corrió pnpm install automáticamente y se está reiniciando.\nHora: ${ts()}`)
+      } catch (e) {
+        log('❌ Error en pnpm install:', e.message)
+      }
+    }
+  } catch { /* sin log de error, seguimos con el reinicio normal */ }
   try {
     execSync(`launchctl unload "${PLIST_PATH}"`, { timeout: 10000 })
     await new Promise(r => setTimeout(r, 2000))
