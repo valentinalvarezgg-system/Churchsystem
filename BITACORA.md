@@ -1,4 +1,43 @@
 # BITÁCORA — Church System
+---
+
+## v3.0.0 — 2026-06-10 — Offline-first + background sync
+
+**Feature importante:** App standalone con soporte offline completo.
+
+### Nuevas capacidades
+- **Offline-first:** acceso a datos cacheados sin internet (GETs de lecturas comunes)
+- **Cambios pendientes:** mientras está offline, POST/PUT/DELETE se encolan en IndexedDB
+- **Background sync:** automático al volver online, manual con botón "Sincronizar ahora"
+- **Badge de estado:** indicador visual offline/sincronizando/pendiente en bottom-right
+- **Arquitectura:** Service Worker mejorado + IndexedDB + React hooks + Message API
+
+### Archivos nuevos
+- `frontend/src/lib/indexed-db-helper.js` — manejo IndexedDB
+- `frontend/src/hooks/useSync.js` — hook React para detección online/offline y sync
+- `frontend/src/components/OfflineBadge.jsx` — badge visual + botón de sync
+- `frontend/public/sw.js` — mejorado con queue y background sync
+
+### Cambios en existentes
+- `frontend/src/App.jsx` — integrar OfflineBadge
+- `frontend/src/main.jsx` — inicializar IndexedDB al startup
+- `backend/package.json`, `frontend/package.json`, `package.json` — bump a 3.0.0
+- `README.md` — actualización de versión
+
+### Flujo offline-first
+1. **Online:** cambios se sincronizan al instante (normal)
+2. **Offline:** puedo seguir leyendo datos en cache, POST/PUT/DELETE se encolan
+3. **Reconecta:** cambios se sincronizan automáticamente (o manualmente con botón)
+4. **Badge muestra estado** en tiempo real (online/offline/sincronizando/X pendientes)
+
+### Testing offline
+```bash
+# Chrome Dev: Devtools → Network → "Offline"
+# Móvil: airplane mode
+# Esperado: app sigue funcionando, cambios se encolan, badge muestra "N cambios pendientes"
+# Al volver online: cambios suben automáticamente
+```
+
 
 > Fuente única de verdad operativa del proyecto.  
 > Leer esto antes de tocar cualquier archivo.

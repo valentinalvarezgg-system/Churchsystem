@@ -8,6 +8,7 @@ import CheckInAdmin, { CheckInPublico } from './pages/CheckIn.jsx'
 import { ToastContainer } from './components/Toast.jsx'
 import UpgradeGate from './components/UpgradeGate.jsx'
 import BugReporter from './components/BugReporter.jsx'
+import { OfflineBadge } from './components/OfflineBadge.jsx'
 import { useDevice } from './hooks/useDevice.js'
 
 // Lazy-loaded pages — cada página se descarga solo cuando el usuario navega a ella
@@ -194,6 +195,7 @@ export default function App() {
 
       <ToastContainer />
       <BugReporter />
+      <OfflineBadge />
     </ErrorBoundary>
   )
 }

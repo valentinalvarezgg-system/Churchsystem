@@ -18,6 +18,8 @@ import './styles/device-mobile.css'
 // Inicialización sincrónica: aplica data-device y data-orient en <html>
 // antes de que React renderice (ver useDevice.js — módulo-level call).
 import './hooks/useDevice.js'
+import { initDB } from './lib/indexed-db-helper.js'
+initDB().catch(err => console.warn('IndexedDB init failed:', err))
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter basename="/app"><App /></BrowserRouter>
