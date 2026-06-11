@@ -92,7 +92,7 @@ export const COMMERCIAL_PLANS = {
       pt: 'Operação semanal completa para liderança ativa.',
       en: 'Complete weekly operations for active leadership.',
     },
-    prices: { USD: 39, ARS: 39000, BRL: 199, CLP: 36000, COP: 159000, MXN: 740, PEN: 145, UYU: 1590 },
+    prices: { USD: 12, ARS: 14400, BRL: 60, CLP: 11000, COP: 49000, MXN: 230, PEN: 45, UYU: 490 },
   },
   MAX: {
     key: 'MAX',
@@ -111,7 +111,7 @@ export const COMMERCIAL_PLANS = {
       pt: 'Escala avançada para liderança com automação.',
       en: 'Advanced scale for leadership with automation.',
     },
-    prices: { USD: 79, ARS: 79000, BRL: 399, CLP: 73000, COP: 319000, MXN: 1490, PEN: 295, UYU: 3190 },
+    prices: { USD: 25, ARS: 30000, BRL: 125, CLP: 23000, COP: 101000, MXN: 470, PEN: 93, UYU: 1010 },
   },
   CHURCH_100: {
     key: 'CHURCH_100',

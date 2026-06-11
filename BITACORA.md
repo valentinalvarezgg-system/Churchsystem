@@ -1,6 +1,41 @@
 # BITÁCORA — Church System
 ---
 
+## v3.1.0 — 2026-06-11 — MP Subscriptions + trial 30 días + onboarding de engagement
+
+### Suscripciones recurrentes con Mercado Pago Preapproval
+- `backend/src/routes/subscriptions.js` — nuevas rutas: POST `/subscriptions/crear`, GET `/subscriptions/billing-estado`, GET `/subscriptions/onboarding-progreso`; función `procesarWebhookSuscripcion` conectada al webhook MP
+- `backend/src/lib/pricing.js` (NEW) — cotización USD/ARS desde BCRA (dolarapi.com), caché 23h, fallback env `COTIZACION_USD_ARS`
+- `backend/src/lib/billing.js` — precios PRO/MAX actualizados: PRO=USD12, MAX=USD25
+- Tabla `suscripciones` (auto-create): UUID PK, preapproval_id UNIQUE, gracia_hasta, last_event (idempotente)
+- Columna `trial_hasta` en tabla `Iglesia` (ALTER TABLE idempotente)
+
+### Trial 30 días automático
+- `backend/src/routes/registro.js` — al crear iglesia nueva: trial_hasta en Iglesia + Configuracion (`trial_inicio`, `trial_fin`)
+- `backend/src/middlewares/plan.js` — `effectivePlan()` async: trial_fin → PRO, suscripcion_activa, gracia_hasta desde suscripciones
+
+### Jobs diarios
+- `backend/src/lib/jobs.js` (NEW) — `tickDiario()`: trials venciendo (7/3/1 días → email CTA), trials vencidos → FREE, gracia reminders, gracia vencida → FREE, secuencia onboarding (días 1/7/23/29) con stats reales
+- `backend/src/server.js` — registra `tickDiario` con `setTimeout` recursivo a las 8:30 AM
+
+### Frontend
+- `frontend/src/pages/Billing.jsx` (NEW) — estado trial/suscripción, tarjetas PRO/MAX, botón MP Preapproval redirect, FAQ
+- `frontend/src/components/BannerTrial.jsx` (NEW) — banner superior: trial (días restantes), gracia (rojo urgente), degradado post-trial
+- `frontend/src/App.jsx` — lazy import Billing + Route `/billing` + BannerTrial
+- `frontend/src/pages/Dashboard.jsx` — `OnboardingChecklist` visible durante trial (5 pasos con progreso real)
+
+### Archivos nuevos
+- `backend/src/lib/jobs.js`
+- `backend/src/lib/pricing.js`
+- `frontend/src/pages/Billing.jsx`
+- `frontend/src/components/BannerTrial.jsx`
+
+### Env vars nuevas
+- `COTIZACION_USD_ARS` — override manual tipo de cambio (opcional, se auto-obtiene del BCRA)
+- `MP_WEBHOOK_SECRET` — clave secreta para verificar webhooks de MP
+
+---
+
 ## v3.0.0 — 2026-06-10 — Offline-first + background sync
 
 **Feature importante:** App standalone con soporte offline completo.

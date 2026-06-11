@@ -106,6 +106,25 @@ export async function crearCuentaHandler(req, res) {
       iglesiaId = iglesia.id
       iglesiaTokenOut = iglesia.token
       iglesiaCreada = true
+
+      // Activar trial de 30 días al crear iglesia nueva
+      const trialFin = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+      await pgExec(
+        `ALTER TABLE "Iglesia" ADD COLUMN IF NOT EXISTS trial_hasta TIMESTAMPTZ`,
+        []
+      ).catch(() => {}) // silenciar si la columna ya existe (race condition al boot)
+      await pgExec(
+        `UPDATE "Iglesia" SET trial_hasta = NOW() + INTERVAL '30 days', "updatedAt"=CURRENT_TIMESTAMP WHERE id=$1`,
+        [iglesiaId]
+      )
+      for (const [k, v] of [['trial_inicio', new Date().toISOString().slice(0, 10)], ['trial_fin', trialFin]]) {
+        await pgExec(
+          `INSERT INTO "Configuracion" ("iglesiaId","clave","valor","createdAt","updatedAt")
+           VALUES ($1,$2,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+           ON CONFLICT ("iglesiaId","clave") DO UPDATE SET "valor"=EXCLUDED."valor","updatedAt"=CURRENT_TIMESTAMP`,
+          [iglesiaId, k, v]
+        )
+      }
     }
 
     const roleId = await ensureRoleId('PASTOR_GENERAL')
@@ -177,8 +196,8 @@ export async function crearCuentaHandler(req, res) {
       appUrl,
       trial: {
         inicio: new Date().toISOString().slice(0, 10),
-        fin: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-        dias: 14,
+        fin: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        dias: 30,
       },
       billing: { country: countryInfo.code, currency: price.currency, price: price.amount, promo: promoCode?.code || null },
       iglesiaToken: iglesiaTokenOut,

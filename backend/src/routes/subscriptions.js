@@ -4,6 +4,8 @@ import logger from '../lib/logger.js'
 import { requireAuth, requireRol } from '../middlewares/auth.js'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { COMMERCIAL_PLANS, getCommercialPlan, normalizePlan } from '../lib/billing.js'
+import { montoARS, getCotizacion } from '../lib/pricing.js'
+import { sendNotificationEmail, buildSystemEmail, sendSystemEmail } from '../lib/email.js'
 
 const router = Router()
 
@@ -141,6 +143,31 @@ function normalizePlatform(raw = '') {
 async function ensureSubscriptionSchema() {
   if (schemaReadyPromise) return schemaReadyPromise
   schemaReadyPromise = (async () => {
+    // Columna trial_hasta en Iglesia (idempotente)
+    await pgExec(`ALTER TABLE "Iglesia" ADD COLUMN IF NOT EXISTS trial_hasta TIMESTAMPTZ`).catch(() => {})
+
+    // Tabla de suscripciones recurrentes (fuente de verdad)
+    await pgExec(`
+      CREATE TABLE IF NOT EXISTS suscripciones (
+        id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        iglesia_id      INTEGER     NOT NULL REFERENCES "Iglesia"(id) ON DELETE CASCADE,
+        proveedor       TEXT        NOT NULL DEFAULT 'mercadopago',
+        preapproval_id  TEXT        UNIQUE,
+        plan            TEXT        NOT NULL,
+        estado          TEXT        NOT NULL DEFAULT 'pending',
+        monto_usd       NUMERIC(10,2),
+        monto_ars       NUMERIC(12,2),
+        cotizacion      NUMERIC(10,2),
+        proximo_cobro_at TIMESTAMPTZ,
+        gracia_hasta    TIMESTAMPTZ,
+        last_event      TEXT,
+        creado_at       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        actualizado_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    await pgExec(`CREATE INDEX IF NOT EXISTS idx_suscripciones_iglesia ON suscripciones(iglesia_id)`)
+    await pgExec(`CREATE INDEX IF NOT EXISTS idx_suscripciones_estado  ON suscripciones(estado)`)
+
     await pgExec(`
       CREATE TABLE IF NOT EXISTS subscription_plans (
         id SERIAL PRIMARY KEY,
@@ -501,6 +528,12 @@ router.post('/payments/mercadopago/webhook', async (req, res) => {
           })
         }
       }
+      // Sincronizar tabla suscripciones + activar/degradar plan
+      if (userId && iglesiaId) {
+        procesarWebhookSuscripcion(Number(iglesiaId), String(detail.data.id), detail.data).catch(err => {
+          logger.warn({ err: err.message }, 'procesarWebhookSuscripcion error (non-fatal)')
+        })
+      }
       logger.info({ subscriptionId: detail.data.id, status }, 'MercadoPago webhook processed')
     }
     return res.status(200).json({ ok: true })
@@ -535,5 +568,296 @@ router.post('/payments/paypal/webhook', async (req, res) => {
     return res.status(500).json({ ok: false })
   }
 })
+
+// ── Helpers internos para activar/degradar plan ───────────────
+async function activarPlan(iglesiaId, plan, proximoCobro) {
+  const vence = proximoCobro
+    ? new Date(proximoCobro).toISOString().slice(0, 10)
+    : (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 10) })()
+  const updates = {
+    plan,
+    plan_label:         plan,
+    suscripcion_activa: '1',
+    suscripcion_vence:  vence,
+    ultimo_pago:        new Date().toISOString().slice(0, 10),
+  }
+  for (const [k, v] of Object.entries(updates)) {
+    await pgExec(
+      `INSERT INTO "Configuracion" ("iglesiaId","clave","valor","createdAt","updatedAt")
+       VALUES ($1,$2,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+       ON CONFLICT ("iglesiaId","clave") DO UPDATE SET "valor"=EXCLUDED."valor","updatedAt"=CURRENT_TIMESTAMP`,
+      [iglesiaId, k, v]
+    )
+  }
+}
+
+async function degradarAFree(iglesiaId) {
+  for (const [k, v] of [['suscripcion_activa','0'],['plan','FREE'],['plan_label','Free']]) {
+    await pgExec(
+      `INSERT INTO "Configuracion" ("iglesiaId","clave","valor","createdAt","updatedAt")
+       VALUES ($1,$2,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+       ON CONFLICT ("iglesiaId","clave") DO UPDATE SET "valor"=EXCLUDED."valor","updatedAt"=CURRENT_TIMESTAMP`,
+      [iglesiaId, k, v]
+    )
+  }
+}
+
+async function getAdminEmail(iglesiaId) {
+  const u = await pgOne(
+    `SELECT email, nombre FROM "User"
+      WHERE "iglesiaId"=$1 AND "rol"='PASTOR_GENERAL' AND "activo"=true AND "deletedAt" IS NULL
+      ORDER BY id ASC LIMIT 1`,
+    [iglesiaId]
+  )
+  return u
+}
+
+// ── POST /subscriptions/crear — Preapproval con ARS dinámico ──
+router.post('/subscriptions/crear', requireAuth, requireRol('PASTOR_GENERAL'), async (req, res) => {
+  await ensureSubscriptionSchema()
+  if (!MP_ACCESS_TOKEN) return res.status(503).json({ error: 'Falta MP_ACCESS_TOKEN.' })
+
+  const planKey = String(req.body?.plan || 'PRO').toUpperCase()
+  if (!['PRO', 'MAX'].includes(planKey)) {
+    return res.status(400).json({ error: 'Plan inválido. Valores aceptados: PRO, MAX.' })
+  }
+
+  const payerEmail = String(req.user?.email || '').trim()
+  if (!payerEmail) return res.status(400).json({ error: 'Email del usuario requerido.' })
+
+  const baseUrl = resolvePublicUrl(req)
+  if (!baseUrl) return res.status(503).json({ error: 'Falta URL pública para checkout.' })
+
+  try {
+    const { usd, ars, cotizacion } = await montoARS(planKey)
+    const extRef = `${req.user.id}|${req.user.iglesiaId}|${planKey}|mensual|${Date.now()}`
+
+    const createRes = await mpRequest('POST', '/preapproval', {
+      reason:             `Church System ${planKey}`,
+      payer_email:        payerEmail,
+      external_reference: extRef,
+      auto_recurring: {
+        frequency:          1,
+        frequency_type:     'months',
+        transaction_amount: ars,
+        currency_id:        'ARS',
+      },
+      back_url: `${baseUrl}/app/billing?pago=ok`,
+      notification_url: `${baseUrl}/payments/mercadopago/webhook${MP_WEBHOOK_SECRET ? `?secret=${encodeURIComponent(MP_WEBHOOK_SECRET)}` : ''}`,
+    })
+
+    if (createRes.status < 200 || createRes.status >= 300 || !createRes.data?.id) {
+      logger.error({ response: createRes.data }, 'MP preapproval crear error')
+      return res.status(400).json({ error: createRes.data?.message || 'No se pudo crear suscripción en MP.' })
+    }
+
+    await pgExec(
+      `INSERT INTO suscripciones (iglesia_id, preapproval_id, plan, estado, monto_usd, monto_ars, cotizacion)
+       VALUES ($1,$2,$3,'pending',$4,$5,$6)
+       ON CONFLICT (preapproval_id) DO UPDATE
+         SET estado='pending', actualizado_at=CURRENT_TIMESTAMP`,
+      [req.user.iglesiaId, createRes.data.id, planKey, usd, ars, cotizacion]
+    )
+
+    logger.info({ planKey, iglesiaId: req.user.iglesiaId, preapprovalId: createRes.data.id }, 'Suscripción creada')
+    return res.json({
+      ok:            true,
+      preapprovalId: createRes.data.id,
+      initPoint:     createRes.data.init_point || '',
+      plan:          planKey,
+      monto:         { usd, ars, cotizacion },
+    })
+  } catch (err) {
+    logger.error({ err: err.message }, 'Error creando suscripción')
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+// ── GET /subscriptions/billing-estado — Estado unificado de billing ──
+router.get('/subscriptions/billing-estado', requireAuth, async (req, res) => {
+  await ensureSubscriptionSchema()
+  const iglesiaId = req.user.iglesiaId
+
+  const rows = await pgMany(
+    `SELECT "clave","valor" FROM "Configuracion"
+      WHERE "iglesiaId"=$1
+        AND "clave" IN ('trial_inicio','trial_fin','suscripcion_activa','plan','suscripcion_vence')`,
+    [iglesiaId]
+  )
+  const cfg  = Object.fromEntries(rows.map(r => [r.clave, r.valor]))
+  const hoy  = new Date().toISOString().slice(0, 10)
+
+  const enTrial    = !!(cfg.trial_fin && hoy <= cfg.trial_fin)
+  const diasTrial  = cfg.trial_fin
+    ? Math.max(0, Math.ceil((new Date(cfg.trial_fin) - new Date()) / 86400000))
+    : 0
+  const suscActiva = cfg.suscripcion_activa === '1' && !!(cfg.suscripcion_vence && hoy <= cfg.suscripcion_vence)
+
+  // Buscar suscripción en tabla suscripciones
+  const sus = await pgOne(
+    `SELECT id, preapproval_id, plan, estado, monto_usd, monto_ars, proximo_cobro_at, gracia_hasta
+       FROM suscripciones
+      WHERE iglesia_id=$1
+      ORDER BY creado_at DESC LIMIT 1`,
+    [iglesiaId]
+  ).catch(() => null)
+
+  const enGracia   = !!(sus?.gracia_hasta && new Date(sus.gracia_hasta) > new Date())
+  const diasGracia = sus?.gracia_hasta
+    ? Math.max(0, Math.ceil((new Date(sus.gracia_hasta) - new Date()) / 86400000))
+    : 0
+
+  let efectivePlan = 'FREE'
+  if (enTrial)     efectivePlan = 'PRO'
+  else if (suscActiva || enGracia) efectivePlan = sus?.plan || cfg.plan || 'FREE'
+
+  const [montoProInfo, montoMaxInfo] = await Promise.all([
+    montoARS('PRO').catch(() => ({ usd: 12, ars: 14400, cotizacion: 1200 })),
+    montoARS('MAX').catch(() => ({ usd: 25, ars: 30000, cotizacion: 1200 })),
+  ])
+
+  res.json({
+    ok:            true,
+    enTrial,
+    diasTrial,
+    trialInicio:   cfg.trial_inicio || null,
+    trialFin:      cfg.trial_fin    || null,
+    suscActiva,
+    suscVence:     cfg.suscripcion_vence || null,
+    planPago:      sus?.plan || cfg.plan || null,
+    preapprovalId: sus?.preapproval_id || null,
+    estadoSus:     sus?.estado || null,
+    proximoCobro:  sus?.proximo_cobro_at || null,
+    enGracia,
+    diasGracia,
+    graciasHasta:  sus?.gracia_hasta || null,
+    efectivePlan,
+    montoPRO:      montoProInfo,
+    montoMAX:      montoMaxInfo,
+  })
+})
+
+// ── GET /subscriptions/onboarding-progreso ───────────────────────
+router.get('/subscriptions/onboarding-progreso', requireAuth, async (req, res) => {
+  const id = req.user.iglesiaId
+  const [personas, grupos, cultos, comunicados, users] = await Promise.all([
+    pgOne(`SELECT COUNT(*)::int AS n FROM "Persona"  WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL`, [id]).catch(() => ({ n: 0 })),
+    pgOne(`SELECT COUNT(*)::int AS n FROM "Grupo"    WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL`, [id]).catch(() => ({ n: 0 })),
+    pgOne(`SELECT COUNT(*)::int AS n FROM "Culto"    WHERE "iglesiaId"=$1`, [id]).catch(() => ({ n: 0 })),
+    pgOne(`SELECT COUNT(*)::int AS n FROM "Mensaje"  WHERE "iglesiaId"=$1`, [id]).catch(() => ({ n: 0 })),
+    pgOne(`SELECT COUNT(*)::int AS n FROM "User"     WHERE "iglesiaId"=$1 AND "activo"=true AND "deletedAt" IS NULL`, [id]).catch(() => ({ n: 0 })),
+  ])
+  res.json({
+    ok: true,
+    personas:     Number(personas?.n || 0),
+    grupos:       Number(grupos?.n   || 0),
+    cultos:       Number(cultos?.n   || 0),
+    comunicados:  Number(comunicados?.n || 0),
+    users:        Number(users?.n    || 0),
+  })
+})
+
+// ── Webhook MP extendido: maneja preapproval + payment ────────────
+// Nota: El webhook original en /payments/mercadopago/webhook sigue activo
+// para la tabla payments. Esta nueva lógica sincroniza la tabla suscripciones
+// y activa/degrada el plan de la iglesia.
+async function procesarWebhookSuscripcion(iglesiaId, preapprovalId, mpData) {
+  await ensureSubscriptionSchema()
+  const statusRaw   = String(mpData.status || '').toLowerCase()
+  const proximoCobro = mpData.next_payment_date || mpData.application_id || null
+
+  const sus = await pgOne(
+    `SELECT id, plan, estado, last_event FROM suscripciones WHERE preapproval_id=$1 LIMIT 1`,
+    [preapprovalId]
+  ).catch(() => null)
+
+  // Idempotencia: saltar si ya procesamos este estado exacto
+  const eventKey = `${statusRaw}:${proximoCobro || ''}`
+  if (sus?.last_event === eventKey) return
+
+  if (statusRaw === 'authorized') {
+    // Upsert suscripción como authorized
+    await pgExec(
+      `INSERT INTO suscripciones (iglesia_id, preapproval_id, plan, estado, monto_ars, proximo_cobro_at, gracia_hasta, last_event)
+       VALUES ($1,$2,$3,'authorized',$4,$5,NULL,$6)
+       ON CONFLICT (preapproval_id) DO UPDATE
+         SET estado='authorized', gracia_hasta=NULL, proximo_cobro_at=$5, last_event=$6, actualizado_at=CURRENT_TIMESTAMP`,
+      [
+        iglesiaId,
+        preapprovalId,
+        sus?.plan || mpData.reason?.includes('MAX') ? 'MAX' : 'PRO',
+        Number(mpData.auto_recurring?.transaction_amount || 0),
+        proximoCobro ? new Date(proximoCobro).toISOString() : null,
+        eventKey,
+      ]
+    )
+    const planKey = sus?.plan || (mpData.reason?.includes('MAX') ? 'MAX' : 'PRO')
+    await activarPlan(iglesiaId, planKey, proximoCobro)
+
+    const admin = await getAdminEmail(iglesiaId).catch(() => null)
+    if (admin?.email) {
+      sendNotificationEmail({
+        to:          admin.email,
+        subject:     `¡Suscripción ${planKey} activada! — Church System`,
+        title:       `Plan ${planKey} activo`,
+        intro:       `Hola ${admin.nombre}, tu suscripción al plan ${planKey} fue autorizada correctamente.`,
+        lines:       ['Tu iglesia ahora tiene acceso completo a todos los módulos del plan.'],
+        actionUrl:   `${process.env.FRONTEND_URL || process.env.PUBLIC_URL || ''}/app`,
+        actionLabel: 'Ir al panel',
+      }).catch(() => {})
+    }
+    logger.info({ iglesiaId, planKey, preapprovalId }, 'Suscripción autorizada')
+
+  } else if (['payment_in_process', 'pending'].includes(statusRaw)) {
+    // Pago pendiente en cobro recurrente → iniciar gracia si no hay
+    if (!sus?.gracia_hasta || new Date(sus.gracia_hasta) < new Date()) {
+      const graciaHasta = new Date(Date.now() + 7 * 86400000).toISOString()
+      await pgExec(
+        `INSERT INTO suscripciones (iglesia_id, preapproval_id, plan, estado, gracia_hasta, last_event)
+         VALUES ($1,$2,$3,'authorized',$4,$5)
+         ON CONFLICT (preapproval_id) DO UPDATE
+           SET gracia_hasta=$4, last_event=$5, actualizado_at=CURRENT_TIMESTAMP`,
+        [iglesiaId, preapprovalId, sus?.plan || 'PRO', graciaHasta, eventKey]
+      )
+      const admin = await getAdminEmail(iglesiaId).catch(() => null)
+      if (admin?.email) {
+        sendNotificationEmail({
+          to:          admin.email,
+          subject:     'Pago fallido — 7 días de gracia — Church System',
+          title:       'Hubo un problema con tu pago',
+          intro:       `Hola ${admin.nombre}, no pudimos procesar el cobro de tu suscripción.`,
+          lines:       ['Tenés 7 días para actualizar tu método de pago antes de perder el acceso.'],
+          actionUrl:   `${process.env.FRONTEND_URL || process.env.PUBLIC_URL || ''}/app/billing`,
+          actionLabel: 'Actualizar método de pago',
+        }).catch(() => {})
+      }
+    }
+
+  } else if (['cancelled', 'paused'].includes(statusRaw)) {
+    await pgExec(
+      `UPDATE suscripciones SET estado=$2, last_event=$3, actualizado_at=CURRENT_TIMESTAMP
+        WHERE preapproval_id=$1`,
+      [preapprovalId, statusRaw, eventKey]
+    )
+    // Si no hay gracia activa, degradar a FREE
+    const graciaActiva = sus?.gracia_hasta && new Date(sus.gracia_hasta) > new Date()
+    if (!graciaActiva) {
+      await degradarAFree(iglesiaId)
+      const admin = await getAdminEmail(iglesiaId).catch(() => null)
+      if (admin?.email) {
+        sendNotificationEmail({
+          to:          admin.email,
+          subject:     'Suscripción cancelada — Church System',
+          title:       'Tu suscripción fue cancelada',
+          intro:       `Hola ${admin.nombre}, tu plan fue cambiado al plan gratuito.`,
+          lines:       ['Podés volver a suscribirte en cualquier momento desde Configuración → Facturación.'],
+          actionUrl:   `${process.env.FRONTEND_URL || process.env.PUBLIC_URL || ''}/app/billing`,
+          actionLabel: 'Ver planes',
+        }).catch(() => {})
+      }
+    }
+    logger.info({ iglesiaId, status: statusRaw, preapprovalId }, 'Suscripción cancelada/pausada')
+  }
+}
 
 export default router

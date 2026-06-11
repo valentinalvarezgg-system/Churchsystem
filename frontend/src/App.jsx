@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import BannerNotificaciones from './components/BannerNotificaciones.jsx'
+import BannerTrial from './components/BannerTrial.jsx'
 import { apiFetch, getUser, syncContextFromUser } from './services/api.js'
 import SetupWizard from './pages/SetupWizard.jsx'
 import CheckInAdmin, { CheckInPublico } from './pages/CheckIn.jsx'
@@ -46,6 +47,7 @@ const Liderazgo        = lazy(() => import('./pages/Liderazgo.jsx'))
 const MapaGrupos       = lazy(() => import('./pages/MapaGrupos.jsx'))
 const PortalMiembro    = lazy(() => import('./pages/PortalMiembro.jsx'))
 const Planes            = lazy(() => import('./pages/Planes.jsx'))
+const Billing           = lazy(() => import('./pages/Billing.jsx'))
 const RecuperarPassword = lazy(() => import('./pages/RecuperarPassword.jsx'))
 const Ministerios       = lazy(() => import('./pages/Ministerios.jsx'))
 const MinisterioDetalle = lazy(() => import('./pages/MinisterioDetalle.jsx'))
@@ -128,6 +130,7 @@ export default function App() {
       )}
 
       {isLoggedIn && !mostrarWizard && <BannerNotificaciones />}
+      {isLoggedIn && !mostrarWizard && <BannerTrial />}
 
       <Suspense fallback={<PageSpinner />}>
         <Routes>
@@ -189,6 +192,7 @@ export default function App() {
           <Route path="/portal/*"      element={<PortalMiembro />} />
           <Route path="/analytics"    element={<ProtectedRoute roles={ALL}   element={<Analytics />} />} />
           <Route path="/planes"       element={<ProtectedRoute roles={ALL}   element={<Planes />} />} />
+          <Route path="/billing"      element={<ProtectedRoute roles={ADMIN} element={<Billing />} />} />
           <Route path="*"              element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

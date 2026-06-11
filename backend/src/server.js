@@ -524,6 +524,18 @@ seedAdmin().then(async () => {
         logger.error({ err: err.message }, 'Error de alertas')
       }
     }, ms)
+
+    // Jobs diarios de billing: trials, gracia, onboarding emails
+    const msJobs = ms + 30000 // 30s después de alertas
+    setTimeout(async function runJobs() {
+      try {
+        const jobs = await import('./lib/jobs.js').catch(() => null)
+        if (jobs?.tickDiario) await jobs.tickDiario()
+      } catch (err) {
+        logger.error({ err: err.message }, 'Error tickDiario')
+      }
+      setTimeout(runJobs, 24 * 3600 * 1000)
+    }, msJobs)
   })
 })
 

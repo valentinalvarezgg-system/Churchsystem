@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
@@ -94,6 +95,81 @@ function Avatar({ nombre = '', apellido = '', size = 34 }) {
   )
 }
 
+function OnboardingChecklist({ navigate }) {
+  const [prog, setProg] = useState(null)
+  const [billingEstado, setBillingEstado] = useState(null)
+  const [collapsed, setCollapsed] = useState(false)
+
+  useEffect(() => {
+    apiFetch('/subscriptions/onboarding-progreso').then(setProg).catch(() => {})
+    apiFetch('/subscriptions/billing-estado').then(setBillingEstado).catch(() => {})
+  }, [])
+
+  if (!billingEstado?.enTrial) return null
+  if (!prog) return null
+
+  const steps = [
+    { key: 'personas',    label: 'Registrá tu primera persona',   done: prog.personas > 0,    path: '/personas' },
+    { key: 'grupos',      label: 'Creá un grupo o célula',        done: prog.grupos > 0,      path: '/grupos' },
+    { key: 'cultos',      label: 'Registrá un culto',             done: prog.cultos > 0,      path: '/asistencia' },
+    { key: 'comunicados', label: 'Enviá un comunicado',           done: prog.comunicados > 0, path: '/comunicados' },
+    { key: 'users',       label: 'Invitá a un líder o colaborador', done: prog.users > 1,    path: '/users' },
+  ]
+  const done = steps.filter(s => s.done).length
+  if (done === steps.length) return null
+
+  return (
+    <div className="card" style={{ marginBottom: 20, border: '1px solid rgba(99,102,241,0.25)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: collapsed ? 0 : 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icons.CheckCircle size={16} color="var(--primary)" />
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>Primeros pasos — {done}/{steps.length}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              {billingEstado.diasTrial} días de trial restantes
+            </div>
+          </div>
+        </div>
+        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
+          onClick={() => setCollapsed(c => !c)} aria-label="Colapsar">
+          <Icons.ChevronDown size={16} style={{ transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform .2s' }} />
+        </button>
+      </div>
+      {!collapsed && (
+        <>
+          <div style={{ height: 4, background: 'var(--bg-2)', borderRadius: 2, marginBottom: 14, overflow: 'hidden' }}>
+            <div style={{ width: `${(done / steps.length) * 100}%`, height: '100%', background: 'var(--primary)', borderRadius: 2, transition: 'width .4s ease' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {steps.map(s => (
+              <div key={s.key} onClick={() => !s.done && navigate(s.path)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 10px', borderRadius: 8,
+                  background: s.done ? 'var(--c-success-bg)' : 'var(--bg)',
+                  border: `1px solid ${s.done ? 'rgba(22,163,74,0.15)' : 'var(--border)'}`,
+                  cursor: s.done ? 'default' : 'pointer',
+                  transition: 'background .15s',
+                }}>
+                {s.done
+                  ? <Icons.CheckCircle size={16} color="var(--c-success)" />
+                  : <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid var(--border)', flexShrink: 0 }} />
+                }
+                <span style={{ fontSize: 13, color: s.done ? 'var(--c-success)' : 'var(--text)', textDecoration: s.done ? 'line-through' : 'none', flex: 1 }}>
+                  {s.label}
+                </span>
+                {!s.done && <Icons.ChevronRight size={14} color="var(--text-muted)" />}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const navigate   = useNavigate()
   const user       = getUser()
@@ -162,6 +238,9 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* ── Onboarding checklist (trial) ─────────────────────────── */}
+        <OnboardingChecklist navigate={navigate} />
 
         {/* ── Stats principales ──────────────────────────────────── */}
         <div style={{ display:'grid', gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12, marginBottom: 20 }}>
