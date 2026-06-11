@@ -1,6 +1,6 @@
 # BITÁCORA — Church System
 
-Última actualización: 2026-06-03
+Última actualización: 2026-06-11
 Versión base oficial: **v2.7-beta.0 (baseline)**  
 Versión previa consolidada: **v2.6.x (estable técnica)**  
 Rama oficial: **master**
@@ -2002,3 +2002,46 @@ Implementado en el mismo módulo que #17.
 - Muestra la URL del portal al activar.
 
 **Rutas (`App.jsx`):** `/portal` y `/portal/*` — rutas públicas, sin ProtectedRoute, con auth propia del portal.
+
+---
+
+## v3.0.1 — 2026-06-11 — Auth fix #1 y #3: refresh tokens revocables + registro unificado
+
+### Cambios aplicados
+
+**Backend — `backend/src/lib/sessions.js`** (nuevo)
+- Tabla `sesiones_auth` (UUID PK, token_hash NOT NULL UNIQUE, revocado_at) creada al boot con `CREATE TABLE IF NOT EXISTS`.
+- Índice parcial `idx_sesiones_usuario ON sesiones_auth(usuario_id) WHERE revocado_at IS NULL`.
+- `hash(token)`: SHA-256 hex.
+- `issueSession(usuario, req, res)`: genera refresh base64url 64-chars, guarda SOLO el hash, firma access JWT 15min.
+- `refreshSession(refreshToken)`: rotación automática (nuevo hash por cada uso). Backward-compat: tokens hex-96 legacy (`user_sessions`) se migran en el primer refresh sin forzar re-login.
+- `revocarSesion(id, usuarioId)`, `revocarTodas(usuarioId)`, `revocarPorToken(token)`.
+- `listarSesiones(usuarioId, hashActual)`: devuelve sesiones activas marcando cuál es la actual.
+
+**Backend — `backend/src/routes/auth.js`**
+- Reemplaza implementaciones locales (`issueSession`, `createRefreshToken`, `getCookieOptions`, `userPayload`) por imports de `sessions.js`.
+- `/auth/refresh`: usa `refreshSession()` con rotación + devuelve nuevo `refreshToken`.
+- `/auth/logout`: usa `revocarPorToken()` (hash-based).
+- `/auth/logout-all`: usa `revocarTodas()`.
+- **Nuevos endpoints:**
+  - `GET /auth/sesiones` — lista sesiones activas (marca cuál es la actual)
+  - `POST /auth/sesiones/:id/revocar` — revoca sesión por ID
+  - `POST /auth/sesiones/revocar-todas` — revoca todas + limpia cookie
+- `/auth/registro`: alias deprecado con `Deprecation: version="v2"` + `Link: </registro/crear>; rel="successor-version"`. Normaliza campos viejos (`iglesia→nombreIglesia`, `pais→country`) y delega a `crearCuentaHandler`.
+
+**Backend — `backend/src/routes/registro.js`**
+- Exporta `crearCuentaHandler` (implementación canónica del registro).
+- Agrega soporte para `iglesiaToken` (unirse a iglesia existente) en `/registro/crear`.
+- Reemplaza `jwt.sign` 30-day directo por `issueSession()` — ahora emite access+refresh revocables.
+- Respuesta incluye `refreshToken` y `expiresIn`.
+
+**Frontend — `frontend/src/pages/Registro.jsx`**
+- Migra de `/auth/registro` a `/registro/crear` (endpoint canónico).
+- Usa `nombreIglesia` localizado por defecto (`Mi Iglesia` / `Minha Igreja` / `My Church`).
+
+**Scripts**
+- `backend/scripts/verify-auth.mjs`: 7 checks (login, refresh, rotación, token viejo → 401, listar sesiones, revocar-todas, refresh post-revocación → 401). Ejecutar: `pnpm verify:auth`.
+- `scripts/audit.mjs`: nuevo check `sesiones_auth` (verifica existencia del módulo, NOT NULL en token_hash, import en auth.js, header Deprecation).
+
+### Versiones
+- Bump de `2.8.1` → `3.0.1` en: `package.json` (root), `backend/package.json`, `frontend/package.json`, `README.md`.

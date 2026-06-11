@@ -1,4 +1,4 @@
-# Church System — v3.1.0
+# Church System — v3.0.1
 
 Sistema integral de gestión pastoral para iglesias evangélicas.  
 Multi-tenant · SaaS · Mobile-first · Productivo en `churchsystem.com.ar`

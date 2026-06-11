@@ -1,23 +1,18 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import logger from '../lib/logger.js'
 import { pgExec, pgOne } from '../lib/pg.js'
 import { getPlanPrice, normalizeCountry, normalizeLanguage, normalizePlan, PLANES } from '../lib/billing.js'
 import { sendNotificationEmail, sendSystemEmail, buildSystemEmail } from '../lib/email.js'
+import { issueSession } from '../lib/sessions.js'
 
 const router = Router()
-
-const SECRET = () => {
-  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET no configurado')
-  return process.env.JWT_SECRET
-}
 
 function tenantSlug(value = '') {
   return String(value || '')
     .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 30) || 'iglesia'
@@ -58,19 +53,23 @@ async function issueVerificationCode(userId, email, nombre = '') {
   return { envio, codigo }
 }
 
-router.post('/crear', async (req, res) => {
+// ── Handler exportado para que /auth/registro lo use como alias deprecado ─────
+export async function crearCuentaHandler(req, res) {
   const {
     nombreIglesia, nombre, email, password,
     telefono = '', plan = 'CONSOLIDACION',
     country = 'AR', pais = country, currency = '', divisa = currency,
     lang = '', idioma = lang, promo = '',
+    iglesiaToken = '',   // soporte para unirse a iglesia existente
   } = req.body || {}
 
-  if (!nombreIglesia?.trim()) return res.status(400).json({ error: 'Nombre de iglesia requerido' })
+  if (!nombreIglesia?.trim() && !iglesiaToken?.trim()) {
+    return res.status(400).json({ error: 'Nombre de iglesia requerido' })
+  }
   if (!email?.trim()) return res.status(400).json({ error: 'Email requerido' })
   if (!password || password.length < 8) return res.status(400).json({ error: 'Contraseña mínimo 8 caracteres' })
 
-  const tenantId = tenantSlug(nombreIglesia)
+  const tenantId = tenantSlug(nombreIglesia || nombre || 'iglesia')
 
   try {
     const exists = await pgOne('SELECT id FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [email.trim().toLowerCase()])
@@ -86,13 +85,31 @@ router.post('/crear', async (req, res) => {
       ? await pgOne('SELECT * FROM "promo_codes" WHERE "code"=$1 LIMIT 1', [String(promo).toUpperCase()])
       : null
 
-    const iglesia = await pgOne(
-      'INSERT INTO "Iglesia" ("nombre","token","createdAt","updatedAt") VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING id, token',
-      [nombreIglesia.trim(), randomToken()]
-    )
+    // ── Resolver iglesia ──────────────────────────────────────────────────────
+    let iglesiaId
+    let iglesiaTokenOut
+    let iglesiaCreada = false
+
+    if (iglesiaToken?.trim()) {
+      const found = await pgOne(
+        'SELECT id, token FROM "Iglesia" WHERE "token"=$1 LIMIT 1',
+        [String(iglesiaToken).trim().toUpperCase()]
+      )
+      if (!found) return res.status(400).json({ error: 'Token de iglesia inválido' })
+      iglesiaId = found.id
+      iglesiaTokenOut = found.token
+    } else {
+      const iglesia = await pgOne(
+        'INSERT INTO "Iglesia" ("nombre","token","createdAt","updatedAt") VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING id, token',
+        [nombreIglesia.trim(), randomToken()]
+      )
+      iglesiaId = iglesia.id
+      iglesiaTokenOut = iglesia.token
+      iglesiaCreada = true
+    }
 
     const roleId = await ensureRoleId('PASTOR_GENERAL')
-    const hash = await bcrypt.hash(password, 10)
+    const hashPwd = await bcrypt.hash(password, 10)
     const created = await pgOne(
       `INSERT INTO "User"
         ("email","password","nombre","apellido","activo","emailVerificado","iglesiaId","rolId","createdAt","updatedAt",
@@ -103,16 +120,16 @@ router.post('/crear', async (req, res) => {
        RETURNING "id","email","nombre","rol","iglesiaId","plan","pais","divisa","idioma"`,
       [
         email.trim().toLowerCase(),
-        hash,
+        hashPwd,
         nombre?.trim() || 'Pastor',
-        iglesia.id,
+        iglesiaId,
         roleId,
         selectedPlanKey,
         countryInfo.code,
         price.currency,
         selectedIdioma,
-        telefono.trim(),
-        nombreIglesia.trim(),
+        String(telefono || '').trim(),
+        (iglesiaCreada ? nombreIglesia?.trim() : '') || '',
         promoCode?.code || '',
         Number(promoCode?.descuento_porcentaje || 0),
         Number(promoCode?.duracion_meses || 0),
@@ -126,46 +143,37 @@ router.post('/crear', async (req, res) => {
       await pgExec('UPDATE "promo_codes" SET "usos"=$1, "usado"=$2 WHERE "id"=$3', [usos, maxUsos > 0 && usos >= maxUsos ? 1 : 0, promoCode.id])
     }
 
-    const token = jwt.sign(
-      {
-        id: created.id,
-        email: created.email,
-        rol: created.rol,
-        nombre: created.nombre,
-        iglesiaId: created.iglesiaId,
-        plan: created.plan,
-        pais: created.pais,
-        divisa: created.divisa,
-        idioma: created.idioma,
-      },
-      SECRET(),
-      { expiresIn: '30d' }
-    )
+    // Emitir sesión con refresh token revocable
+    const session = await issueSession(created, req, res)
 
     const appUrl = `https://${tenantId}.churchsystem.com.ar/app`
-    logger.info({ tenantId, nombreIglesia, plan: selectedPlanKey }, 'Nueva iglesia registrada')
+    logger.info({ tenantId, iglesiaCreada, plan: selectedPlanKey }, 'Nueva cuenta registrada')
 
     await sendNotificationEmail({
       to: created.email,
       subject: 'Registro exitoso - Church System',
-      title: 'Tu iglesia fue creada',
-      intro: `Hola ${created.nombre}, ${nombreIglesia.trim()} ya tiene su espacio en Church System.`,
+      title: iglesiaCreada ? 'Tu iglesia fue creada' : 'Cuenta creada en Church System',
+      intro: `Hola ${created.nombre}, ${iglesiaCreada ? (nombreIglesia?.trim() + ' ya tiene su espacio en Church System.') : 'tu cuenta fue creada correctamente.'}`,
       lines: [
-        `Plan: ${planInfo.label[selectedIdioma] || planInfo.label.es}`,
+        `Plan: ${planInfo?.label?.[selectedIdioma] || planInfo?.label?.es || selectedPlanKey}`,
         `Pais y divisa: ${countryInfo.code} / ${price.currency}`,
         promoCode ? `Invitacion aplicada: ${promoCode.code} (${promoCode.descuento_porcentaje}% OFF por ${promoCode.duracion_meses} meses)` : '',
+        iglesiaToken ? 'Te uniste mediante token de iglesia.' : '',
       ],
       actionUrl: appUrl,
       actionLabel: 'Abrir panel',
     }).catch(() => {})
 
-    const verify = await issueVerificationCode(created.id, created.email, created.nombre).catch(err => ({ envio: { error: true, message: err?.message || 'verify_send_failed' } }))
+    const verify = await issueVerificationCode(created.id, created.email, created.nombre)
+      .catch(err => ({ envio: { error: true, message: err?.message || 'verify_send_failed' } }))
 
     const response = {
       ok: true,
       tenantId,
-      token,
-      user: created,
+      token: session.accessToken,
+      refreshToken: session.refreshToken,
+      expiresIn: session.expiresIn,
+      user: session.user,
       appUrl,
       trial: {
         inicio: new Date().toISOString().slice(0, 10),
@@ -173,7 +181,7 @@ router.post('/crear', async (req, res) => {
         dias: 14,
       },
       billing: { country: countryInfo.code, currency: price.currency, price: price.amount, promo: promoCode?.code || null },
-      iglesiaToken: iglesia.token,
+      iglesiaToken: iglesiaTokenOut,
     }
     if (verify?.envio?.error && process.env.NODE_ENV !== 'production') {
       response.codigoVerificacionDev = verify.codigo
@@ -184,7 +192,9 @@ router.post('/crear', async (req, res) => {
     logger.error({ err: err.message, tenantId }, 'Registro error')
     return res.status(500).json({ error: `Error al crear la cuenta: ${err.message}` })
   }
-})
+}
+
+router.post('/crear', crearCuentaHandler)
 
 router.get('/verificar/:tenantId', async (req, res) => {
   const { tenantId } = req.params

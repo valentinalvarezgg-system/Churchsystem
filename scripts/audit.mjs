@@ -479,9 +479,49 @@ function checkLaunchdSync() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CHECK 12 — Git
+// CHECK 12 — sesiones_auth
+// ─────────────────────────────────────────────────────────────────────────────
+function checkSesionesAuth() {
+  const sessionsFile = path.join(BACKEND, 'src/lib/sessions.js')
+  if (!fs.existsSync(sessionsFile)) {
+    log('error', 'sesiones_auth', 'src/lib/sessions.js no existe — tabla sesiones_auth no se crea al boot')
+    return
+  }
+  const text = readText(sessionsFile)
+  if (!text.includes('sesiones_auth')) {
+    log('error', 'sesiones_auth', 'sessions.js no referencia la tabla sesiones_auth')
+    return
+  }
+  log('ok', 'sesiones_auth', 'sessions.js define la tabla sesiones_auth al boot')
+
+  if (/token_hash\s+TEXT\s+NOT NULL/.test(text)) {
+    log('ok', 'sesiones_auth', 'token_hash definido como NOT NULL (sin hashes nulos posibles)')
+  } else {
+    log('warn', 'sesiones_auth', 'No se pudo verificar que token_hash sea NOT NULL en la definición')
+  }
+
+  // Verificar que auth.js importa de sessions.js
+  const authFile = path.join(BACKEND, 'src/routes/auth.js')
+  const authText = readText(authFile)
+  if (authText.includes('from \'../lib/sessions.js\'') || authText.includes('from "../lib/sessions.js"')) {
+    log('ok', 'sesiones_auth', 'auth.js importa correctamente desde sessions.js')
+  } else {
+    log('warn', 'sesiones_auth', 'auth.js no importa desde sessions.js — refresh tokens pueden no usar hashing')
+  }
+
+  // Verificar que /auth/registro es alias (tiene Deprecation header)
+  if (authText.includes('Deprecation')) {
+    log('ok', 'sesiones_auth', '/auth/registro marcado como deprecado con header Deprecation')
+  } else {
+    log('warn', 'sesiones_auth', '/auth/registro no tiene header Deprecation — endpoint duplicado activo')
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHECK 13 — Git
 // ─────────────────────────────────────────────────────────────────────────────
 function checkGit() {
+  // NOTE: was CHECK 12 before sesiones_auth check was added
   const unpushed = shell('git log origin/master..HEAD --oneline')
   if (unpushed) {
     log('warn', 'git', `${unpushed.split('\n').length} commit(s) sin pushear`, unpushed)
@@ -582,6 +622,7 @@ async function main() {
   checkFrontendBuild()
   checkCloudflare()
   checkLaunchdSync()
+  checkSesionesAuth()
   checkGit()
 
   const output = AS_JSON ? JSON.stringify(results, null, 2) : renderText(results)

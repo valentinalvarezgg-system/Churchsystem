@@ -1,6 +1,6 @@
 {
   "name": "church-backend",
-  "version": "2.8.1",
+  "version": "3.0.1",
   "private": true,
   "packageManager": "pnpm@9.15.5",
   "type": "module",
@@ -10,7 +10,8 @@
     "backup:postgres": "bash ./scripts/backup-postgres.sh",
     "audit:launch": "node ./scripts/launch-audit.mjs",
     "verify:whatsapp": "node ./scripts/verify-whatsapp.mjs",
-    "smoke:contact-mail": "bash ./scripts/smoke-contact-mail.sh"
+    "smoke:contact-mail": "bash ./scripts/smoke-contact-mail.sh",
+    "verify:auth": "node ./scripts/verify-auth.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.11.1",

@@ -7,11 +7,14 @@ import { pgExec, pgOne } from '../lib/pg.js'
 import { registrar } from '../utils/auditoria.js'
 import { normalizeCountry, normalizeLanguage, normalizePlan } from '../lib/billing.js'
 import { sendNotificationEmail, sendSystemEmail, buildSystemEmail } from '../lib/email.js'
+import {
+  issueSession, refreshSession, revocarSesion, revocarTodas,
+  revocarPorToken, listarSesiones, getCookieOptions, userPayload, hash,
+} from '../lib/sessions.js'
+import { crearCuentaHandler } from './registro.js'
 
 const router = Router()
 const failed = new Map()
-const ACCESS_TTL = '15m'
-const REFRESH_DAYS = 30
 
 const SECRET = () => {
   if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET no configurado')
@@ -19,25 +22,6 @@ const SECRET = () => {
 }
 
 const toBool = v => v === true || v === 1 || v === '1'
-
-function signAccessToken(payload) {
-  return jwt.sign(payload, SECRET(), { expiresIn: ACCESS_TTL })
-}
-
-function createRefreshToken() {
-  return crypto.randomBytes(48).toString('hex')
-}
-
-function getCookieOptions() {
-  const isProd = process.env.NODE_ENV === 'production'
-  return {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',
-    path: '/auth',
-    maxAge: REFRESH_DAYS * 24 * 60 * 60 * 1000,
-  }
-}
 
 function extractRefreshToken(req) {
   const cookie = req.headers.cookie || ''
@@ -76,35 +60,6 @@ async function ensureIglesiaByName(nombre = 'Mi Iglesia') {
 async function findIglesiaByToken(token = '') {
   if (!token) return null
   return pgOne('SELECT id, nombre, token FROM "Iglesia" WHERE "token"=$1 LIMIT 1', [String(token).trim().toUpperCase()])
-}
-
-function userPayload(user) {
-  return {
-    id: user.id,
-    email: user.email,
-    rol: user.rol || 'LIDER',
-    nombre: user.nombre,
-    cultoDia: user.cultoDia || '',
-    cultoTurno: Number(user.cultoTurno || 0),
-    plan: user.plan || 'STARTER',
-    iglesiaId: user.iglesiaId || null,
-    pais: user.pais || 'AR',
-    divisa: user.divisa || 'ARS',
-    idioma: user.idioma || 'es',
-  }
-}
-
-async function issueSession(req, res, user) {
-  const payload = userPayload(user)
-  const accessToken = signAccessToken(payload)
-  const refreshToken = createRefreshToken()
-  const expiresAt = new Date(Date.now() + REFRESH_DAYS * 24 * 60 * 60 * 1000).toISOString()
-  await pgExec(
-    'INSERT INTO "user_sessions" ("userId","refreshToken","userAgent","ip","expiresAt","revoked","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)',
-    [user.id, refreshToken, String(req.headers['user-agent'] || ''), String(req.ip || ''), expiresAt]
-  )
-  res.cookie?.('church_refresh', refreshToken, getCookieOptions())
-  return { accessToken, refreshToken, user: payload, expiresIn: ACCESS_TTL }
 }
 
 async function promoDisponible(code = '') {
@@ -150,6 +105,7 @@ async function issueVerificationCode(userId, email, nombre = '') {
   return { envio, codigo }
 }
 
+// ── POST /auth/login ──────────────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
   const { email = '', password = '' } = req.body || {}
   const cleanEmail = String(email || '').trim().toLowerCase()
@@ -174,7 +130,7 @@ router.post('/login', async (req, res) => {
     }
 
     failed.delete(key)
-    const session = await issueSession(req, res, user)
+    const session = await issueSession(user, req, res)
     registrar({ userId: user.id, email: user.email, rol: user.rol, accion: 'LOGIN', entidad: 'USER', entidadId: user.id, iglesiaId: user.iglesiaId })
     return res.json({ token: session.accessToken, refreshToken: session.refreshToken, expiresIn: session.expiresIn, user: session.user })
   } catch (error) {
@@ -183,6 +139,7 @@ router.post('/login', async (req, res) => {
   }
 })
 
+// ── GET /auth/me ──────────────────────────────────────────────────────────────
 router.get('/me', async (req, res) => {
   const token = (req.headers.authorization || '').replace('Bearer ', '')
   if (!token) return res.status(401).json({ error: 'No autenticado' })
@@ -199,140 +156,59 @@ router.get('/me', async (req, res) => {
   }
 })
 
-router.post('/registro', async (req, res) => {
-  try {
-    const {
-      nombre, apellido = '', email, telefono = '', password,
-      iglesia = '', promo = '', plan = 'CONSOLIDACION',
-      pais = req.body?.country || 'AR',
-      divisa = req.body?.currency || '',
-      idioma = req.body?.lang || req.headers['accept-language'] || '',
-      iglesiaToken = '',
-    } = req.body || {}
-
-    if (!nombre || !email || !password) {
-      return res.status(400).json({ error: 'Faltan campos requeridos' })
-    }
-
-    const exists = await pgOne('SELECT id FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [email.toLowerCase()])
-    if (exists) return res.status(400).json({ error: 'El email ya está registrado' })
-
-    const promoCode = await promoDisponible(promo)
-    const diasExtra = promoCode ? Number(promoCode.dias_extra || 0) : 0
-    const descuento = promoCode ? Number(promoCode.descuento_porcentaje || 0) : 0
-    const descuentoMeses = promoCode ? Number(promoCode.duracion_meses || 0) : 0
-    const countryInfo = normalizeCountry(pais)
-    const selectedDivisa = String(divisa || countryInfo.currency || 'USD').toUpperCase()
-    const selectedIdioma = normalizeLanguage(idioma, countryInfo)
-    const selectedPlan = normalizePlan(plan)
-    const expira = new Date(Date.now() + (14 + diasExtra) * 24 * 60 * 60 * 1000).toISOString()
-    const hash = await bcrypt.hash(password, 10)
-
-    const roleId = await ensureRoleId('PASTOR_GENERAL')
-    let iglesiaId = null
-    if (iglesiaToken) {
-      const linked = await findIglesiaByToken(iglesiaToken)
-      if (linked) iglesiaId = linked.id
-    }
-    if (!iglesiaId) iglesiaId = await ensureIglesiaByName(iglesia || 'Mi Iglesia')
-
-    const created = await pgOne(
-      `INSERT INTO "User"
-        ("email","password","nombre","apellido","activo","emailVerificado","iglesiaId","rolId","createdAt","updatedAt",
-         "rol","cultoDia","cultoTurno","plan","pais","divisa","idioma","iglesia","telefono","expira",
-         "promoCode","promoDescuento","promoMeses","promoUsadoAt")
-       VALUES
-        ($1,$2,$3,$4,true,false,$5,$6,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,
-         'PASTOR_GENERAL','',0,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-       RETURNING *`,
-      [
-        email.toLowerCase(),
-        hash,
-        nombre,
-        apellido,
-        iglesiaId,
-        roleId,
-        selectedPlan,
-        countryInfo.code,
-        selectedDivisa,
-        selectedIdioma,
-        iglesia || 'Mi Iglesia',
-        telefono,
-        expira,
-        promoCode?.code || '',
-        descuento,
-        descuentoMeses,
-        promoCode ? new Date().toISOString() : null,
-      ]
-    )
-
-    if (promoCode) await marcarPromoUsada(promoCode)
-    const session = await issueSession(req, res, created)
-    registrar({ userId: created.id, email: created.email, rol: 'PASTOR_GENERAL', accion: 'REGISTRO', entidad: 'USER', entidadId: created.id, iglesiaId })
-
-    await sendNotificationEmail({
-      to: email.toLowerCase(),
-      subject: 'Registro exitoso - Church System',
-      title: 'Registro exitoso',
-      intro: `Hola ${nombre}, tu cuenta fue creada correctamente.`,
-      lines: [
-        `Plan: ${selectedPlan}`,
-        `Pais y divisa: ${countryInfo.code} / ${selectedDivisa}`,
-        promoCode ? `Invitacion aplicada: ${promoCode.code} (${descuento}% OFF por ${descuentoMeses} meses)` : '',
-        iglesiaToken ? 'Te uniste mediante token de iglesia.' : '',
-      ],
-      actionUrl: `${process.env.FRONTEND_URL || process.env.BASE_URL || 'https://churchsystem.com.ar'}/app/login`,
-      actionLabel: 'Ingresar',
-    }).catch(() => {})
-
-    const verify = await issueVerificationCode(created.id, email.toLowerCase(), nombre).catch(err => ({ envio: { error: true, message: err?.message || 'verify_send_failed' } }))
-
-    const response = { token: session.accessToken, refreshToken: session.refreshToken, expiresIn: session.expiresIn, user: session.user }
-    if (verify?.envio?.error && process.env.NODE_ENV !== 'production') {
-      response.codigoVerificacionDev = verify.codigo
-      response.aviso = 'No se pudo enviar email de verificación en entorno local'
-    }
-    return res.json(response)
-  } catch (error) {
-    logger.error({ err: error?.message }, 'Error en registro')
-    return res.status(500).json({ error: 'Error al crear la cuenta' })
-  }
+// ── POST /auth/registro — DEPRECADO, alias de /registro/crear ─────────────────
+router.post('/registro', async (req, res, next) => {
+  res.set('Deprecation', 'version="v2"')
+  res.set('Link', '</registro/crear>; rel="successor-version"')
+  // Normalizar campos viejos al schema canónico de /registro/crear
+  req.body.nombreIglesia = req.body.nombreIglesia || req.body.iglesia || 'Mi Iglesia'
+  req.body.country  = req.body.country  || req.body.pais   || 'AR'
+  req.body.currency = req.body.currency || req.body.divisa  || ''
+  req.body.lang     = req.body.lang     || req.body.idioma  || ''
+  return crearCuentaHandler(req, res, next)
 })
 
+// ── POST /auth/refresh ────────────────────────────────────────────────────────
 router.post('/refresh', async (req, res) => {
   const refreshToken = extractRefreshToken(req)
   if (!refreshToken) return res.status(401).json({ error: 'Refresh token requerido' })
-  const session = await pgOne(
-    'SELECT * FROM "user_sessions" WHERE "refreshToken"=$1 AND "revoked"=0 AND ("expiresAt")::timestamptz > NOW() LIMIT 1',
-    [refreshToken]
-  )
-  if (!session) return res.status(401).json({ error: 'Refresh token inválido o expirado' })
-  const user = await pgOne(
-    'SELECT * FROM "User" WHERE "id"=$1 AND "activo"=true AND "deletedAt" IS NULL LIMIT 1',
-    [session.userId]
-  )
-  if (!user) return res.status(401).json({ error: 'Usuario no encontrado' })
 
-  await pgExec('UPDATE "user_sessions" SET "revoked"=1,"updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$1', [session.id])
-  const next = await issueSession(req, res, user)
-  return res.json({ token: next.accessToken, refreshToken: next.refreshToken, expiresIn: next.expiresIn, user: next.user })
+  try {
+    const { sesion, refreshToken: nuevoRefresh } = await refreshSession(refreshToken)
+
+    const user = await pgOne(
+      'SELECT * FROM "User" WHERE "id"=$1 AND "activo"=true AND "deletedAt" IS NULL LIMIT 1',
+      [sesion.usuario_id]
+    )
+    if (!user) return res.status(401).json({ error: 'Usuario no encontrado' })
+
+    const payload = userPayload(user)
+    const accessToken = jwt.sign(payload, SECRET(), { expiresIn: '15m' })
+
+    res.cookie?.('church_refresh', nuevoRefresh, getCookieOptions())
+    return res.json({ token: accessToken, refreshToken: nuevoRefresh, expiresIn: '15m', user: payload })
+  } catch (err) {
+    if (err.code === 'SESION_INVALIDA') return res.status(401).json({ error: 'Refresh token inválido o expirado' })
+    logger.error({ err: err?.message }, 'Error en refresh')
+    return res.status(500).json({ error: 'Error al renovar sesión' })
+  }
 })
 
+// ── POST /auth/logout ─────────────────────────────────────────────────────────
 router.post('/logout', async (req, res) => {
   const refreshToken = extractRefreshToken(req)
-  if (refreshToken) {
-    await pgExec('UPDATE "user_sessions" SET "revoked"=1,"updatedAt"=CURRENT_TIMESTAMP WHERE "refreshToken"=$1', [refreshToken])
-  }
+  await revocarPorToken(refreshToken).catch(() => {})
   res.clearCookie?.('church_refresh', { path: '/auth' })
   return res.json({ ok: true })
 })
 
+// ── POST /auth/logout-all ─────────────────────────────────────────────────────
 router.post('/logout-all', async (req, res) => {
   const token = (req.headers.authorization || '').replace('Bearer ', '')
   if (!token) return res.status(401).json({ error: 'No autenticado' })
   try {
     const payload = jwt.verify(token, SECRET())
-    await pgExec('UPDATE "user_sessions" SET "revoked"=1,"updatedAt"=CURRENT_TIMESTAMP WHERE "userId"=$1', [payload.id])
+    await revocarTodas(payload.id)
     res.clearCookie?.('church_refresh', { path: '/auth' })
     return res.json({ ok: true })
   } catch {
@@ -340,8 +216,52 @@ router.post('/logout-all', async (req, res) => {
   }
 })
 
-// ── Recupero de contraseña (público, sin login) ──────────────────────
-// POST /auth/forgot-password → genera código de 6 dígitos y lo manda por email
+// ── GET /auth/sesiones — listar sesiones activas ──────────────────────────────
+router.get('/sesiones', async (req, res) => {
+  const token = (req.headers.authorization || '').replace('Bearer ', '')
+  if (!token) return res.status(401).json({ error: 'No autenticado' })
+  try {
+    const payload = jwt.verify(token, SECRET())
+    const refreshToken = extractRefreshToken(req)
+    const sesionActualHash = refreshToken ? hash(refreshToken) : null
+    const sesiones = await listarSesiones(payload.id, sesionActualHash)
+    return res.json(sesiones)
+  } catch {
+    return res.status(401).json({ error: 'Token inválido' })
+  }
+})
+
+// ── POST /auth/sesiones/:id/revocar ──────────────────────────────────────────
+router.post('/sesiones/:id/revocar', async (req, res) => {
+  const token = (req.headers.authorization || '').replace('Bearer ', '')
+  if (!token) return res.status(401).json({ error: 'No autenticado' })
+  try {
+    const payload = jwt.verify(token, SECRET())
+    await revocarSesion(req.params.id, payload.id)
+    return res.json({ ok: true })
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token inválido' })
+    }
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+// ── POST /auth/sesiones/revocar-todas ────────────────────────────────────────
+router.post('/sesiones/revocar-todas', async (req, res) => {
+  const token = (req.headers.authorization || '').replace('Bearer ', '')
+  if (!token) return res.status(401).json({ error: 'No autenticado' })
+  try {
+    const payload = jwt.verify(token, SECRET())
+    await revocarTodas(payload.id)
+    res.clearCookie?.('church_refresh', { path: '/auth' })
+    return res.json({ ok: true })
+  } catch {
+    return res.status(401).json({ error: 'Token inválido' })
+  }
+})
+
+// ── POST /auth/forgot-password ────────────────────────────────────────────────
 router.post('/forgot-password', async (req, res) => {
   try {
     const email = String(req.body?.email || '').trim().toLowerCase()
@@ -352,7 +272,6 @@ router.post('/forgot-password', async (req, res) => {
       [email]
     )
 
-    // Respuesta neutra: no revelar si el email existe o no (anti-enumeración)
     const respuestaNeutra = { ok: true, mensaje: 'Si el email está registrado, vas a recibir un código.' }
     if (!user) return res.json(respuestaNeutra)
 
@@ -385,7 +304,7 @@ router.post('/forgot-password', async (req, res) => {
   }
 })
 
-// POST /auth/reset-password → valida código y setea nueva contraseña
+// ── POST /auth/reset-password ─────────────────────────────────────────────────
 router.post('/reset-password', async (req, res) => {
   try {
     const email = String(req.body?.email || '').trim().toLowerCase()
@@ -414,13 +333,12 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ error: 'Código incorrecto' })
     }
 
-    const hash = await bcrypt.hash(password, 10)
+    const hashPwd = await bcrypt.hash(password, 10)
     await pgExec(
       'UPDATE "User" SET "password"=$1, "codigoVerif"=NULL, "codigoExpira"=NULL, "codigoContexto"=NULL, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$2',
-      [hash, user.id]
+      [hashPwd, user.id]
     )
 
-    // Email de aviso de seguridad (no bloquea la respuesta si falla)
     sendNotificationEmail({
       to: email,
       subject: 'Tu contraseña fue cambiada - Church System',

@@ -317,15 +317,18 @@ export default function Registro() {
     if (form.password.length < 8) { toast.error(msg.passwordMin); return }
     setLoading(true)
     try {
-      const res = await apiFetch('/auth/registro', { method:'POST', body:JSON.stringify({
-        nombre:form.nombre, apellido:form.apellido,
-        email:form.email.toLowerCase(), password:form.password,
+      const IGLESIA_DEFAULT = { es: 'Mi Iglesia', pt: 'Minha Igreja', en: 'My Church' }
+      const res = await apiFetch('/registro/crear', { method:'POST', body:JSON.stringify({
+        nombre: form.nombre,
+        email: form.email.toLowerCase(),
+        password: form.password,
         plan: planSel || 'PRO',
-        pais: country,
-        divisa: currency,
-        idioma: lang,
+        country,
+        currency,
+        lang,
         promo: promo || undefined,
         iglesiaToken: form.iglesiaToken || undefined,
+        nombreIglesia: form.iglesiaToken ? undefined : (IGLESIA_DEFAULT[lang] || 'Mi Iglesia'),
       })})
       if (res?.token) {
         localStorage.setItem('token', res.token)
