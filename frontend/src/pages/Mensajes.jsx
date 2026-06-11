@@ -5,6 +5,7 @@ import { apiFetch, getUser } from '../services/api.js'
 import { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
 import { makeI18n } from '../lib/i18n.js'
+import { useOrientation } from '../hooks/useOrientation.js'
 
 const MSG_I18N = {
   es: { title:'Mensajería', notConfigured:'sin configurar',
@@ -189,7 +190,7 @@ function SegmentadorAvanzado({ grupos }) {
   }
 
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'1fr 320px', gap:16, alignItems:'start' }}>
+    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:16, alignItems:'start' }}>
       <ConfirmModal
         open={confirmEnvio}
         onClose={() => setConfirmEnvio(false)}
@@ -346,6 +347,7 @@ function SegmentadorAvanzado({ grupos }) {
 
 export default function Mensajes() {
   const t = makeI18n(MSG_I18N)
+  const { isPhone } = useOrientation()
   const user = getUser()
   const canSend = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF'].includes(user?.rol)
 
@@ -514,7 +516,7 @@ export default function Mensajes() {
 
         {/* ── ENVIAR ── */}
         {tab === 'enviar' && (
-          <div className="messages-compose-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
+          <div className="messages-compose-grid" style={{ display: 'grid', gridTemplateColumns: isPhone ? '1fr' : '1fr 320px', gap: 16, alignItems: 'start' }}>
 
             <div className="card">
               <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>{t('newMessage')}</h3>
@@ -689,52 +691,11 @@ export default function Mensajes() {
                 ))}
               </div>
             </div>
-            {historial.length > 0 && (
-              <div className="messages-mobile-history">
-                {historial.map(m => (
-                  <article className="message-history-card" key={m.id} style={m.direccion==='ENTRANTE'?{background:'var(--primary-soft)'}:{}}>
-                    <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-                      <span style={{ ...badgeColor(m.tipo), padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{m.tipo}</span>
-                      {m.direccion === 'ENTRANTE'
-                        ? <span style={{padding:'2px 8px',borderRadius:10,fontSize:11,fontWeight:600,background:'#EDE9FE',color:'#7C3AED'}}>{t('incomingLabel')}</span>
-                        : null}
-                      {m.enviado
-                        ? <span className="badge badge-activo">{t('sent')}</span>
-                        : <span className="badge badge-inactivo">{t('error')}</span>}
-                    </div>
-                    <strong>{m.personaNombre ? `${m.personaNombre} ${m.personaApellido || ''}` : t('noPerson')}</strong>
-                    <p>{m.mensaje}</p>
-                    <small>{m.destino} · {m.createdAt?.slice(0, 16).replace('T', ' ')}</small>
-                  </article>
-                ))}
-              </div>
-            )}
             {historial.length === 0
               ? <div className="empty"><div className="empty-icon"><Icons.Messages /></div><p>{t('noMessages')}</p></div>
-              : <div className="table-responsive"><table className="messages-history-table" style={{minWidth:500}}>
-                  <thead><tr><th>{t('colChannel')}</th><th>{t('colPerson')}</th><th>{t('colDest')}</th><th>{t('colMsg')}</th><th>{t('colStatus')}</th><th>{t('date')}</th></tr></thead>
-                  <tbody>
-                    {historial.map(m => (
-                      <tr key={m.id} style={m.direccion==='ENTRANTE'?{background:'var(--primary-soft)'}:{}}>
-                        <td>
-                          <span style={{ ...badgeColor(m.tipo), padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{m.tipo}</span>
-                          {m.direccion === 'ENTRANTE' &&
-                            <span style={{marginLeft:4,padding:'2px 6px',borderRadius:10,fontSize:10,fontWeight:600,background:'#EDE9FE',color:'#7C3AED'}}>{t('incomingLabel')}</span>}
-                        </td>
-                        <td style={{ fontSize: 13 }}>{m.personaNombre ? `${m.personaNombre} ${m.personaApellido || ''}` : t('noPerson')}</td>
-                        <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{m.destino}</td>
-                        <td style={{ maxWidth: 200, overflowX:'auto', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>{m.mensaje}</td>
-                        <td>
-                          {m.enviado
-                            ? <span className="badge badge-activo">{t('sent')}</span>
-                            : <span className="badge badge-inactivo" title={m.error || ''}>{t('error')}</span>
-                          }
-                        </td>
-                        <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.createdAt?.slice(0, 16).replace('T', ' ')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table></div>
+              : isPhone
+                ? <MensajesHistorialPhone historial={historial} t={t} badgeColor={badgeColor} />
+                : <MensajesHistorialDesktop historial={historial} t={t} badgeColor={badgeColor} />
             }
             {Math.ceil(hTotal / 30) > 1 && (
               <div className="pagination">
@@ -759,6 +720,60 @@ export default function Mensajes() {
         message={t('delTemplateMsg')}
         confirmLabel={t('delete')} cancelLabel={t('cancel')}
       />
+    </div>
+  )
+}
+
+function MensajesHistorialPhone({ historial, t, badgeColor }) {
+  return (
+    <div className="messages-mobile-history">
+      {historial.map(m => (
+        <article className="message-history-card" key={m.id} style={m.direccion==='ENTRANTE'?{background:'var(--primary-soft)'}:{}}>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+            <span style={{ ...badgeColor(m.tipo), padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{m.tipo}</span>
+            {m.direccion === 'ENTRANTE'
+              ? <span style={{padding:'2px 8px',borderRadius:10,fontSize:11,fontWeight:600,background:'#EDE9FE',color:'#7C3AED'}}>{t('incomingLabel')}</span>
+              : null}
+            {m.enviado
+              ? <span className="badge badge-activo">{t('sent')}</span>
+              : <span className="badge badge-inactivo">{t('error')}</span>}
+          </div>
+          <strong>{m.personaNombre ? `${m.personaNombre} ${m.personaApellido || ''}` : t('noPerson')}</strong>
+          <p>{m.mensaje}</p>
+          <small>{m.destino} · {m.createdAt?.slice(0, 16).replace('T', ' ')}</small>
+        </article>
+      ))}
+    </div>
+  )
+}
+
+function MensajesHistorialDesktop({ historial, t, badgeColor }) {
+  return (
+    <div className="table-responsive">
+      <table className="messages-history-table" style={{minWidth:500}}>
+        <thead><tr><th>{t('colChannel')}</th><th>{t('colPerson')}</th><th>{t('colDest')}</th><th>{t('colMsg')}</th><th>{t('colStatus')}</th><th>{t('date')}</th></tr></thead>
+        <tbody>
+          {historial.map(m => (
+            <tr key={m.id} style={m.direccion==='ENTRANTE'?{background:'var(--primary-soft)'}:{}}>
+              <td>
+                <span style={{ ...badgeColor(m.tipo), padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{m.tipo}</span>
+                {m.direccion === 'ENTRANTE' &&
+                  <span style={{marginLeft:4,padding:'2px 6px',borderRadius:10,fontSize:10,fontWeight:600,background:'#EDE9FE',color:'#7C3AED'}}>{t('incomingLabel')}</span>}
+              </td>
+              <td style={{ fontSize: 13 }}>{m.personaNombre ? `${m.personaNombre} ${m.personaApellido || ''}` : t('noPerson')}</td>
+              <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{m.destino}</td>
+              <td style={{ maxWidth: 200, overflowX:'auto', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>{m.mensaje}</td>
+              <td>
+                {m.enviado
+                  ? <span className="badge badge-activo">{t('sent')}</span>
+                  : <span className="badge badge-inactivo" title={m.error || ''}>{t('error')}</span>
+                }
+              </td>
+              <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.createdAt?.slice(0, 16).replace('T', ' ')}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

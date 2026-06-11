@@ -6,6 +6,7 @@ import { apiFetch } from '../services/api.js'
 import { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
 import { makeI18n } from '../lib/i18n.js'
+import { useOrientation } from '../hooks/useOrientation.js'
 
 const ALERT_I18N = {
   es: { title:'Alertas pastorales', subtitle:'Personas que necesitan atención',
@@ -60,6 +61,7 @@ const ALERT_I18N = {
 
 export default function Alertas() {
   const t = makeI18n(ALERT_I18N)
+  const { isPhone } = useOrientation()
   const navigate   = useNavigate()
   const [data, setData]       = useState(null)
   const [loading, setLoading] = useState(true)
@@ -243,146 +245,13 @@ export default function Alertas() {
 
           {current.length === 0
             ? <div className="empty"><div className="empty-icon"></div><p>{t('noAlerts')}</p></div>
-            : <>
-              <div className="alerts-mobile-list">
-                {current.map((p, i) => {
-                  const pid = p.personaId||p.id
-                  const sel = seleccionados.includes(pid)
-                  const title = `${p.nombre || ''} ${p.apellido || ''}`.trim()
-                  const meta = tab==='sinAsistir'
-                    ? `Líder: ${p.liderNombre || 'sin asignar'}`
-                    : tab==='sinSeguimiento'
-                      ? `Último contacto: ${p.ultimoSeguimiento ? p.ultimoSeguimiento.slice(0,10) : 'nunca'}`
-                      : tab==='visitantesSinConsolidar'
-                        ? `Ingreso: ${p.fechaIngreso || 'sin fecha'}`
-                        : tab==='contactosVencidos'
-                          ? `${p.tipo || 'Contacto'} · vencía ${p.proximoContacto || 'sin fecha'}`
-                          : `Cumpleaños: ${p.fechaNacimiento?.slice(5)?.replace('-','/') || 'sin fecha'}`
-                  return (
-                    <article key={`${pid}-${i}`} className={`alert-mobile-card${sel ? ' selected' : ''}`}>
-                      <label className="alert-mobile-check">
-                        <input type="checkbox" name={`mobile_sel_${pid}`} checked={sel} onChange={() => toggleSeleccion(pid)} />
-                        <span>{sel ? 'Seleccionado' : 'Seleccionar'}</span>
-                      </label>
-                      <button type="button" className="alert-mobile-main" onClick={() => navigate(`/personas/${pid}`)}>
-                        <strong>{title || 'Sin nombre'}</strong>
-                        <span>{p.telefono || 'Sin teléfono'}</span>
-                        <small>{meta}</small>
-                      </button>
-                      <div className="alert-mobile-actions">
-                        <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/personas/${pid}`)}>{t('profile')}</button>
-                        {p.telefono && (
-                          <button className="btn btn-sm"
-                            style={{background:'rgba(22,163,74,.08)',color:'var(--c-success)',border:'1px solid rgba(22,163,74,.2)',fontWeight:600}}
-                            disabled={enviando===pid}
-                            onClick={() => enviarWA(pid, p.nombre)}>
-                            {enviando===pid ? t('sending') : t('whatsapp')}
-                            {msgEnvio[pid] && <span style={{marginLeft:4}}>{msgEnvio[pid]}</span>}
-                          </button>
-                        )}
-                      </div>
-                    </article>
-                  )
-                })}
-              </div>
-              <div className="table-responsive">
-              <table className="alerts-table" style={{minWidth:500}}>
-                <thead>
-                  <tr>
-                    <th style={{width:32}}></th>
-                    <th>{t('colName')}</th>
-                    <th>{t('colPhone')}</th>
-                    {tab==='sinAsistir'            && <><th>{t('leader')}</th></>}
-                    {tab==='sinSeguimiento'         && <><th>{t('lastContact')}</th><th>{t('leader')}</th></>}
-                    {tab==='visitantesSinConsolidar'&& <><th>{t('joined')}</th><th>{t('leader')}</th></>}
-                    {tab==='contactosVencidos'      && <><th>{t('type')}</th><th>{t('expires')}</th></>}
-                    {tab==='cumpleanosSemana'        && <th>{t('birthday')}</th>}
-                    <th>{t('colActions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {current.map((p, i) => {
-                    const pid = p.personaId||p.id
-                    const sel = seleccionados.includes(pid)
-                    return (
-                      <tr key={i} style={{background: sel ? 'var(--primary-soft)' : undefined}}>
-                        <td style={{textAlign:'center'}}>
-                          <input type="checkbox" name={`sel_${pid}`} checked={sel} onChange={() => toggleSeleccion(pid)}
-                            style={{width:15,height:15,accentColor:'var(--primary)',cursor:'pointer'}}/>
-                        </td>
-                        <td>
-                          <strong className="persona-link" data-tip="Ver perfil"
-                            onClick={() => navigate(`/personas/${pid}`)}>
-                            {p.nombre} {p.apellido}
-                          </strong>
-                          {p.liderNombre && tab!=='sinSeguimiento' && tab!=='sinAsistir' && (
-                            <div style={{fontSize:10,color:'var(--text-muted)'}}><Icons.Profile /> {p.liderNombre}</div>
-                          )}
-                        </td>
-                        <td style={{fontSize:12,color:'var(--text-muted)'}}>{p.telefono||'—'}</td>
-                        {tab==='sinAsistir' && <td style={{fontSize:12}}>{p.liderNombre||'—'}</td>}
-                        {tab==='sinSeguimiento' && (
-                          <>
-                            <td style={{fontSize:12,color:p.ultimoSeguimiento?'var(--text-muted)':'var(--c-danger)'}}>
-                              {p.ultimoSeguimiento ? p.ultimoSeguimiento.slice(0,10) : ' Nunca'}
-                            </td>
-                            <td style={{fontSize:12}}>{p.liderNombre||'—'}</td>
-                          </>
-                        )}
-                        {tab==='visitantesSinConsolidar' && (
-                          <>
-                            <td style={{fontSize:12}}>
-                              {p.fechaIngreso && (() => {
-                                const dias = Math.round((new Date()-new Date(p.fechaIngreso))/86400000)
-                                return <span style={{color: dias>30?'var(--c-danger)':'var(--text-muted)'}}>{p.fechaIngreso} ({dias}d)</span>
-                              })()}
-                            </td>
-                            <td style={{fontSize:12}}>{p.liderNombre||'—'}</td>
-                          </>
-                        )}
-                        {tab==='contactosVencidos' && (
-                          <>
-                            <td><span className="badge badge-nuevo">{p.tipo}</span></td>
-                            <td style={{fontSize:12,color:'var(--c-danger)',fontWeight:600}}>
-                              {p.proximoContacto}
-                            </td>
-                          </>
-                        )}
-                        {tab==='cumpleanosSemana' && (
-                          <td style={{fontSize:12,fontWeight:600}}>
-                             {p.fechaNacimiento?.slice(5)?.replace('-','/')}
-                            {(() => {
-                              const [m,d] = (p.cumDia||'').split('-').map(Number)
-                              const f = new Date(new Date().getFullYear(),m-1,d)
-                              if(f<new Date())f.setFullYear(f.getFullYear()+1)
-                              const dias = Math.round((f-new Date())/86400000)
-                              return <span style={{color:dias===0?'var(--c-success)':'var(--text-muted)',marginLeft:6}}>{dias===0?'¡Hoy!':'en '+dias+'d'}</span>
-                            })()}
-                          </td>
-                        )}
-                        <td>
-                          <div style={{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap'}}>
-                            <button className="btn btn-ghost btn-xs" data-tip="Ver perfil"
-                              onClick={() => navigate(`/personas/${pid}`)}>{t('profile')}</button>
-                            {p.telefono && (
-                              <button className="btn btn-xs"
-                                style={{background:'rgba(22,163,74,.08)',color:'var(--c-success)',border:'1px solid rgba(22,163,74,.2)',fontWeight:600}}
-                                data-tip="Enviar WhatsApp rápido"
-                                disabled={enviando===pid}
-                                onClick={() => enviarWA(pid, p.nombre)}>
-                                {enviando===pid ? '…' : 'Email'}
-                                {msgEnvio[pid] && <span style={{marginLeft:4}}>{msgEnvio[pid]}</span>}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-              </div>
-            </>
+            : isPhone
+              ? <AlertasPhone current={current} navigate={navigate} t={t} tab={tab}
+                  seleccionados={seleccionados} toggleSeleccion={toggleSeleccion}
+                  enviando={enviando} enviarWA={enviarWA} msgEnvio={msgEnvio} />
+              : <AlertasDesktop current={current} navigate={navigate} t={t} tab={tab}
+                  seleccionados={seleccionados} toggleSeleccion={toggleSeleccion}
+                  enviando={enviando} enviarWA={enviarWA} msgEnvio={msgEnvio} />
           }
         </div>
       </main>
@@ -394,6 +263,154 @@ export default function Alertas() {
         message={t('massMsg')}
         confirmLabel={t('send')} cancelLabel={t('cancel')}
       />
+    </div>
+  )
+}
+
+function AlertasPhone({ current, navigate, t, tab, seleccionados, toggleSeleccion, enviando, enviarWA, msgEnvio }) {
+  return (
+    <div className="alerts-mobile-list">
+      {current.map((p, i) => {
+        const pid = p.personaId||p.id
+        const sel = seleccionados.includes(pid)
+        const title = `${p.nombre || ''} ${p.apellido || ''}`.trim()
+        const meta = tab==='sinAsistir'
+          ? `Líder: ${p.liderNombre || 'sin asignar'}`
+          : tab==='sinSeguimiento'
+            ? `Último contacto: ${p.ultimoSeguimiento ? p.ultimoSeguimiento.slice(0,10) : 'nunca'}`
+            : tab==='visitantesSinConsolidar'
+              ? `Ingreso: ${p.fechaIngreso || 'sin fecha'}`
+              : tab==='contactosVencidos'
+                ? `${p.tipo || 'Contacto'} · vencía ${p.proximoContacto || 'sin fecha'}`
+                : `Cumpleaños: ${p.fechaNacimiento?.slice(5)?.replace('-','/') || 'sin fecha'}`
+        return (
+          <article key={`${pid}-${i}`} className={`alert-mobile-card${sel ? ' selected' : ''}`}>
+            <label className="alert-mobile-check">
+              <input type="checkbox" name={`mobile_sel_${pid}`} checked={sel} onChange={() => toggleSeleccion(pid)} />
+              <span>{sel ? 'Seleccionado' : 'Seleccionar'}</span>
+            </label>
+            <button type="button" className="alert-mobile-main" onClick={() => navigate(`/personas/${pid}`)}>
+              <strong>{title || 'Sin nombre'}</strong>
+              <span>{p.telefono || 'Sin teléfono'}</span>
+              <small>{meta}</small>
+            </button>
+            <div className="alert-mobile-actions">
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/personas/${pid}`)}>{t('profile')}</button>
+              {p.telefono && (
+                <button className="btn btn-sm"
+                  style={{background:'rgba(22,163,74,.08)',color:'var(--c-success)',border:'1px solid rgba(22,163,74,.2)',fontWeight:600}}
+                  disabled={enviando===pid}
+                  onClick={() => enviarWA(pid, p.nombre)}>
+                  {enviando===pid ? t('sending') : t('whatsapp')}
+                  {msgEnvio[pid] && <span style={{marginLeft:4}}>{msgEnvio[pid]}</span>}
+                </button>
+              )}
+            </div>
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
+function AlertasDesktop({ current, navigate, t, tab, seleccionados, toggleSeleccion, enviando, enviarWA, msgEnvio }) {
+  return (
+    <div className="table-responsive">
+      <table className="alerts-table" style={{minWidth:500}}>
+        <thead>
+          <tr>
+            <th style={{width:32}}></th>
+            <th>{t('colName')}</th>
+            <th>{t('colPhone')}</th>
+            {tab==='sinAsistir'            && <><th>{t('leader')}</th></>}
+            {tab==='sinSeguimiento'         && <><th>{t('lastContact')}</th><th>{t('leader')}</th></>}
+            {tab==='visitantesSinConsolidar'&& <><th>{t('joined')}</th><th>{t('leader')}</th></>}
+            {tab==='contactosVencidos'      && <><th>{t('type')}</th><th>{t('expires')}</th></>}
+            {tab==='cumpleanosSemana'        && <th>{t('birthday')}</th>}
+            <th>{t('colActions')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {current.map((p, i) => {
+            const pid = p.personaId||p.id
+            const sel = seleccionados.includes(pid)
+            return (
+              <tr key={i} style={{background: sel ? 'var(--primary-soft)' : undefined}}>
+                <td style={{textAlign:'center'}}>
+                  <input type="checkbox" name={`sel_${pid}`} checked={sel} onChange={() => toggleSeleccion(pid)}
+                    style={{width:15,height:15,accentColor:'var(--primary)',cursor:'pointer'}}/>
+                </td>
+                <td>
+                  <strong className="persona-link" data-tip="Ver perfil"
+                    onClick={() => navigate(`/personas/${pid}`)}>
+                    {p.nombre} {p.apellido}
+                  </strong>
+                  {p.liderNombre && tab!=='sinSeguimiento' && tab!=='sinAsistir' && (
+                    <div style={{fontSize:10,color:'var(--text-muted)'}}><Icons.Profile /> {p.liderNombre}</div>
+                  )}
+                </td>
+                <td style={{fontSize:12,color:'var(--text-muted)'}}>{p.telefono||'—'}</td>
+                {tab==='sinAsistir' && <td style={{fontSize:12}}>{p.liderNombre||'—'}</td>}
+                {tab==='sinSeguimiento' && (
+                  <>
+                    <td style={{fontSize:12,color:p.ultimoSeguimiento?'var(--text-muted)':'var(--c-danger)'}}>
+                      {p.ultimoSeguimiento ? p.ultimoSeguimiento.slice(0,10) : ' Nunca'}
+                    </td>
+                    <td style={{fontSize:12}}>{p.liderNombre||'—'}</td>
+                  </>
+                )}
+                {tab==='visitantesSinConsolidar' && (
+                  <>
+                    <td style={{fontSize:12}}>
+                      {p.fechaIngreso && (() => {
+                        const dias = Math.round((new Date()-new Date(p.fechaIngreso))/86400000)
+                        return <span style={{color: dias>30?'var(--c-danger)':'var(--text-muted)'}}>{p.fechaIngreso} ({dias}d)</span>
+                      })()}
+                    </td>
+                    <td style={{fontSize:12}}>{p.liderNombre||'—'}</td>
+                  </>
+                )}
+                {tab==='contactosVencidos' && (
+                  <>
+                    <td><span className="badge badge-nuevo">{p.tipo}</span></td>
+                    <td style={{fontSize:12,color:'var(--c-danger)',fontWeight:600}}>
+                      {p.proximoContacto}
+                    </td>
+                  </>
+                )}
+                {tab==='cumpleanosSemana' && (
+                  <td style={{fontSize:12,fontWeight:600}}>
+                     {p.fechaNacimiento?.slice(5)?.replace('-','/')}
+                    {(() => {
+                      const [m,d] = (p.cumDia||'').split('-').map(Number)
+                      const f = new Date(new Date().getFullYear(),m-1,d)
+                      if(f<new Date())f.setFullYear(f.getFullYear()+1)
+                      const dias = Math.round((f-new Date())/86400000)
+                      return <span style={{color:dias===0?'var(--c-success)':'var(--text-muted)',marginLeft:6}}>{dias===0?'¡Hoy!':'en '+dias+'d'}</span>
+                    })()}
+                  </td>
+                )}
+                <td>
+                  <div style={{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap'}}>
+                    <button className="btn btn-ghost btn-xs" data-tip="Ver perfil"
+                      onClick={() => navigate(`/personas/${pid}`)}>{t('profile')}</button>
+                    {p.telefono && (
+                      <button className="btn btn-xs"
+                        style={{background:'rgba(22,163,74,.08)',color:'var(--c-success)',border:'1px solid rgba(22,163,74,.2)',fontWeight:600}}
+                        data-tip="Enviar WhatsApp rápido"
+                        disabled={enviando===pid}
+                        onClick={() => enviarWA(pid, p.nombre)}>
+                        {enviando===pid ? '…' : 'Email'}
+                        {msgEnvio[pid] && <span style={{marginLeft:4}}>{msgEnvio[pid]}</span>}
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { apiFetch, getUser, getApiUrl } from '../services/api.js'
 import Modal, { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
 import { makeI18n } from '../lib/i18n.js'
+import { useOrientation } from '../hooks/useOrientation.js'
 
 const ASIS_I18N = {
   es: { title:'Asistencia a cultos', newService:'+ Nuevo culto', loadingServices:'Cargando cultos...',
@@ -68,6 +69,7 @@ function fechaCorta(fecha) {
 
 export default function Asistencia() {
   const t = makeI18n(ASIS_I18N)
+  const { isPhone } = useOrientation()
   const user = getUser()
   const canManage = ['PASTOR_GENERAL','PASTOR_CULTO'].includes(user?.rol)
   const [cultos, setCultos]       = useState([])
@@ -295,34 +297,10 @@ export default function Asistencia() {
               <div className="empty"><p>{t('loadingList')}</p></div>
             ) : (
               <div style={{padding:18}}>
-                <div className="attendance-mobile-list">
-                  {(detalle?.personas || []).map(p => {
-                    const checked = presentes.has(Number(p.id))
-                    return (
-                      <button key={p.id} className={`attendance-person-card${checked ? ' is-present' : ''}`}
-                        onClick={() => canManage && togglePresente(Number(p.id))}>
-                        <span className="attendance-check">{checked ? 'OK' : ''}</span>
-                        <span className="attendance-person-name">{p.nombre} {p.apellido}</span>
-                        <span className={`badge badge-${p.estado?.toLowerCase()}`}>{p.estado}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-                <div className="attendance-table-wrap" style={{maxHeight:'calc(88dvh - 250px)',overflowY:'auto',overflowX:'auto'}}>
-                  <table style={{minWidth:500}}>
-                    <thead><tr><th style={{width:44}}>OK</th><th>Nombre</th><th>Estado</th></tr></thead>
-                    <tbody>{(detalle?.personas || []).map(p=> {
-                      const checked = presentes.has(Number(p.id))
-                      return (
-                        <tr key={p.id} onClick={()=>canManage&&togglePresente(Number(p.id))} style={{cursor:canManage?'pointer':'default',background:checked?'var(--c-success-bg)':''}}>
-                          <td><input name="has" type="checkbox" readOnly checked={checked} style={{width:16,height:16,accentColor:'var(--primary)'}}/></td>
-                          <td><strong>{p.nombre} {p.apellido}</strong></td>
-                          <td><span className={`badge badge-${p.estado?.toLowerCase()}`}>{p.estado}</span></td>
-                        </tr>
-                      )
-                    })}</tbody>
-                  </table>
-                </div>
+                {isPhone
+                  ? <AsistenciaPhone personas={detalle?.personas} presentes={presentes} canManage={canManage} togglePresente={togglePresente} />
+                  : <AsistenciaDesktop personas={detalle?.personas} presentes={presentes} canManage={canManage} togglePresente={togglePresente} />
+                }
               </div>
             )}
           </div>
@@ -378,6 +356,44 @@ export default function Asistencia() {
         message={t('delServiceMsg')}
         confirmLabel={t('delete')} cancelLabel={t('cancel')}
       />
+    </div>
+  )
+}
+
+function AsistenciaPhone({ personas, presentes, canManage, togglePresente }) {
+  return (
+    <div className="attendance-mobile-list">
+      {(personas || []).map(p => {
+        const checked = presentes.has(Number(p.id))
+        return (
+          <button key={p.id} className={`attendance-person-card${checked ? ' is-present' : ''}`}
+            onClick={() => canManage && togglePresente(Number(p.id))}>
+            <span className="attendance-check">{checked ? 'OK' : ''}</span>
+            <span className="attendance-person-name">{p.nombre} {p.apellido}</span>
+            <span className={`badge badge-${p.estado?.toLowerCase()}`}>{p.estado}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function AsistenciaDesktop({ personas, presentes, canManage, togglePresente }) {
+  return (
+    <div className="attendance-table-wrap" style={{maxHeight:'calc(88dvh - 250px)',overflowY:'auto',overflowX:'auto'}}>
+      <table style={{minWidth:500}}>
+        <thead><tr><th style={{width:44}}>OK</th><th>Nombre</th><th>Estado</th></tr></thead>
+        <tbody>{(personas || []).map(p => {
+          const checked = presentes.has(Number(p.id))
+          return (
+            <tr key={p.id} onClick={()=>canManage&&togglePresente(Number(p.id))} style={{cursor:canManage?'pointer':'default',background:checked?'var(--c-success-bg)':''}}>
+              <td><input name="has" type="checkbox" readOnly checked={checked} style={{width:16,height:16,accentColor:'var(--primary)'}}/></td>
+              <td><strong>{p.nombre} {p.apellido}</strong></td>
+              <td><span className={`badge badge-${p.estado?.toLowerCase()}`}>{p.estado}</span></td>
+            </tr>
+          )
+        })}</tbody>
+      </table>
     </div>
   )
 }

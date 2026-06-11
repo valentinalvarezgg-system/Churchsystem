@@ -3,6 +3,7 @@ import Icons from '../components/Icons.jsx'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
 import { makeI18n } from '../lib/i18n.js'
+import { useOrientation } from '../hooks/useOrientation.js'
 
 const HIST_I18N = {
   es: { title:'Historial', allEntities:'Todas las entidades', allActions:'Todas las acciones',
@@ -22,6 +23,7 @@ const COLOR = {CREAR:'badge-activo',EDITAR:'badge-nuevo',ELIMINAR:'badge-inactiv
 
 export default function Historial() {
   const t = makeI18n(HIST_I18N)
+  const { isPhone } = useOrientation()
   const [data, setData]       = useState([])
   const [total, setTotal]     = useState(0)
   const [pages, setPages]     = useState(1)
@@ -74,43 +76,9 @@ export default function Historial() {
             ? <div className="empty"><div className="spinner-sm" /></div>
             : data.length===0
             ? <div className="empty"><div className="empty-icon"><Icons.History /></div><p>{t('noData')}</p></div>
-            : <>
-                <div className="mobile-list">
-                  {data.map(r => (
-                    <article key={`m-${r.id}`} className="mobile-person-card">
-                      <div className="mobile-person-main">
-                        <div className="mobile-person-info">
-                          <strong>#{r.id} · {r.accion}</strong>
-                          <span>{r.entidad}{r.entidadId ? ` #${r.entidadId}` : ''}</span>
-                        </div>
-                        <span className={`badge ${COLOR[r.accion] || 'badge-visitante'}`}>{r.accion}</span>
-                      </div>
-                      <div className="mobile-person-meta">
-                        <span>{r.email}</span>
-                        <span className={`rol-badge rol-${r.rol}`}>{r.rol}</span>
-                      </div>
-                      <div style={{fontSize:12,color:'var(--text-muted)',marginTop:8}}>{r.detalle || '—'}</div>
-                      <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6}}>{r.fecha?.slice(0,16).replace('T',' ')}</div>
-                    </article>
-                  ))}
-                </div>
-                <div className="table-responsive">
-                  <table style={{minWidth:500}}>
-                    <thead><tr><th>{t('col_id')}</th><th>{t('col_action')}</th><th>{t('col_entity')}</th><th>{t('col_user')}</th><th>{t('col_role')}</th><th>{t('col_detail')}</th><th>{t('col_date')}</th></tr></thead>
-                    <tbody>{data.map(r=>(
-                      <tr key={r.id}>
-                        <td style={{color:'var(--text-muted)',fontSize:12}}>{r.id}</td>
-                        <td><span className={`badge ${COLOR[r.accion]||'badge-visitante'}`}>{r.accion}</span></td>
-                        <td style={{fontSize:12}}>{r.entidad}{r.entidadId?` #${r.entidadId}`:''}</td>
-                        <td style={{fontSize:12}}>{r.email}</td>
-                        <td><span className={`rol-badge rol-${r.rol}`}>{r.rol}</span></td>
-                        <td style={{maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12}}>{r.detalle||'—'}</td>
-                        <td style={{color:'var(--text-muted)',fontSize:11,whiteSpace:'nowrap'}}>{r.fecha?.slice(0,16).replace('T',' ')}</td>
-                      </tr>
-                    ))}</tbody>
-                  </table>
-                </div>
-              </>
+            : isPhone
+              ? <HistorialPhone data={data} t={t} />
+              : <HistorialDesktop data={data} t={t} />
           }
         </div>
         {pages>1 && (
@@ -121,6 +89,51 @@ export default function Historial() {
           </div>
         )}
       </main>
+    </div>
+  )
+}
+
+function HistorialPhone({ data, t }) {
+  return (
+    <div className="mobile-list">
+      {data.map(r => (
+        <article key={`m-${r.id}`} className="mobile-person-card">
+          <div className="mobile-person-main">
+            <div className="mobile-person-info">
+              <strong>#{r.id} · {r.accion}</strong>
+              <span>{r.entidad}{r.entidadId ? ` #${r.entidadId}` : ''}</span>
+            </div>
+            <span className={`badge ${COLOR[r.accion] || 'badge-visitante'}`}>{r.accion}</span>
+          </div>
+          <div className="mobile-person-meta">
+            <span>{r.email}</span>
+            <span className={`rol-badge rol-${r.rol}`}>{r.rol}</span>
+          </div>
+          <div style={{fontSize:12,color:'var(--text-muted)',marginTop:8}}>{r.detalle || '—'}</div>
+          <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6}}>{r.fecha?.slice(0,16).replace('T',' ')}</div>
+        </article>
+      ))}
+    </div>
+  )
+}
+
+function HistorialDesktop({ data, t }) {
+  return (
+    <div className="table-responsive">
+      <table style={{minWidth:500}}>
+        <thead><tr><th>{t('col_id')}</th><th>{t('col_action')}</th><th>{t('col_entity')}</th><th>{t('col_user')}</th><th>{t('col_role')}</th><th>{t('col_detail')}</th><th>{t('col_date')}</th></tr></thead>
+        <tbody>{data.map(r=>(
+          <tr key={r.id}>
+            <td style={{color:'var(--text-muted)',fontSize:12}}>{r.id}</td>
+            <td><span className={`badge ${COLOR[r.accion]||'badge-visitante'}`}>{r.accion}</span></td>
+            <td style={{fontSize:12}}>{r.entidad}{r.entidadId?` #${r.entidadId}`:''}</td>
+            <td style={{fontSize:12}}>{r.email}</td>
+            <td><span className={`rol-badge rol-${r.rol}`}>{r.rol}</span></td>
+            <td style={{maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:12}}>{r.detalle||'—'}</td>
+            <td style={{color:'var(--text-muted)',fontSize:11,whiteSpace:'nowrap'}}>{r.fecha?.slice(0,16).replace('T',' ')}</td>
+          </tr>
+        ))}</tbody>
+      </table>
     </div>
   )
 }

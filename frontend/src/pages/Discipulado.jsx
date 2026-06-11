@@ -5,6 +5,7 @@ import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 import { ConfirmModal } from '../components/Modal.jsx'
+import { useOrientation } from '../hooks/useOrientation.js'
 
 const ETAPAS     = ['NUEVO_CREYENTE','CONSOLIDADO','DISCIPULO','LIDER','MINISTRO']
 const MATERIALES = ['BIBLIA_BASICA','CONSOLIDACION_1','CONSOLIDACION_2','DISCIPULADO_1','DISCIPULADO_2','MINISTERIO']
@@ -308,6 +309,7 @@ function ModalAgregarRelacion({ onClose, onGuardar }) {
 // ── Componente principal ─────────────────────────────────────
 export default function Discipulado({ title = 'Discipulado' }) {
   const navigate = useNavigate()
+  const { isPhone } = useOrientation()
   const [tab, setTab]           = useState('lista')      // 'lista' | 'arbol'
   const [data, setData]         = useState([])
   const [stats, setStats]       = useState(null)
@@ -423,56 +425,10 @@ export default function Discipulado({ title = 'Discipulado' }) {
             {loading ? <div className="empty"><p>Cargando...</p></div>
             : error ? <div className="alert alert-error" style={{margin:16}}>{error}</div>
             : data.length===0 ? <div className="empty"><div className="empty-icon"><Icons.Discipleship /></div><p>Sin resultados</p></div>
-            : <>
-                <div className="mobile-list">
-                  {data.map(p=>(
-                    <div key={p.id} className="mobile-person-card">
-                      <div className="mobile-person-main">
-                        <strong className="persona-link" onClick={()=>navigate(`/personas/${p.id}`)}>{p.nombre} {p.apellido}</strong>
-                        <span style={{padding:'2px 8px',borderRadius:10,fontSize:11,fontWeight:700,background:ETAPA_BG[p.estadoEspiritual]||'var(--c-info-bg)',color:ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}}>{(p.estadoEspiritual||'NUEVO_CREYENTE').replace(/_/g,' ')}</span>
-                      </div>
-                      <div className="mobile-person-meta">
-                        {p.liderNombre && <span style={{fontSize:11,color:'var(--text-muted)'}}><Icons.Profile /> {p.liderNombre}</span>}
-                        <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.materialesCompletados||0}/{MATERIALES.length} materiales</span>
-                      </div>
-                      <button className="btn btn-ghost btn-sm" style={{marginTop:6,width:'100%'}} onClick={()=>abrirModal(p)}>Ver progreso</button>
-                    </div>
-                  ))}
-                </div>
-                <div className="table-responsive">
-                  <table style={{minWidth:500}}>
-                    <thead><tr><th>Persona</th><th>Etapa</th><th>Bautismos</th><th>Materiales</th><th>Acciones</th></tr></thead>
-                    <tbody>{data.map(p=>(
-                      <tr key={p.id}>
-                        <td><strong className="persona-link" onClick={()=>navigate(`/personas/${p.id}`)}>{p.nombre} {p.apellido}</strong>{p.liderNombre&&<div style={{fontSize:11,color:'var(--text-muted)'}}>{p.liderNombre}</div>}</td>
-                        <td>
-                          <select name="estadoEspiritual" value={p.estadoEspiritual||'NUEVO_CREYENTE'} onChange={e=>cambiarEtapa(p.id,e.target.value)}
-                            style={{padding:'3px 8px',border:`1.5px solid ${ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}`,borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer',outline:'none',background:ETAPA_BG[p.estadoEspiritual]||'var(--c-info-bg)',color:ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}}>
-                            {ETAPAS.map(e=><option key={e} value={e}>{e.replace(/_/g,' ')}</option>)}
-                          </select>
-                        </td>
-                        <td>
-                          <div style={{display:'flex',gap:8}}>
-                            <label style={{display:'flex',gap:4,alignItems:'center',fontSize:12,cursor:'pointer',fontWeight:400,color:'var(--text)'}}>
-                              <input name="bautizadoAgua" type="checkbox" checked={!!p.bautizadoAgua} onChange={()=>toggleCheck('bautizadoAgua',p.bautizadoAgua,p.id)} style={{accentColor:'var(--primary)'}}/>
-                            </label>
-                            <label style={{display:'flex',gap:4,alignItems:'center',fontSize:12,cursor:'pointer',fontWeight:400,color:'var(--text)'}}>
-                              <input name="bautizadoEspiritu" type="checkbox" checked={!!p.bautizadoEspiritu} onChange={()=>toggleCheck('bautizadoEspiritu',p.bautizadoEspiritu,p.id)} style={{accentColor:'var(--c-purple)'}}/>
-                            </label>
-                          </div>
-                        </td>
-                        <td>
-                          <div style={{display:'flex',alignItems:'center',gap:6}}>
-                            <div style={{width:60,height:6,background:'var(--bg-2)',borderRadius:3,overflow:'hidden'}}><div style={{width:`${(Number(p.materialesCompletados)||0)/MATERIALES.length*100}%`,height:'100%',background:'var(--c-success)'}}/></div>
-                            <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.materialesCompletados||0}/{MATERIALES.length}</span>
-                          </div>
-                        </td>
-                        <td><button className="btn btn-ghost btn-sm" onClick={()=>abrirModal(p)}>Ver progreso</button></td>
-                      </tr>
-                    ))}</tbody>
-                  </table>
-                </div>
-              </>
+            : isPhone
+              ? <DiscipuladoListaPhone data={data} navigate={navigate} abrirModal={abrirModal} />
+              : <DiscipuladoListaDesktop data={data} navigate={navigate} abrirModal={abrirModal}
+                  cambiarEtapa={cambiarEtapa} toggleCheck={toggleCheck} />
             }
           </div>
           {pages>1&&<div className="pagination"><span className="pag-info">Pág {page}/{pages} · {total}</span><button className="pag-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}>←</button><button className="pag-btn" disabled={page===pages} onClick={()=>setPage(p=>p+1)}>→</button></div>}
@@ -573,6 +529,64 @@ export default function Discipulado({ title = 'Discipulado' }) {
           danger
         />
       </main>
+    </div>
+  )
+}
+
+function DiscipuladoListaPhone({ data, navigate, abrirModal }) {
+  return (
+    <div className="mobile-list">
+      {data.map(p=>(
+        <div key={p.id} className="mobile-person-card">
+          <div className="mobile-person-main">
+            <strong className="persona-link" onClick={()=>navigate(`/personas/${p.id}`)}>{p.nombre} {p.apellido}</strong>
+            <span style={{padding:'2px 8px',borderRadius:10,fontSize:11,fontWeight:700,background:ETAPA_BG[p.estadoEspiritual]||'var(--c-info-bg)',color:ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}}>{(p.estadoEspiritual||'NUEVO_CREYENTE').replace(/_/g,' ')}</span>
+          </div>
+          <div className="mobile-person-meta">
+            {p.liderNombre && <span style={{fontSize:11,color:'var(--text-muted)'}}><Icons.Profile /> {p.liderNombre}</span>}
+            <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.materialesCompletados||0}/{MATERIALES.length} materiales</span>
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{marginTop:6,width:'100%'}} onClick={()=>abrirModal(p)}>Ver progreso</button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function DiscipuladoListaDesktop({ data, navigate, abrirModal, cambiarEtapa, toggleCheck }) {
+  return (
+    <div className="table-responsive">
+      <table style={{minWidth:500}}>
+        <thead><tr><th>Persona</th><th>Etapa</th><th>Bautismos</th><th>Materiales</th><th>Acciones</th></tr></thead>
+        <tbody>{data.map(p=>(
+          <tr key={p.id}>
+            <td><strong className="persona-link" onClick={()=>navigate(`/personas/${p.id}`)}>{p.nombre} {p.apellido}</strong>{p.liderNombre&&<div style={{fontSize:11,color:'var(--text-muted)'}}>{p.liderNombre}</div>}</td>
+            <td>
+              <select name="estadoEspiritual" value={p.estadoEspiritual||'NUEVO_CREYENTE'} onChange={e=>cambiarEtapa(p.id,e.target.value)}
+                style={{padding:'3px 8px',border:`1.5px solid ${ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}`,borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer',outline:'none',background:ETAPA_BG[p.estadoEspiritual]||'var(--c-info-bg)',color:ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}}>
+                {ETAPAS.map(e=><option key={e} value={e}>{e.replace(/_/g,' ')}</option>)}
+              </select>
+            </td>
+            <td>
+              <div style={{display:'flex',gap:8}}>
+                <label style={{display:'flex',gap:4,alignItems:'center',fontSize:12,cursor:'pointer',fontWeight:400,color:'var(--text)'}}>
+                  <input name="bautizadoAgua" type="checkbox" checked={!!p.bautizadoAgua} onChange={()=>toggleCheck('bautizadoAgua',p.bautizadoAgua,p.id)} style={{accentColor:'var(--primary)'}}/>
+                </label>
+                <label style={{display:'flex',gap:4,alignItems:'center',fontSize:12,cursor:'pointer',fontWeight:400,color:'var(--text)'}}>
+                  <input name="bautizadoEspiritu" type="checkbox" checked={!!p.bautizadoEspiritu} onChange={()=>toggleCheck('bautizadoEspiritu',p.bautizadoEspiritu,p.id)} style={{accentColor:'var(--c-purple)'}}/>
+                </label>
+              </div>
+            </td>
+            <td>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                <div style={{width:60,height:6,background:'var(--bg-2)',borderRadius:3,overflow:'hidden'}}><div style={{width:`${(Number(p.materialesCompletados)||0)/MATERIALES.length*100}%`,height:'100%',background:'var(--c-success)'}}/></div>
+                <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.materialesCompletados||0}/{MATERIALES.length}</span>
+              </div>
+            </td>
+            <td><button className="btn btn-ghost btn-sm" onClick={()=>abrirModal(p)}>Ver progreso</button></td>
+          </tr>
+        ))}</tbody>
+      </table>
     </div>
   )
 }
