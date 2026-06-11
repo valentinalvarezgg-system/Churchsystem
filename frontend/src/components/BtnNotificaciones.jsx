@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useNotificaciones } from '../hooks/useNotificaciones.js'
+import Icons from './Icons.jsx'
 
-const ESTADO_LABEL = {
-  idle:          { icon: '', label: 'Desactivadas',    color: 'var(--text-muted)' },
-  solicitando:   { icon: '⏳', label: 'Activando...',    color: 'var(--c-warning)'  },
-  activo:        { icon: '', label: 'Activas',         color: 'var(--c-success)'  },
-  denegado:      { icon: '', label: 'Bloqueadas',      color: 'var(--c-danger)'   },
-  'sin-soporte': { icon: 'No', label: 'Sin soporte',     color: 'var(--text-muted)' },
+const ESTADO_META = {
+  idle:          { Icon: Icons.Comunicados,  label: 'Desactivadas', color: 'var(--text-muted)' },
+  solicitando:   { Icon: Icons.Refresh,      label: 'Activando...', color: 'var(--c-warning)'  },
+  activo:        { Icon: Icons.CheckCircle,  label: 'Activas',      color: 'var(--c-success)'  },
+  denegado:      { Icon: Icons.XCircle,      label: 'Bloqueadas',   color: 'var(--c-danger)'   },
+  'sin-soporte': { Icon: Icons.X,            label: 'Sin soporte',  color: 'var(--text-muted)' },
 }
 
 export default function BtnNotificaciones() {
@@ -15,7 +16,7 @@ export default function BtnNotificaciones() {
   const [msg, setMsg]           = useState(null)
   const estado = !soportado ? 'sin-soporte' : permiso === 'denied' ? 'denegado' : suscrito ? 'activo' : 'idle'
 
-  const info = ESTADO_LABEL[estado] || ESTADO_LABEL.idle
+  const { Icon, label, color } = ESTADO_META[estado] || ESTADO_META.idle
 
   async function handleToggle() {
     setCargando(true); setMsg(null)
@@ -24,7 +25,7 @@ export default function BtnNotificaciones() {
       setMsg({ type: 'ok', text: 'Notificaciones desactivadas' })
     } else {
       const ok = await suscribir()
-      if (ok) setMsg({ type: 'ok',    text: ' ¡Notificaciones activadas!' })
+      if (ok) setMsg({ type: 'ok',    text: '¡Notificaciones activadas!' })
       else    setMsg({ type: 'error', text: estado === 'denegado'
         ? 'Permiso bloqueado. Habilitalo en la configuración del browser.'
         : error || 'No se pudo activar. Intentá de nuevo.' })
@@ -36,7 +37,7 @@ export default function BtnNotificaciones() {
     setCargando(true); setMsg(null)
     const r = await testear()
     if (r.error) setMsg({ type: 'error', text: r.error })
-    else         setMsg({ type: 'ok',    text: `Listo Notificación enviada (${r.enviadas} dispositivo${r.enviadas !== 1 ? 's' : ''})` })
+    else         setMsg({ type: 'ok',    text: `Notificación enviada (${r.enviadas} dispositivo${r.enviadas !== 1 ? 's' : ''})` })
     setCargando(false)
   }
 
@@ -45,33 +46,30 @@ export default function BtnNotificaciones() {
       padding: '16px', borderRadius: 12,
       background: 'var(--bg)', border: '1px solid var(--border)',
     }}>
-      {/* Estado actual */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <div style={{
           width: 40, height: 40, borderRadius: 10, flexShrink: 0,
           background: estado === 'activo' ? 'var(--c-success-bg)' : 'var(--bg-2)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          {info.icon}
+          <Icon color={color} />
         </div>
         <div>
           <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>
             Notificaciones push
           </div>
-          <div style={{ fontSize: 12, color: info.color, fontWeight: 600 }}>
-            {info.label}
+          <div style={{ fontSize: 12, color, fontWeight: 600 }}>
+            {label}
           </div>
         </div>
       </div>
 
-      {/* Descripción */}
       <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, margin: '0 0 14px' }}>
         Recibí alertas en el browser o en tu celular cuando hay seguimientos vencidos,
         cumpleaños o visitantes sin consolidar — aunque la app esté cerrada.
       </p>
 
-      {/* Qué notifica */}
-      {[' Cumpleaños del día', 'Seguimiento Seguimientos vencidos', ' Visitantes +30 días sin consolidar'].map(item => (
+      {['Cumpleaños del día', 'Seguimientos vencidos', 'Visitantes +30 días sin consolidar'].map(item => (
         <div key={item} style={{
           display: 'flex', alignItems: 'center', gap: 8,
           fontSize: 12, color: 'var(--text-2)', marginBottom: 5,
@@ -81,7 +79,6 @@ export default function BtnNotificaciones() {
         </div>
       ))}
 
-      {/* Mensaje de resultado */}
       {msg && (
         <div style={{
           margin: '12px 0 0', padding: '8px 12px', borderRadius: 8, fontSize: 12,
@@ -93,7 +90,6 @@ export default function BtnNotificaciones() {
         </div>
       )}
 
-      {/* Botones */}
       {estado !== 'sin-soporte' && (
         <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', alignItems:'center' }}>
           {estado !== 'denegado' && (
@@ -131,7 +127,7 @@ export default function BtnNotificaciones() {
                 background: 'transparent', color: 'var(--text-2)',
                 opacity: cargando ? 0.6 : 1,
               }}>
-               Enviar prueba
+              Enviar prueba
             </button>
           )}
 

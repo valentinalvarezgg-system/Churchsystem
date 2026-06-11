@@ -97,20 +97,19 @@ function HistorialPhone({ data, t }) {
   return (
     <div className="mobile-list">
       {data.map(r => (
-        <article key={`m-${r.id}`} className="mobile-person-card">
+        <article key={r.id} className="mobile-person-card">
           <div className="mobile-person-main">
             <div className="mobile-person-info">
-              <strong>#{r.id} · {r.accion}</strong>
-              <span>{r.entidad}{r.entidadId ? ` #${r.entidadId}` : ''}</span>
+              <strong>#{r.id} · {r.entidad}{r.entidadId ? ` #${r.entidadId}` : ''}</strong>
+              <span style={{fontSize:11,color:'var(--text-muted)'}}>{r.fecha?.slice(0,16).replace('T',' ')}</span>
             </div>
-            <span className={`badge ${COLOR[r.accion] || 'badge-visitante'}`}>{r.accion}</span>
+            <span className={`badge ${COLOR[r.accion] || 'badge-visitante'}`} style={{flexShrink:0}}>{r.accion}</span>
           </div>
           <div className="mobile-person-meta">
             <span>{r.email}</span>
             <span className={`rol-badge rol-${r.rol}`}>{r.rol}</span>
           </div>
-          <div style={{fontSize:12,color:'var(--text-muted)',marginTop:8}}>{r.detalle || '—'}</div>
-          <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6}}>{r.fecha?.slice(0,16).replace('T',' ')}</div>
+          {r.detalle && <div style={{fontSize:12,color:'var(--text-muted)',marginTop:6}}>{r.detalle}</div>}
         </article>
       ))}
     </div>

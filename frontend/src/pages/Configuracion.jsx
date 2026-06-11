@@ -834,10 +834,10 @@ export default function Configuracion() {
                 <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>Cuándo se disparan las alertas pastorales automáticas.</p>
                 <div style={{display:'flex',flexDirection:'column',gap:12}}>
                   {[
-                    {k:'alerta_sin_asistir',     label:' Sin asistir',             unit:'cultos consecutivos',   min:1,max:10},
-                    {k:'alerta_sin_seguimiento',  label:'Advertencia Sin seguimiento',         unit:'días sin contacto',     min:7,max:90},
-                    {k:'alerta_visitante',        label:'Visitante sin consolidar', unit:'días desde el ingreso', min:7,max:60},
-                    {k:'alerta_cumple',           label:' Cumpleaños',              unit:'días de anticipación',  min:1,max:14},
+                    {k:'alerta_sin_asistir',     label:'Sin asistir',           unit:'cultos consecutivos',   min:1,max:10},
+                    {k:'alerta_sin_seguimiento', label:'Sin seguimiento',         unit:'días sin contacto',     min:7,max:90},
+                    {k:'alerta_visitante',       label:'Visitante sin consolidar',unit:'días desde el ingreso', min:7,max:60},
+                    {k:'alerta_cumple',          label:'Cumpleaños',              unit:'días de anticipación',  min:1,max:14},
                   ].map(({k,label,unit,min,max})=>(
                     <div key={k} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 16px',background:'var(--bg)',borderRadius:'var(--r)',border:'1px solid var(--border)'}}>
                       <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{label}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{unit}</div></div>
@@ -877,7 +877,7 @@ export default function Configuracion() {
                   <div style={{padding:'8px 14px',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:.4,color:'var(--text-muted)'}}>Protecciones activas</div>
                   {['JWT con expiración configurable','Verificación de usuario activo en cada request','Rate limiting en login y API de IA','Sanitización de inputs en todos los endpoints','Aislamiento multi-tenant (datos por iglesia)','Helmet — headers HTTP de seguridad','CORS estricto — whitelist de orígenes','Auditoría de acciones en historial'].map((item,i)=>(
                     <div key={i} style={{display:'flex',gap:10,padding:'8px 14px',borderBottom:'1px solid var(--border)',fontSize:13,alignItems:'center'}}>
-                      <span style={{color:'var(--c-success)',flexShrink:0}}>OK</span>{item}
+                      <Icons.CheckCircle width={14} height={14} color="var(--c-success)" style={{flexShrink:0}} />{item}
                     </div>
                   ))}
                 </div>
