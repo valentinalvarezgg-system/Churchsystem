@@ -168,6 +168,34 @@ self.addEventListener('message', async (event) => {
   }
 })
 
+self.addEventListener('push', (event) => {
+  const data = event.data?.json() || {}
+  const options = {
+    body: data.body || 'Nueva notificación',
+    icon: '/icon.svg',
+    badge: '/icon.svg',
+    tag: data.tag || 'church-notif',
+    requireInteraction: false,
+    data: { url: data.url || '/' },
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Church System', options)
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = event.notification.data?.url || '/'
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ('focus' in client) return client.focus()
+      }
+      if (clients.openWindow) return clients.openWindow(url)
+    })
+  )
+})
+
 async function getPendingChanges() {
   if (!db) await initDB()
   return new Promise((res, rej) => {
