@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
+import { ConfirmModal } from '../components/Modal.jsx'
 
 const ETAPAS     = ['NUEVO_CREYENTE','CONSOLIDADO','DISCIPULO','LIDER','MINISTRO']
 const MATERIALES = ['BIBLIA_BASICA','CONSOLIDACION_1','CONSOLIDACION_2','DISCIPULADO_1','DISCIPULADO_2','MINISTERIO']
@@ -326,6 +327,7 @@ export default function Discipulado({ title = 'Discipulado' }) {
   const [arbolError, setArbolError]     = useState(null)
   const [selectedNodo, setSelectedNodo] = useState(null)
   const [modalRelacion, setModalRelacion] = useState(false)
+  const [confirmLinkId, setConfirmLinkId] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -363,8 +365,13 @@ export default function Discipulado({ title = 'Discipulado' }) {
   async function toggleMaterial(material, completado) {
     try { await apiFetch(`/discipulado/${modal.id}/materiales/${material}`,{method:'PUT',body:JSON.stringify({completado:completado?0:1})}); setMateriales(await apiFetch(`/discipulado/${modal.id}/materiales`)||[]); load() } catch(e){toast.error(e.message)}
   }
-  async function eliminarLink(id) {
-    if (!confirm('¿Eliminar esta relación de discipulado?')) return
+  function eliminarLink(id) {
+    setConfirmLinkId(id)
+  }
+
+  async function doEliminarLink() {
+    const id = confirmLinkId
+    setConfirmLinkId(null)
     try { await apiFetch(`/discipulado/arbol/${id}`,{method:'DELETE'}); toast.success('Relación eliminada'); loadArbol(); setSelectedNodo(null) } catch(e){toast.error(e.message)}
   }
 
@@ -557,6 +564,14 @@ export default function Discipulado({ title = 'Discipulado' }) {
             onGuardar={() => { setModalRelacion(false); loadArbol() }}
           />
         )}
+        <ConfirmModal
+          open={confirmLinkId !== null}
+          onClose={() => setConfirmLinkId(null)}
+          onConfirm={doEliminarLink}
+          title="¿Eliminar relación de discipulado?"
+          message="Esta acción no se puede deshacer."
+          danger
+        />
       </main>
     </div>
   )

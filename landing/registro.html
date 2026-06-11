@@ -3,270 +3,648 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Registro de Church System — elegí tu plan y creá la cuenta de tu iglesia.">
   <title>Registro — Church System</title>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #05070F; --bg2: #0A0E1A; --surface: #111827;
-      --border: rgba(255,255,255,0.07); --text: #E2E8F0;
-      --muted: #64748B; --blue: #3B82F6; --green: #4ADE80;
+      --bg: #0A0E1A;
+      --bg2: #111827;
+      --surface: #1E293B;
+      --surface-2: #151C2B;
+      --border: rgba(255,255,255,0.08);
+      --text: #F1F5F9;
+      --text-2: #CBD5E1;
+      --muted: #64748B;
+      --primary: #6B5CFF;
+      --primary-d: #4845D2;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --radius: 18px;
     }
-    body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; }
-    .wrap { width:100%; max-width:480px; }
-    .logo { display:flex; align-items:center; gap:12px; font-size:18px; font-weight:700; margin-bottom:36px; justify-content:center; }
-    .logo-icon { width:40px; height:40px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-    h1 { font-size:28px; font-weight:800; letter-spacing:-1px; margin-bottom:8px; text-align:center; }
-    .sub { color:var(--muted); font-size:14px; text-align:center; margin-bottom:36px; }
-    .plans { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:28px; }
-    .plan { padding:12px 8px; border-radius:10px; border:2px solid var(--border); background:var(--bg2); cursor:pointer; text-align:center; transition:all .15s; }
-    .plan.selected { border-color:var(--blue); background:rgba(59,130,246,0.08); }
-    .plan-name { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
-    .plan-price { font-size:18px; font-weight:800; margin:4px 0; }
-    .plan-lim { font-size:10px; color:var(--muted); }
-    .card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:28px; }
-    .form-group { margin-bottom:16px; }
-    label { display:block; font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
-    input, select { width:100%; padding:12px 14px; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,0.04); color:var(--text); font-size:15px; font-family:'Sora',sans-serif; outline:none; transition:border-color .15s; }
-    input:focus, select:focus { border-color:var(--blue); }
-    input::placeholder { color:var(--muted); }
-    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
-    .btn { width:100%; padding:14px; border-radius:10px; background:var(--blue); color:white; font-size:15px; font-weight:700; border:none; cursor:pointer; font-family:'Sora',sans-serif; transition:all .2s; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:8px; }
-    .btn:hover { background:#60A5FA; }
-    .btn:disabled { opacity:.6; cursor:default; }
-    .mp-badge { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:14px; font-size:11px; color:var(--muted); }
-    .mp-logo { font-size:16px; }
-    .divider { border:none; border-top:1px solid var(--border); margin:20px 0; }
-    .terms { font-size:11px; color:var(--muted); text-align:center; line-height:1.6; margin-top:14px; }
-    .terms a { color:var(--blue); text-decoration:none; }
-    .back { display:block; text-align:center; margin-top:20px; color:var(--muted); font-size:13px; text-decoration:none; }
-    .back:hover { color:var(--text); }
-    .msg { padding:12px 14px; border-radius:8px; font-size:13px; margin-bottom:16px; }
-    .msg-error   { background:rgba(220,38,38,.12); color:#F87171; border:1px solid rgba(220,38,38,.2); }
-    .msg-success { background:rgba(74,222,128,.12); color:var(--green); border:1px solid rgba(74,222,128,.2); }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at top right, rgba(107,92,255,.14), transparent 34%), var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    a, button, select, input { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 0 20px;
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(18px);
+      background: linear-gradient(180deg, rgba(10,14,26,.96), rgba(10,14,26,.84));
+      z-index: 20;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+      font-family: 'Sora', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+    }
+    .brand svg { width: 42px; height: 42px; flex: 0 0 42px; }
+    .nav-link {
+      color: var(--text);
+      text-decoration: none;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      transition: opacity .2s, transform .2s;
+    }
+    .nav-link:hover { opacity: .9; transform: translateY(-1px); }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr .9fr;
+      gap: 24px;
+      align-items: start;
+      margin-top: 20px;
+    }
+    .hero-copy {
+      padding: 26px 0 10px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #A78BFA;
+      background: rgba(107,92,255,.12);
+      border: 1px solid rgba(107,92,255,.22);
+      border-radius: 999px;
+      padding: 8px 14px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(34px, 5vw, 60px);
+      line-height: 1.04;
+      letter-spacing: -1.8px;
+      margin-bottom: 18px;
+    }
+    .sub {
+      color: var(--text-2);
+      font-size: 17px;
+      line-height: 1.7;
+      max-width: 650px;
+      margin-bottom: 26px;
+    }
+    .hero-points {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 26px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .panel {
+      background: linear-gradient(180deg, rgba(17,24,39,.96), rgba(17,24,39,.9));
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.24);
+    }
+    .panel-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .plans {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(150px, 1fr));
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 22px;
+      scroll-snap-type: x proximity;
+    }
+    .plan {
+      scroll-snap-align: start;
+      min-height: 148px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      padding: 16px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform .18s, border-color .18s, background .18s, box-shadow .18s;
+      position: relative;
+      overflow: hidden;
+    }
+    .plan:hover { transform: translateY(-1px); }
+    .plan.selected {
+      border-color: rgba(107,92,255,.6);
+      background: linear-gradient(180deg, rgba(107,92,255,.16), rgba(21,28,43,.94));
+      box-shadow: 0 10px 28px rgba(107,92,255,.16);
+    }
+    .plan.featured::before {
+      content: 'Más elegido';
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #C4B5FD;
+      background: rgba(107,92,255,.14);
+      border: 1px solid rgba(107,92,255,.22);
+      padding: 5px 8px;
+      border-radius: 999px;
+    }
+    .plan-name {
+      font-family: 'Sora', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      padding-right: 60px;
+    }
+    .plan-price {
+      font-family: 'Sora', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      color: #A78BFA;
+      margin-bottom: 6px;
+    }
+    .plan-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .plan-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .plan-features li {
+      font-size: 12px;
+      color: var(--text-2);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.4;
+    }
+    .check {
+      flex: 0 0 auto;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(34,197,94,.15);
+      border: 1px solid rgba(34,197,94,.26);
+      margin-top: 2px;
+      position: relative;
+    }
+    .check::after {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 1px;
+      width: 5px;
+      height: 8px;
+      border-right: 2px solid #86efac;
+      border-bottom: 2px solid #86efac;
+      transform: rotate(42deg);
+    }
+    .form-card {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .field.full { grid-column: 1 / -1; }
+    label {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    input, select {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      outline: none;
+      font: 500 15px 'Inter', sans-serif;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    input:focus, select:focus {
+      border-color: rgba(107,92,255,.6);
+      box-shadow: 0 0 0 4px rgba(107,92,255,.12);
+    }
+    input::placeholder { color: #64748B; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .cta-row {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .btn {
+      min-height: 52px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-d));
+      color: white;
+      font: 800 15px 'Inter', sans-serif;
+      cursor: pointer;
+      transition: transform .18s, opacity .18s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:disabled { opacity: .6; cursor: default; transform: none; }
+    .btn-secondary {
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .msg {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .msg-error { background: rgba(239,68,68,.12); color: #FCA5A5; border: 1px solid rgba(239,68,68,.2); }
+    .msg-success { background: rgba(34,197,94,.12); color: #86efac; border: 1px solid rgba(34,197,94,.2); }
+    .fineprint {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .footer {
+      margin-top: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .footer a { color: var(--text-2); text-decoration: none; }
+    .footer a:hover { color: white; }
+    @media (max-width: 1080px) {
+      .hero { grid-template-columns: 1fr; }
+      .panel { order: 2; }
+      .hero-copy { order: 1; }
+      .plans { grid-template-columns: repeat(7, minmax(180px, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .page { padding: 18px 14px 36px; }
+      .nav { padding: 6px 0 16px; }
+      .brand { font-size: 16px; }
+      .nav-link { padding: 9px 12px; font-size: 13px; }
+      .sub { font-size: 16px; }
+      .form-card, .grid3 { grid-template-columns: 1fr; }
+      .plans { grid-auto-flow: column; grid-template-columns: none; }
+      .plan { min-width: 178px; }
+      .footer { flex-direction: column; align-items: flex-start; }
+    }
   </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="logo">
-    <div class="logo-icon">
-      <svg width="40" height="40" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <linearGradient id="reg_brand_dark" x1="58" y1="58" x2="198" y2="198" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#8C72FF" />
-            <stop offset="100%" stop-color="#4C66FF" />
-          </linearGradient>
-          <filter id="reg_shadow_dark" x="0" y="0" width="256" height="256" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-            <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.42" />
-          </filter>
-        </defs>
-        <g filter="url(#reg_shadow_dark)">
-          <rect x="14" y="14" width="228" height="228" rx="54" fill="#111624" stroke="rgba(255,255,255,0.08)" />
-        </g>
-        <path d="M146 78H102C70 78 46 102 46 134C46 166 70 190 102 190H154" stroke="url(#reg_brand_dark)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M114 110H158C190 110 214 134 214 166C214 198 190 222 158 222H116" stroke="url(#reg_brand_dark)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
+  <div class="page">
+    <div class="nav">
+      <a class="brand" href="/">
+        <svg viewBox="0 0 256 256" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="regBrand" x1="58" y1="58" x2="198" y2="198" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#8C72FF"></stop>
+              <stop offset="100%" stop-color="#4C66FF"></stop>
+            </linearGradient>
+            <filter id="regBrandShadow" x="0" y="0" width="256" height="256" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+              <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.42"></feDropShadow>
+            </filter>
+          </defs>
+          <g filter="url(#regBrandShadow)">
+            <rect x="14" y="14" width="228" height="228" rx="54" fill="#111624" stroke="rgba(255,255,255,0.08)"></rect>
+          </g>
+          <path d="M146 78H102C70 78 46 102 46 134C46 166 70 190 102 190H154" stroke="url(#regBrand)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M114 110H158C190 110 214 134 214 166C214 198 190 222 158 222H116" stroke="url(#regBrand)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <span>Church System</span>
+      </a>
+      <a class="nav-link" href="/app">Ingresar</a>
     </div>
-    Church System
+
+    <div class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">Registro · multi-tenant · onboarding</div>
+        <h1>Creá la cuenta de tu iglesia sin perder orden ni historial.</h1>
+        <p class="sub">Elegí el plan que mejor encaja hoy y arrancá con una base clara para personas, asistencia, comunicaciones y ministerios. La configuración de país, idioma y divisa queda sincronizada desde el inicio.</p>
+
+        <div class="hero-points">
+          <div class="pill">Sin mezclar datos entre iglesias</div>
+          <div class="pill">Idiomas ES / PT / EN</div>
+          <div class="pill">Moneda local o USD</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Elegí tu plan</div>
+        <div class="plans" id="planSelector">
+          <button class="plan" data-plan="FREE" data-price='{"ARS":0,"BRL":0,"CLP":0,"COP":0,"MXN":0,"PEN":0,"UYU":0,"USD":0}' data-features="Hasta 50 personas|1 administrador|Check-in básico|Branding Church System" onclick="selectPlan(this)">
+            <div class="plan-name">Free</div>
+            <div class="plan-price" data-price-node>0</div>
+            <div class="plan-meta">Para probar sin riesgo</div>
+            <ul class="plan-features"></ul>
+          </button>
+          <button class="plan selected" data-plan="STARTER" data-price='{"ARS":19000,"BRL":99,"CLP":18000,"COP":79000,"MXN":360,"PEN":72,"UYU":790,"USD":19}' data-features="Dashboard|Personas y perfiles|Grupos|Check-in QR|150 WhatsApp incluidos" onclick="selectPlan(this)">
+            <div class="plan-name">Starter</div>
+            <div class="plan-price" data-price-node>19</div>
+            <div class="plan-meta">Base operativa para líderes</div>
+            <ul class="plan-features"></ul>
+          </button>
+          <button class="plan featured" data-plan="PRO" data-price='{"ARS":39000,"BRL":199,"CLP":36000,"COP":159000,"MXN":740,"PEN":145,"UYU":1590,"USD":39}' data-features="Todo Starter|Asistencia y cultos|Mensajes y alertas|Reportes|500 WhatsApp incluidos" onclick="selectPlan(this)">
+            <div class="plan-name">Pro</div>
+            <div class="plan-price" data-price-node>39</div>
+            <div class="plan-meta">Más elegido por equipos activos</div>
+            <ul class="plan-features"></ul>
+          </button>
+          <button class="plan" data-plan="MAX" data-price='{"ARS":79000,"BRL":399,"CLP":73000,"COP":319000,"MXN":1490,"PEN":295,"UYU":3190,"USD":79}' data-features="Todo Pro|Usuarios y permisos|Excel + IA|Asistente IA|1.500 WhatsApp incluidos" onclick="selectPlan(this)">
+            <div class="plan-name">Max</div>
+            <div class="plan-price" data-price-node>79</div>
+            <div class="plan-meta">Automatización y escala</div>
+            <ul class="plan-features"></ul>
+          </button>
+          <button class="plan" data-plan="CHURCH_100" data-price='{"ARS":129000,"BRL":649,"CLP":119000,"COP":519000,"MXN":2450,"PEN":480,"UYU":5190,"USD":129}' data-features="Hasta 100 personas|Todo Pro|2.000 WhatsApp|100 SMS fallback" onclick="selectPlan(this)">
+            <div class="plan-name">Church 100</div>
+            <div class="plan-price" data-price-node>129</div>
+            <div class="plan-meta">Iglesias pequeñas</div>
+            <ul class="plan-features"></ul>
+          </button>
+          <button class="plan" data-plan="CHURCH_500" data-price='{"ARS":249000,"BRL":1249,"CLP":229000,"COP":999000,"MXN":4750,"PEN":930,"UYU":9990,"USD":249}' data-features="Hasta 500 personas|Todo Max|8.000 WhatsApp|300 SMS fallback" onclick="selectPlan(this)">
+            <div class="plan-name">Church 500</div>
+            <div class="plan-price" data-price-node>249</div>
+            <div class="plan-meta">Iglesias medianas</div>
+            <ul class="plan-features"></ul>
+          </button>
+          <button class="plan" data-plan="CHURCH_1000" data-price='{"ARS":499000,"BRL":2499,"CLP":459000,"COP":1999000,"MXN":9490,"PEN":1870,"UYU":19990,"USD":499}' data-features="Hasta 1.000+ personas|Todo Max|20.000 WhatsApp|800 SMS fallback" onclick="selectPlan(this)">
+            <div class="plan-name">Church 1000+</div>
+            <div class="plan-price" data-price-node>499</div>
+            <div class="plan-meta">Iglesias grandes o multisede</div>
+            <ul class="plan-features"></ul>
+          </button>
+        </div>
+
+        <form id="signupForm" class="form-card" autocomplete="on">
+          <div class="field full">
+            <label for="nombreIglesia">Nombre de tu iglesia</label>
+            <input id="nombreIglesia" type="text" placeholder="Ej: Iglesia Evangelica Vida Nueva" required>
+          </div>
+          <div class="field">
+            <label for="nombre">Tu nombre</label>
+            <input id="nombre" type="text" placeholder="Pastor Juan">
+          </div>
+          <div class="field">
+            <label for="telefono">Teléfono</label>
+            <input id="telefono" type="tel" placeholder="+54 9 11 1234 5678" required>
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="pastor@iglesia.com" required>
+          </div>
+          <div class="field">
+            <label for="password">Contraseña</label>
+            <input id="password" type="password" placeholder="Mínimo 8 caracteres" minlength="8" required>
+          </div>
+          <div class="field full">
+            <label for="city">Ciudad / Provincia</label>
+            <input id="city" type="text" placeholder="Buenos Aires, Argentina">
+          </div>
+          <div class="grid3 field full" style="gap:14px">
+            <div class="field">
+              <label for="country">País</label>
+              <select id="country">
+                <option value="AR">AR · Argentina</option>
+                <option value="BR">BR · Brasil</option>
+                <option value="CL">CL · Chile</option>
+                <option value="CO">CO · Colombia</option>
+                <option value="MX">MX · México</option>
+                <option value="PE">PE · Perú</option>
+                <option value="UY">UY · Uruguay</option>
+                <option value="US">US · United States</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="currency">Divisa</label>
+              <input id="currency" type="text" value="ARS" readonly>
+            </div>
+            <div class="field">
+              <label for="lang">Idioma</label>
+              <select id="lang">
+                <option value="es">ES</option>
+                <option value="pt">PT</option>
+                <option value="en">EN</option>
+              </select>
+            </div>
+          </div>
+          <div class="field full">
+            <label for="promo">Promo code</label>
+            <input id="promo" type="text" placeholder="15OFF" maxlength="16" style="text-transform:uppercase">
+          </div>
+
+          <div class="cta-row field full">
+            <button id="signupBtn" class="btn" type="submit">Crear cuenta</button>
+            <a class="btn btn-secondary" href="/app">Ya tengo cuenta</a>
+          </div>
+
+          <div id="msg" class="msg field full"></div>
+
+          <div class="fineprint field full">
+            Al registrarte aceptás los términos de uso y la política de privacidad. La configuración de país, moneda e idioma se guarda para tu organización y podés modificarla luego desde la app.
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>Church System · Registro público</div>
+      <div>
+        <a href="/">Volver al inicio</a> · <a href="/app">Ingresar</a>
+      </div>
+    </div>
   </div>
 
-  <h1>Empezá hoy</h1>
-  <p class="sub">14 días gratis. Después, elegí tu plan.</p>
+  <script>
+    const COUNTRY_MAP = {
+      AR: { currency: 'ARS', lang: 'es' },
+      BR: { currency: 'BRL', lang: 'pt' },
+      CL: { currency: 'CLP', lang: 'es' },
+      CO: { currency: 'COP', lang: 'es' },
+      MX: { currency: 'MXN', lang: 'es' },
+      PE: { currency: 'PEN', lang: 'es' },
+      UY: { currency: 'UYU', lang: 'es' },
+      US: { currency: 'USD', lang: 'en' },
+    }
 
-  <!-- Selector de plan -->
-  <div class="plans" id="planSelector">
-    <div class="plan" data-plan="basico" data-price="8000" onclick="selectPlan(this)">
-      <div class="plan-name">Básico</div>
-      <div class="plan-price">$8k</div>
-      <div class="plan-lim">hasta 100</div>
-    </div>
-    <div class="plan selected" data-plan="estandar" data-price="15000" onclick="selectPlan(this)">
-      <div class="plan-name">⭐ Estándar</div>
-      <div class="plan-price">$15k</div>
-      <div class="plan-lim">hasta 500</div>
-    </div>
-    <div class="plan" data-plan="pro" data-price="25000" onclick="selectPlan(this)">
-      <div class="plan-name">Pro</div>
-      <div class="plan-price">$25k</div>
-      <div class="plan-lim">ilimitado</div>
-    </div>
-  </div>
+    const CURRENCY_SYMBOL = {
+      ARS: '$', USD: 'US$', BRL: 'R$', CLP: '$', COP: '$', MXN: '$', PEN: 'S/', UYU: '$U'
+    }
 
-  <div class="card">
-    <div id="msg" style="display:none" class="msg"></div>
+    const PLAN_LABELS = {
+      FREE: 'Free', STARTER: 'Starter', PRO: 'Pro', MAX: 'Max',
+      CHURCH_100: 'Church 100', CHURCH_500: 'Church 500', CHURCH_1000: 'Church 1000+'
+    }
 
-    <div class="form-group">
-      <label>Nombre de tu iglesia *</label>
-      <input id="nombreIglesia" type="text" placeholder="Ej: Iglesia Evangelica Vida Nueva" required>
-    </div>
+    let selectedPlan = 'STARTER'
 
-    <div class="grid2">
-      <div class="form-group">
-        <label>Tu nombre *</label>
-        <input id="nombre" type="text" placeholder="Pastor Juan">
-      </div>
-      <div class="form-group">
-        <label>Teléfono</label>
-        <input id="telefono" type="tel" placeholder="11 1234-5678">
-      </div>
-    </div>
+    function setMsg(text, type = 'error') {
+      const el = document.getElementById('msg')
+      el.className = `msg msg-${type}`
+      el.textContent = text
+      el.style.display = 'block'
+    }
 
-    <div class="form-group">
-      <label>Email *</label>
-      <input id="email" type="email" placeholder="pastor@iglesia.com">
-    </div>
+    function updateLocale() {
+      const country = document.getElementById('country').value
+      const cfg = COUNTRY_MAP[country] || COUNTRY_MAP.AR
+      document.getElementById('currency').value = cfg.currency
+      document.getElementById('lang').value = cfg.lang
+      localStorage.setItem('church_country', country)
+      localStorage.setItem('church_currency', cfg.currency)
+      localStorage.setItem('church_lang', cfg.lang)
+      renderPrices()
+    }
 
-    <div class="form-group">
-      <label>Contraseña *</label>
-      <input id="password" type="password" placeholder="Mínimo 8 caracteres">
-    </div>
+    function selectPlan(btn) {
+      document.querySelectorAll('.plan').forEach(p => p.classList.remove('selected'))
+      btn.classList.add('selected')
+      selectedPlan = btn.dataset.plan || 'STARTER'
+    }
 
-    <div class="form-group">
-      <label>Ciudad / Provincia</label>
-      <input id="ciudad" type="text" placeholder="Córdoba, Argentina">
-    </div>
-
-    <div class="grid3">
-      <div class="form-group">
-        <label>País *</label>
-        <select id="country" onchange="applyLocale()">
-          <option value="AR">Argentina</option>
-          <option value="BR">Brasil</option>
-          <option value="CL">Chile</option>
-          <option value="CO">Colombia</option>
-          <option value="MX">Mexico</option>
-          <option value="PE">Peru</option>
-          <option value="UY">Uruguay</option>
-          <option value="US">United States</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Divisa</label>
-        <input id="currency" type="text" value="ARS" readonly>
-      </div>
-      <div class="form-group">
-        <label>Idioma</label>
-        <select id="lang">
-          <option value="es">ES</option>
-          <option value="pt">PT</option>
-          <option value="en">EN</option>
-        </select>
-      </div>
-    </div>
-
-    <hr class="divider">
-
-    <button class="btn" id="btnRegistrar" onclick="registrar()">
-      <span>🚀</span>
-      Crear mi cuenta gratis
-    </button>
-
-    <div class="mp-badge">
-      <span class="mp-logo">💳</span>
-      Después del período de prueba, pagás con MercadoPago
-    </div>
-
-    <p class="terms">
-      Al registrarte aceptás los <a href="#">Términos de uso</a> y la
-      <a href="#">Política de privacidad</a>. 14 días gratis, sin tarjeta.
-    </p>
-  </div>
-
-  <a href="/" class="back">← Volver al inicio</a>
-</div>
-
-<script>
-let planSeleccionado = { plan: 'estandar', price: 15000 }
-const COUNTRIES = {
-  AR:{currency:'ARS',lang:'es'}, BR:{currency:'BRL',lang:'pt'}, CL:{currency:'CLP',lang:'es'},
-  CO:{currency:'COP',lang:'es'}, MX:{currency:'MXN',lang:'es'}, PE:{currency:'PEN',lang:'es'},
-  UY:{currency:'UYU',lang:'es'}, US:{currency:'USD',lang:'en'}
-}
-
-function selectPlan(el) {
-  document.querySelectorAll('.plan').forEach(p => p.classList.remove('selected'))
-  el.classList.add('selected')
-  planSeleccionado = { plan: el.dataset.plan, price: parseInt(el.dataset.price) }
-}
-
-function showMsg(text, type='error') {
-  const el = document.getElementById('msg')
-  el.textContent = text
-  el.className = 'msg msg-' + type
-  el.style.display = 'block'
-}
-
-function applyLocale() {
-  const country = document.getElementById('country').value
-  const cfg = COUNTRIES[country] || COUNTRIES.AR
-  document.getElementById('currency').value = cfg.currency
-  document.getElementById('lang').value = cfg.lang
-  localStorage.setItem('church_country', country)
-  localStorage.setItem('church_currency', cfg.currency)
-  localStorage.setItem('church_lang', cfg.lang)
-}
-
-async function registrar() {
-  const btn = document.getElementById('btnRegistrar')
-  const nombreIglesia = document.getElementById('nombreIglesia').value.trim()
-  const nombre        = document.getElementById('nombre').value.trim()
-  const email         = document.getElementById('email').value.trim()
-  const password      = document.getElementById('password').value
-  const telefono      = document.getElementById('telefono').value.trim()
-  const ciudad        = document.getElementById('ciudad').value.trim()
-  const country       = document.getElementById('country').value
-  const currency      = document.getElementById('currency').value
-  const lang          = document.getElementById('lang').value
-  const promo         = new URLSearchParams(location.search).get('promo') || localStorage.getItem('church_promo') || ''
-
-  if (!nombreIglesia) return showMsg('El nombre de la iglesia es obligatorio')
-  if (!email)         return showMsg('El email es obligatorio')
-  if (!password || password.length < 8) return showMsg('La contraseña debe tener al menos 8 caracteres')
-
-  btn.disabled = true
-  btn.innerHTML = '<span>⏳</span> Creando cuenta...'
-
-  try {
-    const res = await fetch('/registro/crear', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombreIglesia, nombre, email, password,
-        telefono, ciudad, plan: planSeleccionado.plan,
-        country, currency, lang, promo
+    function renderPrices() {
+      const currency = document.getElementById('currency').value || 'ARS'
+      document.querySelectorAll('.plan').forEach(plan => {
+        const prices = JSON.parse(plan.dataset.price || '{}')
+        const raw = Number(prices[currency] ?? prices.USD ?? 0)
+        const label = currency === 'USD' ? raw.toString() : raw.toLocaleString()
+        const priceNode = plan.querySelector('[data-price-node]')
+        if (priceNode) priceNode.textContent = `${CURRENCY_SYMBOL[currency] || currency} ${label}`
+        const features = (plan.dataset.features || '').split('|').filter(Boolean)
+        const ul = plan.querySelector('.plan-features')
+        if (ul) ul.innerHTML = features.map(item => `<li><span class="check"></span><span>${item}</span></li>`).join('')
       })
+    }
+
+    document.getElementById('country').addEventListener('change', updateLocale)
+    document.getElementById('signupForm').addEventListener('submit', async (event) => {
+      event.preventDefault()
+
+      const btn = document.getElementById('signupBtn')
+      const nombreIglesia = document.getElementById('nombreIglesia').value.trim()
+      const nombre = document.getElementById('nombre').value.trim()
+      const telefono = document.getElementById('telefono').value.trim()
+      const email = document.getElementById('email').value.trim()
+      const password = document.getElementById('password').value
+      const city = document.getElementById('city').value.trim()
+      const country = document.getElementById('country').value
+      const currency = document.getElementById('currency').value
+      const lang = document.getElementById('lang').value
+      const promo = document.getElementById('promo').value.trim().toUpperCase() || new URLSearchParams(location.search).get('promo') || localStorage.getItem('church_promo') || ''
+
+      if (!nombreIglesia) return setMsg('El nombre de la iglesia es obligatorio.')
+      if (!telefono) return setMsg('El teléfono es obligatorio.')
+      if (!email) return setMsg('El email es obligatorio.')
+      if (!password || password.length < 8) return setMsg('La contraseña debe tener al menos 8 caracteres.')
+
+      btn.disabled = true
+      btn.textContent = 'Creando cuenta...'
+      try {
+        const res = await fetch('/registro/crear', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nombreIglesia,
+            nombre,
+            email,
+            password,
+            telefono,
+            ciudad: city,
+            plan: selectedPlan,
+            country,
+            currency,
+            lang,
+            promo,
+          }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok || !data.ok) {
+          setMsg(data.error || 'No se pudo crear la cuenta.')
+          btn.disabled = false
+          btn.textContent = 'Crear cuenta'
+          return
+        }
+        if (data.token) localStorage.setItem('token', data.token)
+        if (data.user) localStorage.setItem('user', JSON.stringify(data.user))
+        setMsg('Cuenta creada. Redirigiendo a la plataforma...', 'success')
+        setTimeout(() => { window.location.href = data.appUrl || '/app' }, 1000)
+      } catch (err) {
+        setMsg('Error de conexión. Intentá de nuevo.')
+        btn.disabled = false
+        btn.textContent = 'Crear cuenta'
+      }
     })
 
-    const data = await res.json()
-
-    if (data.ok) {
-      showMsg('✅ ¡Cuenta creada! Redirigiendo a tu panel...', 'success')
-      // Guardar token y redirigir a la app
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
-      setTimeout(() => { window.location.href = data.appUrl || '/app' }, 1500)
-    } else {
-      showMsg(data.error || 'Error al crear la cuenta')
-      btn.disabled = false
-      btn.innerHTML = '<span>🚀</span> Crear mi cuenta gratis'
-    }
-  } catch (err) {
-    showMsg('Error de conexión. Intentá de nuevo.')
-    btn.disabled = false
-    btn.innerHTML = '<span>🚀</span> Crear mi cuenta gratis'
-  }
-}
-
-// Leer plan desde URL ?plan=estandar
-const urlPlan = new URLSearchParams(location.search).get('plan')
-if (urlPlan) {
-  const el = document.querySelector(`[data-plan="${urlPlan}"]`)
-  if (el) selectPlan(el)
-}
-const urlCountry = new URLSearchParams(location.search).get('country') || localStorage.getItem('church_country')
-if (urlCountry && COUNTRIES[urlCountry.toUpperCase()]) document.getElementById('country').value = urlCountry.toUpperCase()
-applyLocale()
-</script>
+    const savedCountry = localStorage.getItem('church_country') || 'AR'
+    document.getElementById('country').value = savedCountry
+    document.getElementById('promo').value = new URLSearchParams(location.search).get('promo') || localStorage.getItem('church_promo') || ''
+    updateLocale()
+    renderPrices()
+  </script>
 </body>
 </html>

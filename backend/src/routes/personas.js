@@ -8,11 +8,15 @@ const router = Router()
 const FULL = ['PASTOR_GENERAL', 'CONSOLIDACION']
 
 router.get('/', requireAuth, async (req, res) => {
-  const { rol, id, cultoDia, cultoTurno, iglesiaId } = req.user
+  const { rol, id, cultoDia: userCultoDia, cultoTurno, iglesiaId } = req.user
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
   await ensureCoreTenantDataSynced(iglesiaId)
 
-  const { page = 1, limit = 20, search = '', estado, grupoId } = req.query
+  const {
+    page = 1, limit = 20, search = '', estado, grupoId,
+    estadoEspiritual, cultoDia: cultoDiaFilter,
+    fechaIngresoDesde, fechaIngresoHasta,
+  } = req.query
   const where = ['p."iglesiaId"=$1', 'p."deletedAt" IS NULL']
   const params = [Number(iglesiaId)]
   let idx = params.length + 1
@@ -22,7 +26,7 @@ router.get('/', requireAuth, async (req, res) => {
     params.push(Number(id))
   } else if (rol === 'PASTOR_CULTO') {
     where.push(`p."cultoDia"=$${idx++}`)
-    params.push(cultoDia || '')
+    params.push(userCultoDia || '')
     where.push(`p."cultoTurno"=$${idx++}`)
     params.push(Number(cultoTurno || 0))
   }
@@ -38,6 +42,22 @@ router.get('/', requireAuth, async (req, res) => {
   if (grupoId) {
     where.push(`p."grupoId"=$${idx++}`)
     params.push(Number(grupoId))
+  }
+  if (estadoEspiritual) {
+    where.push(`p."estadoEspiritual"=$${idx++}`)
+    params.push(String(estadoEspiritual))
+  }
+  if (cultoDiaFilter && rol !== 'PASTOR_CULTO') {
+    where.push(`p."cultoDia"=$${idx++}`)
+    params.push(String(cultoDiaFilter))
+  }
+  if (fechaIngresoDesde) {
+    where.push(`p."fechaIngreso">=$${idx++}`)
+    params.push(String(fechaIngresoDesde))
+  }
+  if (fechaIngresoHasta) {
+    where.push(`p."fechaIngreso"<=$${idx++}`)
+    params.push(String(fechaIngresoHasta))
   }
 
   const w = where.length ? `WHERE ${where.join(' AND ')}` : ''

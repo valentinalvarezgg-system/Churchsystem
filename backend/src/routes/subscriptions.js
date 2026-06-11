@@ -276,11 +276,16 @@ router.post('/subscriptions/create', requireAuth, requireRol('PASTOR_GENERAL'), 
 
     if (platform === 'mercadopago') {
       if (!MP_ACCESS_TOKEN) return res.status(503).json({ error: 'Falta MP_ACCESS_TOKEN.' })
+      const payerEmail = String(req.user?.email || '').trim()
+      if (!payerEmail) {
+        return res.status(400).json({ error: 'Falta email del usuario para crear la suscripción en Mercado Pago.' })
+      }
       const months = FREQUENCY_TO_MONTHS[frequency]
       const amount = Number(plan.price_ars || 0)
       const extRef = `${req.user.id}|${req.user.iglesiaId}|${planName}|${frequency}|${Date.now()}`
       const payload = {
         reason: `Church System ${planName} (${frequency})`,
+        payer_email: payerEmail,
         external_reference: extRef,
         auto_recurring: {
           frequency: months,
@@ -313,6 +318,8 @@ router.post('/subscriptions/create', requireAuth, requireRol('PASTOR_GENERAL'), 
         ok: true,
         platform: 'mercadopago',
         checkoutUrl: createRes.data.init_point || createRes.data.sandbox_init_point || '',
+        checkout_url: createRes.data.init_point || createRes.data.sandbox_init_point || '',
+        init_point: createRes.data.init_point || '',
         subscriptionId: createRes.data.id,
       })
     }
@@ -353,6 +360,7 @@ router.post('/subscriptions/create', requireAuth, requireRol('PASTOR_GENERAL'), 
       ok: true,
       platform: 'paypal',
       checkoutUrl: approve,
+      approvalUrl: approve,
       subscriptionId: ppCreate.data.id,
     })
   } catch (err) {

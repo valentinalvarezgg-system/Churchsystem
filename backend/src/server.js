@@ -64,6 +64,21 @@ import subscriptionsRouter from './routes/subscriptions.js'
 import whatsappRouter from './routes/whatsapp.js'
 import invitacionesRouter from './routes/invitaciones.js'
 import sesionesRouter from './routes/sesiones.js'
+import { createRequire } from 'node:module'
+
+// Parche Express 4: propaga errores async a next() automáticamente.
+// Sin esto, cualquier await que rechace en un handler sin try/catch deja la
+// petición colgada para siempre (la respuesta nunca llega al cliente).
+const _cjsRequire = createRequire(import.meta.url)
+const _Layer = _cjsRequire('express/lib/router/layer')
+const _origHandle = _Layer.prototype.handle_request
+_Layer.prototype.handle_request = function asyncCatch(req, res, next) {
+  try {
+    const ret = _origHandle.call(this, req, res, next)
+    if (ret && typeof ret.catch === 'function') ret.catch(next)
+    return ret
+  } catch (err) { next(err) }
+}
 
 const app = express()
 const PORT = process.env.PORT || 4000

@@ -172,7 +172,16 @@ export const COMMERCIAL_PLANS = {
   },
 }
 
-export const PLANES = COMMERCIAL_PLANS
+export const PLANES = Object.fromEntries(
+  Object.entries(COMMERCIAL_PLANS).map(([key, plan]) => [
+    key,
+    {
+      ...plan,
+      label: plan.labels,
+      description: plan.descriptions,
+    },
+  ])
+)
 
 export const COMMERCIAL_TO_ACCESS = Object.fromEntries(
   Object.values(COMMERCIAL_PLANS).map(plan => [plan.key, plan.accessTier])

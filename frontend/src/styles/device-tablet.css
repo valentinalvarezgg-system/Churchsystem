@@ -1,0 +1,224 @@
+/* ═══════════════════════════════════════════════════════════════
+   DEVICE LAYER — Tablet  (data-device="tablet")
+   Cubre 768–1023px, dos modos:
+
+   C — Portrait (data-orient="portrait"):
+       Sidebar como overlay deslizable + header fijo + sin bottom-nav
+
+   D — Landscape (data-orient="landscape"):
+       Mini-sidebar permanente 200px + sin header + sin bottom-nav
+
+   Compatibilidad:
+   - iPad mini 6 portrait  : 744px → clasifica como phone (ver useDevice.js)
+   - iPad 9th gen portrait : 810px → tablet ✓
+   - iPad Pro 11" landscape: 1194px → desktop ✓
+   - Samsung Tab S8 portrait: 800px → tablet ✓
+
+   Regla para agregar estilos de tablet:
+     [data-device="tablet"][data-orient="portrait"] .mi-clase { ... }
+     [data-device="tablet"][data-orient="landscape"] .mi-clase { ... }
+     [data-device="tablet"] .mi-clase { ... }  ← ambos modos
+
+   NUNCA usar media queries aquí — este archivo ES el contexto tablet.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Variables compartidas por ambos modos ─────────────────── */
+[data-device="tablet"] {
+  --header-h:  56px;
+  --sidebar-w: 0px;   /* portrait: sidebar oculta; landscape: 200px (ver abajo) */
+}
+
+/* ── C — Portrait: sidebar overlay ──────────────────────────── */
+[data-device="tablet"][data-orient="portrait"] {
+  --sidebar-w: 0px;
+}
+
+[data-device="tablet"][data-orient="portrait"] .layout {
+  display: block;
+  min-height: 100vh;
+}
+
+[data-device="tablet"][data-orient="portrait"] .main {
+  margin-left:   0 !important;
+  max-width:     100vw !important;
+  padding-top:   calc(var(--header-h) + var(--safe-top, 0px) + 16px) !important;
+  padding-left:  max(20px, var(--safe-left, 0px)) !important;
+  padding-right: max(20px, var(--safe-right, 0px)) !important;
+  padding-bottom: 28px !important;
+  min-height:    100vh;
+}
+
+[data-device="tablet"][data-orient="portrait"] .sidebar {
+  transform:  translateX(-100%) !important;
+  width:      280px !important;
+  transition: transform .28s cubic-bezier(.4,0,.2,1) !important;
+  z-index:    200;
+  position:   fixed;
+  top: 0; left: 0; bottom: 0;
+}
+[data-device="tablet"][data-orient="portrait"] .sidebar.open {
+  transform:  translateX(0) !important;
+  box-shadow: 4px 0 40px rgba(0,0,0,.5);
+}
+
+[data-device="tablet"][data-orient="portrait"] .sidebar-overlay {
+  display:    none;
+  position:   fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index:    199;
+}
+[data-device="tablet"][data-orient="portrait"] .sidebar-overlay.open {
+  display: block !important;
+}
+
+[data-device="tablet"][data-orient="portrait"] .mobile-header {
+  display:       flex !important;
+  height:        auto !important;
+  min-height:    calc(var(--header-h) + var(--safe-top, 0px)) !important;
+  padding-top:   var(--safe-top, 0px) !important;
+  padding-bottom: 0 !important;
+  padding-left:  max(16px, var(--safe-left, 0px)) !important;
+  padding-right: max(16px, var(--safe-right, 0px)) !important;
+  align-items:   center !important;
+  background:    var(--sidebar-bg) !important;
+  border-bottom: 1px solid var(--border) !important;
+  position:      fixed; top: 0; left: 0; right: 0;
+  z-index:       198;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+[data-device="tablet"][data-orient="portrait"] .mobile-header-title {
+  flex: 1;
+  font-size:  16px;
+  font-weight: 700;
+  color:      var(--text) !important;
+  min-width:  0;
+  white-space: nowrap;
+  overflow:   hidden;
+  text-overflow: ellipsis;
+}
+
+[data-device="tablet"][data-orient="portrait"] .mobile-menu-btn {
+  width:      38px !important;
+  height:     38px !important;
+  background: var(--surface) !important;
+  border:     1px solid var(--border) !important;
+  color:      var(--text-2) !important;
+  border-radius: 10px;
+}
+
+[data-device="tablet"][data-orient="portrait"] .bottom-nav    { display: none !important; }
+[data-device="tablet"][data-orient="portrait"] .landscape-rail{ display: none !important; }
+
+/* Grids portrait */
+[data-device="tablet"][data-orient="portrait"] .stats-grid {
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 10px !important;
+}
+[data-device="tablet"][data-orient="portrait"] .form-grid {
+  grid-template-columns: 1fr 1fr !important;
+}
+[data-device="tablet"][data-orient="portrait"] .kpi-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+
+/* Modales centrados en tablet portrait */
+[data-device="tablet"][data-orient="portrait"] .modal-overlay {
+  align-items: center !important;
+  padding:     20px !important;
+}
+[data-device="tablet"][data-orient="portrait"] .modal {
+  border-radius: 16px !important;
+  max-width:     560px !important;
+  max-height:    calc(90dvh - var(--safe-top, 0px)) !important;
+}
+
+/* ── D — Landscape: mini-sidebar permanente ─────────────────── */
+[data-device="tablet"][data-orient="landscape"] {
+  --sidebar-w: 200px;
+}
+
+[data-device="tablet"][data-orient="landscape"] .layout {
+  display:    flex;
+  min-height: 100vh;
+}
+
+[data-device="tablet"][data-orient="landscape"] .main {
+  margin-left:   200px !important;
+  max-width:     calc(100vw - 200px) !important;
+  padding:       20px 20px 24px !important;
+  min-height:    100vh;
+}
+
+[data-device="tablet"][data-orient="landscape"] .sidebar {
+  transform:  translateX(0) !important;
+  width:      200px !important;
+  position:   fixed;
+  top: 0; left: 0; bottom: 0;
+  overflow-y: auto;
+}
+
+/* Sidebar compacta en landscape */
+[data-device="tablet"][data-orient="landscape"] .nav-item {
+  padding:   7px 10px !important;
+  font-size: 12px !important;
+}
+[data-device="tablet"][data-orient="landscape"] .sidebar-logo-text { font-size: 13px !important; }
+[data-device="tablet"][data-orient="landscape"] .nav-badge          { font-size: 9px !important; }
+
+[data-device="tablet"][data-orient="landscape"] .mobile-header   { display: none !important; }
+[data-device="tablet"][data-orient="landscape"] .bottom-nav      { display: none !important; }
+[data-device="tablet"][data-orient="landscape"] .landscape-rail  { display: none !important; }
+[data-device="tablet"][data-orient="landscape"] .sidebar-overlay { display: none !important; }
+
+/* Grids landscape */
+[data-device="tablet"][data-orient="landscape"] .stats-grid {
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 10px !important;
+}
+[data-device="tablet"][data-orient="landscape"] .form-grid {
+  grid-template-columns: 1fr 1fr !important;
+}
+[data-device="tablet"][data-orient="landscape"] .kpi-grid {
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+
+/* Modales centrados en tablet landscape */
+[data-device="tablet"][data-orient="landscape"] .modal-overlay {
+  align-items: center !important;
+  padding:     20px !important;
+}
+[data-device="tablet"][data-orient="landscape"] .modal {
+  border-radius: 16px !important;
+  max-width:     560px !important;
+  max-height:    90dvh !important;
+}
+
+/* ── Tablet universal: touch improvements ────────────────────── */
+[data-device="tablet"] .input,
+[data-device="tablet"] .form-input,
+[data-device="tablet"] select,
+[data-device="tablet"] textarea {
+  font-size:               16px !important;   /* evita zoom iOS */
+  -webkit-text-size-adjust: 100%;
+  touch-action:            manipulation;
+}
+
+[data-device="tablet"] .btn {
+  touch-action:              manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+[data-device="tablet"] .nav-item,
+[data-device="tablet"] .stat-card {
+  touch-action:              manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+[data-device="tablet"] table { min-width: 480px; }
+[data-device="tablet"] .card { overflow-x: auto; }
+
+/* Tabla desktop visible en tablet, mobile-list oculta */
+[data-device="tablet"] .table-responsive    { display: block !important; }
+[data-device="tablet"] .mobile-list         { display: none !important; }

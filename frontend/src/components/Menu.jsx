@@ -53,7 +53,7 @@ const I18N = {
     reports:'Reportes', finances:'Finanzas', excel:'Excel + IA', assistant:'Asistente IA', users:'Usuarios',
     promo:'Promo Codes', permissions:'Permisos', history:'Historial', settings:'Configuración',
     prayer:'Oración', events:'Eventos', profile:'Mi perfil', pageProfile:'Perfil', menu:'Menú',
-    ministries:'Ministerios',
+    ministries:'Ministerios', areas:'Áreas',
   },
   pt: {
     smart:'Gestão Pastoral Inteligente', openMenu:'Abrir menu', search:'Buscar', notifications:'Notificações',
@@ -66,7 +66,7 @@ const I18N = {
     reports:'Relatórios', finances:'Finanças', excel:'Excel + IA', assistant:'Assistente IA', users:'Usuários',
     promo:'Promo Codes', permissions:'Permissões', history:'Histórico', settings:'Configuração',
     prayer:'Oração', events:'Eventos', profile:'Meu perfil', pageProfile:'Perfil', menu:'Menu',
-    ministries:'Ministérios',
+    ministries:'Ministérios', areas:'Áreas',
   },
   en: {
     smart:'Smart Pastoral Management', openMenu:'Open menu', search:'Search', notifications:'Notifications',
@@ -79,7 +79,7 @@ const I18N = {
     reports:'Reports', finances:'Finances', excel:'Excel + AI', assistant:'AI Assistant', users:'Users',
     promo:'Promo Codes', permissions:'Permissions', history:'History', settings:'Settings',
     prayer:'Prayer', events:'Events', profile:'My profile', pageProfile:'Profile', menu:'Menu',
-    ministries:'Ministries',
+    ministries:'Ministries', areas:'Areas',
   },
 }
 
@@ -258,7 +258,7 @@ export default function Menu() {
             {lnk('/grupos',        <Icons.Groups />,     tt('groups'))}
             {lnk('/comunicados',   <Icons.Comunicados />, tt('communications'))}
             {lnk('/checkin',       <Icons.CheckIn />,    tt('checkin'))}
-            <div className="nav-section">{tt('ministries')}</div>
+            <div className="nav-section">{tt('areas')}</div>
             {lnk('/ministerios', <Icons.Building />, tt('ministries'))}
           </>}
 
@@ -272,7 +272,7 @@ export default function Menu() {
             {lnk('/calendario',    <Icons.Calendar />,   tt('calendar'))}
             {lnk('/eventos',       <Icons.Calendar />,   tt('events'))}
             {lnk('/consolidacion', <Icons.Users />,      tt('consolidation'))}
-            <div className="nav-section">{tt('ministries')}</div>
+            <div className="nav-section">{tt('areas')}</div>
             {lnk('/ministerios', <Icons.Building />, tt('ministries'))}
             <div className="nav-section">{tt('management')}</div>
             {lnk('/mensajes',      <Icons.Messages />,   tt('messages'))}
@@ -293,7 +293,7 @@ export default function Menu() {
             {lnk('/calendario',    <Icons.Calendar />,   tt('calendar'))}
             {lnk('/eventos',       <Icons.Calendar />,   tt('events'))}
             {lnk('/consolidacion', <Icons.Users />,      tt('consolidation'))}
-            <div className="nav-section">{tt('ministries')}</div>
+            <div className="nav-section">{tt('areas')}</div>
             {lnk('/ministerios', <Icons.Building />, tt('ministries'))}
             <div className="nav-section">{tt('management')}</div>
             {lnk('/mensajes',      <Icons.Messages />,   tt('messages'))}
@@ -308,9 +308,9 @@ export default function Menu() {
             {lnk('/users',         <Icons.Profile />,    tt('users'))}
             {lnk('/permisos',      <Icons.Shield />,     tt('permissions'))}
             {lnk('/historial',     <Icons.History />,    tt('history'))}
-            {lnk('/documentos',    <span style={{fontSize:16}}>📁</span>, 'Documentos')}
-            {lnk('/liderazgo',     <span style={{fontSize:16}}>🌱</span>, 'Liderazgo')}
-            {lnk('/mapa-grupos',   <span style={{fontSize:16}}>🗺️</span>, 'Mapa de grupos')}
+            {lnk('/documentos',    <Icons.FileText />, 'Documentos')}
+            {lnk('/liderazgo',     <Icons.TrendingUp />, 'Liderazgo')}
+            {lnk('/mapa-grupos',   <Icons.MapPin />, 'Mapa de grupos')}
             {lnk('/configuracion', <Icons.Settings />,   tt('settings'))}
           </>}
         </nav>

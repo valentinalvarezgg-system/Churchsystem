@@ -52,6 +52,51 @@ router.get('/', requireAuth, async (req, res) => {
   res.json(rows)
 })
 
+router.get('/stats', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+
+  const limit = Math.min(Number(req.query.limit || 12), 52)
+
+  const tendencias = await pgMany(
+    `SELECT c."id", c."nombre", c."fecha", c."cultoDia",
+            COUNT(a."id")::int AS "total",
+            COALESCE(SUM(CASE WHEN a."presente"=true THEN 1 ELSE 0 END), 0)::int AS "presentes"
+       FROM "Culto" c
+       LEFT JOIN "Asistencia" a ON a."cultoId"=c."id" AND a."iglesiaId"=$1
+      WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
+      GROUP BY c."id", c."nombre", c."fecha", c."cultoDia"
+      ORDER BY c."fecha" DESC, c."id" DESC
+      LIMIT $2`,
+    [iglesiaId, limit]
+  )
+  tendencias.reverse()
+
+  const porDia = await pgMany(
+    `SELECT c."cultoDia",
+            ROUND(AVG(sub."presentes")::numeric, 1)::float AS "promedio",
+            COUNT(DISTINCT c."id")::int AS "cultos"
+       FROM "Culto" c
+       JOIN (
+         SELECT "cultoId",
+                SUM(CASE WHEN "presente"=true THEN 1 ELSE 0 END)::int AS "presentes"
+           FROM "Asistencia"
+          WHERE "iglesiaId"=$1
+          GROUP BY "cultoId"
+       ) sub ON sub."cultoId"=c."id"
+      WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
+        AND c."cultoDia" IS NOT NULL AND c."cultoDia" != ''
+      GROUP BY c."cultoDia"
+      ORDER BY MIN(CASE c."cultoDia"
+        WHEN 'LUNES' THEN 1 WHEN 'MARTES' THEN 2 WHEN 'MIERCOLES' THEN 3
+        WHEN 'JUEVES' THEN 4 WHEN 'VIERNES' THEN 5 WHEN 'SABADO' THEN 6
+        WHEN 'DOMINGO' THEN 7 ELSE 8 END)`,
+    [iglesiaId]
+  )
+
+  res.json({ tendencias, porDia })
+})
+
 router.post('/', requireAuth, async (req, res) => {
   const iglesiaId = Number(req.user.iglesiaId || 0)
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })

@@ -890,10 +890,16 @@ function TabTurnos({ ministerioId }) {
   const [modal, setModal]     = useState(false)
   const [form, setForm]       = useState({ miembroId:'', fecha:'', rol:'SERVIDOR', notas:'' })
   const [loading, setLoading] = useState(true)
+  const [confirmId, setConfirmId] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
-    try { setTurnos(await apiFetch(`/ministerios/${ministerioId}/turnos?mes=${mes}`) || []) } catch {}
+    try {
+      const data = await apiFetch(`/ministerios/${ministerioId}/turnos?mes=${mes}`)
+      setTurnos(Array.isArray(data) ? data : [])
+    } catch {
+      setTurnos([])
+    }
     setLoading(false)
   }, [ministerioId, mes])
 
@@ -914,13 +920,14 @@ function TabTurnos({ ministerioId }) {
   }
 
   async function eliminar(id) {
-    if (!confirm('¿Eliminar turno?')) return
+    setConfirmId(null)
     try { await apiFetch(`/ministerios/${ministerioId}/turnos/${id}`,{method:'DELETE'}); load() }
     catch(e) { toast.error(e.message) }
   }
 
   // Agrupar por fecha
-  const porFecha = turnos.reduce((acc, t) => {
+  const turnosList = Array.isArray(turnos) ? turnos : []
+  const porFecha = turnosList.reduce((acc, t) => {
     const k = t.fecha?.slice(0,10) || ''
     ;(acc[k] = acc[k]||[]).push(t)
     return acc
@@ -957,7 +964,7 @@ function TabTurnos({ ministerioId }) {
                 style={{fontSize:11,padding:'3px 10px',borderRadius:20,border:'1px solid var(--border)',background:t.confirmado?'var(--c-success-bg)':'var(--bg)',color:t.confirmado?'var(--c-success)':'var(--text-muted)',cursor:'pointer',fontWeight:600}}>
                 {t.confirmado ? '✓ Confirmado' : 'Confirmar'}
               </button>
-              <button onClick={()=>eliminar(t.id)} style={{background:'none',border:'none',color:'var(--c-danger)',cursor:'pointer',fontSize:16,padding:0}}>×</button>
+              <button onClick={()=>setConfirmId(t.id)} style={{background:'none',border:'none',color:'var(--c-danger)',cursor:'pointer',fontSize:16,padding:0}}>×</button>
             </div>
           ))}
         </div>
@@ -995,6 +1002,14 @@ function TabTurnos({ ministerioId }) {
           </div>
         </div>
       )}
+      <ConfirmModal
+        open={confirmId !== null}
+        onClose={() => setConfirmId(null)}
+        onConfirm={() => eliminar(confirmId)}
+        title="¿Eliminar turno?"
+        message="Esta acción no se puede deshacer."
+        danger
+      />
     </div>
   )
 }
@@ -1007,6 +1022,7 @@ function TabEvaluaciones({ ministerioId }) {
   const [miembros, setMiembros] = useState([])
   const [modal, setModal]     = useState(false)
   const [loading, setLoading] = useState(true)
+  const [confirmId, setConfirmId] = useState(null)
   const [form, setForm]       = useState({ miembroId:'', tipo:'AUTOEVALUACION', puntualidad:3, compromiso:3, habilidad:3, actitud:3, comentarios:'', periodo:'' })
 
   const load = useCallback(async () => {
@@ -1027,7 +1043,7 @@ function TabEvaluaciones({ ministerioId }) {
   }
 
   async function eliminar(id) {
-    if (!confirm('¿Eliminar evaluación?')) return
+    setConfirmId(null)
     try { await apiFetch(`/ministerios/${ministerioId}/evaluaciones/${id}`,{method:'DELETE'}); load() }
     catch(e) { toast.error(e.message) }
   }
@@ -1065,7 +1081,7 @@ function TabEvaluaciones({ ministerioId }) {
               </div>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <span style={{fontSize:18,fontWeight:800,color:'#F59E0B'}}>{prom}</span>
-                <button onClick={()=>eliminar(e.id)} style={{background:'none',border:'none',color:'var(--c-danger)',cursor:'pointer',fontSize:16,padding:0}}>×</button>
+                <button onClick={()=>setConfirmId(e.id)} style={{background:'none',border:'none',color:'var(--c-danger)',cursor:'pointer',fontSize:16,padding:0}}>×</button>
               </div>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,fontSize:11,marginBottom:6}}>
@@ -1122,6 +1138,14 @@ function TabEvaluaciones({ ministerioId }) {
           </div>
         </div>
       )}
+      <ConfirmModal
+        open={confirmId !== null}
+        onClose={() => setConfirmId(null)}
+        onConfirm={() => eliminar(confirmId)}
+        title="¿Eliminar evaluación?"
+        message="Esta acción no se puede deshacer."
+        danger
+      />
     </div>
   )
 }
@@ -1138,6 +1162,7 @@ function TabInventario({ ministerioId }) {
   const [modal, setModal]       = useState(false)
   const [editando, setEditando] = useState(null)
   const [loading, setLoading]   = useState(true)
+  const [confirmId, setConfirmId] = useState(null)
   const FORM0 = { nombre:'', descripcion:'', categoria:'OTRO', estado:'BUENO', responsableId:'', fechaCompra:'', fechaMantenimiento:'', valorEstimado:'', notas:'' }
   const [form, setForm]         = useState(FORM0)
 
@@ -1170,7 +1195,7 @@ function TabInventario({ ministerioId }) {
   }
 
   async function eliminar(id) {
-    if (!confirm('¿Eliminar recurso?')) return
+    setConfirmId(null)
     try { await apiFetch(`/ministerios/${ministerioId}/recursos/${id}`,{method:'DELETE'}); load() }
     catch(e) { toast.error(e.message) }
   }
@@ -1213,7 +1238,7 @@ function TabInventario({ ministerioId }) {
               {r.valorEstimado && <p style={{fontSize:11,color:'var(--text-muted)',margin:'4px 0'}}>💰 ${Number(r.valorEstimado).toLocaleString('es-AR')}</p>}
               <div style={{display:'flex',gap:6,marginTop:8}}>
                 <button className="btn btn-ghost btn-sm" style={{flex:1,fontSize:11}} onClick={()=>openModal(r)}>Editar</button>
-                <button className="btn btn-ghost btn-sm" style={{color:'var(--c-danger)',fontSize:11}} onClick={()=>eliminar(r.id)}>×</button>
+                <button className="btn btn-ghost btn-sm" style={{color:'var(--c-danger)',fontSize:11}} onClick={()=>setConfirmId(r.id)}>×</button>
               </div>
             </div>
           ))}
@@ -1258,6 +1283,14 @@ function TabInventario({ ministerioId }) {
           </div>
         </div>
       )}
+      <ConfirmModal
+        open={confirmId !== null}
+        onClose={() => setConfirmId(null)}
+        onConfirm={() => eliminar(confirmId)}
+        title="¿Eliminar recurso?"
+        message="Esta acción no se puede deshacer."
+        danger
+      />
     </div>
   )
 }

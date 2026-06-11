@@ -2,14 +2,75 @@ services:
   - type: web
     name: church-system
     env: node
-    region: oregon
-    plan: free
+    region: ohio
+    plan: starter
     rootDir: backend
-    buildCommand: cd ../frontend && pnpm install --no-frozen-lockfile && pnpm build && cd ../backend && pnpm install --no-frozen-lockfile
+    buildCommand: cd ../frontend && npm install -g pnpm && pnpm install --no-frozen-lockfile && pnpm build && cd ../backend && pnpm install --no-frozen-lockfile
     startCommand: node src/server.js
     healthCheckPath: /health
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: "4000"
+      - key: LOG_LEVEL
+        value: info
+      # ── REQUERIDAS — completar en Render dashboard ──────────────
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: QR_SECRET
+        sync: false
+      # ── URLs ────────────────────────────────────────────────────
+      - key: BASE_URL
+        value: https://churchsystem.com.ar
+      - key: FRONTEND_URL
+        value: https://churchsystem.com.ar
+      - key: PUBLIC_URL
+        value: https://churchsystem.com.ar
+      - key: ALLOWED_ORIGINS
+        value: https://churchsystem.com.ar,https://www.churchsystem.com.ar
+      # ── Email (Resend) ───────────────────────────────────────────
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: Church System <no-reply@churchsystem.com.ar>
+      # ── WhatsApp (Meta) ──────────────────────────────────────────
+      - key: META_APP_ID
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+      - key: META_VERIFY_TOKEN
+        sync: false
+      - key: META_ACCESS_TOKEN
+        sync: false
+      - key: META_PHONE_NUMBER_ID
+        sync: false
+      - key: META_WABA_ID
+        sync: false
+      # ── Push (VAPID) ─────────────────────────────────────────────
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_EMAIL
+        value: admin@churchsystem.com.ar
+      # ── IA ───────────────────────────────────────────────────────
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      # ── Pagos (MercadoPago) ──────────────────────────────────────
+      - key: MP_ACCESS_TOKEN
+        sync: false
+      - key: MP_PUBLIC_KEY
+        sync: false
+      - key: MP_MODO
+        value: production
+      # ── OAuth ────────────────────────────────────────────────────
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false

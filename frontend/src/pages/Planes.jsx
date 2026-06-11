@@ -4,6 +4,7 @@ import { apiFetch, getStoredContext } from '../services/api.js'
 import { usePlan } from '../hooks/usePlan.js'
 import { COMMERCIAL_PLAN_ORDER, getCommercialPlanUi } from '../lib/commercialPlans.js'
 import { EMAILS } from '../utils/legal.js'
+import { useOrientation } from '../hooks/useOrientation.js'
 
 function CheckIcon({ color = '#22c55e', size = 16 }) {
   return (
@@ -123,6 +124,7 @@ export default function Planes() {
   const lang = (ctx.lang || 'es').slice(0, 2)
   const tt = SECTION_COPY[lang] || SECTION_COPY.es
   const { plan: accessTier, commercialPlan, loading: loadingPlan } = usePlan()
+  const { isPhone } = useOrientation()
   const [catalog, setCatalog] = useState([])
   const [loading, setLoading] = useState(null)
   const [msg, setMsg] = useState(null)
@@ -175,23 +177,21 @@ export default function Planes() {
     setLoading(plan.key)
     setMsg(null)
     try {
-      const res = await apiFetch('/subscriptions/create', {
+      const usePayPal = String(ctx.currency || 'ARS').toUpperCase() === 'USD'
+      const endpoint = usePayPal ? '/paypal/crear-orden' : '/mp/crear-preferencia'
+      const payload = usePayPal
+        ? { plan: plan.key, promo: ctx.promo || '' }
+        : { plan: plan.key, country: ctx.country || 'AR', currency: ctx.currency || 'ARS', promo: ctx.promo || '' }
+      const res = await apiFetch(endpoint, {
         method: 'POST',
-        body: JSON.stringify({ plan: plan.key, frecuencia: 'mensual', metodo: 'mp' }),
+        body: JSON.stringify(payload),
       })
-      if (res?.checkout_url || res?.init_point) {
-        window.location.href = res.checkout_url || res.init_point
+      const checkoutUrl = res?.checkoutUrl || res?.checkout_url || res?.init_point || res?.approvalUrl || res?.approveUrl
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl
         return
       }
-      if (res?.approvalUrl) {
-        window.location.href = res.approvalUrl
-        return
-      }
-      if (res?.error) {
-        setMsg({ tipo: 'error', texto: res.error })
-        return
-      }
-      setMsg({ tipo: 'info', texto: 'Preparando checkout...' })
+      setMsg({ tipo: 'error', texto: res?.error || 'No se pudo iniciar el checkout.' })
     } catch (error) {
       setMsg({ tipo: 'error', texto: error.message || 'No se pudo iniciar el checkout.' })
     } finally {
@@ -352,7 +352,12 @@ export default function Planes() {
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{tt.leadership}</div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{tt.leadershipSub}</div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+            <div style={{
+              display: isPhone ? 'flex' : 'grid',
+              flexDirection: isPhone ? 'column' : undefined,
+              gridTemplateColumns: isPhone ? undefined : 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: 16,
+            }}>
               {grouped.leadership.map(renderCard)}
             </div>
           </section>
@@ -362,7 +367,12 @@ export default function Planes() {
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{tt.church}</div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{tt.churchSub}</div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+            <div style={{
+              display: isPhone ? 'flex' : 'grid',
+              flexDirection: isPhone ? 'column' : undefined,
+              gridTemplateColumns: isPhone ? undefined : 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: 16,
+            }}>
               {grouped.church.map(renderCard)}
             </div>
           </section>

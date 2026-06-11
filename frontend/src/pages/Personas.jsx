@@ -6,10 +6,13 @@ import { apiFetch, getUser } from '../services/api.js'
 import Modal, { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
 import { makeI18n } from '../lib/i18n.js'
+import { useOrientation } from '../hooks/useOrientation.js'
 
 const PERS_I18N = {
   es: { title:'Personas', importExcel:'Importar Excel', newPerson:'+ Nueva persona',
         allStates:'Todos', allGroups:'Todos los grupos',
+        allSpiritual:'Estado espiritual', allCultos:'Todos los cultos',
+        dateFrom:'Desde', dateTo:'Hasta', advancedFilters:'Filtros',
         colName:'Nombre', colContact:'Contacto', colService:'Culto', colGroup:'Grupo',
         loadingPeople:'Cargando personas...', noResults:'Sin resultados',
         editPerson:'Editar persona', newPersonModal:'Nueva persona',
@@ -33,6 +36,8 @@ const PERS_I18N = {
   },
   pt: { title:'Pessoas', importExcel:'Importar Excel', newPerson:'+ Nova pessoa',
         allStates:'Todos', allGroups:'Todos os grupos',
+        allSpiritual:'Estado espiritual', allCultos:'Todos os cultos',
+        dateFrom:'Desde', dateTo:'Até', advancedFilters:'Filtros',
         colName:'Nome', colContact:'Contato', colService:'Culto', colGroup:'Grupo',
         loadingPeople:'Carregando pessoas...', noResults:'Sem resultados',
         editPerson:'Editar pessoa', newPersonModal:'Nova pessoa',
@@ -56,6 +61,8 @@ const PERS_I18N = {
   },
   en: { title:'People', importExcel:'Import Excel', newPerson:'+ New person',
         allStates:'All', allGroups:'All groups',
+        allSpiritual:'Spiritual state', allCultos:'All services',
+        dateFrom:'From', dateTo:'To', advancedFilters:'Filters',
         colName:'Name', colContact:'Contact', colService:'Service', colGroup:'Group',
         loadingPeople:'Loading people...', noResults:'No results',
         editPerson:'Edit person', newPersonModal:'New person',
@@ -80,6 +87,7 @@ const PERS_I18N = {
 }
 
 const ESTADOS = ['ACTIVO','INACTIVO','VISITANTE','NUEVO']
+const ESTADOS_ESP = ['NUEVO_CREYENTE','CONSOLIDADO','DISCIPULO','LIDER','MINISTRO']
 const CULTOS  = ['','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO']
 const TIPOS_SEG = ['CONTACTO','VISITA','LLAMADA','REUNION','ORACION','MENSAJE','OTRO']
 const EMPTY   = {nombre:'',apellido:'',email:'',telefono:'',cultoDia:'',cultoTurno:0,
@@ -103,16 +111,22 @@ export default function Personas() {
   const isAdmin = ['PASTOR_GENERAL','CONSOLIDACION'].includes(user?.rol)
   const canDelete = user?.rol === 'PASTOR_GENERAL'
   const navigate = useNavigate()
+  const { isPhone } = useOrientation()
   const fileRef = useRef()
 
   const [data, setData]         = useState([])
   const [total, setTotal]       = useState(0)
   const [pages, setPages]       = useState(1)
   const [page, setPage]         = useState(1)
-  const [search, setSearch]     = useState('')
-  const [estadoF, setEstadoF]   = useState('')
-  const [grupoF,  setGrupoF]    = useState('')
-  const [grupos, setGrupos]     = useState([])
+  const [search, setSearch]              = useState('')
+  const [estadoF, setEstadoF]            = useState('')
+  const [grupoF,  setGrupoF]             = useState('')
+  const [estadoEspiritualF, setEstadoEspiritualF] = useState('')
+  const [cultoDiaF, setCultoDiaF]        = useState('')
+  const [fechaDesde, setFechaDesde]      = useState('')
+  const [fechaHasta, setFechaHasta]      = useState('')
+  const [showAdvanced, setShowAdvanced]  = useState(false)
+  const [grupos, setGrupos]              = useState([])
   const [modal, setModal]       = useState(null)
   const [form, setForm]         = useState(EMPTY)
   const [loading, setLoading]   = useState(false)
@@ -139,14 +153,18 @@ export default function Personas() {
     setLoading(true); setError(null)
     try {
       const p = new URLSearchParams({page, limit:20})
-      if (search) p.set('search', search)
-      if (estadoF) p.set('estado', estadoF)
-      if (grupoF)  p.set('grupoId', grupoF)
+      if (search)             p.set('search', search)
+      if (estadoF)            p.set('estado', estadoF)
+      if (grupoF)             p.set('grupoId', grupoF)
+      if (estadoEspiritualF)  p.set('estadoEspiritual', estadoEspiritualF)
+      if (cultoDiaF)          p.set('cultoDia', cultoDiaF)
+      if (fechaDesde)         p.set('fechaIngresoDesde', fechaDesde)
+      if (fechaHasta)         p.set('fechaIngresoHasta', fechaHasta)
       const res = await apiFetch(`/personas?${p}`)
       setData(res.data||[]); setTotal(res.total||0); setPages(res.pages||1)
     } catch (e) { setError(e.message); toast.error(e.message) }
     setLoading(false)
-  }, [page, search, estadoF, grupoF])
+  }, [page, search, estadoF, grupoF, estadoEspiritualF, cultoDiaF, fechaDesde, fechaHasta])
 
   useEffect(() => { load() }, [load])
   useEffect(() => {
@@ -255,18 +273,53 @@ export default function Personas() {
         </div>
 
         {/* Filtros */}
-        <div className="mobile-filter-bar" style={{display:'grid',gap:10,marginBottom:16,gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))'}}>
-          <input type="text" placeholder="Sistema Buscar..." value={search} onChange={e=>setSearch(e.target.value)} className="form-input" style={{maxWidth:'100%'}} />
-          <select value={estadoF} onChange={e=>setEstadoF(e.target.value)} className="form-input" style={{width:'100%'}}>
-            <option value="">{t('allStates')}</option>
-            {ESTADOS.map(e=><option key={e} value={e}>{e}</option>)}
-          </select>
-          <select value={grupoF} onChange={e=>setGrupoF(e.target.value)} className="form-input" style={{width:'100%'}}>
-            <option value="">{t('allGroups')}</option>
-            {grupos.map(g=><option key={g.id} value={g.id}>{g.nombre}</option>)}
-          </select>
-          <button className="btn btn-ghost btn-sm" onClick={()=>{setSearch('');setEstadoF('');setGrupoF('');setPage(1)}}>× {t('clear')}</button>
-        </div>
+        {(() => {
+          const activeCount = [estadoF,grupoF,estadoEspiritualF,cultoDiaF,fechaDesde,fechaHasta].filter(Boolean).length
+          function resetFilters() { setSearch('');setEstadoF('');setGrupoF('');setEstadoEspiritualF('');setCultoDiaF('');setFechaDesde('');setFechaHasta('');setPage(1) }
+          return (
+            <div style={{marginBottom:16}}>
+              {/* Fila superior: búsqueda siempre visible */}
+              <div style={{display:'flex',gap:8,marginBottom:(!isPhone||showAdvanced)?8:0,alignItems:'center'}}>
+                <input type="text" placeholder={t('search')+'...'} value={search}
+                  onChange={e=>{setSearch(e.target.value);setPage(1)}}
+                  className="form-input" style={{flex:1,minWidth:0}} />
+                {isPhone && (
+                  <button className="btn btn-ghost btn-sm" style={{flexShrink:0,whiteSpace:'nowrap'}}
+                    onClick={()=>setShowAdvanced(s=>!s)}>
+                    {t('advancedFilters')}{activeCount>0?` (${activeCount})`:''} {showAdvanced?'▲':'▼'}
+                  </button>
+                )}
+              </div>
+
+              {/* Filtros extra: siempre en tablet/desktop, colapsables en phone */}
+              {(!isPhone || showAdvanced) && (
+                <div style={{display:'grid',gap:8,gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))'}}>
+                  <select value={estadoF} onChange={e=>{setEstadoF(e.target.value);setPage(1)}} className="form-input">
+                    <option value="">{t('allStates')}</option>
+                    {ESTADOS.map(e=><option key={e} value={e}>{e}</option>)}
+                  </select>
+                  <select value={grupoF} onChange={e=>{setGrupoF(e.target.value);setPage(1)}} className="form-input">
+                    <option value="">{t('allGroups')}</option>
+                    {grupos.map(g=><option key={g.id} value={g.id}>{g.nombre}</option>)}
+                  </select>
+                  <select value={estadoEspiritualF} onChange={e=>{setEstadoEspiritualF(e.target.value);setPage(1)}} className="form-input">
+                    <option value="">{t('allSpiritual')}</option>
+                    {ESTADOS_ESP.map(e=><option key={e} value={e}>{e.replace(/_/g,' ')}</option>)}
+                  </select>
+                  <select value={cultoDiaF} onChange={e=>{setCultoDiaF(e.target.value);setPage(1)}} className="form-input">
+                    <option value="">{t('allCultos')}</option>
+                    {CULTOS.filter(Boolean).map(c=><option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <input type="date" value={fechaDesde} onChange={e=>{setFechaDesde(e.target.value);setPage(1)}}
+                    className="form-input" title={t('dateFrom')} />
+                  <input type="date" value={fechaHasta} onChange={e=>{setFechaHasta(e.target.value);setPage(1)}}
+                    className="form-input" title={t('dateTo')} />
+                  <button className="btn btn-ghost btn-sm" onClick={resetFilters}>× {t('clear')}</button>
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {error && (
           <div className="alert alert-error" style={{marginBottom:12, display:'flex', justifyContent:'space-between', alignItems:'center', gap:10}}>
@@ -275,59 +328,62 @@ export default function Personas() {
           </div>
         )}
 
-        <div className="mobile-list">
-          {loading ? (
-            <div className="mobile-empty">{t('loadingPeople')}</div>
-          ) : data.length === 0 ? (
-            <div className="mobile-empty">{t('noResults')}</div>
-          ) : data.map(p => (
-            <article className="mobile-person-card" key={p.id}>
-              <button className="mobile-person-main" onClick={() => setPersonaPreview(p)}>
-                <div className="mobile-person-avatar">{(p.nombre || '?').slice(0,1).toUpperCase()}</div>
-                <div className="mobile-person-info">
-                  <strong>{p.nombre} {p.apellido}</strong>
-                  <span>{p.email || p.telefono || t('noContact')}</span>
+        {/* ── PHONE: cards ────────────────────────────────────── */}
+        {isPhone ? (
+          <div className="mobile-list">
+            {loading ? (
+              <div className="mobile-empty">{t('loadingPeople')}</div>
+            ) : data.length === 0 ? (
+              <div className="mobile-empty">{t('noResults')}</div>
+            ) : data.map(p => (
+              <article className="mobile-person-card" key={p.id}>
+                <button className="mobile-person-main" onClick={() => setPersonaPreview(p)}>
+                  <div className="mobile-person-avatar">{(p.nombre || '?').slice(0,1).toUpperCase()}</div>
+                  <div className="mobile-person-info">
+                    <strong>{p.nombre} {p.apellido}</strong>
+                    <span>{p.email || p.telefono || t('noContact')}</span>
+                  </div>
+                  <span className={`badge badge-${String(p.estado || '').toLowerCase()}`}>{p.estado}</span>
+                </button>
+                <div className="mobile-person-meta">
+                  <span>{p.grupoNombre || t('noGroup')}</span>
+                  <span>{p.cultoDia || t('noService')}</span>
                 </div>
-                <span className={`badge badge-${String(p.estado || '').toLowerCase()}`}>{p.estado}</span>
-              </button>
-              <div className="mobile-person-meta">
-                <span>{p.grupoNombre || t('noGroup')}</span>
-                <span>{p.cultoDia || t('noService')}</span>
-              </div>
-              <div className="mobile-person-actions">
-                <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /> {t('followUpTitle').replace(':','')}</button>
-                <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /> {t('edit')}</button>
-                {canDelete&&<button className="btn btn-ghost btn-sm danger-action" onClick={()=>setConfirmDel({id:p.id,nombre:`${p.nombre} ${p.apellido||''}`.trim()})}><Icons.Delete /></button>}
-              </div>
-            </article>
-          ))}
-        </div>
-
-        {/* Tabla */}
-        <div className="table-responsive">
-          <table>
-            <thead><tr><th>{t('colName')}</th><th>{t('colContact')}</th><th>{t('colService')}</th><th>{t('colGroup')}</th><th>{t('status')}</th><th></th></tr></thead>
-            <tbody>
-              {loading ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>{t('loading')}</td></tr>
-                : data.length===0 ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>{t('noResults')}</td></tr>
-                : data.map(p => (
-                  <tr key={p.id}>
-                    <td onClick={()=>setPersonaPreview(p)} style={{cursor:'pointer',fontWeight:600}}>{p.nombre} {p.apellido}</td>
-                    <td>{p.email}<br/><small>{p.telefono}</small></td>
-                    <td>{p.cultoDia}</td>
-                    <td><small>{p.grupoNombre||'-'}</small></td>
-                    <td><span className={`badge badge-${p.estado.toLowerCase()}`}>{p.estado}</span></td>
-                    <td style={{whiteSpace:'nowrap'}}>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /></button>
-                      <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /></button>
-                      {canDelete&&<button className="btn btn-ghost btn-sm" onClick={()=>setConfirmDel({id:p.id,nombre:`${p.nombre} ${p.apellido||''}`.trim()})} style={{color:'var(--c-error)'}}><Icons.Delete /></button>}
-                    </td>
-                  </tr>
-                ))
-              }
-            </tbody>
-          </table>
-        </div>
+                <div className="mobile-person-actions">
+                  <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /> {t('followUpTitle').replace(':','')}</button>
+                  <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /> {t('edit')}</button>
+                  {canDelete&&<button className="btn btn-ghost btn-sm danger-action" onClick={()=>setConfirmDel({id:p.id,nombre:`${p.nombre} ${p.apellido||''}`.trim()})}><Icons.Delete /></button>}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          /* ── TABLET / DESKTOP: tabla ────────────────────── */
+          <div className="table-responsive">
+            <table>
+              <thead><tr><th>{t('colName')}</th><th>{t('colContact')}</th><th>{t('colService')}</th><th>{t('colGroup')}</th><th>{t('status')}</th><th></th></tr></thead>
+              <tbody>
+                {loading ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>{t('loading')}</td></tr>
+                  : data.length===0 ? <tr><td colSpan="6" style={{textAlign:'center',padding:40}}>{t('noResults')}</td></tr>
+                  : data.map(p => (
+                    <tr key={p.id}>
+                      <td onClick={()=>setPersonaPreview(p)} style={{cursor:'pointer',fontWeight:600}}>{p.nombre} {p.apellido}</td>
+                      <td>{p.email}<br/><small>{p.telefono}</small></td>
+                      <td>{p.cultoDia}</td>
+                      <td><small>{p.grupoNombre||'-'}</small></td>
+                      <td><span className={`badge badge-${p.estado.toLowerCase()}`}>{p.estado}</span></td>
+                      <td style={{whiteSpace:'nowrap'}}>
+                        <button className="btn btn-ghost btn-sm" onClick={()=>openSeguimiento(p)}><Icons.Messages /></button>
+                        <button className="btn btn-ghost btn-sm" onClick={()=>{setModal('edit');setForm(p)}}><Icons.Edit /></button>
+                        {canDelete&&<button className="btn btn-ghost btn-sm" onClick={()=>setConfirmDel({id:p.id,nombre:`${p.nombre} ${p.apellido||''}`.trim()})} style={{color:'var(--c-error)'}}><Icons.Delete /></button>}
+                      </td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Paginación */}
         {pages>1&&<div className="mobile-pagination" style={{display:'flex',justifyContent:'center',gap:8,marginTop:20}}>

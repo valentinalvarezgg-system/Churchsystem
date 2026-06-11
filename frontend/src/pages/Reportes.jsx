@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
 import { apiFetch, getApiUrl } from '../services/api.js'
 import { useRealtimeQuery } from '../hooks/useRealtimeQuery.js'
+import { useOrientation } from '../hooks/useOrientation.js'
 
 const fmt = n => Number(n || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 })
 const pct  = (a, b) => b > 0 ? Math.round(a / b * 100) : 0
@@ -19,6 +20,7 @@ const PERIODOS = [
 
 export default function Reportes() {
   const navigate  = useNavigate()
+  const { isPhone } = useOrientation()
   const [tipo, setTipo]     = useState('semanal')
   const [mes, setMes]       = useState(new Date().toISOString().slice(0, 7))
   const [periodo, setPeriodo] = useState('semana')
@@ -94,36 +96,56 @@ export default function Reportes() {
   return (
     <div className="layout"><Menu />
       <main className="main">
-        <div className="page-header">
-          <div>
-            <h1 className="page-title"><Icons.Reports /> Reportes</h1>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>
-              {tipo === 'mensual'
-                ? `Mes ${mes}`
-                : `${r?.periodo?.label || (tipo === 'general' ? 'Período' : 'Semana')} ${r?.periodo?.desde || '...'} → ${r?.periodo?.hasta || '...'}`}
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            {tipo === 'mensual' && (
-              <input name="mes" type="month" className="input" value={mes} onChange={e => setMes(e.target.value)} style={{ width: 140 }} />
-            )}
-            {tipo === 'general' && (
-              <select className="input" value={periodo} onChange={e => setPeriodo(e.target.value)} style={{ width: 160 }}>
-                {PERIODOS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-              </select>
-            )}
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {[['semanal', 'Esta semana'], ['mensual', 'Mensual'], ['general', 'General']].map(([k, l]) => (
-                <button key={k} onClick={() => setTipo(k)} className={tipo === k ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}>{l}</button>
+        {/* ── PHONE: header compacto ───────────────────────────── */}
+        {isPhone ? (
+          <div style={{marginBottom:16}}>
+            <h1 className="page-title" style={{marginBottom:6}}><Icons.Reports /> Reportes</h1>
+            <div style={{overflowX:'auto',display:'flex',gap:6,paddingBottom:4,scrollbarWidth:'none'}}>
+              {[['semanal','Semana'],['mensual','Mensual'],['general','General']].map(([k,l]) => (
+                <button key={k} onClick={() => setTipo(k)}
+                  style={{flexShrink:0,padding:'7px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:13,fontWeight:tipo===k?700:500,
+                    background:tipo===k?'var(--primary)':'var(--bg-2)',color:tipo===k?'#fff':'var(--text)'}}>
+                  {l}
+                </button>
               ))}
+              {tipo === 'mensual' && <input name="mes" type="month" className="input" value={mes} onChange={e=>setMes(e.target.value)} style={{width:130,flexShrink:0}}/>}
+              {tipo === 'general' && <select className="input" value={periodo} onChange={e=>setPeriodo(e.target.value)} style={{width:130,flexShrink:0}}>{PERIODOS.map(([k,label])=><option key={k} value={k}>{label}</option>)}</select>}
+              {r && <button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={exportarExcel}><Icons.Reports /> Excel</button>}
             </div>
-            {r && <>
-              <button className="btn btn-ghost btn-sm" data-tip="Imprimir reporte" onClick={imprimirReporte}> Imprimir</button>
-              <button className="btn btn-ghost btn-sm" data-tip="Exportar membresía en Excel" onClick={exportarExcel}><Icons.Reports /> Excel</button>
-              {tipo !== 'general' && <button className="btn btn-ghost btn-sm" data-tip="Ver lista de membresía en PDF" onClick={exportarPDF}> PDF</button>}
-            </>}
           </div>
-        </div>
+        ) : (
+          /* ── TABLET / DESKTOP: header completo ─────────────── */
+          <div className="page-header">
+            <div>
+              <h1 className="page-title"><Icons.Reports /> Reportes</h1>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>
+                {tipo === 'mensual'
+                  ? `Mes ${mes}`
+                  : `${r?.periodo?.label || (tipo === 'general' ? 'Período' : 'Semana')} ${r?.periodo?.desde || '...'} → ${r?.periodo?.hasta || '...'}`}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {tipo === 'mensual' && (
+                <input name="mes" type="month" className="input" value={mes} onChange={e => setMes(e.target.value)} style={{ width: 140 }} />
+              )}
+              {tipo === 'general' && (
+                <select className="input" value={periodo} onChange={e => setPeriodo(e.target.value)} style={{ width: 160 }}>
+                  {PERIODOS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                </select>
+              )}
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {[['semanal', 'Esta semana'], ['mensual', 'Mensual'], ['general', 'General']].map(([k, l]) => (
+                  <button key={k} onClick={() => setTipo(k)} className={tipo === k ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}>{l}</button>
+                ))}
+              </div>
+              {r && <>
+                <button className="btn btn-ghost btn-sm" data-tip="Imprimir reporte" onClick={imprimirReporte}> Imprimir</button>
+                <button className="btn btn-ghost btn-sm" data-tip="Exportar membresía en Excel" onClick={exportarExcel}><Icons.Reports /> Excel</button>
+                {tipo !== 'general' && <button className="btn btn-ghost btn-sm" data-tip="Ver lista de membresía en PDF" onClick={exportarPDF}> PDF</button>}
+              </>}
+            </div>
+          </div>
+        )}
 
         {loading && <div className="empty"><p>Generando reporte...</p></div>}
         {error && (
