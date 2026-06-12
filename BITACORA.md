@@ -1,6 +1,50 @@
 # BITÁCORA — Church System
 ---
 
+## v3.1.1 — 2026-06-12 — GodMode: acceso por flag superadmin, audit log, hardening
+
+### Cambios de seguridad
+- **Cerrado** `GET /godmode/login-status` — endpoint público que exponía el email del superadmin sin auth. Eliminado completamente.
+- **Nuevo middleware `requiereSuperadmin`**: verifica `es_superadmin = true` en DB en **cada request** (no confía en el JWT). Reemplaza al anterior `requireGodMode` que solo chequeaba el rol del token.
+- **Nuevo middleware `requireFreshSession`**: exige que el último login sea de menos de 12 h. Si la sesión es vieja, pide re-login.
+- **Stack de protección compuesto** `[requireAuth, requiereSuperadmin, requireFreshSession]` aplicado a **todos** los endpoints del router godmode sin excepción.
+- **Columna `es_superadmin`** (BOOLEAN, default false) en tabla `User`, agregada con `ALTER TABLE IF NOT EXISTS` (idempotente).
+- **Tabla `godmode_audit`**: registra toda acción de escritura del panel (LOGIN, APROBAR_TRANSFERENCIA, MAIL_TEST) con usuario_id, acción, detalle JSONB, IP y timestamp.
+- **Nuevo endpoint `GET /godmode/audit-log`**: expone el log de auditoría (protegido).
+- **`es_superadmin` incluido en el JWT payload** del login GodMode y en el objeto de usuario del localStorage.
+- **Rate limit estricto**: 30 req/min en `/godmode/*` (antes solo el límite global de 500/15min).
+- **`ProtectedRoute.jsx`**: ahora también verifica `es_superadmin` para rutas `roles={['GODMODE']}` (defensa en profundidad frontend).
+- **`scripts/audit.mjs`**: reemplazada la verificación de `/godmode/login-status` (ya no existe) por un check que confirma que `/godmode/overview` retorna 401/403 sin token.
+
+### Archivos nuevos
+- `scripts/make-superadmin.mjs` — activa el flag superadmin para un email dado. **Corre esto una sola vez para habilitarte el acceso.**
+
+### Cómo el dueño se da acceso (instrucciones de bootstrap)
+
+El endpoint godmode ahora exige `es_superadmin = true` en DB. Para activarlo:
+
+```bash
+# En el servidor (o con DATABASE_URL en entorno local):
+node scripts/make-superadmin.mjs tu@email.com
+```
+
+El script:
+1. Busca el usuario por email en la DB.
+2. Setea `es_superadmin = true`, `rol = 'GODMODE'`, `activo = true`.
+3. Imprime confirmación.
+
+Luego ingresar desde `/vault-login` con tu contraseña normal.
+
+Si el usuario no existe todavía: primero registrate en `/registro` (trial normal), y después correr el script.
+
+Si en producción (Render) no tenés acceso directo al servidor: conectate a la DB con `psql $DATABASE_URL` y ejecutar:
+```sql
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "es_superadmin" BOOLEAN NOT NULL DEFAULT false;
+UPDATE "User" SET "es_superadmin"=true, "rol"='GODMODE', "plan"='GODMODE' WHERE lower(email)='tu@email.com';
+```
+
+---
+
 ## v3.1.0 — 2026-06-11 — MP Subscriptions + trial 30 días + onboarding de engagement
 
 ### Suscripciones recurrentes con Mercado Pago Preapproval

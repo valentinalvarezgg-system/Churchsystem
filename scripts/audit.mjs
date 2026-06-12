@@ -7,7 +7,7 @@
  *   1. Versiones sincronizadas (package.json backend/frontend, README, BITACORA)
  *   2. Variables de entorno críticas
  *   3. Servidor local activo (puerto 4000)
- *   4. Endpoints smoke: /health, /godmode/login-status, /auth/login
+ *   4. Endpoints smoke: /health, /auth/login, /personas (requiere auth)
  *   5. Conectividad a DB (via /health)
  *   6. Dominio público: churchsystem.com.ar
  *   7. Rutas sin requireAuth (seguridad)
@@ -221,11 +221,6 @@ async function checkLocalServer() {
 async function checkEndpoints() {
   const tests = [
     {
-      url: 'http://localhost:4000/godmode/login-status',
-      name: 'GodMode status',
-      validate: j => j?.ok === true,
-    },
-    {
       url: 'http://localhost:4000/auth/login',
       method: 'POST',
       body: JSON.stringify({ email: 'noexiste@test.com', password: 'x' }),
@@ -294,11 +289,14 @@ async function checkPublicDomain() {
     log('warn', 'dominio', `churchsystem.com.ar HTTP ${res.status} pero body inesperado`, res.body?.slice(0, 80))
   }
 
-  const gm = await httpGet('https://churchsystem.com.ar/godmode/login-status', 8000)
-  if (gm.ok && gm.json?.ok === true) {
-    log('ok', 'dominio', `churchsystem.com.ar/godmode/login-status — envConfigured: ${gm.json.envConfigured}`)
+  // Verificar que /godmode/overview requiera auth (hardening: ya no existe login-status público)
+  const gmCheck = await httpGet('https://churchsystem.com.ar/godmode/overview', 8000)
+  if (gmCheck.ok && (gmCheck.status === 401 || gmCheck.status === 403)) {
+    log('ok', 'dominio', `churchsystem.com.ar/godmode/overview → ${gmCheck.status} (protegido correctamente)`)
+  } else if (gmCheck.ok && gmCheck.status === 200) {
+    log('error', 'dominio', 'churchsystem.com.ar/godmode/overview responde 200 SIN auth — CRÍTICO', gmCheck.body?.slice(0, 80))
   } else {
-    log('error', 'dominio', 'churchsystem.com.ar/godmode/login-status falló', gm.error || gm.body?.slice(0, 80))
+    log('warn', 'dominio', `churchsystem.com.ar/godmode/overview HTTP ${gmCheck.status}`, gmCheck.error || gmCheck.body?.slice(0, 80))
   }
 }
 

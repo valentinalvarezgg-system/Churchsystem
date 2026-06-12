@@ -142,6 +142,7 @@ app.use('/auth/login', rateLimit({
   message: { error: 'Demasiados intentos.' },
 }))
 app.use('/ia', rateLimit({ windowMs: 60 * 1000, max: 20, message: { error: 'Límite de IA.' } }))
+app.use('/godmode', rateLimit({ windowMs: 60 * 1000, max: 30, message: { error: 'Demasiadas solicitudes en GodMode.' } }))
 
 function blockLegalModule(req, res, next) {
   if (!LEGAL_HIDE_FINANZAS_ORACION) return next()
