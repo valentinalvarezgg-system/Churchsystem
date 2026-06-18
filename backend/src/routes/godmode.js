@@ -31,6 +31,20 @@ async function ensureGodModeSchema() {
     )
   `).catch(() => {})
   await pgExec(`CREATE INDEX IF NOT EXISTS idx_godmode_audit_usuario ON godmode_audit(usuario_id)`).catch(() => {})
+  // Tabla legacy usada por GodMode y por migración de sesiones en sessions.js
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS "user_sessions" (
+      "id"           SERIAL PRIMARY KEY,
+      "userId"       INTEGER     NOT NULL,
+      "refreshToken" TEXT        NOT NULL UNIQUE,
+      "userAgent"    TEXT,
+      "ip"           TEXT,
+      "expiresAt"    TIMESTAMPTZ NOT NULL,
+      "revoked"      SMALLINT    NOT NULL DEFAULT 0,
+      "createdAt"    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt"    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )
+  `).catch(() => {})
   _schemaReady = true
 }
 
