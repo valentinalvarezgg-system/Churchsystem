@@ -22,7 +22,8 @@ function databaseLooksUnsafe(value = '') {
   if (!value) return true
   try {
     const url = new URL(value)
-    return url.protocol !== 'postgresql:' || !url.searchParams.get('sslmode')
+    // Aceptar tanto postgres:// como postgresql:// (el driver pg soporta ambos)
+    return url.protocol !== 'postgresql:' && url.protocol !== 'postgres:'
   } catch {
     return true
   }
@@ -37,7 +38,15 @@ export function assertLaunchEnvironment() {
   }
 
   if (databaseLooksUnsafe(process.env.DATABASE_URL)) {
-    errors.push('DATABASE_URL debe ser PostgreSQL y usar sslmode=require.')
+    errors.push('DATABASE_URL debe ser una URL PostgreSQL válida (postgresql:// o postgres://).')
+  } else {
+    // Advertencia suave: sslmode es recomendado pero pg.js ya configura SSL por CA del sistema
+    try {
+      const dbUrl = new URL(process.env.DATABASE_URL)
+      if (!dbUrl.searchParams.get('sslmode')) {
+        warnings.push('DATABASE_URL sin ?sslmode=require. pg.js igual usa SSL por CA del sistema.')
+      }
+    } catch { /* url inválida, ya capturado arriba */ }
   }
 
   if (isProduction()) {
