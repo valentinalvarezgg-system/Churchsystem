@@ -501,8 +501,7 @@ try {
   logger.warn({ err: err.message }, 'Ministerio tables init skipped')
 }
 
-seedAdmin().then(async () => {
-  await seedGodModeUser()
+function startListening() {
   app.listen(PORT, '0.0.0.0', () => {
     const localIP = Object.values(os.networkInterfaces()).flat()
       .find(n => n.family === 'IPv4' && !n.internal)?.address || '??'
@@ -538,7 +537,15 @@ seedAdmin().then(async () => {
       setTimeout(runJobs, 24 * 3600 * 1000)
     }, msJobs)
   })
-})
+}
+
+// Ejecutar seeds al arrancar. Si fallan (ej: DB aún no disponible), arrancar igual.
+// Un error en seed NO debe impedir que app.listen() se llame — de lo contrario
+// el proceso queda vivo pero sin escuchar en el puerto, causando un 502 permanente.
+seedAdmin()
+  .then(() => seedGodModeUser())
+  .catch(err => logger.error({ err: err.message }, 'Seed error (non-fatal) — arrancando igual'))
+  .finally(() => startListening())
 
 process.on('SIGINT', () => {
   logger.info('Shutting down gracefully')
