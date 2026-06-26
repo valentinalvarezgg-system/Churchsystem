@@ -1,6 +1,33 @@
 # BITÁCORA — Church System
 ---
 
+## v3.1.2 — 2026-06-26 — GodMode: revertir auto-elevación; acceso por script offline
+
+### Cambios
+- **Eliminado `POST /godmode/login`** y la función `elevateEnvOwnerToGodMode`. GodMode ya no tiene un endpoint de login propio.
+- **Eliminada la auto-elevación automática** al loguear con credenciales env (`GODMODE_USER_EMAIL`/`GODMODE_USER_PASSWORD`). Ese mecanismo mutaba `es_superadmin=true` en DB desde un endpoint HTTP, lo cual no era el modelo acordado.
+- **GodModeLogin.jsx** ahora usa el flujo de login normal (`/auth/login`). El usuario ingresa con su email y contraseña regular; `requiereSuperadmin` valida el flag `es_superadmin` en DB en cada request al panel.
+- **`gdProtect`** simplificado a `[requireAuth, requiereSuperadmin]`. `requireFreshSession` quitado por ahora (sin hardening extra hasta revisión).
+- **`scripts/make-superadmin.mjs`** es el ÚNICO modo de otorgar acceso superadmin. Corre offline con acceso a DB:
+
+```bash
+# Con DATABASE_URL en entorno:
+node scripts/make-superadmin.mjs tu@email.com
+
+# O directo con psql:
+psql $DATABASE_URL -c "UPDATE \"User\" SET es_superadmin=true, rol='GODMODE' WHERE lower(email)='tu@email.com';"
+```
+
+### Acceso GodMode (flujo correcto)
+1. Primero correr `node scripts/make-superadmin.mjs <email>` (una vez, con acceso a DB)
+2. Ingresar desde `/vault-login` con contraseña normal
+3. `requiereSuperadmin` en backend valida `es_superadmin=true` de DB en cada request
+
+### Sin credenciales commiteadas ni logs expuestos
+Diagnóstico B.1 confirmó: `GODMODE_USER_EMAIL` y `GODMODE_USER_PASSWORD` solo existen en variables de entorno (Render dashboard). No hay credenciales en archivos del repo, no aparecen en logs.
+
+---
+
 ## v3.1.1 — 2026-06-12 — GodMode: acceso por flag superadmin, audit log, hardening
 
 ### Cambios de seguridad

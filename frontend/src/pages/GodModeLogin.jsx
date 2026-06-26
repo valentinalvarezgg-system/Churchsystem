@@ -15,7 +15,7 @@ export default function GodModeLogin() {
     setErr('')
     setLoading(true)
     try {
-      const r = await apiFetch('/godmode/login', {
+      const r = await apiFetch('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
         skipAuthRedirect: true,

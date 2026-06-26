@@ -3,17 +3,9 @@ import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { normalizePlan, PLANES } from '../lib/billing.js'
 import { getContactMailStatus, runContactMailSmoke } from '../lib/contact-mail.js'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-import crypto from 'crypto'
 import logger from '../lib/logger.js'
 
 const router = Router()
-
-const SECRET = () => {
-  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET no configurado')
-  return process.env.JWT_SECRET
-}
 
 // ── Schema bootstrap (idempotente) ───────────────────────────────────────────
 let _schemaReady = false
@@ -31,7 +23,7 @@ async function ensureGodModeSchema() {
     )
   `).catch(() => {})
   await pgExec(`CREATE INDEX IF NOT EXISTS idx_godmode_audit_usuario ON godmode_audit(usuario_id)`).catch(() => {})
-  // Tabla legacy usada por GodMode y por migración de sesiones en sessions.js
+  // Tabla legacy — backward-compat para migración de tokens en sessions.js
   await pgExec(`
     CREATE TABLE IF NOT EXISTS "user_sessions" (
       "id"           SERIAL PRIMARY KEY,
@@ -74,186 +66,10 @@ async function requiereSuperadmin(req, res, next) {
   return next()
 }
 
-// ── Middleware: sesión fresca — último login hace menos de 12 h ──────────────
-async function requireFreshSession(req, res, next) {
-  if (!req.user?.id) return res.status(401).json({ error: 'No autenticado' })
-  const session = await pgOne(
-    `SELECT "createdAt" FROM "user_sessions"
-      WHERE "userId"=$1 AND "revoked"=0
-      ORDER BY "createdAt" DESC LIMIT 1`,
-    [req.user.id]
-  ).catch(() => null)
-  if (!session) {
-    return res.status(401).json({ error: 'Sesión no encontrada. Re-ingresá para continuar.', code: 'RELOGIN_REQUIRED' })
-  }
-  const ageMs = Date.now() - new Date(session.createdAt).getTime()
-  if (ageMs > 12 * 3600 * 1000) {
-    return res.status(401).json({ error: 'Sesión expirada (más de 12 h). Re-ingresá para continuar.', code: 'FRESH_SESSION_REQUIRED' })
-  }
-  return next()
-}
-
-// ── Stack de protección compuesto ────────────────────────────────────────────
-const gdProtect = [requireAuth, requiereSuperadmin, requireFreshSession]
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function signAccessToken(payload) {
-  return jwt.sign(payload, SECRET(), { expiresIn: '15m' })
-}
-
-function createRefreshToken() {
-  return crypto.randomBytes(48).toString('hex')
-}
-
-function userPayload(user) {
-  return {
-    id: user.id,
-    email: user.email,
-    rol: user.rol,
-    nombre: user.nombre,
-    plan: user.plan || 'GODMODE',
-    iglesiaId: user.iglesiaId || 1,
-    pais: user.pais || 'AR',
-    divisa: user.divisa || 'USD',
-    idioma: user.idioma || 'es',
-    es_superadmin: !!user.es_superadmin,
-  }
-}
-
-async function ensureGodModeUserFromEnv(inputEmail = '') {
-  const envEmail = String(process.env.GODMODE_USER_EMAIL || '').trim().toLowerCase()
-  const envPassword = String(process.env.GODMODE_USER_PASSWORD || '').trim()
-  if (!envEmail || !envPassword) return null
-  if (inputEmail && inputEmail !== envEmail) return null
-
-  const role = await pgOne(
-    `INSERT INTO "Rol" ("codigo","nombre","createdAt","updatedAt")
-     VALUES ('GODMODE','GodMode',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-     ON CONFLICT ("codigo") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP
-     RETURNING id`
-  )
-  const iglesia = await pgOne(
-    `INSERT INTO "Iglesia" ("nombre","token","createdAt","updatedAt")
-     VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-     ON CONFLICT ("token") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP
-     RETURNING id`,
-    ['GodMode', 'GODMODE-ROOT']
-  ).catch(() => pgOne('SELECT "id" FROM "Iglesia" WHERE "token"=$1 LIMIT 1', ['GODMODE-ROOT']))
-
-  const exists = await pgOne(
-    'SELECT * FROM "User" WHERE lower("email")=lower($1) AND "deletedAt" IS NULL LIMIT 1',
-    [envEmail]
-  )
-  if (exists) return exists
-
-  const hash = await bcrypt.hash(envPassword, 12)
-  const created = await pgOne(
-    `INSERT INTO "User"
-      ("email","password","nombre","apellido","activo","emailVerificado","iglesiaId","rolId","createdAt","updatedAt",
-       "rol","plan","pais","divisa","idioma","iglesia","es_superadmin")
-     VALUES
-      ($1,$2,'Owner','GodMode',true,true,$3,$4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,
-       'GODMODE','GODMODE','AR','USD','es','GodMode',true)
-     RETURNING *`,
-    [envEmail, hash, iglesia.id, role.id]
-  )
-  return created
-}
-
-async function elevateEnvOwnerToGodMode(user, envPassword) {
-  const role = await pgOne(
-    `INSERT INTO "Rol" ("codigo","nombre","createdAt","updatedAt")
-     VALUES ('GODMODE','GodMode',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-     ON CONFLICT ("codigo") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP
-     RETURNING id`
-  )
-  const iglesia = await pgOne(
-    `INSERT INTO "Iglesia" ("nombre","token","createdAt","updatedAt")
-     VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-     ON CONFLICT ("token") DO UPDATE SET "updatedAt"=CURRENT_TIMESTAMP
-     RETURNING id`,
-    ['GodMode', 'GODMODE-ROOT']
-  ).catch(() => pgOne('SELECT "id" FROM "Iglesia" WHERE "token"=$1 LIMIT 1', ['GODMODE-ROOT']))
-  const nextHash = await bcrypt.hash(envPassword, 12)
-  await pgExec(
-    `UPDATE "User"
-        SET "rol"='GODMODE', "plan"='GODMODE', "iglesiaId"=$1, "rolId"=$2,
-            "activo"=true, "emailVerificado"=true, "password"=$3,
-            "es_superadmin"=true, "updatedAt"=CURRENT_TIMESTAMP
-      WHERE "id"=$4`,
-    [iglesia.id, role.id, nextHash, user.id]
-  )
-  return pgOne('SELECT * FROM "User" WHERE "id"=$1 LIMIT 1', [user.id])
-}
-
-async function issueGodModeSession(req, user) {
-  const payload = userPayload(user)
-  const accessToken = signAccessToken(payload)
-  const refreshToken = createRefreshToken()
-  await pgOne(
-    `INSERT INTO "user_sessions"
-      ("userId","refreshToken","userAgent","ip","expiresAt","revoked","createdAt","updatedAt")
-     VALUES ($1,$2,$3,$4,NOW() + INTERVAL '30 days',0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`,
-    [user.id, refreshToken, String(req.headers['user-agent'] || ''), String(req.ip || '')]
-  )
-  return { token: accessToken, refreshToken, user: payload }
-}
-
-// ── POST /godmode/login ────────────────────────────────────────────────────────
-router.post('/login', async (req, res) => {
-  await ensureGodModeSchema()
-  const { email = '', password = '' } = req.body || {}
-  if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' })
-
-  const normalizedEmail = String(email).toLowerCase().trim()
-  const inputPassword   = String(password)
-  const envEmail        = String(process.env.GODMODE_USER_EMAIL || '').trim().toLowerCase()
-  const envPassword     = String(process.env.GODMODE_USER_PASSWORD || '').trim()
-  const isEnvOwner      = normalizedEmail === envEmail && !!envPassword
-
-  let user = await pgOne(
-    'SELECT * FROM "User" WHERE lower("email")=lower($1) AND "activo"=true AND "deletedAt" IS NULL LIMIT 1',
-    [normalizedEmail]
-  )
-  if (!user) user = await ensureGodModeUserFromEnv(normalizedEmail)
-
-  // Elevar si: credenciales env válidas Y (no es GODMODE aún, o es GODMODE pero falta es_superadmin)
-  if (user && isEnvOwner && inputPassword === envPassword && (user.rol !== 'GODMODE' || !user.es_superadmin)) {
-    user = await elevateEnvOwnerToGodMode(user, envPassword)
-  }
-
-  if (!user || user.rol !== 'GODMODE') {
-    const hasEnv = !!envEmail && !!envPassword
-    logger.warn({ email: normalizedEmail }, 'GodMode login: rol no es GODMODE')
-    return res.status(401).json({ error: hasEnv ? 'Credenciales inválidas' : 'GodMode no configurado en servidor.' })
-  }
-
-  // Segunda verificación: flag es_superadmin en DB
-  if (!user.es_superadmin) {
-    logger.warn({ userId: user.id }, 'GodMode login: es_superadmin=false')
-    return res.status(403).json({
-      error: 'Acceso superadmin no habilitado. Ejecutá: node scripts/make-superadmin.mjs <email>',
-      code: 'SUPERADMIN_NOT_ENABLED',
-    })
-  }
-
-  let ok = await bcrypt.compare(inputPassword, user.password || '')
-  if (!ok && isEnvOwner && String(password) === envPassword) {
-    const newHash = await bcrypt.hash(envPassword, 12)
-    await pgExec('UPDATE "User" SET "password"=$1, "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$2', [newHash, user.id])
-    user.password = newHash
-    ok = true
-  }
-  if (!ok) {
-    logger.warn({ userId: user.id }, 'GodMode login: contraseña incorrecta')
-    return res.status(401).json({ error: 'Credenciales inválidas' })
-  }
-
-  const session = await issueGodModeSession(req, user)
-  await auditLog(user.id, 'LOGIN', { ip: req.ip }, req.ip)
-  logger.info({ userId: user.id, email: user.email }, 'GodMode login exitoso')
-  return res.json(session)
-})
+// ── Stack de protección ──────────────────────────────────────────────────────
+// El acceso GodMode se otorga solo via script offline: node scripts/make-superadmin.mjs <email>
+// El login usa el flujo normal /auth/login — este stack valida es_superadmin en DB en cada request.
+const gdProtect = [requireAuth, requiereSuperadmin]
 
 // ── GET /godmode/overview ─────────────────────────────────────────────────────
 router.get('/overview', ...gdProtect, async (_req, res) => {

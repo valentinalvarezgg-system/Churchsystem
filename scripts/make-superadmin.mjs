@@ -144,7 +144,7 @@ async function run() {
     console.log(`  Nombre: ${user.nombre}`)
     console.log(`  Rol anterior: ${user.rol} → GODMODE`)
     console.log(`  es_superadmin: false → true`)
-    console.log(`\n  Podés ingresar ahora desde: /vault-login`)
+    console.log(`\n  Podés ingresar ahora desde: /vault-login (con tu contraseña normal)`)
   } finally {
     client.release()
     await pool.end()
