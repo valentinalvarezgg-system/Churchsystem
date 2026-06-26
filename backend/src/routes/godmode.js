@@ -217,8 +217,8 @@ router.post('/login', async (req, res) => {
   )
   if (!user) user = await ensureGodModeUserFromEnv(normalizedEmail)
 
-  // Reclamo de cuenta: si el email coincide con el env y la contraseña cruda también → elevar
-  if (user && user.rol !== 'GODMODE' && isEnvOwner && inputPassword === envPassword) {
+  // Elevar si: credenciales env válidas Y (no es GODMODE aún, o es GODMODE pero falta es_superadmin)
+  if (user && isEnvOwner && inputPassword === envPassword && (user.rol !== 'GODMODE' || !user.es_superadmin)) {
     user = await elevateEnvOwnerToGodMode(user, envPassword)
   }
 
