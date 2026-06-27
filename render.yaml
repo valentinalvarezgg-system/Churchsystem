@@ -16,6 +16,8 @@ services:
         value: "4000"
       - key: LOG_LEVEL
         value: info
+      - key: LEGAL_HIDE_FINANZAS_ORACION
+        value: "true"
       # ── REQUERIDAS — completar en Render dashboard ──────────────
       - key: DATABASE_URL
         sync: false
@@ -35,21 +37,41 @@ services:
       # ── Email (Resend) ───────────────────────────────────────────
       - key: RESEND_API_KEY
         sync: false
+      - key: RESEND_INBOUND_SECRET
+        sync: false
       - key: EMAIL_FROM
         value: Church System <no-reply@churchsystem.com.ar>
+      - key: OWNER_REPORTS_EMAIL
+        value: admin@churchsystem.com.ar
       # ── WhatsApp (Meta) ──────────────────────────────────────────
+      - key: META_API_VERSION
+        value: v23.0
+      - key: META_GRAPH_VERSION
+        value: v23.0
       - key: META_APP_ID
         sync: false
       - key: META_APP_SECRET
         sync: false
       - key: META_VERIFY_TOKEN
         sync: false
+      - key: META_WEBHOOK_VERIFY_TOKEN
+        sync: false
       - key: META_ACCESS_TOKEN
+        sync: false
+      - key: META_SYSTEM_TOKEN
         sync: false
       - key: META_PHONE_NUMBER_ID
         sync: false
       - key: META_WABA_ID
         sync: false
+      - key: META_DISPLAY_PHONE_NUMBER
+        sync: false
+      - key: META_VERIFIED_NAME
+        sync: false
+      - key: META_EMBEDDED_SIGNUP_CONFIG_ID
+        sync: false
+      - key: META_REDIRECT_URI
+        value: https://churchsystem.com.ar/app/configuracion
       # ── Push (VAPID) ─────────────────────────────────────────────
       - key: VAPID_PUBLIC_KEY
         sync: false
@@ -62,15 +84,64 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: COTIZACION_USD_ARS
+        sync: false
       # ── Pagos (MercadoPago) ──────────────────────────────────────
       - key: MP_ACCESS_TOKEN
         sync: false
       - key: MP_PUBLIC_KEY
         sync: false
+      - key: MP_WEBHOOK_SECRET
+        sync: false
       - key: MP_MODO
         value: production
+      # ── Pagos USD / alternativos ─────────────────────────────────
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: PAYPAL_ENV
+        value: live
+      # ── Transferencia bancaria ───────────────────────────────────
+      - key: TRANSFERENCIA_BANCO
+        sync: false
+      - key: TRANSFERENCIA_ALIAS
+        sync: false
+      - key: TRANSFERENCIA_CBU
+        sync: false
+      - key: TRANSFERENCIA_TITULAR
+        sync: false
+      - key: TRANSFERENCIA_CUIT
+        sync: false
       # ── OAuth ────────────────────────────────────────────────────
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_DRIVE_REDIRECT_URI
+        value: https://churchsystem.com.ar/oauth/google/callback
+      - key: APPLE_CLIENT_ID
+        sync: false
+      - key: APPLE_TEAM_ID
+        sync: false
+      - key: APPLE_KEY_ID
+        sync: false
+      - key: APPLE_PRIVATE_KEY
+        sync: false
+      - key: APPLE_REDIRECT_URI
+        value: https://churchsystem.com.ar/oauth/apple/callback
+      # ── Twilio legacy / fallback ─────────────────────────────────
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
         sync: false

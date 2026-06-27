@@ -20,6 +20,10 @@
 - Versiones sincronizadas a `3.1.2` en raíz, backend, frontend y README.
 - Agregado `scripts/verify-prod.mjs` + comandos `pnpm verify:prod` y `pnpm verify:prod:render` para diferenciar “sitio online” de “migración Render completa”.
 - Modernizado `scripts/diagnostico.sh`: deja de revisar PM2/nginx/puerto 3000 y ahora diagnostica backend local :4000, launchd, Cloudflare Tunnel, dominio público, git y migración Render sin imprimir secretos.
+- Eliminado seed legacy `GODMODE_USER_EMAIL`/`GODMODE_USER_PASSWORD` del arranque y de auditorías/plantillas; GodMode queda solo por flag DB + `scripts/make-superadmin.mjs`.
+- Agregado `scripts/check-migration-env.mjs` + `pnpm migration:env` para cruzar variables usadas por backend contra `render.yaml` y fuentes locales sin exponer valores.
+- `render.yaml` declara ahora todas las variables runtime detectadas para la migración Business (pagos, OAuth, Resend inbound, Meta, IA, transferencia y Twilio legacy).
+- Variables legacy GodMode removidas del `launchd` local y de `backend/.env`; si existían en entornos anteriores, rotarlas/no migrarlas.
 
 ### Evidencia
 - `https://churchsystem.com.ar/health` → HTTP 200, `{"status":"ok"}`.
@@ -31,6 +35,7 @@
 - `pnpm verify:prod` → OK con advertencias esperadas: TLS local de Node, origen Cloudflare Tunnel local, sin `render` CLI/`RENDER_API_KEY`.
 - `pnpm verify:prod:render` → falla correctamente mientras `churchsystem.com.ar` dependa de `localhost:4000`.
 - `pnpm diagnostico` → confirma backend local, launchd y Cloudflare Tunnel activos; advierte que producción todavía depende de `localhost:4000`.
+- `pnpm migration:env` → OK sin errores: todas las variables usadas por `backend/src` están declaradas en `render.yaml`; queda advertencia de secretos opcionales/manuales que deben cargarse en Render Business si aplican.
 
 ### Pendiente operativo P0
 - Resolver la contradicción de deploy: la bitácora decía `MODO_RENDER`, pero la web pública actualmente depende del túnel local de Cloudflare.
@@ -62,8 +67,8 @@ psql $DATABASE_URL -c "UPDATE \"User\" SET es_superadmin=true, rol='GODMODE' WHE
 2. Ingresar desde `/vault-login` con contraseña normal
 3. `requiereSuperadmin` en backend valida `es_superadmin=true` de DB en cada request
 
-### Sin credenciales commiteadas ni logs expuestos
-Diagnóstico B.1 confirmó: `GODMODE_USER_EMAIL` y `GODMODE_USER_PASSWORD` solo existen en variables de entorno (Render dashboard). No hay credenciales en archivos del repo, no aparecen en logs.
+### Sin credenciales commiteadas ni seed por env
+`GODMODE_USER_EMAIL` y `GODMODE_USER_PASSWORD` no deben migrarse a Render. El acceso dueño se otorga offline con `scripts/make-superadmin.mjs` y se valida con `es_superadmin=true` en DB.
 
 ---
 
@@ -344,6 +349,7 @@ tail -f /tmp/church-back.log
 ```bash
 node scripts/audit.mjs
 pnpm diagnostico        # diagnóstico 502: backend local, launchd, tunnel y dominio
+pnpm migration:env      # inventario seguro para migrar variables a Render Business
 pnpm verify:prod          # salud pública actual
 pnpm verify:prod:render   # exige que producción ya no dependa del túnel local
 ```
@@ -401,6 +407,8 @@ Antes de cualquier troubleshooting de infra, registrar aquí el modo activo:
 | `ANTHROPIC_API_KEY` / `GROQ_API_KEY` | IA |
 | `MP_ACCESS_TOKEN` / `MP_PUBLIC_KEY` | MercadoPago |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth |
+
+Ejecutar `pnpm migration:env` antes del corte: el script no imprime secretos y marca qué variables `sync:false` faltan cargar manualmente en la cuenta Business.
 
 ### Cambiar DNS en Cloudflare
 

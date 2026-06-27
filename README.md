@@ -72,10 +72,6 @@ MP_ACCESS_TOKEN=APP_USR-xxxxx
 # IA
 ANTHROPIC_API_KEY=sk-ant-xxxxx
 
-# GodMode (dueño del SaaS)
-GODMODE_USER_EMAIL=owner@churchsystem.com.ar
-GODMODE_USER_PASSWORD=contraseña_segura
-
 # Push notifications (VAPID)
 VAPID_PUBLIC_KEY=...
 VAPID_PRIVATE_KEY=...
@@ -348,6 +344,7 @@ Rollback rápido:
 
 ```bash
 pnpm diagnostico        # backend local, launchd, Cloudflare Tunnel y dominio
+pnpm migration:env      # inventario seguro de variables para Render Business
 pnpm verify:prod        # salud pública actual
 pnpm verify:prod:render # falla hasta completar el corte a Render
 ```

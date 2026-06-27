@@ -165,8 +165,6 @@ function checkEnvVars() {
     ['BASE_URL',             v => v?.startsWith('https://'),                       'Debe ser HTTPS'],
     ['FRONTEND_URL',         v => v?.startsWith('https://'),                       'Debe ser HTTPS'],
     ['RESEND_API_KEY',       v => v?.startsWith('re_'),                            'Debe empezar con re_'],
-    ['GODMODE_USER_EMAIL',   v => v?.includes('@'),                                'Debe ser un email'],
-    ['GODMODE_USER_PASSWORD',v => v && v.length >= 8,                              'Debe tener ≥8 chars'],
     ['VAPID_PUBLIC_KEY',     v => !!v,                                             'Requerida para push notifications'],
     ['VAPID_PRIVATE_KEY',    v => !!v,                                             'Requerida para push notifications'],
   ]
@@ -455,8 +453,7 @@ function checkLaunchdSync() {
   }
 
   const plistText = readText(PLIST)
-  const mustSync  = ['JWT_SECRET', 'DATABASE_URL', 'GODMODE_USER_EMAIL', 'GODMODE_USER_PASSWORD',
-                     'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'RESEND_API_KEY']
+  const mustSync  = ['JWT_SECRET', 'DATABASE_URL', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'RESEND_API_KEY']
   const plistKeys = [...plistText.matchAll(/<key>([A-Z_][A-Z0-9_]*)<\/key>/g)].map(m => m[1])
   const missing   = mustSync.filter(k => !plistKeys.includes(k))
 

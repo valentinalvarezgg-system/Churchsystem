@@ -104,10 +104,6 @@ DATABASE_URL=postgresql://user:password@host:5432/dbname
 
 JWT_SECRET=cambia-esto-a-un-secreto-largo-y-aleatorio
 
-# GodMode (admin raíz)
-GODMODE_USER_EMAIL=admin@tudominio.com
-GODMODE_USER_PASSWORD=cambia-esta-clave
-
 # MercadoPago
 MP_ACCESS_TOKEN=
 
