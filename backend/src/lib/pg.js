@@ -45,9 +45,10 @@ function cleanConnectionString(raw) {
 const DATABASE_URL = process.env.DATABASE_URL || ''
 if (!DATABASE_URL) throw new Error('DATABASE_URL no configurado')
 
+const isLocalhost = /localhost|127\.0\.0\.1/.test(DATABASE_URL)
 const pool = new Pool({
   connectionString: cleanConnectionString(DATABASE_URL),
-  ssl: sslConfig,
+  ssl: isLocalhost ? false : sslConfig,
   max: Number(process.env.PG_POOL_MAX || 12),
   idleTimeoutMillis: 20000,
   connectionTimeoutMillis: 10000,
