@@ -16,6 +16,7 @@
 - Backend local quedó escuchando en `0.0.0.0:4000` y `GET /health` responde OK.
 - `render.yaml` ahora fija `pnpm@9.15.5`, ejecuta `pnpm store prune` y fuerza reinstalación desde lockfiles para evitar cache corrupta en Render.
 - `cd frontend && pnpm build` pasó correctamente y `frontend/dist/` fue regenerado.
+- Hardening posterior: `ChatGrupo`, `LoginMiembro` y `PortalMiembro` dejaron de hardcodear `localhost:4000`/`/api`; usan `getApiUrl()` y el stream de chat ya no manda JWT en query string.
 
 ### Evidencia
 - `https://churchsystem.com.ar/health` → HTTP 200, `{"status":"ok"}`.
@@ -177,8 +178,8 @@ UPDATE "User" SET "es_superadmin"=true, "rol"='GODMODE', "plan"='GODMODE' WHERE 
 > Fuente única de verdad operativa del proyecto.  
 > Leer esto antes de tocar cualquier archivo.
 
-**Versión:** v2.9.6 · **Fecha:** 2026-06-08 · **Rama:** `master`  
-**Deploy activo:** `MODO_RENDER` (Render Web Service → `churchsystem.com.ar`)
+**Versión:** v3.1.1 · **Fecha:** 2026-06-27 · **Rama:** `master`  
+**Deploy activo real:** `MODO_CLOUDFLARE_LOCAL` (Cloudflare Tunnel → Mac local `localhost:4000`). `MODO_RENDER` queda como migración pendiente.
 
 ---
 
@@ -373,7 +374,7 @@ grep "^# Church System" README.md
 
 Antes de cualquier troubleshooting de infra, registrar aquí el modo activo:
 
-**Hoy:** `MODO_RENDER` — `churchsystem.com.ar` apunta (CNAME) al servicio Render `church-system`. El backend corre en la nube 24/7, sin dependencia de la Mac.
+**Hoy:** `MODO_CLOUDFLARE_LOCAL` — `churchsystem.com.ar` entra por Cloudflare Tunnel y apunta a `http://localhost:4000` en la Mac. `MODO_RENDER` todavía no está probado desde dashboard/CLI autenticada y requiere completar secretos `sync:false` + DNS/origen correcto.
 
 ### Variables requeridas en Render dashboard
 

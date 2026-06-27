@@ -1,10 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { apiFetch, getUser } from '../services/api.js'
+import { apiFetch, getApiUrl, getUser } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
-
-const API_BASE = typeof window !== 'undefined'
-  ? window.location.origin.replace(/:\d+/, ':4000')
-  : 'http://localhost:4000'
 
 export default function ChatGrupo({ grupoId, grupoNombre }) {
   const user = getUser()
@@ -25,23 +21,43 @@ export default function ChatGrupo({ grupoId, grupoNombre }) {
   useEffect(() => {
     loadHistorial()
     const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : ''
-    const evtSource = new EventSource(
-      `${API_BASE}/api/chat/${grupoId}/stream?token=${token}`
-    )
-    sseRef.current = evtSource
+    const controller = new AbortController()
+    sseRef.current = controller
 
-    evtSource.onmessage = (e) => {
+    async function connectStream() {
       try {
-        const data = JSON.parse(e.data)
-        if (data.tipo === 'MENSAJE') {
-          setMensajes(prev => [...prev, data.mensaje])
+        const res = await fetch(`${getApiUrl()}/chat/${grupoId}/stream`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          signal: controller.signal,
+        })
+        if (!res.ok || !res.body) return
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        while (!controller.signal.aborted) {
+          const { value, done } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const events = buffer.split('\n\n')
+          buffer = events.pop() || ''
+          for (const event of events) {
+            const line = event.split('\n').find(part => part.startsWith('data: '))
+            if (!line) continue
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.tipo === 'MENSAJE') {
+                setMensajes(prev => [...prev, data.mensaje])
+              }
+            } catch {}
+          }
         }
       } catch {}
     }
 
-    evtSource.onerror = () => {} // Reconecta automáticamente
+    connectStream()
 
-    return () => { evtSource.close() }
+    return () => { controller.abort() }
   }, [grupoId, loadHistorial])
 
   // Auto-scroll al fondo

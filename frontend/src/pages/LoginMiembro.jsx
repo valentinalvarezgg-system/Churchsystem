@@ -1,8 +1,5 @@
 import { useState } from 'react'
-
-const API = typeof window !== 'undefined'
-  ? window.location.origin.replace(/:\d+/, ':4000') + '/api'
-  : 'http://localhost:4000/api'
+import { getApiUrl } from '../services/api.js'
 
 export default function LoginMiembro({ onLogin }) {
   const [email, setEmail]         = useState('')
@@ -16,7 +13,7 @@ export default function LoginMiembro({ onLogin }) {
     e.preventDefault()
     setError(''); setLoading(true)
     try {
-      const r = await fetch(`${API}/miembro/auth/login`, {
+      const r = await fetch(`${getApiUrl()}/miembro/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, iglesiaToken: iglesiaToken.trim().toUpperCase() || undefined })

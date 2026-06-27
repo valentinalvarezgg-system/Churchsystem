@@ -1,14 +1,11 @@
 import { useEffect, useState, useCallback } from 'react'
 import LoginMiembro from './LoginMiembro.jsx'
 import { toast } from '../components/Toast.jsx'
-
-const API = typeof window !== 'undefined'
-  ? window.location.origin.replace(/:\d+/, ':4000') + '/api'
-  : 'http://localhost:4000/api'
+import { getApiUrl } from '../services/api.js'
 
 async function apiFetch(path, opts = {}) {
   const token = localStorage.getItem('miembro_token')
-  const r = await fetch(`${API}${path}`, {
+  const r = await fetch(`${getApiUrl()}${path}`, {
     ...opts,
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts.headers || {}) }
   })
