@@ -29,6 +29,8 @@
 - `render.yaml` actualizado al formato Blueprint actual: `runtime: node` y `autoDeployTrigger: commit`.
 - Agregado `scripts/render-blueprint-link.mjs` + `pnpm render:blueprint-link` para abrir el Blueprint correcto desde el remote GitHub.
 - Agregado `scripts/validate-render-blueprint.mjs` + `pnpm render:validate` para detectar campos deprecados, env duplicadas, secretos en claro y variables mínimas faltantes sin depender del CLI de Render.
+- Agregado `scripts/setup-cloudflared-launchd.sh` + `pnpm setup:cloudflared` para gestionar Cloudflare Tunnel con `launchd` y reducir riesgo de 502 por proceso caído/reinicio de Mac.
+- Agregado `scripts/run-cloudflared-tunnel.sh`: wrapper que usa named tunnel si existe `credentials-file` válido o token local `~/.cloudflared/church-system.token` con permisos `600`.
 
 ### Evidencia
 - `https://churchsystem.com.ar/health` → HTTP 200, `{"status":"ok"}`.
@@ -44,6 +46,8 @@
 - `pnpm cutover:preflight` → producción actual OK; falla en candidato `https://church-system.onrender.com/health` por timeout hasta que exista/deploye el servicio Render Business.
 - `pnpm render:blueprint-link` → genera `https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2Fvalentinalvarezgg-system%2FChurchsystem`.
 - `pnpm render:validate` → OK, 0 errores / 0 advertencias.
+- `pnpm setup:cloudflared` → instala/carga `~/Library/LaunchAgents/com.churchsystem.cloudflared.plist` usando `~/.cloudflared/config.yml` sin commitear tokens.
+- `pnpm diagnostico` → confirma `com.churchsystem.cloudflared` activo en `launchd`, además de backend/watchdog/caffeinate.
 
 ### Pendiente operativo P0
 - Resolver la contradicción de deploy: la bitácora decía `MODO_RENDER`, pero la web pública actualmente depende del túnel local de Cloudflare.

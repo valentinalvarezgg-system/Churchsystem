@@ -25,6 +25,7 @@ LOCAL_HEALTH="${LOCAL_HEALTH:-http://127.0.0.1:4000/health}"
 BACKEND_LABEL="${BACKEND_LABEL:-com.churchsystem.backend}"
 WATCHDOG_LABEL="${WATCHDOG_LABEL:-com.churchsystem.watchdog}"
 CAFFEINATE_LABEL="${CAFFEINATE_LABEL:-com.churchsystem.caffeinate}"
+CLOUDFLARED_LABEL="${CLOUDFLARED_LABEL:-com.churchsystem.cloudflared}"
 CLOUDFLARED_CONFIG="${CLOUDFLARED_CONFIG:-$HOME/.cloudflared/config.yml}"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; GREY='\033[0;90m'; NC='\033[0m'
@@ -69,6 +70,7 @@ redact_logs() {
   sed -E \
     -e 's#(postgresql://)[^[:space:]]+#\1[REDACTED]#g' \
     -e 's#(Bearer )[A-Za-z0-9._~+/=-]+#\1[REDACTED]#g' \
+    -e 's#(--token[ =])[^[:space:]]+#\1[REDACTED]#g' \
     -e 's#(JWT_SECRET|QR_SECRET|DATABASE_URL|RESEND_API_KEY|VAPID_[A-Z_]+|META_[A-Z_]+|GOOGLE_CLIENT_SECRET|MP_ACCESS_TOKEN|ANTHROPIC_API_KEY|GROQ_API_KEY|GODMODE_USER_EMAIL|GODMODE_USER_PASSWORD)=?[^[:space:]]*#\1=[REDACTED]#g'
 }
 
@@ -111,6 +113,7 @@ sep "launchd"
 launchd_state "$BACKEND_LABEL"
 launchd_state "$WATCHDOG_LABEL"
 launchd_state "$CAFFEINATE_LABEL"
+launchd_state "$CLOUDFLARED_LABEL"
 
 sep "Cloudflare Tunnel"
 if pgrep -x cloudflared >/dev/null 2>&1; then
