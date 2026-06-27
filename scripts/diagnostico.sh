@@ -1,174 +1,206 @@
 #!/usr/bin/env bash
-# diagnostico.sh — Estado completo del servidor Church System.
-# Ejecutar en el servidor para ver qué está pasando.
+# diagnostico.sh — Diagnóstico operacional de Church System.
 #
 # Uso:
 #   bash scripts/diagnostico.sh
-#   bash scripts/diagnostico.sh --logs   (muestra últimas 50 líneas de logs)
+#   bash scripts/diagnostico.sh --logs
+#
+# Revisa el modo activo actual:
+#   - backend local en :4000
+#   - launchd del backend/watchdog/caffeinate
+#   - Cloudflare Tunnel local
+#   - dominio público y /health
+#   - git y estado de migración Render
+#
+# No imprime valores de secretos.
 
 set -uo pipefail
 
-APP_DIR='/var/www/church-system'
-PM2_APP_NAME='church-system'
-PORT=3000
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SHOW_LOGS=false
 [[ "${1:-}" == "--logs" ]] && SHOW_LOGS=true
 
+PROD_URL="${PROD_URL:-https://churchsystem.com.ar}"
+LOCAL_HEALTH="${LOCAL_HEALTH:-http://127.0.0.1:4000/health}"
+BACKEND_LABEL="${BACKEND_LABEL:-com.churchsystem.backend}"
+WATCHDOG_LABEL="${WATCHDOG_LABEL:-com.churchsystem.watchdog}"
+CAFFEINATE_LABEL="${CAFFEINATE_LABEL:-com.churchsystem.caffeinate}"
+CLOUDFLARED_CONFIG="${CLOUDFLARED_CONFIG:-$HOME/.cloudflared/config.yml}"
+
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; GREY='\033[0;90m'; NC='\033[0m'
 
-ok()   { echo -e "  ${GREEN}✔${NC}  $*"; }
-fail() { echo -e "  ${RED}✘${NC}  $*"; }
-warn() { echo -e "  ${YELLOW}⚠${NC}  $*"; }
+ERRORS=0
+WARNINGS=0
+
+ok()   { echo -e "  ${GREEN}OK${NC}    $*"; }
+fail() { echo -e "  ${RED}ERROR${NC} $*"; ERRORS=$((ERRORS+1)); }
+warn() { echo -e "  ${YELLOW}WARN${NC}  $*"; WARNINGS=$((WARNINGS+1)); }
+info() { echo -e "  ${GREY}INFO${NC}  $*"; }
 sep()  { echo -e "\n${CYAN}── $* ──────────────────────────────────────────────────${NC}"; }
-val()  { printf "  ${GREY}%-22s${NC}  %s\n" "$1" "$2"; }
+val()  { printf "  ${GREY}%-24s${NC} %s\n" "$1" "$2"; }
+
+http_status() {
+  local url="$1"
+  curl -sS -o /tmp/churchsystem-diagnostic-body.$$ -w "%{http_code}" --max-time 10 "$url" 2>/tmp/churchsystem-diagnostic-curl.$$ || echo "ERR"
+}
+
+launchd_state() {
+  local label="$1"
+  if ! command -v launchctl >/dev/null 2>&1; then
+    warn "launchctl no disponible en este sistema"
+    return
+  fi
+
+  local out
+  out="$(launchctl list "$label" 2>/dev/null || true)"
+  if [[ -z "$out" ]]; then
+    fail "$label no está cargado en launchd"
+    return
+  fi
+
+  if echo "$out" | grep -q '"PID"'; then
+    ok "$label activo"
+  else
+    warn "$label cargado pero sin PID activo"
+  fi
+}
+
+redact_logs() {
+  sed -E \
+    -e 's#(postgresql://)[^[:space:]]+#\1[REDACTED]#g' \
+    -e 's#(Bearer )[A-Za-z0-9._~+/=-]+#\1[REDACTED]#g' \
+    -e 's#(JWT_SECRET|QR_SECRET|DATABASE_URL|RESEND_API_KEY|VAPID_[A-Z_]+|META_[A-Z_]+|GOOGLE_CLIENT_SECRET|MP_ACCESS_TOKEN|ANTHROPIC_API_KEY|GROQ_API_KEY|GODMODE_USER_PASSWORD)=?[^[:space:]]*#\1=[REDACTED]#g'
+}
 
 echo ""
-echo -e "${CYAN}  Church System — Diagnóstico  $(date '+%Y-%m-%d %H:%M:%S')${NC}"
+echo -e "${CYAN}Church System — Diagnóstico operacional $(date '+%Y-%m-%d %H:%M:%S')${NC}"
+val "Repo" "$ROOT_DIR"
+val "Producción" "$PROD_URL"
 
-# ── 1. Node ──────────────────────────────────────────────────────────────────
-sep "Node / pnpm / pm2"
-if command -v node &>/dev/null; then
-  NODE_V=$(node -v)
-  ok "Node $NODE_V"
-  [[ "$NODE_V" == v20* ]] || warn "Se recomienda Node 20 (tenés $NODE_V)"
+sep "Runtime local"
+if command -v node >/dev/null 2>&1; then
+  ok "Node $(node -v)"
 else
   fail "Node no encontrado"
 fi
 
-command -v pnpm &>/dev/null && ok "pnpm $(pnpm -v)" || fail "pnpm no encontrado"
-command -v pm2  &>/dev/null && ok "pm2 $(pm2 -v)"   || fail "pm2 no encontrado"
+if command -v pnpm >/dev/null 2>&1; then
+  ok "pnpm $(pnpm -v)"
+else
+  fail "pnpm no encontrado"
+fi
 
-# ── 2. PM2 proceso ───────────────────────────────────────────────────────────
-sep "Proceso PM2"
-if command -v pm2 &>/dev/null; then
-  STATUS=$(pm2 jlist 2>/dev/null | node -e "
-    const list=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
-    const app=list.find(p=>p.name==='$PM2_APP_NAME');
-    if(!app){console.log('NOT_FOUND');process.exit(0);}
-    console.log([app.pm2_env.status,app.pid,app.pm2_env.restart_time,
-      Math.round((app.monit?.memory||0)/1024/1024)+'MB',
-      Math.round((app.monit?.cpu||0))+'%'
-    ].join('|'));
-  " 2>/dev/null || echo "NOT_FOUND")
+sep "Backend local"
+LOCAL_STATUS="$(http_status "$LOCAL_HEALTH")"
+LOCAL_BODY="$(cat /tmp/churchsystem-diagnostic-body.$$ 2>/dev/null || true)"
+if [[ "$LOCAL_STATUS" == "200" && "$LOCAL_BODY" == *'"status":"ok"'* ]]; then
+  ok "$LOCAL_HEALTH responde OK"
+else
+  fail "$LOCAL_HEALTH no responde OK (HTTP $LOCAL_STATUS)"
+  [[ -s /tmp/churchsystem-diagnostic-curl.$$ ]] && val "curl" "$(cat /tmp/churchsystem-diagnostic-curl.$$)"
+fi
 
-  if [[ "$STATUS" == "NOT_FOUND" ]]; then
-    fail "Proceso '$PM2_APP_NAME' no está en PM2"
-  else
-    IFS='|' read -r PM2_STATUS PM2_PID PM2_RESTARTS PM2_MEM PM2_CPU <<< "$STATUS"
-    [[ "$PM2_STATUS" == "online" ]] && ok "Estado: $PM2_STATUS" || fail "Estado: $PM2_STATUS"
-    val "PID"        "$PM2_PID"
-    val "Reinicios"  "$PM2_RESTARTS"
-    val "Memoria"    "$PM2_MEM"
-    val "CPU"        "$PM2_CPU"
+if command -v lsof >/dev/null 2>&1; then
+  LISTENERS="$(lsof -nP -iTCP:4000 -sTCP:LISTEN 2>/dev/null | awk 'NR>1 {print $1 " pid=" $2 " " $9}' | paste -sd '; ' -)"
+  [[ -n "$LISTENERS" ]] && ok "Puerto 4000 escuchando: $LISTENERS" || fail "Nada escucha en TCP :4000"
+else
+  warn "lsof no disponible; no se pudo revisar puerto 4000"
+fi
+
+sep "launchd"
+launchd_state "$BACKEND_LABEL"
+launchd_state "$WATCHDOG_LABEL"
+launchd_state "$CAFFEINATE_LABEL"
+
+sep "Cloudflare Tunnel"
+if pgrep -x cloudflared >/dev/null 2>&1; then
+  ok "cloudflared está corriendo"
+else
+  fail "cloudflared no está corriendo; Cloudflare devolverá 502 si DNS sigue al túnel"
+fi
+
+if [[ -f "$CLOUDFLARED_CONFIG" ]]; then
+  ok "Config Cloudflare encontrada"
+  awk '/hostname:|service:/{gsub(/^[[:space:]-]+/, ""); print "    " $0}' "$CLOUDFLARED_CONFIG" \
+    | sed -E 's/(credentials-file:|token:).*/\1 [REDACTED]/'
+  if grep -q 'service: http://localhost:4000' "$CLOUDFLARED_CONFIG"; then
+    warn "Producción depende del backend local :4000"
   fi
 else
-  warn "pm2 no disponible — no se puede verificar el proceso"
+  warn "No existe $CLOUDFLARED_CONFIG"
 fi
 
-# ── 3. Puerto ─────────────────────────────────────────────────────────────────
-sep "Puerto $PORT"
-if command -v ss &>/dev/null; then
-  LISTENING=$(ss -tlnp 2>/dev/null | grep ":$PORT " || true)
-elif command -v netstat &>/dev/null; then
-  LISTENING=$(netstat -tlnp 2>/dev/null | grep ":$PORT " || true)
+sep "Dominio público"
+PROD_HEALTH_STATUS="$(http_status "$PROD_URL/health")"
+PROD_HEALTH_BODY="$(cat /tmp/churchsystem-diagnostic-body.$$ 2>/dev/null || true)"
+if [[ "$PROD_HEALTH_STATUS" == "200" && "$PROD_HEALTH_BODY" == *'"status":"ok"'* ]]; then
+  ok "$PROD_URL/health responde OK"
 else
-  LISTENING=""
+  fail "$PROD_URL/health no responde OK (HTTP $PROD_HEALTH_STATUS)"
 fi
 
-if [[ -n "$LISTENING" ]]; then
-  ok "Puerto $PORT escuchando"
-  echo -e "  ${GREY}$LISTENING${NC}"
+ROOT_STATUS="$(http_status "$PROD_URL")"
+if [[ "$ROOT_STATUS" == "200" ]]; then
+  ok "$PROD_URL responde HTTP 200"
 else
-  fail "Nada escucha en el puerto $PORT"
+  fail "$PROD_URL responde HTTP $ROOT_STATUS"
 fi
 
-# ── 4. HTTP healthcheck ───────────────────────────────────────────────────────
-sep "HTTP"
-if command -v curl &>/dev/null; then
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT/api/health" --max-time 5 2>/dev/null || echo "ERR")
-  if [[ "$HTTP_STATUS" == "200" ]]; then
-    ok "/api/health → $HTTP_STATUS"
-  else
-    warn "/api/health → $HTTP_STATUS (puede ser normal si la ruta no existe)"
-    # Try root
-    HTTP_ROOT=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT/" --max-time 5 2>/dev/null || echo "ERR")
-    val "/ →" "$HTTP_ROOT"
-  fi
-else
-  warn "curl no disponible — no se puede hacer healthcheck"
-fi
-
-# ── 5. nginx ──────────────────────────────────────────────────────────────────
-sep "nginx"
-if command -v nginx &>/dev/null; then
-  if systemctl is-active --quiet nginx 2>/dev/null; then
-    ok "nginx activo"
-    NGINX_CONF=$(nginx -T 2>/dev/null | grep -c "proxy_pass" || echo "?")
-    val "proxy_pass entries" "$NGINX_CONF"
-  else
-    fail "nginx inactivo"
-  fi
-  nginx -t 2>&1 | grep -E "successful|failed" | while read -r line; do
-    [[ "$line" == *"successful"* ]] && ok "$line" || fail "$line"
-  done
-else
-  warn "nginx no instalado"
-fi
-
-# ── 6. Git ────────────────────────────────────────────────────────────────────
 sep "Git"
-if [[ -d "$APP_DIR/.git" ]]; then
-  cd "$APP_DIR"
-  BRANCH=$(git branch --show-current 2>/dev/null || echo "desconocida")
-  LAST_COMMIT=$(git log -1 --format="%h  %s  (%ar)" 2>/dev/null || echo "N/A")
-  REMOTE_HASH=$(git ls-remote origin HEAD 2>/dev/null | cut -f1 | head -c7 || echo "N/A")
-  LOCAL_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
-
-  val "Rama"         "$BRANCH"
-  val "Último commit" "$LAST_COMMIT"
-  val "Local HEAD"   "$LOCAL_HASH"
-  val "Remote HEAD"  "$REMOTE_HASH"
-
-  [[ "$LOCAL_HASH" == "$REMOTE_HASH" ]] && ok "Servidor al día con remoto" || warn "Servidor desactualizado (local $LOCAL_HASH ≠ remote $REMOTE_HASH)"
+if git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  BRANCH="$(git -C "$ROOT_DIR" branch --show-current 2>/dev/null || echo 'N/A')"
+  HEAD="$(git -C "$ROOT_DIR" log -1 --format='%h %s' 2>/dev/null || echo 'N/A')"
+  STATUS="$(git -C "$ROOT_DIR" status --short 2>/dev/null || true)"
+  val "Rama" "$BRANCH"
+  val "HEAD" "$HEAD"
+  [[ -z "$STATUS" ]] && ok "Working tree limpio" || warn "Hay cambios sin commitear"
 else
-  fail "No se encontró $APP_DIR/.git"
+  fail "$ROOT_DIR no parece ser repo git"
 fi
 
-# ── 7. Disco / memoria ────────────────────────────────────────────────────────
-sep "Recursos"
-DISK=$(df -h "$APP_DIR" 2>/dev/null | tail -1 | awk '{print $5 " usado de " $2 " en " $6}' || echo "N/A")
-MEM=$(free -h 2>/dev/null | awk 'NR==2{print $3 " usados de " $2}' || echo "N/A")
-val "Disco"    "$DISK"
-val "Memoria"  "$MEM"
+sep "Verificador producción"
+if [[ -f "$ROOT_DIR/scripts/verify-prod.mjs" ]]; then
+  if node "$ROOT_DIR/scripts/verify-prod.mjs"; then
+    ok "verify-prod pasó"
+  else
+    fail "verify-prod falló"
+  fi
+  if node "$ROOT_DIR/scripts/verify-prod.mjs" --require-render >/tmp/churchsystem-verify-render.$$ 2>&1; then
+    ok "Producción ya no depende del túnel local"
+  else
+    warn "Migración Render incompleta; detalle:"
+    sed 's/^/    /' /tmp/churchsystem-verify-render.$$
+  fi
+else
+  warn "scripts/verify-prod.mjs no existe"
+fi
 
-DISK_PCT=$(df "$APP_DIR" 2>/dev/null | tail -1 | awk '{print $5}' | tr -d '%' || echo "0")
-[[ "$DISK_PCT" -gt 85 ]] && warn "Disco al $DISK_PCT% — quedan pocos GB" || ok "Disco OK ($DISK_PCT% usado)"
-
-# ── 8. .env ────────────────────────────────────────────────────────────────────
-sep ".env"
-ENV_FILE="$APP_DIR/backend/.env"
-if [[ -f "$ENV_FILE" ]]; then
-  ok ".env encontrado"
-  MISSING=0
-  for VAR in DATABASE_URL JWT_SECRET GODMODE_USER_EMAIL GODMODE_USER_PASSWORD; do
-    if grep -q "^${VAR}=" "$ENV_FILE" && [[ "$(grep "^${VAR}=" "$ENV_FILE" | cut -d= -f2-)" != "" ]]; then
-      val "$VAR" "✔ configurado"
+sep "Logs"
+if $SHOW_LOGS; then
+  for file in /tmp/church-back-err.log /tmp/church-back.log /tmp/church-watchdog-err.log /tmp/church-watchdog.log; do
+    if [[ -f "$file" ]]; then
+      echo ""
+      val "Archivo" "$file"
+      tail -n 50 "$file" | redact_logs
     else
-      fail "$VAR no configurado"
-      MISSING=$((MISSING+1))
+      warn "No existe $file"
     fi
   done
-  [[ $MISSING -eq 0 ]] && ok "Variables críticas OK" || warn "$MISSING variable(s) faltante(s)"
 else
-  fail ".env no encontrado en $ENV_FILE"
+  info "Usá --logs para ver últimas 50 líneas redacted de logs locales"
 fi
 
-# ── 9. Logs (opcional) ────────────────────────────────────────────────────────
-if $SHOW_LOGS && command -v pm2 &>/dev/null; then
-  sep "Logs PM2 (últimas 50 líneas)"
-  pm2 logs "$PM2_APP_NAME" --lines 50 --nostream 2>/dev/null || warn "No se pudieron obtener logs"
+rm -f /tmp/churchsystem-diagnostic-body.$$ /tmp/churchsystem-diagnostic-curl.$$ /tmp/churchsystem-verify-render.$$ 2>/dev/null || true
+
+sep "Resultado"
+if [[ "$ERRORS" -gt 0 ]]; then
+  fail "$ERRORS error(es), $WARNINGS advertencia(s)"
+  exit 1
 fi
 
-echo ""
-sep "Fin del diagnóstico"
-echo ""
+if [[ "$WARNINGS" -gt 0 ]]; then
+  warn "0 errores, $WARNINGS advertencia(s)"
+  exit 0
+fi
+
+ok "Sin errores ni advertencias"

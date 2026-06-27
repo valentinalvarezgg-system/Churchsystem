@@ -344,6 +344,14 @@ Rollback rápido:
 - Confirmar que `cloudflared tunnel run church-system` está activo.
 - Ejecutar `pnpm verify:prod` y revisar `/tmp/church-back-err.log`.
 
+### Diagnóstico rápido de 502
+
+```bash
+pnpm diagnostico        # backend local, launchd, Cloudflare Tunnel y dominio
+pnpm verify:prod        # salud pública actual
+pnpm verify:prod:render # falla hasta completar el corte a Render
+```
+
 ---
 
 ## Convenciones de código

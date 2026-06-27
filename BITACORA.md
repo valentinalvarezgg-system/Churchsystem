@@ -19,6 +19,7 @@
 - Hardening posterior: `ChatGrupo`, `LoginMiembro` y `PortalMiembro` dejaron de hardcodear `localhost:4000`/`/api`; usan `getApiUrl()` y el stream de chat ya no manda JWT en query string.
 - Versiones sincronizadas a `3.1.2` en raíz, backend, frontend y README.
 - Agregado `scripts/verify-prod.mjs` + comandos `pnpm verify:prod` y `pnpm verify:prod:render` para diferenciar “sitio online” de “migración Render completa”.
+- Modernizado `scripts/diagnostico.sh`: deja de revisar PM2/nginx/puerto 3000 y ahora diagnostica backend local :4000, launchd, Cloudflare Tunnel, dominio público, git y migración Render sin imprimir secretos.
 
 ### Evidencia
 - `https://churchsystem.com.ar/health` → HTTP 200, `{"status":"ok"}`.
@@ -29,6 +30,7 @@
 - `cd backend && pnpm audit:launch` → OK, sin rutas críticas sin proteger.
 - `pnpm verify:prod` → OK con advertencias esperadas: TLS local de Node, origen Cloudflare Tunnel local, sin `render` CLI/`RENDER_API_KEY`.
 - `pnpm verify:prod:render` → falla correctamente mientras `churchsystem.com.ar` dependa de `localhost:4000`.
+- `pnpm diagnostico` → confirma backend local, launchd y Cloudflare Tunnel activos; advierte que producción todavía depende de `localhost:4000`.
 
 ### Pendiente operativo P0
 - Resolver la contradicción de deploy: la bitácora decía `MODO_RENDER`, pero la web pública actualmente depende del túnel local de Cloudflare.
@@ -341,6 +343,7 @@ tail -f /tmp/church-back.log
 
 ```bash
 node scripts/audit.mjs
+pnpm diagnostico        # diagnóstico 502: backend local, launchd, tunnel y dominio
 pnpm verify:prod          # salud pública actual
 pnpm verify:prod:render   # exige que producción ya no dependa del túnel local
 ```
