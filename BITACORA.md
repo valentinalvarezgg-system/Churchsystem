@@ -1,6 +1,35 @@
 # BITÁCORA — Church System
 ---
 
+## Incidente producción — 2026-06-27 — 502 Cloudflare recuperado
+
+**Estado actual:** `churchsystem.com.ar` vuelve a responder `200 OK` y `/health` devuelve `{"status":"ok"}`.
+
+### Causa encontrada
+- El modo activo real al momento del incidente era `MODO_CLOUDFLARE_LOCAL`: `~/.cloudflared/config.yml` enruta `churchsystem.com.ar` a `http://localhost:4000`.
+- El backend local no estaba disponible para Cloudflare durante el 502.
+- Al intentar arrancar backend, Node falló con `Cannot find module 'unzipper'` desde `exceljs`.
+- `pnpm store status` confirmó store corrupto/mutado (`unzipper`, `dayjs`, `asn1.js`, `get-intrinsic`).
+
+### Corrección aplicada
+- Se reparó el store local con `cd backend && pnpm install --force --frozen-lockfile`.
+- Backend local quedó escuchando en `0.0.0.0:4000` y `GET /health` responde OK.
+- `render.yaml` ahora fija `pnpm@9.15.5`, ejecuta `pnpm store prune` y fuerza reinstalación desde lockfiles para evitar cache corrupta en Render.
+- `cd frontend && pnpm build` pasó correctamente y `frontend/dist/` fue regenerado.
+
+### Evidencia
+- `https://churchsystem.com.ar/health` → HTTP 200, `{"status":"ok"}`.
+- `https://churchsystem.com.ar` → HTTP 200.
+- `http://127.0.0.1:4000/health` → HTTP 200.
+- `cd backend && pnpm store status` → `Packages in the store are untouched`.
+
+### Pendiente operativo P0
+- Resolver la contradicción de deploy: la bitácora decía `MODO_RENDER`, pero la web pública actualmente depende del túnel local de Cloudflare.
+- Si se quiere completar migración a cuenta Business/Render nueva, copiar secretos `sync:false` en Render (`DATABASE_URL`, `JWT_SECRET`, `QR_SECRET`, VAPID, Resend, Meta, OAuth, pagos) y apuntar DNS al origen correcto.
+- Verificar logs/deploy de Render desde dashboard o CLI autenticada; en esta máquina no hay `render` CLI ni `RENDER_API_KEY`.
+
+---
+
 ## v3.1.2 — 2026-06-26 — GodMode: revertir auto-elevación; acceso por script offline
 
 ### Cambios
