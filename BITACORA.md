@@ -17,6 +17,7 @@
 - `render.yaml` ahora fija `pnpm@9.15.5`, ejecuta `pnpm store prune` y fuerza reinstalación desde lockfiles para evitar cache corrupta en Render.
 - `cd frontend && pnpm build` pasó correctamente y `frontend/dist/` fue regenerado.
 - Hardening posterior: `ChatGrupo`, `LoginMiembro` y `PortalMiembro` dejaron de hardcodear `localhost:4000`/`/api`; usan `getApiUrl()` y el stream de chat ya no manda JWT en query string.
+- Versiones sincronizadas a `3.1.2` en raíz, backend, frontend y README.
 
 ### Evidencia
 - `https://churchsystem.com.ar/health` → HTTP 200, `{"status":"ok"}`.
@@ -178,7 +179,7 @@ UPDATE "User" SET "es_superadmin"=true, "rol"='GODMODE', "plan"='GODMODE' WHERE 
 > Fuente única de verdad operativa del proyecto.  
 > Leer esto antes de tocar cualquier archivo.
 
-**Versión:** v3.1.1 · **Fecha:** 2026-06-27 · **Rama:** `master`  
+**Versión:** v3.1.2 · **Fecha:** 2026-06-27 · **Rama:** `master`  
 **Deploy activo real:** `MODO_CLOUDFLARE_LOCAL` (Cloudflare Tunnel → Mac local `localhost:4000`). `MODO_RENDER` queda como migración pendiente.
 
 ---

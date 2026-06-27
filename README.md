@@ -1,4 +1,4 @@
-# Church System — v3.0.1
+# Church System — v3.1.2
 
 Sistema integral de gestión pastoral para iglesias evangélicas.  
 Multi-tenant · SaaS · Mobile-first · Productivo en `churchsystem.com.ar`
@@ -12,7 +12,7 @@ Multi-tenant · SaaS · Mobile-first · Productivo en `churchsystem.com.ar`
 | Backend | Node.js 20 + Express (ESM) |
 | Base de datos | PostgreSQL via [Neon](https://neon.tech) |
 | Frontend | React 18 + Vite 5 |
-| Deploy | Render (web service) |
+| Deploy | Cloudflare Tunnel local activo / Render pendiente |
 | Email | Resend (salida + inbound) |
 | Pagos | Mercado Pago |
 | IA | Anthropic Claude API |
@@ -385,9 +385,9 @@ El servidor programa automáticamente `enviarAlertas()` a las 8:30 AM. Notifica:
 
 ## Estado
 
-**Versión:** 2.7-beta  
+**Versión:** 3.1.2  
 **Rama activa:** `master`  
-**Producción:** `https://churchsystem.com.ar`  
+**Producción:** `https://churchsystem.com.ar` vía Cloudflare Tunnel local (`MODO_CLOUDFLARE_LOCAL`)  
 **Fuente de verdad del estado:** `/BITACORA.md`
 
 ---
