@@ -10,6 +10,7 @@
     "cutover:preflight": "node scripts/preflight-render-cutover.mjs",
     "migration:env": "node scripts/check-migration-env.mjs",
     "render:blueprint-link": "node scripts/render-blueprint-link.mjs",
+    "render:validate": "node scripts/validate-render-blueprint.mjs",
     "verify:prod": "node scripts/verify-prod.mjs",
     "verify:prod:render": "node scripts/verify-prod.mjs --require-render"
   }

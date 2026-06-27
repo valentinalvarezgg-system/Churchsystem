@@ -347,6 +347,7 @@ Rollback rápido:
 pnpm diagnostico        # backend local, launchd, Cloudflare Tunnel y dominio
 pnpm migration:env      # inventario seguro de variables para Render Business
 pnpm render:blueprint-link # genera deeplink al Blueprint de Render
+pnpm render:validate    # validación local de campos críticos de render.yaml
 pnpm cutover:preflight  # valida candidato Render antes de tocar DNS
 pnpm verify:prod        # salud pública actual
 pnpm verify:prod:render # falla hasta completar el corte a Render

@@ -156,6 +156,15 @@ function checkMigrationInventory() {
   }
 }
 
+function checkRenderBlueprint() {
+  const result = run('node', ['scripts/validate-render-blueprint.mjs'])
+  if (result.status === 0) {
+    ok('Validación local de render.yaml pasa')
+  } else {
+    error('Validación local de render.yaml falló', result.stdout || result.stderr)
+  }
+}
+
 function checkStrictProdExpectedState() {
   const result = run('node', ['scripts/verify-prod.mjs', '--require-render'])
   if (result.status === 0) {
@@ -170,6 +179,7 @@ console.log(`Producción actual: ${PROD_URL}`)
 console.log(`Render candidato: ${RENDER_URL}`)
 
 checkLocalArtifacts()
+checkRenderBlueprint()
 checkMigrationInventory()
 await checkCurrentProduction()
 await checkRenderCandidate()
