@@ -331,9 +331,10 @@ Checklist de corte:
 2. Conectar el repo y confirmar que usa `render.yaml`.
 3. Copiar todas las variables `sync: false` de `render.yaml` desde el entorno anterior o gestor de secretos.
 4. Ejecutar un deploy manual y verificar logs hasta ver `GET /health` OK.
-5. Configurar DNS en Cloudflare: `@` y `www` → `<servicio>.onrender.com` con proxy ON.
-6. Ejecutar `pnpm verify:prod:render`.
-7. Recién después, desactivar el túnel local como origen principal.
+5. Ejecutar `RENDER_EXTERNAL_URL=https://<servicio>.onrender.com pnpm cutover:preflight`.
+6. Configurar DNS en Cloudflare: `@` y `www` → `<servicio>.onrender.com` con proxy ON.
+7. Ejecutar `pnpm verify:prod:render`.
+8. Recién después, desactivar el túnel local como origen principal.
 
 Rollback rápido:
 - Restaurar en Cloudflare el CNAME hacia el túnel existente si Render falla.
@@ -345,6 +346,7 @@ Rollback rápido:
 ```bash
 pnpm diagnostico        # backend local, launchd, Cloudflare Tunnel y dominio
 pnpm migration:env      # inventario seguro de variables para Render Business
+pnpm cutover:preflight  # valida candidato Render antes de tocar DNS
 pnpm verify:prod        # salud pública actual
 pnpm verify:prod:render # falla hasta completar el corte a Render
 ```

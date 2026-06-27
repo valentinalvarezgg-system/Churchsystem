@@ -7,6 +7,7 @@
     "audit:json": "node scripts/audit.mjs --json",
     "audit:log": "node scripts/audit.mjs --out logs/audit-$(date +%Y%m%d-%H%M%S).log",
     "diagnostico": "bash scripts/diagnostico.sh",
+    "cutover:preflight": "node scripts/preflight-render-cutover.mjs",
     "migration:env": "node scripts/check-migration-env.mjs",
     "verify:prod": "node scripts/verify-prod.mjs",
     "verify:prod:render": "node scripts/verify-prod.mjs --require-render"

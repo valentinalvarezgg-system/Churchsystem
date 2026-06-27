@@ -33,7 +33,7 @@ services:
       - key: PUBLIC_URL
         value: https://churchsystem.com.ar
       - key: ALLOWED_ORIGINS
-        value: https://churchsystem.com.ar,https://www.churchsystem.com.ar
+        value: https://churchsystem.com.ar,https://www.churchsystem.com.ar,https://church-system.onrender.com
       # ── Email (Resend) ───────────────────────────────────────────
       - key: RESEND_API_KEY
         sync: false

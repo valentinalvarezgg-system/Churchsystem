@@ -24,6 +24,8 @@
 - Agregado `scripts/check-migration-env.mjs` + `pnpm migration:env` para cruzar variables usadas por backend contra `render.yaml` y fuentes locales sin exponer valores.
 - `render.yaml` declara ahora todas las variables runtime detectadas para la migración Business (pagos, OAuth, Resend inbound, Meta, IA, transferencia y Twilio legacy).
 - Variables legacy GodMode removidas del `launchd` local y de `backend/.env`; si existían en entornos anteriores, rotarlas/no migrarlas.
+- Agregado `scripts/preflight-render-cutover.mjs` + `pnpm cutover:preflight` para validar un candidato `.onrender.com` antes de cambiar DNS.
+- `ALLOWED_ORIGINS` en `render.yaml` incluye `https://church-system.onrender.com` para permitir prueba pre-DNS del servicio Render.
 
 ### Evidencia
 - `https://churchsystem.com.ar/health` → HTTP 200, `{"status":"ok"}`.
@@ -36,6 +38,7 @@
 - `pnpm verify:prod:render` → falla correctamente mientras `churchsystem.com.ar` dependa de `localhost:4000`.
 - `pnpm diagnostico` → confirma backend local, launchd y Cloudflare Tunnel activos; advierte que producción todavía depende de `localhost:4000`.
 - `pnpm migration:env` → OK sin errores: todas las variables usadas por `backend/src` están declaradas en `render.yaml`; queda advertencia de secretos opcionales/manuales que deben cargarse en Render Business si aplican.
+- `pnpm cutover:preflight` → producción actual OK; falla en candidato `https://church-system.onrender.com/health` por timeout hasta que exista/deploye el servicio Render Business.
 
 ### Pendiente operativo P0
 - Resolver la contradicción de deploy: la bitácora decía `MODO_RENDER`, pero la web pública actualmente depende del túnel local de Cloudflare.
@@ -350,6 +353,7 @@ tail -f /tmp/church-back.log
 node scripts/audit.mjs
 pnpm diagnostico        # diagnóstico 502: backend local, launchd, tunnel y dominio
 pnpm migration:env      # inventario seguro para migrar variables a Render Business
+pnpm cutover:preflight  # valida candidato Render antes de tocar DNS
 pnpm verify:prod          # salud pública actual
 pnpm verify:prod:render   # exige que producción ya no dependa del túnel local
 ```
