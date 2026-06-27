@@ -1,14 +1,14 @@
 services:
   - type: web
     name: church-system
-    env: node
+    runtime: node
     region: ohio
     plan: starter
     rootDir: backend
     buildCommand: npm install -g pnpm@9.15.5 && (pnpm store prune || true) && cd ../frontend && pnpm install --force --frozen-lockfile && pnpm build && cd ../backend && pnpm install --force --frozen-lockfile
     startCommand: node src/server.js
     healthCheckPath: /health
-    autoDeploy: true
+    autoDeployTrigger: commit
     envVars:
       - key: NODE_ENV
         value: production

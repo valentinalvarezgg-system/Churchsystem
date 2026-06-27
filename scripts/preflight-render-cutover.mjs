@@ -128,6 +128,12 @@ function checkLocalArtifacts() {
   }
 
   const renderYaml = fs.readFileSync(RENDER_YAML, 'utf8')
+  if (renderYaml.includes('runtime: node') && renderYaml.includes('autoDeployTrigger: commit')) {
+    ok('render.yaml usa campos Blueprint actuales')
+  } else {
+    warn('render.yaml no parece usar runtime/autoDeployTrigger actuales')
+  }
+
   if (renderYaml.includes('pnpm@9.15.5') && renderYaml.includes('pnpm install --force --frozen-lockfile')) {
     ok('render.yaml fuerza pnpm estable y lockfiles')
   } else {
