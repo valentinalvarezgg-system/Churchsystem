@@ -315,9 +315,9 @@ tail -f /tmp/church-back.log
 tail -f /tmp/church-back-err.log
 ```
 
-### Si se vuelve a Render
+### Migrar a Render / cuenta Business
 
-La rama `master` se auto-despliega en Render cuando se hace push.
+La rama `master` se auto-despliega en Render cuando se hace push, pero el corte a Render solo se considera completo cuando `pnpm verify:prod:render` pasa sin errores.
 
 **Regla crítica:** `frontend/dist/` está commiteado en git. Render sirve esos archivos directamente. Después de cada cambio de frontend:
 
@@ -329,6 +329,20 @@ git add -A
 git commit -m "tipo(scope): descripción"
 git push origin master
 ```
+
+Checklist de corte:
+1. Crear/seleccionar el servicio `church-system` en la cuenta Business.
+2. Conectar el repo y confirmar que usa `render.yaml`.
+3. Copiar todas las variables `sync: false` de `render.yaml` desde el entorno anterior o gestor de secretos.
+4. Ejecutar un deploy manual y verificar logs hasta ver `GET /health` OK.
+5. Configurar DNS en Cloudflare: `@` y `www` → `<servicio>.onrender.com` con proxy ON.
+6. Ejecutar `pnpm verify:prod:render`.
+7. Recién después, desactivar el túnel local como origen principal.
+
+Rollback rápido:
+- Restaurar en Cloudflare el CNAME hacia el túnel existente si Render falla.
+- Confirmar que `cloudflared tunnel run church-system` está activo.
+- Ejecutar `pnpm verify:prod` y revisar `/tmp/church-back-err.log`.
 
 ---
 

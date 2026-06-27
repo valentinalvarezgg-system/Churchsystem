@@ -18,17 +18,23 @@
 - `cd frontend && pnpm build` pasó correctamente y `frontend/dist/` fue regenerado.
 - Hardening posterior: `ChatGrupo`, `LoginMiembro` y `PortalMiembro` dejaron de hardcodear `localhost:4000`/`/api`; usan `getApiUrl()` y el stream de chat ya no manda JWT en query string.
 - Versiones sincronizadas a `3.1.2` en raíz, backend, frontend y README.
+- Agregado `scripts/verify-prod.mjs` + comandos `pnpm verify:prod` y `pnpm verify:prod:render` para diferenciar “sitio online” de “migración Render completa”.
 
 ### Evidencia
 - `https://churchsystem.com.ar/health` → HTTP 200, `{"status":"ok"}`.
 - `https://churchsystem.com.ar` → HTTP 200.
 - `http://127.0.0.1:4000/health` → HTTP 200.
 - `cd backend && pnpm store status` → `Packages in the store are untouched`.
+- `cd frontend && pnpm build` → OK.
+- `cd backend && pnpm audit:launch` → OK, sin rutas críticas sin proteger.
+- `pnpm verify:prod` → OK con advertencias esperadas: TLS local de Node, origen Cloudflare Tunnel local, sin `render` CLI/`RENDER_API_KEY`.
+- `pnpm verify:prod:render` → falla correctamente mientras `churchsystem.com.ar` dependa de `localhost:4000`.
 
 ### Pendiente operativo P0
 - Resolver la contradicción de deploy: la bitácora decía `MODO_RENDER`, pero la web pública actualmente depende del túnel local de Cloudflare.
 - Si se quiere completar migración a cuenta Business/Render nueva, copiar secretos `sync:false` en Render (`DATABASE_URL`, `JWT_SECRET`, `QR_SECRET`, VAPID, Resend, Meta, OAuth, pagos) y apuntar DNS al origen correcto.
 - Verificar logs/deploy de Render desde dashboard o CLI autenticada; en esta máquina no hay `render` CLI ni `RENDER_API_KEY`.
+- Criterio de cierre de migración: `pnpm verify:prod:render` debe pasar sin errores después del cambio DNS.
 
 ---
 
@@ -335,6 +341,8 @@ tail -f /tmp/church-back.log
 
 ```bash
 node scripts/audit.mjs
+pnpm verify:prod          # salud pública actual
+pnpm verify:prod:render   # exige que producción ya no dependa del túnel local
 ```
 
 Advertencias esperadas (no bloquean): MP en modo TEST, Stripe/PayPal sin configurar, ANTHROPIC_API_KEY ausente.
