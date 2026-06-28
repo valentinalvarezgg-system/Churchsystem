@@ -12,8 +12,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: "4000"
       - key: LOG_LEVEL
         value: info
       - key: LEGAL_HIDE_FINANZAS_ORACION

@@ -22,6 +22,7 @@ const PLIST = path.join(os.homedir(), 'Library/LaunchAgents/com.churchsystem.bac
 
 const RUNTIME_IGNORE = new Set([
   'HOSTNAME',
+  'PORT',
   'NODE_TLS_REJECT_UNAUTHORIZED',
   'ALLOW_LEGACY_SQLJS',
   'FRONTEND_PORT',
@@ -37,7 +38,6 @@ const LEGACY_DO_NOT_MIGRATE = new Set([
 
 const REQUIRED_FOR_BOOT = new Set([
   'NODE_ENV',
-  'PORT',
   'DATABASE_URL',
   'JWT_SECRET',
   'QR_SECRET',

@@ -1,6 +1,25 @@
 # BITÁCORA — Church System
 ---
 
+## Render blueprint: no fijar PORT manualmente — 2026-06-28
+
+**Estado actual:** el bloqueo para cerrar el objetivo ya no está en el código funcional ni en auth/reset/QA, sino en el corte externo a Render. Se ajustó el Blueprint para alinearlo con el comportamiento real de Render Web Services.
+
+### Falla detectada
+- `render.yaml` fijaba `PORT=4000` manualmente, aunque Render inyecta `PORT` automáticamente para el Web Service. Eso suma riesgo de boot/healthcheck inconsistente durante el deploy del candidato `.onrender.com`.
+- Los scripts locales de validación todavía trataban `PORT` como variable obligatoria del Blueprint, lo que reforzaba una configuración menos portable para Render.
+
+### Corrección aplicada
+- `render.yaml`: se eliminó `PORT` de `envVars` para dejar que Render maneje el puerto público del servicio.
+- `scripts/validate-render-blueprint.mjs`: ahora valida que `PORT` quede a cargo de Render y avisa solo si alguien lo vuelve a fijar manualmente.
+- `scripts/check-migration-env.mjs`: `PORT` deja de considerarse requisito del Blueprint porque Render lo provee automáticamente en runtime.
+- `README.md`: checklist de migración actualizado para explicitar que `PORT` no debe configurarse manualmente en Render.
+
+### Evidencia
+- `pnpm render:validate` → OK, `PORT se deja a cargo de Render`.
+- `pnpm migration:env` → OK, 0 errores / 1 advertencia esperada por secretos `sync:false` sin fuente local.
+- `RENDER_EXTERNAL_URL=https://church-system.onrender.com pnpm cutover:preflight` sigue fallando por timeout del candidato Render; eso confirma que la brecha restante es de estado externo/deploy, no de schema local del Blueprint.
+
 ## Auditoría estricta reproducible + reset verificable — 2026-06-28
 
 **Estado actual:** la auditoría amplia del objetivo ahora también pasa en modo estricto con password QA real, incluyendo login runtime, GodMode y bloqueo de JWT por query string.

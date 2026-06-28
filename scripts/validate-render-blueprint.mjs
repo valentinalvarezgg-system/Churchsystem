@@ -29,7 +29,6 @@ const REQUIRED_SERVICE_FIELDS = [
 
 const REQUIRED_ENV_KEYS = [
   'NODE_ENV',
-  'PORT',
   'DATABASE_URL',
   'JWT_SECRET',
   'QR_SECRET',
@@ -140,6 +139,12 @@ else ok('envVars sin claves duplicadas')
 
 for (const key of REQUIRED_ENV_KEYS) {
   if (!keySet.has(key)) error(`Falta env var requerida: ${key}`)
+}
+
+if (keySet.has('PORT')) {
+  warn('PORT está declarado en render.yaml', 'Render lo inyecta automáticamente; evitar fijarlo manualmente salvo caso excepcional')
+} else {
+  ok('PORT se deja a cargo de Render')
 }
 
 for (const key of REQUIRED_SYNC_FALSE) {

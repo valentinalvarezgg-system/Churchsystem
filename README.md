@@ -343,11 +343,12 @@ Checklist de corte:
 1. Crear/seleccionar el servicio `church-system` en la cuenta Business.
 2. Abrir el Blueprint: `pnpm render:blueprint-link` y entrar al link generado.
 3. Copiar todas las variables `sync: false` de `render.yaml` desde el entorno anterior o gestor de secretos.
-4. Ejecutar un deploy manual y verificar logs hasta ver `GET /health` OK.
-5. Ejecutar `RENDER_EXTERNAL_URL=https://<servicio>.onrender.com pnpm cutover:preflight`.
-6. Configurar DNS en Cloudflare: `@` y `www` → `<servicio>.onrender.com` con proxy ON.
-7. Ejecutar `pnpm verify:prod:render`.
-8. Recién después, desactivar el túnel local como origen principal.
+4. No fijar `PORT` manualmente en Render: el Web Service lo inyecta automáticamente.
+5. Ejecutar un deploy manual y verificar logs hasta ver `GET /health` OK.
+6. Ejecutar `RENDER_EXTERNAL_URL=https://<servicio>.onrender.com pnpm cutover:preflight`.
+7. Configurar DNS en Cloudflare: `@` y `www` → `<servicio>.onrender.com` con proxy ON.
+8. Ejecutar `pnpm verify:prod:render`.
+9. Recién después, desactivar el túnel local como origen principal.
 
 Rollback rápido:
 - Restaurar en Cloudflare el CNAME hacia el túnel existente si Render falla.
