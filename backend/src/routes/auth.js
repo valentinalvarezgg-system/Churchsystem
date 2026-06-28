@@ -124,7 +124,26 @@ router.post('/login', async (req, res) => {
       'SELECT * FROM "User" WHERE lower("email")=lower($1) AND "activo"=true AND "deletedAt" IS NULL LIMIT 1',
       [key]
     )
-    if (!user || !(await bcrypt.compare(cleanPassword, user.password))) {
+    if (!user) {
+      failed.set(key, { n: (entry.n || 0) + 1, t: Date.now() })
+      return res.status(401).json({ error: 'Credenciales inválidas' })
+    }
+
+    const passwordHash = String(user.password || '').trim()
+    if (!passwordHash) {
+      const providerLabel = user.oauth_provider === 'google'
+        ? 'Google'
+        : user.oauth_provider === 'apple'
+          ? 'Apple'
+          : null
+      return res.status(401).json({
+        error: providerLabel
+          ? `Tu cuenta fue creada con ${providerLabel}. Ingresá con ese botón o restablecé tu contraseña.`
+          : 'Tu cuenta todavía no tiene contraseña configurada. Restablecela para ingresar.'
+      })
+    }
+
+    if (!(await bcrypt.compare(cleanPassword, passwordHash))) {
       failed.set(key, { n: (entry.n || 0) + 1, t: Date.now() })
       return res.status(401).json({ error: 'Credenciales inválidas' })
     }

@@ -1,6 +1,28 @@
 # BITÁCORA — Church System
 ---
 
+## Login email para cuentas OAuth/migradas sin password — 2026-06-28
+
+**Estado actual:** el login por email ya no cae en `500 Error de autenticación` cuando la cuenta fue creada por Google/Apple o quedó sin hash durante una migración; ahora responde `401` controlado con una guía clara para el usuario.
+
+### Falla detectada
+- `backend/src/routes/auth.js` ejecutaba `bcrypt.compare(cleanPassword, user.password)` sin validar si `user.password` existía.
+- Las cuentas creadas por OAuth se guardan con `password=''` en `backend/src/routes/oauth.js`, por lo que el intento de login por email disparaba `Illegal arguments: string, undefined` / hash vacío y terminaba en el catch genérico `Error de autenticación`.
+- Esto encaja con el síntoma reportado en mobile: toast rojo de autenticación aun cuando la cuenta existía, especialmente en escenarios de migración o acceso mezclado entre password manager y OAuth.
+
+### Corrección aplicada
+- `backend/src/routes/auth.js`: el flujo de `/auth/login` ahora separa tres casos:
+  - usuario inexistente → `401 Credenciales inválidas`
+  - cuenta existente sin hash de password → `401` con mensaje orientado a usar Google/Apple o restablecer contraseña
+  - password presente pero incorrecta → `401 Credenciales inválidas`
+- Se evita llamar `bcrypt.compare()` con hashes vacíos o ausentes, eliminando la causa raíz del `500`.
+- Backend local reiniciado con `launchctl kickstart -k gui/$(id -u)/com.churchsystem.backend` para dejar la corrección activa en esta Mac.
+
+### Evidencia
+- Validación controlada con usuario temporal sin password y `oauth_provider='google'` → `POST http://127.0.0.1:4000/auth/login` responde HTTP `401 {"error":"Tu cuenta fue creada con Google. Ingresá con ese botón o restablecé tu contraseña."}`.
+- `node --check backend/src/routes/auth.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Login público: no redirigir por 401 sin sesión — 2026-06-28
 
 **Estado actual:** el helper HTTP ya distingue entre “credenciales inválidas en pantalla pública” y “sesión vencida con token previo”, evitando errores engañosos en login.
