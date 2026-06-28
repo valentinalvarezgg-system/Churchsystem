@@ -83,6 +83,7 @@ export async function apiFetch(path, options = {}) {
   try {
     res = await fetch(url, {
       ...options,
+      credentials: options.credentials || 'include',
       headers: {
         'Content-Type': 'application/json',
         ...(lang ? { 'Accept-Language': lang } : {}),

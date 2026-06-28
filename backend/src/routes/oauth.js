@@ -283,9 +283,9 @@ router.get('/google/callback', async (req, res) => {
 
     if (!user.activo) return res.redirect(`${front}/app/login?error=account_disabled`)
 
-    const session = await issueSession(user, req, res)
+    await issueSession(user, req, res)
     const setup = createdNow ? '&setup=1' : ''
-    res.redirect(`${front}/app/login?token=${session.accessToken}${setup}`)
+    res.redirect(`${front}/app/login?oauth=1${setup}`)
 
   } catch(err) {
     logger.error({ err: err?.message }, 'OAuth Google error')
@@ -378,9 +378,9 @@ router.post('/apple/callback', async (req, res) => {
     })
 
     if (!user.activo) return res.redirect(`${frontUrl}/app/login?error=account_disabled`)
-    const session = await issueSession(user, req, res)
+    await issueSession(user, req, res)
     const setup = createdNow ? '&setup=1' : ''
-    res.redirect(`${frontUrl}/app/login?token=${session.accessToken}${setup}`)
+    res.redirect(`${frontUrl}/app/login?oauth=1${setup}`)
   } catch (err) {
     logger.error({ err: err?.message }, 'OAuth Apple error')
     res.redirect(`${frontUrl}/app/login?error=oauth_failed`)

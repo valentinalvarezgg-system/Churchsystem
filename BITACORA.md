@@ -1,6 +1,33 @@
 # BITÁCORA — Church System
 ---
 
+## Hardening OAuth/copy comercial — 2026-06-28
+
+**Estado actual:** OAuth ya no expone JWT en query string; el acceso admin por `?token=` quedó bloqueado y el copy público habla consistentemente de trial de 30 días.
+
+### Fallas detectadas y corregidas
+- Google/Apple volvían a `/app/login?token=<jwt>`, dejando JWT en URL/historial/logs.
+- `requireAuth` todavía aceptaba `req.query.token` como fallback genérico para rutas admin.
+- FAQ y Términos seguían mencionando 14 días de prueba, contradiciendo el trial real de 30 días.
+
+### Corrección aplicada
+- `backend/src/routes/oauth.js`: al volver de Google/Apple se emite sesión revocable con cookie refresh y se redirige con `?oauth=1` sin JWT.
+- `frontend/src/pages/Login.jsx` y `Registro.jsx`: cuando reciben `oauth=1`, llaman `/auth/refresh` para obtener access token desde cookie.
+- `frontend/src/services/api.js`: `fetch` usa `credentials: include` para soportar refresh cookie same-origin/cross-origin controlado.
+- `backend/src/middlewares/auth.js`: `requireAuth` ya no acepta JWT por query string.
+- `frontend/src/pages/FAQ.jsx` y `Terminos.jsx`: copy actualizado a trial de 30 días y planes comerciales actuales.
+
+### Evidencia
+- Refresh por cookie: `POST /auth/refresh` con cookie `church_refresh` → OK para `qa.pastor.general@churchsystem.test`.
+- Token admin en query: `GET /personas?token=<jwt>` → HTTP 401 `Token requerido`.
+- `rg` ya no encuentra `alert()`/`confirm()` ni JWT admin por query; quedan solo tokens públicos RSVP/eventos y token miembro legacy.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+- `cd backend && npx -y pnpm@9.15.5 audit:launch` → OK.
+- `pnpm smoke:signup -- --dry-run` → OK.
+- `pnpm verify:prod` → OK, 0 errores; advertencias esperadas por TLS local de Node, Cloudflare Tunnel local y falta de Render CLI/API key.
+
+---
+
 ## Auth/onboarding profesional + QA — 2026-06-28
 
 **Estado actual:** login/signup siguen operativos, GodMode ya recibe `es_superadmin` en el payload frontend y hay cuentas QA por rol/plan para pruebas.

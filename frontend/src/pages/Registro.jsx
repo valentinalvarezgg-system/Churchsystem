@@ -271,8 +271,21 @@ export default function Registro() {
   useEffect(() => {
     async function handleOAuthReturn() {
       const token = searchParams.get('token')
+      const oauth = searchParams.get('oauth')
       const error = searchParams.get('error')
-      if (token) {
+      if (oauth === '1') {
+        try {
+          const res = await apiFetch('/auth/refresh', { method: 'POST', skipAuthRedirect: true })
+          localStorage.setItem('token', res.token)
+          localStorage.setItem('user', JSON.stringify(res.user))
+          syncContextFromUser(res.user)
+          localStorage.setItem('church_force_setup', '1')
+          toast.success((REG_I18N[lang] || REG_I18N.es).oauthGoogleOk)
+          navigate('/')
+        } catch {
+          toast.error((REG_I18N[lang] || REG_I18N.es).oauthMissing)
+        }
+      } else if (token) {
         localStorage.setItem('token', token)
         try {
           const user = await apiFetch('/auth/me')

@@ -11,7 +11,7 @@ const FAQS = [
     items: [
       { q:'¿Qué es Church System?', a:'Church System es una plataforma tecnológica para ayudar a iglesias, comunidades cristianas y ministerios a gestionar personas, grupos, asistencia, reportes y comunicaciones.' },
       { q:'¿Church System es una iglesia?', a:'No. Church System es un proveedor tecnológico. Las decisiones pastorales, administrativas e institucionales corresponden exclusivamente a cada organización usuaria.' },
-      { q:'¿Puedo probarla gratis?', a:'Sí. Todos los planes incluyen 14 días de prueba gratuita. No se requiere tarjeta de crédito para empezar.' },
+      { q:'¿Puedo probarla gratis?', a:'Sí. Todos los planes incluyen 30 días de prueba gratuita. No se requiere tarjeta de crédito para empezar.' },
       { q:'¿En qué etapa está la plataforma?', a:'La plataforma está en beta. Algunas funciones pueden cambiar o fallar. No uses Church System como único respaldo de información crítica.' },
     ]
   },
@@ -37,7 +37,7 @@ const FAQS = [
   {
     cat: 'Planes y pagos',
     items: [
-      { q:'¿Qué planes están disponibles?', a:'Líder ($15/mes), Culto ($30/mes), Consolidación ($50/mes), Administración ($80/mes) y General ($120/mes). Todos con 14 días de prueba gratis.' },
+      { q:'¿Qué planes están disponibles?', a:'Hay planes Free, Pro, Max y planes Church para iglesias. Todos los planes pagos incluyen 30 días de prueba gratis.' },
       { q:'¿Cómo se procesa el pago?', a:'Los pagos se gestionan a través de MercadoPago. Church System no almacena datos de tarjetas.' },
       { q:'¿Puedo cambiar de plan?', a:`Sí. Podés solicitar cambio de plan desde Configuración o escribiendo a ${EMAILS.ventas}.` },
       { q:'¿Qué pasa si no pago?', a:'El acceso a funcionalidades pagas puede suspenderse. La información se conserva durante un período razonable.' },

@@ -107,7 +107,7 @@ export default function Terminos() {
         <Section title="7. Planes, precios y pagos">
           <p>Church System ofrece planes con distintas funcionalidades. Los precios, medios de pago y
           condiciones se informan en el sitio web o panel de contratación. El acceso a funcionalidades
-          pagas puede suspenderse ante falta de pago o incumplimiento. Se ofrecen 14 días de prueba
+          pagas puede suspenderse ante falta de pago o incumplimiento. Se ofrecen 30 días de prueba
           gratuita sin cargo.</p>
         </Section>
 
