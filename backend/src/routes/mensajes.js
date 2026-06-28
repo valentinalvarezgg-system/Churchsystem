@@ -7,13 +7,18 @@ import { resolveWhatsAppConnection, sendWhatsAppText } from '../services/whatsap
 const router = Router()
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 
-let schemaOk = false
+let schemaReadyPromise = null
 async function ensureMensajeSchema() {
-  if (schemaOk) return
-  await pgExec(`ALTER TABLE "Mensaje" ADD COLUMN IF NOT EXISTS "direccion" TEXT NOT NULL DEFAULT 'SALIENTE'`)
-  await pgExec(`ALTER TABLE "Mensaje" ALTER COLUMN "userId" DROP NOT NULL`)
-  await pgExec(`ALTER TABLE "Mensaje" ALTER COLUMN "personaId" DROP NOT NULL`)
-  schemaOk = true
+  if (schemaReadyPromise) return schemaReadyPromise
+  schemaReadyPromise = (async () => {
+    await pgExec(`ALTER TABLE "Mensaje" ADD COLUMN IF NOT EXISTS "direccion" TEXT NOT NULL DEFAULT 'SALIENTE'`)
+    await pgExec(`ALTER TABLE "Mensaje" ALTER COLUMN "userId" DROP NOT NULL`)
+    await pgExec(`ALTER TABLE "Mensaje" ALTER COLUMN "personaId" DROP NOT NULL`)
+  })().catch(err => {
+    schemaReadyPromise = null
+    throw err
+  })
+  return schemaReadyPromise
 }
 
 async function getCfg(iglesiaId) {
@@ -441,4 +446,3 @@ router.post('/masivo-segmentado', requireAuth, wrap(async (req, res) => {
 }))
 
 export default router
-

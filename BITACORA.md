@@ -1,6 +1,37 @@
 # BITÁCORA — Church System
 ---
 
+## Estabilidad producción + compatibilidad fetch — 2026-06-28
+
+**Estado actual:** `churchsystem.com.ar` responde `200 OK`; no hay 502 activo. La causa operativa sigue siendo la misma: producción depende de Cloudflare Tunnel hacia la Mac local (`localhost:4000`), por lo que cualquier caída del backend/túnel local vuelve a provocar 502 hasta completar el corte a Render Business.
+
+### Fallas detectadas y corregidas
+- `apiFetch()` forzaba `Content-Type: application/json` en todos los requests, lo que podía romper bodies nativos (`FormData`, `URLSearchParams`, `Blob`, `ArrayBuffer`) y formularios/subidas multipart.
+- `mensajes` y `godmode` ejecutaban bootstrap de schema con booleanos simples; en requests concurrentes podían disparar DDL repetido o carreras de inicialización.
+
+### Corrección aplicada
+- `frontend/src/services/api.js`: ahora omite `Content-Type` automático cuando el body es nativo o cuando el caller ya define el header; el navegador vuelve a setear el boundary correcto para multipart.
+- `backend/src/routes/mensajes.js` y `backend/src/routes/godmode.js`: el bootstrap de schema queda memoizado con promesa compartida y retry si falla.
+- Backend local productivo reiniciado con `launchctl kickstart -k gui/$(id -u)/com.churchsystem.backend`.
+
+### Evidencia
+- `https://churchsystem.com.ar/health` → HTTP 200, `{"status":"ok"}`.
+- `https://churchsystem.com.ar` → HTTP 200.
+- `http://127.0.0.1:4000/health` → HTTP 200.
+- `node --check backend/src/routes/mensajes.js backend/src/routes/godmode.js frontend/src/services/api.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+- `cd backend && npx -y pnpm@9.15.5 audit:launch` → OK.
+- `pnpm smoke:signup -- --dry-run` → OK: health + 7 tarjetas de planes.
+- `pnpm render:validate` → OK, 0 errores / 0 advertencias.
+- `pnpm migration:env` → OK, 0 errores; advierte secretos `sync:false` que deben cargarse manualmente si aplican.
+- `pnpm verify:prod` → OK, 0 errores; advertencias esperadas por TLS local de Node, Cloudflare Tunnel local y falta de Render CLI/API key.
+- `pnpm verify:prod:render` → falla correctamente por dependencia de `localhost:4000`; esto confirma que la migración Business/Render sigue pendiente.
+
+### Pendiente operativo P0
+- Crear/activar el servicio Render en la cuenta Business, cargar secretos `sync:false`, validar el candidato `.onrender.com` con `pnpm cutover:preflight` y recién después cambiar DNS/Cloudflare para eliminar la dependencia de la Mac.
+
+---
+
 ## Hardening OAuth/copy comercial — 2026-06-28
 
 **Estado actual:** OAuth ya no expone JWT en query string; el acceso admin por `?token=` quedó bloqueado y el copy público habla consistentemente de trial de 30 días.

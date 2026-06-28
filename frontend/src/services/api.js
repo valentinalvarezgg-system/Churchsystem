@@ -79,13 +79,20 @@ export async function apiFetch(path, options = {}) {
   const lang = localStorage.getItem('church_lang')
   const skipAuthRedirect = options.skipAuthRedirect === true
   const sessionId = getOrCreateSessionId()
+  const body = options.body
+  const isNativeBody = body instanceof FormData
+    || body instanceof URLSearchParams
+    || body instanceof Blob
+    || body instanceof ArrayBuffer
+  const hasContentType = Object.keys(options.headers || {})
+    .some(key => key.toLowerCase() === 'content-type')
   let res
   try {
     res = await fetch(url, {
       ...options,
       credentials: options.credentials || 'include',
       headers: {
-        'Content-Type': 'application/json',
+        ...(!isNativeBody && !hasContentType ? { 'Content-Type': 'application/json' } : {}),
         ...(lang ? { 'Accept-Language': lang } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         'x-session-id': sessionId,

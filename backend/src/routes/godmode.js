@@ -8,36 +8,41 @@ import logger from '../lib/logger.js'
 const router = Router()
 
 // ── Schema bootstrap (idempotente) ───────────────────────────────────────────
-let _schemaReady = false
+let schemaReadyPromise = null
 async function ensureGodModeSchema() {
-  if (_schemaReady) return
-  await pgExec(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "es_superadmin" BOOLEAN NOT NULL DEFAULT false`).catch(() => {})
-  await pgExec(`
-    CREATE TABLE IF NOT EXISTS godmode_audit (
-      id         SERIAL PRIMARY KEY,
-      usuario_id INTEGER NOT NULL,
-      accion     TEXT    NOT NULL,
-      detalle    JSONB   NOT NULL DEFAULT '{}',
-      ip         TEXT,
-      creado_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `).catch(() => {})
-  await pgExec(`CREATE INDEX IF NOT EXISTS idx_godmode_audit_usuario ON godmode_audit(usuario_id)`).catch(() => {})
-  // Tabla legacy — backward-compat para migración de tokens en sessions.js
-  await pgExec(`
-    CREATE TABLE IF NOT EXISTS "user_sessions" (
-      "id"           SERIAL PRIMARY KEY,
-      "userId"       INTEGER     NOT NULL,
-      "refreshToken" TEXT        NOT NULL UNIQUE,
-      "userAgent"    TEXT,
-      "ip"           TEXT,
-      "expiresAt"    TIMESTAMPTZ NOT NULL,
-      "revoked"      SMALLINT    NOT NULL DEFAULT 0,
-      "createdAt"    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt"    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-    )
-  `).catch(() => {})
-  _schemaReady = true
+  if (schemaReadyPromise) return schemaReadyPromise
+  schemaReadyPromise = (async () => {
+    await pgExec(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "es_superadmin" BOOLEAN NOT NULL DEFAULT false`).catch(() => {})
+    await pgExec(`
+      CREATE TABLE IF NOT EXISTS godmode_audit (
+        id         SERIAL PRIMARY KEY,
+        usuario_id INTEGER NOT NULL,
+        accion     TEXT    NOT NULL,
+        detalle    JSONB   NOT NULL DEFAULT '{}',
+        ip         TEXT,
+        creado_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `).catch(() => {})
+    await pgExec(`CREATE INDEX IF NOT EXISTS idx_godmode_audit_usuario ON godmode_audit(usuario_id)`).catch(() => {})
+    // Tabla legacy — backward-compat para migración de tokens en sessions.js
+    await pgExec(`
+      CREATE TABLE IF NOT EXISTS "user_sessions" (
+        "id"           SERIAL PRIMARY KEY,
+        "userId"       INTEGER     NOT NULL,
+        "refreshToken" TEXT        NOT NULL UNIQUE,
+        "userAgent"    TEXT,
+        "ip"           TEXT,
+        "expiresAt"    TIMESTAMPTZ NOT NULL,
+        "revoked"      SMALLINT    NOT NULL DEFAULT 0,
+        "createdAt"    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt"    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `).catch(() => {})
+  })().catch(err => {
+    schemaReadyPromise = null
+    throw err
+  })
+  return schemaReadyPromise
 }
 
 // ── Audit log ─────────────────────────────────────────────────────────────────
