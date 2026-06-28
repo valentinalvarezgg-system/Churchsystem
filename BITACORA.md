@@ -1,6 +1,23 @@
 # BITÁCORA — Church System
 ---
 
+## Dashboard más liviano: menos queries seriales en `/stats` — 2026-06-28
+
+**Estado actual:** el dashboard principal quedó más eficiente en backend. La ruta `/stats`, que se refresca periódicamente desde frontend, ya no encadena tantas consultas secuenciales ni recalcula el crecimiento mensual con 12 queries separadas.
+
+### Falla detectada
+- `backend/src/routes/stats.js` resolvía `dashboardStats()` con muchas `pgOne()` seriales y además hacía 12 consultas individuales extra para `crecimientoMensual`.
+- Como `frontend/src/pages/Dashboard.jsx` refresca `/stats` en tiempo real, ese patrón aumentaba latencia y carga innecesaria en cada tenant activo.
+
+### Corrección aplicada
+- `backend/src/routes/stats.js`: los KPIs principales, listas auxiliares y actividad reciente ahora se cargan en paralelo con `Promise.all`.
+- `backend/src/routes/stats.js`: `crecimientoMensual` pasó de 12 queries por mes a una sola agregación SQL agrupada por `YYYY-MM`.
+- Se mantuvo el payload público del dashboard sin romper contratos del frontend.
+
+### Evidencia
+- `node --check backend/src/routes/stats.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Verificación reproducible de accesos QA + GodMode — 2026-06-28
 
 **Estado actual:** el acceso de prueba ya no depende de chequeos manuales dispersos; ahora existe una verificación dedicada que confirma logins de todas las cuentas QA formales, todos los aliases amigables y el acceso real a `GodMode`.

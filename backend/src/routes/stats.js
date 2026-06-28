@@ -56,103 +56,156 @@ async function dashboardStats(iglesiaId) {
   const hoy = new Date().toISOString().slice(0, 10)
   const mesActual = monthKey()
   const mesPasado = previousMonthKey()
+  const crecimientoInicio = new Date()
+  crecimientoInicio.setDate(1)
+  crecimientoInicio.setMonth(crecimientoInicio.getMonth() - 11)
 
-  const personas = n(await pgOne(
-    `SELECT COUNT(*)::int AS c
-       FROM "Persona"
-      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND COALESCE("estado",'ACTIVO')!='INACTIVO'`,
-    [iglesiaId]
-  ))
-  const activos = n(await pgOne(
-    `SELECT COUNT(*)::int AS c
-       FROM "Persona"
-      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "estado"='ACTIVO'`,
-    [iglesiaId]
-  ))
-  const visitantes = n(await pgOne(
-    `SELECT COUNT(*)::int AS c
-       FROM "Persona"
-      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "estado"='VISITANTE'`,
-    [iglesiaId]
-  ))
-  const grupos = n(await pgOne('SELECT COUNT(*)::int AS c FROM "Grupo" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId]))
-  const cultos = n(await pgOne('SELECT COUNT(*)::int AS c FROM "Culto" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId]))
-  const nuevosMes = n(await pgOne(
-    `SELECT COUNT(*)::int AS c FROM "Persona"
-      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
-    [iglesiaId, mesActual]
-  ))
-  const nuevosMesPasado = n(await pgOne(
-    `SELECT COUNT(*)::int AS c FROM "Persona"
-      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
-    [iglesiaId, mesPasado]
-  ))
-  const asistencia = await asistenciaResumen(iglesiaId)
+  const [
+    personasRow,
+    activosRow,
+    visitantesRow,
+    gruposRow,
+    cultosRow,
+    nuevosMesRow,
+    nuevosMesPasadoRow,
+    asistencia,
+    seguimientosVencidosRow,
+    visitantesSinConsolidarRow,
+    sinSeguimientoRow,
+    asistenciaReciente,
+    proximosContactos,
+    cumpleanosRaw,
+    actividadReciente,
+    crecimientoRows,
+  ] = await Promise.all([
+    pgOne(
+      `SELECT COUNT(*)::int AS c
+         FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND COALESCE("estado",'ACTIVO')!='INACTIVO'`,
+      [iglesiaId]
+    ),
+    pgOne(
+      `SELECT COUNT(*)::int AS c
+         FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "estado"='ACTIVO'`,
+      [iglesiaId]
+    ),
+    pgOne(
+      `SELECT COUNT(*)::int AS c
+         FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "estado"='VISITANTE'`,
+      [iglesiaId]
+    ),
+    pgOne('SELECT COUNT(*)::int AS c FROM "Grupo" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId]),
+    pgOne('SELECT COUNT(*)::int AS c FROM "Culto" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId]),
+    pgOne(
+      `SELECT COUNT(*)::int AS c FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
+      [iglesiaId, mesActual]
+    ),
+    pgOne(
+      `SELECT COUNT(*)::int AS c FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
+      [iglesiaId, mesPasado]
+    ),
+    asistenciaResumen(iglesiaId),
+    pgOne(
+      `SELECT COUNT(*)::int AS c
+         FROM "Seguimiento"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
+          AND "proximoContacto" IS NOT NULL AND "proximoContacto" < $2`,
+      [iglesiaId, hoy]
+    ),
+    pgOne(
+      `SELECT COUNT(*)::int AS c
+         FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
+          AND "estado"='VISITANTE'
+          AND COALESCE("fechaIngreso", to_char("createdAt",'YYYY-MM-DD')) <= to_char(CURRENT_DATE - INTERVAL '14 days','YYYY-MM-DD')`,
+      [iglesiaId]
+    ),
+    pgOne(
+      `SELECT COUNT(*)::int AS c
+         FROM "Persona" p
+        WHERE p."iglesiaId"=$1 AND p."deletedAt" IS NULL
+          AND p."estado" IN ('ACTIVO','VISITANTE','NUEVO')
+          AND NOT EXISTS (
+            SELECT 1 FROM "Seguimiento" s
+             WHERE s."iglesiaId"=$1 AND s."deletedAt" IS NULL AND s."personaId"=p."id"
+          )`,
+      [iglesiaId]
+    ),
+    pgMany(
+      `SELECT c."id", c."nombre", c."fecha",
+              COUNT(a."id")::int as total,
+              COUNT(CASE WHEN a."presente"=true THEN 1 END)::int as presentes
+         FROM "Culto" c
+         LEFT JOIN "Asistencia" a ON a."cultoId"=c."id"
+        WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
+        GROUP BY c."id"
+        ORDER BY c."fecha" DESC, c."id" DESC
+        LIMIT 5`,
+      [iglesiaId]
+    ),
+    pgMany(
+      `SELECT s."personaId", s."tipo", s."proximoContacto", p."nombre", p."apellido"
+         FROM "Seguimiento" s
+         JOIN "Persona" p ON p."id"=s."personaId"
+        WHERE s."iglesiaId"=$1 AND s."deletedAt" IS NULL
+          AND s."proximoContacto" IS NOT NULL
+          AND s."id" IN (
+            SELECT MAX("id")
+              FROM "Seguimiento"
+             WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "proximoContacto" IS NOT NULL
+             GROUP BY "personaId"
+          )
+        ORDER BY s."proximoContacto" ASC
+        LIMIT 8`,
+      [iglesiaId]
+    ),
+    pgMany(
+      `SELECT "id","nombre","apellido","fechaNacimiento","telefono"
+         FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "fechaNacimiento" IS NOT NULL AND "fechaNacimiento" != ''`,
+      [iglesiaId]
+    ),
+    pgMany(
+      `SELECT a."action" AS "accion",
+              a."entity" AS "entidad",
+              a."entityId" AS "entidadId",
+              COALESCE(a."detail",'') AS "detalle",
+              COALESCE(u."email",'sistema') AS "usuario",
+              a."createdAt"
+         FROM "AuditLog" a
+         LEFT JOIN "User" u ON a."userId"=u."id"
+        WHERE a."iglesiaId"=$1
+        ORDER BY a."id" DESC
+        LIMIT 12`,
+      [iglesiaId]
+    ),
+    pgMany(
+      `SELECT to_char("createdAt",'YYYY-MM') AS mes, COUNT(*)::int AS c
+         FROM "Persona"
+        WHERE "iglesiaId"=$1
+          AND "deletedAt" IS NULL
+          AND "createdAt" >= $2::date
+        GROUP BY 1
+        ORDER BY 1 ASC`,
+      [iglesiaId, crecimientoInicio.toISOString().slice(0, 10)]
+    ),
+  ])
 
-  const seguimientosVencidos = n(await pgOne(
-    `SELECT COUNT(*)::int AS c
-       FROM "Seguimiento"
-      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
-        AND "proximoContacto" IS NOT NULL AND "proximoContacto" < $2`,
-    [iglesiaId, hoy]
-  ))
-  const visitantesSinConsolidar = n(await pgOne(
-    `SELECT COUNT(*)::int AS c
-       FROM "Persona"
-      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
-        AND "estado"='VISITANTE'
-        AND COALESCE("fechaIngreso", to_char("createdAt",'YYYY-MM-DD')) <= to_char(CURRENT_DATE - INTERVAL '14 days','YYYY-MM-DD')`,
-    [iglesiaId]
-  ))
-  const sinSeguimiento = n(await pgOne(
-    `SELECT COUNT(*)::int AS c
-       FROM "Persona" p
-      WHERE p."iglesiaId"=$1 AND p."deletedAt" IS NULL
-        AND p."estado" IN ('ACTIVO','VISITANTE','NUEVO')
-        AND NOT EXISTS (
-          SELECT 1 FROM "Seguimiento" s
-           WHERE s."iglesiaId"=$1 AND s."deletedAt" IS NULL AND s."personaId"=p."id"
-        )`,
-    [iglesiaId]
-  ))
+  const personas = n(personasRow)
+  const activos = n(activosRow)
+  const visitantes = n(visitantesRow)
+  const grupos = n(gruposRow)
+  const cultos = n(cultosRow)
+  const nuevosMes = n(nuevosMesRow)
+  const nuevosMesPasado = n(nuevosMesPasadoRow)
+  const seguimientosVencidos = n(seguimientosVencidosRow)
+  const visitantesSinConsolidar = n(visitantesSinConsolidarRow)
+  const sinSeguimiento = n(sinSeguimientoRow)
 
-  const asistenciaReciente = await pgMany(
-    `SELECT c."id", c."nombre", c."fecha",
-            COUNT(a."id")::int as total,
-            COUNT(CASE WHEN a."presente"=true THEN 1 END)::int as presentes
-       FROM "Culto" c
-       LEFT JOIN "Asistencia" a ON a."cultoId"=c."id"
-      WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
-      GROUP BY c."id"
-      ORDER BY c."fecha" DESC, c."id" DESC
-      LIMIT 5`,
-    [iglesiaId]
-  )
-
-  const proximosContactos = await pgMany(
-    `SELECT s."personaId", s."tipo", s."proximoContacto", p."nombre", p."apellido"
-       FROM "Seguimiento" s
-       JOIN "Persona" p ON p."id"=s."personaId"
-      WHERE s."iglesiaId"=$1 AND s."deletedAt" IS NULL
-        AND s."proximoContacto" IS NOT NULL
-        AND s."id" IN (
-          SELECT MAX("id")
-            FROM "Seguimiento"
-           WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "proximoContacto" IS NOT NULL
-           GROUP BY "personaId"
-        )
-      ORDER BY s."proximoContacto" ASC
-      LIMIT 8`,
-    [iglesiaId]
-  )
-
-  const cumpleanosRaw = await pgMany(
-    `SELECT "id","nombre","apellido","fechaNacimiento","telefono"
-       FROM "Persona"
-      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "fechaNacimiento" IS NOT NULL AND "fechaNacimiento" != ''`,
-    [iglesiaId]
-  )
-  const hoyMs = Date.now()
   const cumpleanos = cumpleanosRaw.map(p => {
     const cumDia = String(p.fechaNacimiento || '').slice(5, 10)
     const [m, d] = cumDia.split('-').map(Number)
@@ -167,35 +220,15 @@ async function dashboardStats(iglesiaId) {
     .sort((a, b) => a.dias - b.dias)
     .slice(0, 10)
 
+  const crecimientoMap = new Map((crecimientoRows || []).map(row => [row.mes, Number(row.c || 0)]))
   const crecimientoMensual = []
   for (let i = 11; i >= 0; i--) {
     const d = new Date()
     d.setDate(1)
     d.setMonth(d.getMonth() - i)
     const mes = d.toISOString().slice(0, 7)
-    const row = await pgOne(
-      `SELECT COUNT(*)::int AS c
-         FROM "Persona"
-        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
-      [iglesiaId, mes]
-    )
-    crecimientoMensual.push({ mes, nuevos: n(row) })
+    crecimientoMensual.push({ mes, nuevos: Number(crecimientoMap.get(mes) || 0) })
   }
-
-  const actividadReciente = await pgMany(
-    `SELECT a."action" AS "accion",
-            a."entity" AS "entidad",
-            a."entityId" AS "entidadId",
-            COALESCE(a."detail",'') AS "detalle",
-            COALESCE(u."email",'sistema') AS "usuario",
-            a."createdAt"
-       FROM "AuditLog" a
-       LEFT JOIN "User" u ON a."userId"=u."id"
-      WHERE a."iglesiaId"=$1
-      ORDER BY a."id" DESC
-      LIMIT 12`,
-    [iglesiaId]
-  )
 
   return {
     totales: {
@@ -361,4 +394,3 @@ router.get('/actividad', requireAuth, async (req, res) => {
 })
 
 export default router
-
