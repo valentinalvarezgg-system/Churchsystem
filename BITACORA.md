@@ -1,6 +1,46 @@
 # BITÁCORA — Church System
 ---
 
+## Reset productivo ejecutado — 2026-06-28
+
+**Estado actual:** la DB configurada quedó reseteada para cuentas/tenants y el alta desde cero volvió a pasar completa en producción pública.
+
+### Acción ejecutada
+- Se ejecutó `pnpm reset:accounts` en dry-run como última revisión.
+- Se ejecutó el reset real con:
+
+```bash
+pnpm reset:accounts -- --execute --confirm RESET_ACCOUNT_DATA --allow-production
+```
+
+- Resultado: 49 tablas tenant/cuentas/sesiones truncadas con `RESTART IDENTITY CASCADE`.
+- Catálogos preservados: `Rol`, `_prisma_migrations`, `promo_codes`, `subscription_plans`.
+
+### Evidencia post-reset
+- `pnpm smoke:signup` → OK completo contra `https://churchsystem.com.ar`.
+- Cuenta de prueba creada para inspección:
+  - Email: `reset-smoke+20260628054344@churchsystem.test`
+  - Password: `ChurchSmoke2026!`
+- Conteos post-reset + smoke:
+  - `Iglesia`: 1
+  - `User`: 1
+  - `Configuracion`: 2
+  - `Persona`, `Grupo`, `Culto`, `Permiso`, `AuditLog`, `payments`, `suscripciones`: 0
+  - `sesiones_auth`: 1
+  - `subscription_plans`: 18
+  - `promo_codes`: 4
+  - `Rol`: 7
+- `pnpm verify:prod` → OK, 0 errores; advertencias esperadas: TLS local de Node, origen Cloudflare Tunnel local, sin Render CLI/API key.
+- `cd backend && npx -y pnpm@9.15.5 audit:launch` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
+### Notas operativas
+- La página sigue disponible por `MODO_CLOUDFLARE_LOCAL`; la migración Business/Render queda pendiente hasta que `pnpm verify:prod:render` pase.
+- Si Valentín quiere usar GodMode con una cuenta real nueva, crear primero la cuenta desde `/registro` y luego ejecutar `node scripts/make-superadmin.mjs <email>`.
+- Rotar/no reutilizar credenciales legacy GodMode si existieron en entornos anteriores.
+
+---
+
 ## Estabilización onboarding/reset — 2026-06-28
 
 **Estado actual:** `churchsystem.com.ar` sigue online (`200 OK`) y el flujo de signup nuevo quedó probado hasta trial/billing/onboarding.
