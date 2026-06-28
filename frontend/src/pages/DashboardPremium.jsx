@@ -102,20 +102,9 @@ function Card({ title, children, style: s }) {
 
 export default function DashboardPremium() {
   const user = getUser()
-  const { data, loading } = useRealtimeQuery('stats', () =>
-    Promise.all([
-      apiFetch('/stats/personas'),
-      apiFetch('/stats/asistencias'),
-      apiFetch('/stats/grupos'),
-      apiFetch('/stats/seguimientos'),
-      apiFetch('/stats/consolidacion'),
-      apiFetch('/stats/tendencia').catch(() => ({ semanas: [] })),
-      apiFetch('/stats/actividad').catch(() => ({})),
-    ]).then(([personas, asist, grupos, seg, consol, tend, act]) => ({
-      kpis: { personas, asist, grupos, seg, consol },
-      tendencia: tend.semanas || [],
-      actividad: act || {},
-    })),
+  const { data, loading } = useRealtimeQuery(
+    'stats-premium',
+    () => apiFetch('/stats/premium'),
     [],
     { intervalMs: 10000 }
   )

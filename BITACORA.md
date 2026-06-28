@@ -1,6 +1,23 @@
 # BITÁCORA — Church System
 ---
 
+## Dashboard Premium: 1 request en vez de 7 — 2026-06-28
+
+**Estado actual:** la vista ejecutiva premium quedó más liviana para frontend y backend. `DashboardPremium` ya no arma su estado con siete llamadas distintas a `/stats/*`, sino con un único payload agregado desde backend.
+
+### Falla detectada
+- `frontend/src/pages/DashboardPremium.jsx` disparaba siete requests por refresco (`/stats/personas`, `/stats/asistencias`, `/stats/grupos`, `/stats/seguimientos`, `/stats/consolidacion`, `/stats/tendencia`, `/stats/actividad`).
+- Aunque parte del trabajo ya corría en paralelo en el navegador, seguía habiendo sobrecarga de red, más serialización HTTP y más trabajo repetido en backend por cada refresh.
+
+### Corrección aplicada
+- `backend/src/routes/stats.js`: agregado `GET /stats/premium`, que entrega KPIs, tendencia y actividad reciente en una sola respuesta.
+- `backend/src/routes/stats.js`: el cálculo premium usa una sola sincronización operativa y agrupa consultas con `Promise.all`.
+- `frontend/src/pages/DashboardPremium.jsx`: ahora consume únicamente `/stats/premium`.
+
+### Evidencia
+- `node --check backend/src/routes/stats.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Dashboard más liviano: menos queries seriales en `/stats` — 2026-06-28
 
 **Estado actual:** el dashboard principal quedó más eficiente en backend. La ruta `/stats`, que se refresca periódicamente desde frontend, ya no encadena tantas consultas secuenciales ni recalcula el crecimiento mensual con 12 queries separadas.

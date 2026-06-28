@@ -255,10 +255,133 @@ async function dashboardStats(iglesiaId) {
   }
 }
 
+async function premiumDashboardStats(iglesiaId) {
+  await ensureOperationalTenantDataSynced(iglesiaId)
+  const mesActual = monthKey()
+  const mesPasado = previousMonthKey()
+  const prevMonthDate = new Date()
+  prevMonthDate.setMonth(prevMonthDate.getMonth() - 1)
+  const prevMonthFrom = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), 1).toISOString().slice(0, 10)
+  const prevMonthTo = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0).toISOString().slice(0, 10)
+
+  const [
+    totalPersonasRow,
+    nuevosMesRow,
+    nuevosMesPasadoRow,
+    asistenciaActual,
+    asistenciaPasada,
+    gruposRow,
+    seguimientosMesRow,
+    seguimientosPrevRow,
+    consolidadosRow,
+    personasRecientes,
+    seguimientosRecientes,
+  ] = await Promise.all([
+    pgOne(
+      `SELECT COUNT(*)::int AS c FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND COALESCE("estado",'ACTIVO')!='INACTIVO'`,
+      [iglesiaId]
+    ),
+    pgOne(
+      `SELECT COUNT(*)::int AS c FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
+      [iglesiaId, mesActual]
+    ),
+    pgOne(
+      `SELECT COUNT(*)::int AS c FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
+      [iglesiaId, mesPasado]
+    ),
+    asistenciaResumen(iglesiaId),
+    asistenciaResumen(iglesiaId, prevMonthFrom, prevMonthTo),
+    pgOne('SELECT COUNT(*)::int AS c FROM "Grupo" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId]),
+    pgOne(
+      `SELECT COUNT(*)::int AS c FROM "Seguimiento"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
+      [iglesiaId, mesActual]
+    ),
+    pgOne(
+      `SELECT COUNT(*)::int AS c FROM "Seguimiento"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND to_char("createdAt",'YYYY-MM')=$2`,
+      [iglesiaId, mesPasado]
+    ),
+    pgOne(
+      `SELECT COUNT(*)::int AS c FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "estadoEspiritual" IN ('CONSOLIDADO','MINISTERIO')`,
+      [iglesiaId]
+    ),
+    pgMany(
+      'SELECT "id","nombre","apellido","estado","createdAt" FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL ORDER BY "createdAt" DESC LIMIT 5',
+      [iglesiaId]
+    ),
+    pgMany(
+      `SELECT s."id", s."tipo", s."createdAt", p."nombre", p."apellido"
+         FROM "Seguimiento" s
+         LEFT JOIN "Persona" p ON s."personaId"=p."id"
+        WHERE s."iglesiaId"=$1 AND s."deletedAt" IS NULL
+        ORDER BY s."createdAt" DESC
+        LIMIT 5`,
+      [iglesiaId]
+    ),
+  ])
+
+  const weekPromises = []
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i * 7)
+    const inicio = new Date(d)
+    inicio.setDate(d.getDate() - d.getDay())
+    const fin = new Date(inicio)
+    fin.setDate(inicio.getDate() + 6)
+    const from = inicio.toISOString().slice(0, 10)
+    const to = fin.toISOString().slice(0, 10)
+    weekPromises.push(
+      Promise.all([
+        asistenciaResumen(iglesiaId, from, to),
+        pgOne(
+          `SELECT COUNT(*)::int AS c FROM "Persona"
+            WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND DATE("createdAt") BETWEEN $2 AND $3`,
+          [iglesiaId, from, to]
+        ),
+      ]).then(([asist, nuevos]) => ({
+        semana: `${inicio.getDate()}/${inicio.getMonth() + 1}`,
+        asistencia: asist.presentes,
+        cultos: asist.cultos,
+        nuevos: n(nuevos),
+      }))
+    )
+  }
+  const tendencia = await Promise.all(weekPromises)
+
+  return {
+    kpis: {
+      personas: { total: n(totalPersonasRow), variacion: variation(n(nuevosMesRow), n(nuevosMesPasadoRow)) },
+      asist: { promedio: asistenciaActual.promedio, variacion: variation(asistenciaActual.promedio, asistenciaPasada.promedio) },
+      grupos: { total: n(gruposRow), variacion: 0 },
+      seg: { mes: n(seguimientosMesRow), variacion: variation(n(seguimientosMesRow), n(seguimientosPrevRow)) },
+      consol: { totalConsolidados: n(consolidadosRow), variacion: 0 },
+    },
+    tendencia,
+    actividad: {
+      personas: personasRecientes,
+      seguimientos: seguimientosRecientes,
+      cultos: [],
+      eventos: [],
+    },
+    syncedAt: new Date().toISOString(),
+  }
+}
+
 router.get('/', requireAuth, async (req, res) => {
   const iglesiaId = Number(req.user.iglesiaId || 0)
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
   res.json(await dashboardStats(iglesiaId))
+})
+
+router.get('/premium', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  res.json(await premiumDashboardStats(iglesiaId))
 })
 
 router.get('/personas', requireAuth, async (req, res) => {
