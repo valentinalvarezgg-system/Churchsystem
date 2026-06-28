@@ -1,6 +1,24 @@
 # BITÁCORA — Church System
 ---
 
+## Signup OAuth limpio + facturación confirmada explícitamente — 2026-06-28
+
+**Estado actual:** el alta inicial quedó más profesional en dos puntos clave: el retorno de OAuth en registro ya no deja errores fantasma en la URL y el `SetupWizard` ya no marca la facturación como confirmada si el usuario no la aprobó explícitamente.
+
+### Fallas detectadas
+- `frontend/src/pages/SetupWizard.jsx` persistía `onboarding_billing_confirmed='1'` automáticamente al guardar el paso de facturación, aunque el usuario solo hubiese navegado por la pantalla.
+- El mismo wizard permitía usar “Saltar” en facturación, dejando un onboarding aparentemente completo sin confirmación comercial real.
+- `frontend/src/pages/Registro.jsx` no limpiaba `?oauth=1` / `?error=...` cuando fallaba el refresh posterior a Google/Apple, así que podían reaparecer toasts engañosos al volver o recargar.
+
+### Corrección aplicada
+- `frontend/src/pages/SetupWizard.jsx`: la validación del paso de facturación ahora exige confirmación explícita antes de avanzar.
+- `frontend/src/pages/SetupWizard.jsx`: se eliminó la autoconsagración de `onboarding_billing_confirmed` al guardar; el valor solo cambia por la acción del usuario.
+- `frontend/src/pages/SetupWizard.jsx`: se agregó un checkbox de confirmación comercial y se deshabilitó “Saltar” en el paso de facturación.
+- `frontend/src/pages/Registro.jsx`: el retorno OAuth ahora toca sesión, usa mensaje genérico de éxito, limpia parámetros residuales y también cubre `apple_not_configured` y errores genéricos del proveedor.
+
+### Evidencia
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Login email para cuentas OAuth/migradas sin password — 2026-06-28
 
 **Estado actual:** el login por email ya no cae en `500 Error de autenticación` cuando la cuenta fue creada por Google/Apple o quedó sin hash durante una migración; ahora responde `401` controlado con una guía clara para el usuario.

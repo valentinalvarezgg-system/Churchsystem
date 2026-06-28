@@ -89,6 +89,10 @@ export default function SetupWizard({ onCompleto }) {
       toast.error('Completá el nombre de la iglesia para continuar.')
       return false
     }
+    if (paso === 1 && String(config.onboarding_billing_confirmed || '0') !== '1') {
+      toast.error('Confirmá el plan y el próximo paso de facturación para continuar.')
+      return false
+    }
     return true
   }
 
@@ -98,7 +102,6 @@ export default function SetupWizard({ onCompleto }) {
     try {
       await apiFetch('/config', { method: 'PUT', body: JSON.stringify({
         ...config,
-        onboarding_billing_confirmed: paso === 1 ? '1' : config.onboarding_billing_confirmed,
       }) })
       return true
     } catch (err) {
@@ -308,6 +311,36 @@ export default function SetupWizard({ onCompleto }) {
                 }}>
                   Esta etapa deja documentado el plan objetivo del onboarding. El checkout real queda disponible luego en Facturación, con Mercado Pago/PayPal según país y configuración.
                 </div>
+
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  padding: '14px',
+                  borderRadius: 12,
+                  background: String(config.onboarding_billing_confirmed || '0') === '1'
+                    ? 'rgba(22,163,74,0.12)'
+                    : 'rgba(255,255,255,0.04)',
+                  border: String(config.onboarding_billing_confirmed || '0') === '1'
+                    ? '1px solid rgba(22,163,74,0.3)'
+                    : '1px solid rgba(255,255,255,0.08)',
+                  cursor: 'pointer',
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={String(config.onboarding_billing_confirmed || '0') === '1'}
+                    onChange={e => f('onboarding_billing_confirmed', e.target.checked ? '1' : '0')}
+                    style={{ marginTop: 3 }}
+                  />
+                  <div>
+                    <div style={{ color: 'white', fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
+                      Confirmo el plan objetivo del onboarding
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, lineHeight: 1.5 }}>
+                      Entiendo que el trial queda activo ahora y que la configuración comercial final se completa después desde Facturación.
+                    </div>
+                  </div>
+                </label>
               </div>
             )}
 
@@ -473,7 +506,7 @@ export default function SetupWizard({ onCompleto }) {
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-              {paso < PASOS.length - 1 && paso !== 2 && (
+              {paso < PASOS.length - 1 && paso !== 1 && paso !== 2 && (
                 <button onClick={() => setPaso(p => p + 1)} disabled={saving || loading}
                   style={{
                     padding: '10px 20px', borderRadius: 10, cursor: saving || loading ? 'default' : 'pointer',

@@ -33,7 +33,7 @@ function normalizePlanInput(raw = '') {
 const REG_I18N = {
   es: {
     steps:['Plan', 'Cuenta', 'Verificar', 'Listo'],
-    oauthGoogleOk:'Cuenta creada con Google', oauthMissing:'OAuth no configurado aún',
+    oauthOk:'Cuenta creada correctamente', oauthMissing:'OAuth no configurado aún', oauthError:'No pudimos completar el acceso con este proveedor.',
     passwordMismatch:'Las contraseñas no coinciden', passwordMin:'Mínimo 8 caracteres',
     createError:'Error al crear la cuenta', choosePlanToast:'Elegí un plan para continuar',
     stepCounter:'Paso 1 de 3', choosePlan:'Elegí tu plan',
@@ -58,7 +58,7 @@ const REG_I18N = {
   },
   pt: {
     steps:['Plano', 'Conta', 'Verificar', 'Pronto'],
-    oauthGoogleOk:'Conta criada com Google', oauthMissing:'OAuth ainda não configurado',
+    oauthOk:'Conta criada com sucesso', oauthMissing:'OAuth ainda não configurado', oauthError:'Não foi possível concluir o acesso com este provedor.',
     passwordMismatch:'As senhas não coincidem', passwordMin:'Mínimo de 8 caracteres',
     createError:'Erro ao criar a conta', choosePlanToast:'Escolha um plano para continuar',
     stepCounter:'Passo 1 de 3', choosePlan:'Escolha seu plano',
@@ -83,7 +83,7 @@ const REG_I18N = {
   },
   en: {
     steps:['Plan', 'Account', 'Verify', 'Done'],
-    oauthGoogleOk:'Account created with Google', oauthMissing:'OAuth is not configured yet',
+    oauthOk:'Account created successfully', oauthMissing:'OAuth is not configured yet', oauthError:'We could not complete sign in with this provider.',
     passwordMismatch:'Passwords do not match', passwordMin:'Minimum 8 characters',
     createError:'Error creating account', choosePlanToast:'Choose a plan to continue',
     stepCounter:'Step 1 of 3', choosePlan:'Choose your plan',
@@ -268,9 +268,23 @@ export default function Registro() {
   const [form, setForm]           = useState({ nombre:'', apellido:'', email:'', password:'', confirmar:'', iglesiaToken:'' })
   const f = (k,v) => setForm(p=>({...p,[k]:v}))
 
+  function clearOAuthParams() {
+    const next = new URLSearchParams(searchParams)
+    next.delete('oauth')
+    next.delete('error')
+    next.delete('setup')
+    const query = next.toString()
+    navigate({ pathname: '/app/registro', search: query ? `?${query}` : '' }, { replace: true })
+  }
+
+  async function touchSesion() {
+    try { await apiFetch('/sesiones/touch', { method: 'POST' }) } catch {}
+  }
+
   // Si vuelve de OAuth, la sesión se recupera desde cookie refresh HttpOnly.
   useEffect(() => {
     async function handleOAuthReturn() {
+      const msg = REG_I18N[lang] || REG_I18N.es
       const oauth = searchParams.get('oauth')
       const error = searchParams.get('error')
       if (oauth === '1') {
@@ -280,13 +294,17 @@ export default function Registro() {
           localStorage.setItem('user', JSON.stringify(res.user))
           syncContextFromUser(res.user)
           localStorage.setItem('church_force_setup', '1')
-          toast.success((REG_I18N[lang] || REG_I18N.es).oauthGoogleOk)
-          navigate('/')
+          await touchSesion()
+          toast.success(msg.oauthOk)
+          navigate('/', { replace: true })
         } catch {
-          toast.error((REG_I18N[lang] || REG_I18N.es).oauthMissing)
+          toast.error(msg.oauthError)
+          clearOAuthParams()
         }
-      } else if (error === 'oauth_not_configured') {
-        toast.error((REG_I18N[lang] || REG_I18N.es).oauthMissing)
+      } else if (error) {
+        const missing = error === 'oauth_not_configured' || error === 'apple_not_configured'
+        toast.error(missing ? msg.oauthMissing : msg.oauthError)
+        clearOAuthParams()
       }
     }
     handleOAuthReturn()
