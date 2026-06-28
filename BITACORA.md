@@ -1,6 +1,24 @@
 # BITÁCORA — Church System
 ---
 
+## Verificación reproducible de accesos QA + GodMode — 2026-06-28
+
+**Estado actual:** el acceso de prueba ya no depende de chequeos manuales dispersos; ahora existe una verificación dedicada que confirma logins de todas las cuentas QA formales, todos los aliases amigables y el acceso real a `GodMode`.
+
+### Fallas detectadas
+- Hasta ahora la evidencia de QA/GodMode estaba repartida entre `audit:objective`, pruebas manuales y el seed, pero no había un comando corto y específico para verificar “¿siguen entrando todas las cuentas de prueba?”.
+- `backend/src/routes/godmode.js` al aprobar transferencias/manual billing dejaba `suscripcion_activa` y `plan`, pero no sincronizaba el estado comercial del onboarding (`onboarding_plan`, `onboarding_billing_confirmed`).
+
+### Corrección aplicada
+- Agregado `scripts/verify-qa-access.mjs`: loguea las 12 cuentas QA formales, las 12 cuentas alias (`godmode@test.com`, `max@test.com`, etc.) y valida que `godmode@test.com` pueda abrir `/godmode/overview`.
+- Agregado `pnpm verify:qa-access` en `package.json` para correr esa auditoría puntual de accesos.
+- `backend/src/routes/godmode.js`: la aprobación manual de transferencias ahora también persiste `onboarding_plan` y `onboarding_billing_confirmed='1'`.
+
+### Evidencia
+- `QA_TEST_PASSWORD='ChurchTest-2026!' node scripts/verify-qa-access.mjs` → OK, 12 cuentas QA + 12 aliases + GodMode overview.
+- `node --check backend/src/routes/godmode.js scripts/verify-qa-access.mjs` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Billing unificado con catálogo real + sync de onboarding comercial — 2026-06-28
 
 **Estado actual:** la pantalla de facturación ya no quedó limitada a `PRO/MAX`; ahora usa el mismo catálogo comercial del signup (`Starter`, `Pro`, `Max`, `Church 100`, `Church 500`, `Church 1000+`) y cuando una suscripción se activa deja el onboarding comercial sincronizado desde backend.

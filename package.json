@@ -17,6 +17,7 @@
     "setup:backend": "bash scripts/setup-backend-launchd.sh",
     "setup:cloudflared": "bash scripts/setup-cloudflared-launchd.sh",
     "smoke:signup": "node scripts/smoke-zero-signup.mjs",
+    "verify:qa-access": "node scripts/verify-qa-access.mjs",
     "verify:prod": "node scripts/verify-prod.mjs",
     "verify:prod:render": "node scripts/verify-prod.mjs --require-render"
   }

@@ -176,6 +176,8 @@ router.post('/transferencias/aprobar', ...gdProtect, async (req, res) => {
   await set('suscripcion_activa',     '1')
   await set('suscripcion_vence',      vence.toISOString().slice(0, 10))
   await set('ultimo_pago',            new Date().toISOString().slice(0, 10))
+  await set('onboarding_plan',        planKey)
+  await set('onboarding_billing_confirmed', '1')
   await set('plan_pendiente',         '')
   await set('transferencia_solicitada','0')
   await set('metodo_pago',            'transferencia')
