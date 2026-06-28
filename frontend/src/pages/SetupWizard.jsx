@@ -3,6 +3,7 @@ import Icons from '../components/Icons.jsx'
 import BrandLogo from '../components/BrandLogo.jsx'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, getUser } from '../services/api.js'
+import { toast } from '../components/Toast.jsx'
 import { EMAILS } from '../utils/legal.js'
 
 const PASOS = [
@@ -29,6 +30,7 @@ export default function SetupWizard({ onCompleto }) {
   const user      = getUser()
   const [paso, setPaso]     = useState(0)
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [billing, setBilling] = useState(null)
   const [plans, setPlans] = useState([])
   const [config, setConfig] = useState({
@@ -50,41 +52,84 @@ export default function SetupWizard({ onCompleto }) {
   }, [config.color_primario])
 
   useEffect(() => {
-    apiFetch('/subscriptions/billing-estado').then(setBilling).catch(() => {})
-    apiFetch(`/plan/lista?country=${user?.pais || 'AR'}&lang=${user?.idioma || 'es'}`, { skipAuthRedirect: true })
-      .then(list => setPlans(Array.isArray(list) ? list : []))
-      .catch(() => {})
+    let alive = true
+    async function cargarSetup() {
+      setLoading(true)
+      try {
+        const [cfg, billingData, planList] = await Promise.all([
+          apiFetch('/config'),
+          apiFetch('/subscriptions/billing-estado'),
+          apiFetch(`/plan/lista?country=${user?.pais || 'AR'}&lang=${user?.idioma || 'es'}`, { skipAuthRedirect: true }),
+        ])
+        if (!alive) return
+        setBilling(billingData)
+        setPlans(Array.isArray(planList) ? planList : [])
+        setConfig(prev => ({
+          ...prev,
+          ...Object.fromEntries(
+            Object.entries(cfg || {}).filter(([, value]) => value !== null && value !== undefined && value !== '')
+          ),
+          onboarding_plan: cfg?.onboarding_plan || prev.onboarding_plan,
+          onboarding_billing_confirmed: cfg?.onboarding_billing_confirmed || prev.onboarding_billing_confirmed,
+        }))
+      } catch (err) {
+        if (alive) toast.error(err.message || 'No se pudo cargar la configuración inicial.')
+      } finally {
+        if (alive) setLoading(false)
+      }
+    }
+    cargarSetup()
+    return () => { alive = false }
   }, [])
 
   const f = (k, v) => setConfig(p => ({ ...p, [k]: v }))
 
+  function validarPasoActual() {
+    if (paso === 0 && !String(config.nombre_iglesia || '').trim()) {
+      toast.error('Completá el nombre de la iglesia para continuar.')
+      return false
+    }
+    return true
+  }
+
   async function guardarPaso() {
+    if (!validarPasoActual()) return false
     setSaving(true)
     try {
       await apiFetch('/config', { method: 'PUT', body: JSON.stringify({
         ...config,
         onboarding_billing_confirmed: paso === 1 ? '1' : config.onboarding_billing_confirmed,
       }) })
-    } catch {}
-    setSaving(false)
+      return true
+    } catch (err) {
+      toast.error(err.message || 'No se pudo guardar este paso. Probá nuevamente.')
+      return false
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function siguiente() {
-    await guardarPaso()
-    if (paso < PASOS.length - 1) setPaso(p => p + 1)
+    const ok = await guardarPaso()
+    if (ok && paso < PASOS.length - 1) setPaso(p => p + 1)
   }
 
   async function completar() {
+    if (!validarPasoActual()) return
     setSaving(true)
     try {
       await apiFetch('/config', {
         method: 'PUT',
         body: JSON.stringify({ ...config, setup_completado: '1' })
       })
+      toast.success('Configuración inicial guardada.')
       onCompleto?.()
       navigate('/')
-    } catch {}
-    setSaving(false)
+    } catch (err) {
+      toast.error(err.message || 'No se pudo completar la configuración inicial.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const pasoActual = PASOS[paso]
@@ -154,6 +199,19 @@ export default function SetupWizard({ onCompleto }) {
 
           {/* Contenido del paso */}
           <div style={{ padding: '24px 28px' }}>
+            {loading && (
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 12,
+                marginBottom: 18,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.65)',
+                fontSize: 13,
+              }}>
+                Cargando configuración actual...
+              </div>
+            )}
 
             {/* ── PASO 1: Iglesia ─────────────────────────────── */}
             {paso === 0 && (
@@ -211,7 +269,7 @@ export default function SetupWizard({ onCompleto }) {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(145px,1fr))', gap: 10 }}>
-                  {plans.filter(p => ['FREE', 'PRO', 'MAX', 'CHURCH_100', 'CHURCH_500'].includes(p.id)).map(plan => {
+                  {plans.filter(p => ['FREE', 'PRO', 'MAX', 'CHURCH_100', 'CHURCH_500', 'CHURCH_1000'].includes(p.id)).map(plan => {
                     const selected = config.onboarding_plan === plan.id
                     return (
                       <button key={plan.id}
@@ -416,34 +474,35 @@ export default function SetupWizard({ onCompleto }) {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
               {paso < PASOS.length - 1 && paso !== 2 && (
-                <button onClick={() => setPaso(p => p + 1)}
+                <button onClick={() => setPaso(p => p + 1)} disabled={saving || loading}
                   style={{
-                    padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
+                    padding: '10px 20px', borderRadius: 10, cursor: saving || loading ? 'default' : 'pointer',
                     background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
                     color: 'rgba(255,255,255,0.5)', fontSize: 13,
+                    opacity: saving || loading ? 0.6 : 1,
                   }}>
                   Saltar
                 </button>
               )}
 
               {paso < PASOS.length - 1 ? (
-                <button onClick={siguiente} disabled={saving || (paso === 0 && !config.nombre_iglesia.trim())}
+                <button onClick={siguiente} disabled={saving || loading || (paso === 0 && !config.nombre_iglesia.trim())}
                   style={{
-                    padding: '10px 24px', borderRadius: 10, cursor: 'pointer',
+                    padding: '10px 24px', borderRadius: 10, cursor: saving || loading ? 'default' : 'pointer',
                     background: config.color_primario, border: 'none',
                     color: 'white', fontSize: 14, fontWeight: 700,
-                    opacity: saving || (paso === 0 && !config.nombre_iglesia.trim()) ? 0.6 : 1,
+                    opacity: saving || loading || (paso === 0 && !config.nombre_iglesia.trim()) ? 0.6 : 1,
                     transition: 'opacity 0.15s',
                   }}>
                   {saving ? 'Guardando...' : 'Siguiente →'}
                 </button>
               ) : (
-                <button onClick={completar} disabled={saving}
+                <button onClick={completar} disabled={saving || loading}
                   style={{
-                    padding: '12px 28px', borderRadius: 10, cursor: 'pointer',
+                    padding: '12px 28px', borderRadius: 10, cursor: saving || loading ? 'default' : 'pointer',
                     background: `linear-gradient(135deg, ${config.color_primario}, #7C3AED)`,
                     border: 'none', color: 'white', fontSize: 15, fontWeight: 800,
-                    opacity: saving ? 0.6 : 1,
+                    opacity: saving || loading ? 0.6 : 1,
                   }}>
                   {saving ? 'Guardando...' : ' Empezar'}
                 </button>

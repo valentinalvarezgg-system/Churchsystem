@@ -1,6 +1,25 @@
 # BITÁCORA — Church System
 ---
 
+## SetupWizard más robusto y profesional — 2026-06-28
+
+**Estado actual:** el onboarding inicial ya no avanza “a ciegas”; ahora recupera configuración previa, bloquea pasos si falla el guardado y ofrece una experiencia más consistente para retomar el alta.
+
+### Falla detectada
+- `frontend/src/pages/SetupWizard.jsx` empezaba siempre desde estado local vacío en vez de recargar `/config`, así que al refrescar o reabrir el wizard se perdía contexto parcial del onboarding.
+- `guardarPaso()` y `completar()` absorbían errores silenciosamente; si `/config` fallaba, el wizard podía seguir avanzando igual y dejar onboarding inconsistente.
+- La selección de plan del paso de facturación omitía `CHURCH_1000`, dejando afuera un tier real de la app.
+
+### Corrección aplicada
+- `frontend/src/pages/SetupWizard.jsx`: ahora carga en paralelo `config`, `billing-estado` y catálogo de planes al iniciar, y mergea la configuración existente en el formulario.
+- `frontend/src/pages/SetupWizard.jsx`: el guardado devuelve éxito/error real, muestra `toast` cuando falla y bloquea el avance/completado hasta persistir correctamente.
+- `frontend/src/pages/SetupWizard.jsx`: se agregó validación explícita del nombre de iglesia para evitar pasos incompletos.
+- `frontend/src/pages/SetupWizard.jsx`: el paso de facturación ahora también contempla `CHURCH_1000`.
+- Botones principales y de “Saltar” quedan deshabilitados mientras carga o guarda, para evitar dobles submits y navegación prematura.
+
+### Evidencia
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Render blueprint: no fijar PORT manualmente — 2026-06-28
 
 **Estado actual:** el bloqueo para cerrar el objetivo ya no está en el código funcional ni en auth/reset/QA, sino en el corte externo a Render. Se ajustó el Blueprint para alinearlo con el comportamiento real de Render Web Services.
