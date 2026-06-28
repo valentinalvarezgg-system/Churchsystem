@@ -1,6 +1,27 @@
 # BITÁCORA — Church System
 ---
 
+## Signup profesional + wizard obligatorio post-alta — 2026-06-28
+
+**Estado actual:** el alta nueva ahora deja persistido el estado de onboarding/facturación desde backend y el wizard inicial vuelve a aparecer de forma consistente tanto para registro por email como para OAuth.
+
+### Falla detectada
+- El registro por email podía saltear el `SetupWizard`: `Registro.jsx` no forzaba setup al entrar al dashboard y `App.jsx` solo abría el wizard cuando faltaban simultáneamente `setup_completado` y `nombre_iglesia`.
+- Como el backend ya creaba una iglesia y podía existir `nombre_iglesia` temprano, una cuenta nueva podía entrar a la app sin pasar por la etapa intermedia de configuración/facturación que el objetivo pide.
+- El backend no persistía explícitamente `onboarding_plan`, `onboarding_billing_confirmed` ni `setup_completado` al crear nuevas iglesias por email/OAuth, así que el frontend no tenía una señal durable para reanudar onboarding después del primer acceso.
+
+### Corrección aplicada
+- `backend/src/routes/registro.js`: al crear una iglesia nueva ahora guarda `onboarding_plan`, `onboarding_billing_confirmed=0` y `setup_completado=0` junto al trial.
+- `backend/src/routes/oauth.js`: mismo comportamiento para altas nuevas por Google/Apple.
+- `frontend/src/App.jsx`: el gate del wizard ahora se basa en `setup_completado`, `nombre_iglesia` y el estado persistido de onboarding, no solo en el nombre de la iglesia.
+- `frontend/src/pages/Registro.jsx`: el botón final del alta por email marca `church_force_setup=1` antes de entrar a `/`, para que el primer acceso abra directamente el setup.
+
+### Evidencia
+- Alta real local posterior al restart del backend: `wizard-check+1782662893568@churchsystem.test` → HTTP 200.
+- Configuración creada para esa iglesia: `onboarding_plan=PRO`, `onboarding_billing_confirmed=0`, `setup_completado=0`, `trial_inicio=2026-06-28`, `trial_fin=2026-07-28`.
+- `node --check backend/src/routes/registro.js backend/src/routes/oauth.js frontend/src/App.jsx frontend/src/pages/Registro.jsx` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Fix auth QA aliases + limpieza OAuth en login — 2026-06-28
 
 **Estado actual:** el login backend responde correctamente; el fallo reportado con `max@test.com` no era una caída de autenticación global sino una combinación de cuenta alias faltante tras el reset y reintentos del login con query params OAuth residuales que dejaban el toast genérico visible.

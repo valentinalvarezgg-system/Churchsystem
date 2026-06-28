@@ -100,8 +100,11 @@ function useSetupCheck() {
     apiFetch('/config')
       .then(cfg => {
         const completado  = cfg.setup_completado === '1' || cfg.setup_completado === true
+        const billingOk = cfg.onboarding_billing_confirmed === '1' || cfg.onboarding_billing_confirmed === true
         const tieneNombre = !!cfg.nombre_iglesia
-        setMostrarWizard(!completado && !tieneNombre)
+        const hasOnboardingState = typeof cfg.onboarding_billing_confirmed !== 'undefined'
+          || typeof cfg.onboarding_plan !== 'undefined'
+        setMostrarWizard(!completado || !tieneNombre || (hasOnboardingState && !billingOk))
         setCheckeado(true)
       })
       .catch(() => setCheckeado(true))

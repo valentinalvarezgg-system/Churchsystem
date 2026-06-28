@@ -117,7 +117,13 @@ export async function crearCuentaHandler(req, res) {
         `UPDATE "Iglesia" SET trial_hasta = NOW() + INTERVAL '30 days', "updatedAt"=CURRENT_TIMESTAMP WHERE id=$1`,
         [iglesiaId]
       )
-      for (const [k, v] of [['trial_inicio', new Date().toISOString().slice(0, 10)], ['trial_fin', trialFin]]) {
+      for (const [k, v] of [
+        ['trial_inicio', new Date().toISOString().slice(0, 10)],
+        ['trial_fin', trialFin],
+        ['onboarding_plan', selectedPlanKey],
+        ['onboarding_billing_confirmed', '0'],
+        ['setup_completado', '0'],
+      ]) {
         await pgExec(
           `INSERT INTO "Configuracion" ("iglesiaId","clave","valor","createdAt","updatedAt")
            VALUES ($1,$2,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)

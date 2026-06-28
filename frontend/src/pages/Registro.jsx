@@ -810,7 +810,10 @@ export default function Registro() {
                 </div>
               ))}
             </div>
-            <button onClick={()=>navigate('/')} style={btnPri}>
+            <button onClick={() => {
+              localStorage.setItem('church_force_setup', '1')
+              navigate('/')
+            }} style={btnPri}>
               {t('enter')}
             </button>
           </div>
