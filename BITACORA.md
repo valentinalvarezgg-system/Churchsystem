@@ -10,6 +10,7 @@
 - `~/Library/LaunchAgents/com.churchsystem.backend.plist` tenía `EnvironmentVariables` con secretos operativos; eso queda fuera de Git, pero aumenta riesgo local y contradice la higiene de migración.
 - Al reinstalar launchd sin PATH interactivo, Node podía no encontrarse; el wrapper ahora resuelve rutas comunes (`/usr/local/bin/node`, `/opt/homebrew/bin/node`).
 - Reapareció el síntoma de store corrupto (`Cannot find module 'unzipper'`); se reparó con reinstalación forzada desde lockfile.
+- El watchdog público disparaba falsos fallos por la validación CA local de Node; ahora reintenta health HTTPS con CA relajada sin reiniciar el túnel innecesariamente.
 
 ### Corrección aplicada
 - Agregado `scripts/run-backend-launchd.sh`: carga `backend/.env` en runtime con permisos `600` y arranca `backend/src/server.js` sin secretos en plist.
@@ -17,6 +18,7 @@
 - `backend/watchdog.mjs`: ahora valida salud local y pública; reinicia `com.churchsystem.backend` si cae local y `com.churchsystem.cloudflared` si cae la salud pública con backend local OK.
 - `scripts/diagnostico.sh`: ahora verifica que el backend plist no contenga `EnvironmentVariables`.
 - `scripts/audit-objective.mjs`: suma checks operativos del plist limpio y wrapper launchd.
+- `backend/watchdog.mjs`: health público usa cliente HTTP/HTTPS con fallback TLS controlado, igual que los verificadores de producción.
 - README actualizado con `pnpm setup:backend`, `launchctl kickstart` y notas de watchdog.
 
 ### Acción ejecutada en esta Mac

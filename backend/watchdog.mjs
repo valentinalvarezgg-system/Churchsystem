@@ -10,6 +10,8 @@
  * solo lo necesario. No imprime secretos ni lee tokens del túnel.
  */
 import { execFile } from 'node:child_process'
+import http from 'node:http'
+import https from 'node:https'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
@@ -25,6 +27,7 @@ const RESEND_KEY = process.env.RESEND_API_KEY || ''
 const ALERT_COOLDOWN_MS = Number(process.env.WATCHDOG_ALERT_COOLDOWN_MS || 10 * 60_000)
 const STARTUP_GRACE_MS = Number(process.env.WATCHDOG_STARTUP_GRACE_MS || 15_000)
 const LAUNCHD_DOMAIN = `gui/${process.getuid?.() || ''}`
+const insecureAgent = new https.Agent({ rejectUnauthorized: false })
 
 let localFailures = 0
 let publicFailures = 0
@@ -43,19 +46,42 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+function requestText(url, options = {}) {
+  return new Promise(resolve => {
+    const parsed = new URL(url)
+    const transport = parsed.protocol === 'http:' ? http : https
+    const req = transport.request(parsed, {
+      method: 'GET',
+      timeout: 8000,
+      agent: options.agent,
+      headers: { Accept: 'application/json' },
+    }, response => {
+      let text = ''
+      response.on('data', chunk => {
+        if (text.length < 4096) text += chunk
+      })
+      response.on('end', () => resolve({ ok: true, status: response.statusCode || 0, text }))
+    })
+    req.on('error', error => resolve({ ok: false, status: 0, error: error.message || 'request_failed' }))
+    req.on('timeout', () => {
+      req.destroy()
+      resolve({ ok: false, status: 0, error: 'timeout' })
+    })
+    req.end()
+  })
+}
+
 async function fetchHealth(url) {
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), 8000)
-  try {
-    const response = await fetch(url, { signal: ctrl.signal, cache: 'no-store' })
-    const text = await response.text().catch(() => '')
-    if (response.ok && text.includes('"status":"ok"')) return { ok: true, status: response.status }
-    return { ok: false, status: response.status, error: text.slice(0, 140) || `HTTP ${response.status}` }
-  } catch (error) {
-    return { ok: false, status: 0, error: error.message || 'request_failed' }
-  } finally {
-    clearTimeout(timer)
+  let response = await requestText(url)
+  if (!response.ok && /^https:/i.test(url) && /certificate|issuer|self-signed|unable to verify/i.test(response.error || '')) {
+    response = await requestText(url, { agent: insecureAgent })
+    if (response.ok) response.tlsWarning = true
   }
+  if (!response.ok) return { ok: false, status: 0, error: response.error || 'request_failed' }
+  if (response.status === 200 && response.text.includes('"status":"ok"')) {
+    return { ok: true, status: response.status }
+  }
+  return { ok: false, status: response.status, error: response.text.slice(0, 140) || `HTTP ${response.status}` }
 }
 
 async function launchctlKick(label) {
