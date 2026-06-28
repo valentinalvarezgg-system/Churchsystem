@@ -1,6 +1,42 @@
 # BITÁCORA — Church System
 ---
 
+## Estabilización onboarding/reset — 2026-06-28
+
+**Estado actual:** `churchsystem.com.ar` sigue online (`200 OK`) y el flujo de signup nuevo quedó probado hasta trial/billing/onboarding.
+
+### Causa encontrada
+- El smoke real de signup creó correctamente la cuenta, pero `GET /subscriptions/billing-estado` quedaba colgado.
+- La ruta dinámica `GET /subscriptions/:userId` estaba declarada antes de endpoints estáticos y capturaba `/subscriptions/billing-estado` como `userId = NaN`.
+- Ese `NaN` terminaba en una query PostgreSQL y dejaba la request sin respuesta útil, afectando banners/tarjetas de billing y checklist inicial.
+
+### Corrección aplicada
+- `backend/src/routes/subscriptions.js`: la ruta histórica por usuario ahora solo matchea ids numéricos (`/subscriptions/:userId(\\d+)`), por lo que endpoints estáticos como `/subscriptions/billing-estado` y `/subscriptions/onboarding-progreso` ya no son interceptados.
+- Agregado `scripts/reset-account-data.mjs` + `pnpm reset:accounts`: reset seguro con `dry-run` por defecto, confirmación explícita y guardia extra para DB no-local.
+- El reset preserva catálogos globales por defecto: `Rol`, `_prisma_migrations`, `promo_codes`, `subscription_plans`; trunca datos tenant/cuentas/sesiones con `RESTART IDENTITY CASCADE` solo si se ejecuta con confirmación.
+- Agregado `scripts/smoke-zero-signup.mjs` + `pnpm smoke:signup`: valida health, catálogo de planes/tarjetas, signup, trial de 30 días, billing y onboarding inicial.
+- README actualizado con protocolo de reset controlado y smoke tests.
+
+### Evidencia
+- `pnpm reset:accounts` → OK en dry-run; no se ejecutó reset destructivo.
+- `pnpm smoke:signup -- --dry-run` → OK: health + 7 tarjetas de planes.
+- `pnpm smoke:signup` → OK: creó cuenta de prueba `reset-smoke+20260628053808@churchsystem.test`, validó trial 30 días, plan efectivo PRO y onboarding inicial.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+- `cd backend && npx -y pnpm@9.15.5 audit:launch` → OK, sin rutas críticas sin proteger.
+- `pnpm verify:prod` → OK, 0 errores; advertencias esperadas: TLS local de Node, origen Cloudflare Tunnel local, sin Render CLI/API key.
+
+### Pendiente operativo
+- Ejecutar el reset destructivo solo cuando Valentín confirme el momento exacto:
+
+```bash
+pnpm reset:accounts -- --execute --confirm RESET_ACCOUNT_DATA --allow-production
+```
+
+- Después del reset: crear la primera cuenta desde `/registro`; si se necesita GodMode, reactivar el dueño con `node scripts/make-superadmin.mjs <email>`.
+- Rotar/no reutilizar credenciales legacy GodMode si existieron en entornos anteriores.
+
+---
+
 ## Incidente producción — 2026-06-27 — 502 Cloudflare recuperado
 
 **Estado actual:** `churchsystem.com.ar` vuelve a responder `200 OK` y `/health` devuelve `{"status":"ok"}`.

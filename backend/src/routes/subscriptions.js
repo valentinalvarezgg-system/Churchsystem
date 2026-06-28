@@ -435,7 +435,7 @@ router.get('/subscriptions/plans', requireAuth, async (req, res) => {
   return res.json({ ok: true, items })
 })
 
-router.get('/subscriptions/:userId', requireAuth, async (req, res) => {
+router.get('/subscriptions/:userId(\\d+)', requireAuth, async (req, res) => {
   const askedId = Number(req.params.userId || 0)
   const isSameUser = askedId === Number(req.user.id)
   const canAdmin = req.user.rol === 'PASTOR_GENERAL'

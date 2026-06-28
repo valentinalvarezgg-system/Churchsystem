@@ -359,6 +359,25 @@ pnpm verify:prod        # salud pública actual
 pnpm verify:prod:render # falla hasta completar el corte a Render
 ```
 
+### Reset controlado para probar onboarding desde cero
+
+El reset de cuentas es destructivo y por defecto corre en `dry-run`; preserva catálogos globales (`Rol`, `_prisma_migrations`, `promo_codes`, `subscription_plans`) y trunca datos tenant/cuentas/sesiones.
+
+```bash
+pnpm reset:accounts
+
+# Ejecutar solo cuando se quiera borrar la data de cuentas de la DB configurada:
+pnpm reset:accounts -- --execute --confirm RESET_ACCOUNT_DATA --allow-production
+
+# Smoke no destructivo: health + catálogo de planes/tarjetas
+pnpm smoke:signup -- --dry-run
+
+# Smoke completo: crea una iglesia/usuario de prueba y valida trial + billing + onboarding
+pnpm smoke:signup
+```
+
+Después de un reset completo, ingresar por `/registro`, crear la primera cuenta y, si hace falta GodMode, volver a habilitar el dueño con `node scripts/make-superadmin.mjs <email>`.
+
 ---
 
 ## Convenciones de código
