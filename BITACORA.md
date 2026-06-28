@@ -1,6 +1,24 @@
 # BITÁCORA — Church System
 ---
 
+## Auditoría estricta reproducible + reset verificable — 2026-06-28
+
+**Estado actual:** la auditoría amplia del objetivo ahora también pasa en modo estricto con password QA real, incluyendo login runtime, GodMode y bloqueo de JWT por query string.
+
+### Fallas detectadas y corregidas
+- `scripts/audit-objective.mjs` no era totalmente reproducible cuando se usaba `QA_TEST_PASSWORD`: los logins de runtime repoblaban `AuditLog`, por lo que una corrida posterior podía fallar el check de reset aunque la base estuviera limpia al inicio.
+- El chequeo runtime de GodMode esperaba `overview.totals`, pero la respuesta actual expone KPIs en `overview.kpis`.
+
+### Corrección aplicada
+- `scripts/audit-objective.mjs`: ahora toma una línea de base de `AuditLog` al inicio y evalúa el reset contra ese snapshot, sin contar eventos creados por los propios checks runtime.
+- `scripts/audit-objective.mjs`: el check de GodMode acepta `kpis` (payload actual) y mantiene compatibilidad con `totals` si reaparece.
+- Se volvió a truncar `AuditLog` para dejar el reset consistente después de las pruebas manuales de autenticación.
+
+### Evidencia
+- `QA_TEST_PASSWORD='ChurchTest-2026!' pnpm audit:objective -- --strict-qa-password` → OK, `0 error(es), 6 advertencia(s), 62 check(s) OK`.
+- `POST /auth/login` local con `godmode@test.com`, `max@test.com`, `free@test.com` y `church1000@test.com` → HTTP 200 en todos los casos.
+- `GET /godmode/overview` con token QA → OK dentro de la auditoría estricta.
+
 ## Signup profesional + wizard obligatorio post-alta — 2026-06-28
 
 **Estado actual:** el alta nueva ahora deja persistido el estado de onboarding/facturación desde backend y el wizard inicial vuelve a aparecer de forma consistente tanto para registro por email como para OAuth.

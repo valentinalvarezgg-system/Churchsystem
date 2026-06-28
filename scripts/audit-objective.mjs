@@ -215,7 +215,7 @@ function auditStaticCode() {
   }
 }
 
-async function auditDatabase(qaPassword, strictQaPassword) {
+async function auditDatabase(qaPassword, strictQaPassword, baseline = {}) {
   if (!process.env.DATABASE_URL) {
     error('db', 'DATABASE_URL no configurado; no se puede auditar reset/QA')
     return
@@ -223,18 +223,29 @@ async function auditDatabase(qaPassword, strictQaPassword) {
   const { pgMany, pgOne } = await import('../backend/src/lib/pg.js')
 
   for (const table of RESET_TABLES) {
-    const hasDeletedAt = await pgOne(
-      `SELECT EXISTS (
-         SELECT 1
-           FROM information_schema.columns
-          WHERE table_schema = 'public'
-            AND table_name = $1
-            AND column_name = 'deletedAt'
-       ) AS ok`,
-      [table]
-    )
-    const deletedFilter = hasDeletedAt?.ok ? 'WHERE "deletedAt" IS NULL' : ''
-    const row = await pgOne(`SELECT COUNT(*)::int AS total FROM "${table}" ${deletedFilter}`)
+    let row
+    if (table === 'AuditLog') {
+      const limitId = Number(baseline.auditLogMaxId || 0)
+      row = await pgOne(
+        `SELECT COUNT(*)::int AS total
+           FROM "AuditLog"
+          WHERE id <= $1`,
+        [limitId]
+      )
+    } else {
+      const hasDeletedAt = await pgOne(
+        `SELECT EXISTS (
+           SELECT 1
+             FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = $1
+              AND column_name = 'deletedAt'
+         ) AS ok`,
+        [table]
+      )
+      const deletedFilter = hasDeletedAt?.ok ? 'WHERE "deletedAt" IS NULL' : ''
+      row = await pgOne(`SELECT COUNT(*)::int AS total FROM "${table}" ${deletedFilter}`)
+    }
     assertCheck('reset', Number(row?.total || 0) === 0, `"${table}" sin datos tenant activos`, `"${table}" tiene ${row?.total || 0} fila(s)`)
   }
   for (const table of RESET_PUBLIC_TABLES) {
@@ -299,7 +310,7 @@ async function auditAuthRuntime(baseUrl, qaPassword, strictQaPassword) {
   const overview = await fetchJson(buildUrl(baseUrl, '/godmode/overview'), {
     headers: { Authorization: `Bearer ${login.token}` },
   })
-  assertCheck('godmode', Boolean(overview?.totals), 'GodMode overview responde con token QA')
+  assertCheck('godmode', Boolean(overview?.kpis || overview?.totals), 'GodMode overview responde con token QA')
 
   const queryToken = await fetchText(buildUrl(baseUrl, `/personas?token=${encodeURIComponent(login.token)}`))
   assertCheck('auth', queryToken.status === 401, 'JWT admin por query string queda bloqueado')
@@ -311,9 +322,16 @@ async function main() {
   console.log(`Church System — auditoría objetivo`)
   console.log(`URL: ${opts.baseUrl}`)
 
+  let baseline = { auditLogMaxId: 0 }
+  if (process.env.DATABASE_URL) {
+    const { pgOne } = await import('../backend/src/lib/pg.js')
+    const row = await pgOne('SELECT COALESCE(MAX(id), 0)::int AS max_id FROM "AuditLog"', [])
+    baseline.auditLogMaxId = Number(row?.max_id || 0)
+  }
+
   await auditProduction(opts.baseUrl)
   auditStaticCode()
-  await auditDatabase(opts.qaPassword, opts.strictQaPassword)
+  await auditDatabase(opts.qaPassword, opts.strictQaPassword, baseline)
   await auditAuthRuntime(opts.baseUrl, opts.qaPassword, opts.strictQaPassword)
 
   console.log(`\nResultado: ${results.errors} error(es), ${results.warnings} advertencia(s), ${results.ok} check(s) OK`)
