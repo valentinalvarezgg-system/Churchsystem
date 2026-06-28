@@ -580,6 +580,8 @@ async function activarPlan(iglesiaId, plan, proximoCobro) {
     suscripcion_activa: '1',
     suscripcion_vence:  vence,
     ultimo_pago:        new Date().toISOString().slice(0, 10),
+    onboarding_plan:    plan,
+    onboarding_billing_confirmed: '1',
   }
   for (const [k, v] of Object.entries(updates)) {
     await pgExec(
@@ -617,9 +619,10 @@ router.post('/subscriptions/crear', requireAuth, requireRol('PASTOR_GENERAL'), a
   await ensureSubscriptionSchema()
   if (!MP_ACCESS_TOKEN) return res.status(503).json({ error: 'Falta MP_ACCESS_TOKEN.' })
 
-  const planKey = String(req.body?.plan || 'PRO').toUpperCase()
-  if (!['PRO', 'MAX'].includes(planKey)) {
-    return res.status(400).json({ error: 'Plan inválido. Valores aceptados: PRO, MAX.' })
+  const planKey = normalizePlan(String(req.body?.plan || 'PRO').toUpperCase())
+  const commercialPlan = getCommercialPlan(planKey)
+  if (!commercialPlan || commercialPlan.free) {
+    return res.status(400).json({ error: 'Plan inválido o gratuito. Elegí un plan pago para iniciar checkout.' })
   }
 
   const payerEmail = String(req.user?.email || '').trim()

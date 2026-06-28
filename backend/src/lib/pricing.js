@@ -6,11 +6,7 @@
  */
 import https from 'https'
 import logger from './logger.js'
-
-export const PLANES_USD = {
-  PRO: 12,
-  MAX: 25,
-}
+import { getCommercialPlan } from './billing.js'
 
 // ── Caché en memoria de la cotización ────────────────────────────
 let _cotizacion  = null
@@ -82,12 +78,15 @@ function _fetchBCRA() {
 
 /**
  * Calcula el monto en ARS para un plan usando la cotización actual.
- * @param {'PRO'|'MAX'} plan
+ * @param {string} plan
  * @returns {Promise<{ usd: number, ars: number, cotizacion: number }>}
  */
 export async function montoARS(plan) {
-  const usd = PLANES_USD[String(plan).toUpperCase()]
-  if (!usd) throw new Error(`Plan desconocido para pricing: ${plan}`)
+  const commercial = getCommercialPlan(plan)
+  const usd = Number(commercial?.prices?.USD || 0)
+  if (!commercial || commercial.free || !(usd > 0)) {
+    throw new Error(`Plan desconocido para pricing: ${plan}`)
+  }
   const cotizacion = await getCotizacion()
   const ars = Math.round(usd * cotizacion)
   return { usd, ars, cotizacion }

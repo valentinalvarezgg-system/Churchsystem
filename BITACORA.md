@@ -1,6 +1,26 @@
 # BITÁCORA — Church System
 ---
 
+## Billing unificado con catálogo real + sync de onboarding comercial — 2026-06-28
+
+**Estado actual:** la pantalla de facturación ya no quedó limitada a `PRO/MAX`; ahora usa el mismo catálogo comercial del signup (`Starter`, `Pro`, `Max`, `Church 100`, `Church 500`, `Church 1000+`) y cuando una suscripción se activa deja el onboarding comercial sincronizado desde backend.
+
+### Fallas detectadas
+- `frontend/src/pages/Billing.jsx` solo ofrecía `PRO` y `MAX`, aunque `Registro.jsx`, `SetupWizard.jsx` y el catálogo comercial ya manejaban más tiers reales.
+- `backend/src/routes/subscriptions.js` activaba `suscripcion_activa` y `plan`, pero no persistía `onboarding_plan` ni `onboarding_billing_confirmed`, dejando onboarding y billing con fuentes de verdad distintas.
+- `backend/src/routes/subscriptions.js` en `POST /subscriptions/crear` rechazaba cualquier plan fuera de `PRO/MAX`, así que varios tiers visibles en la app no tenían checkout coherente desde el panel de facturación.
+
+### Corrección aplicada
+- `frontend/src/pages/Billing.jsx`: reescrito para cargar `billing-estado` + `plan/lista`, agrupar planes de liderazgo/iglesia y derivar al checkout real con `POST /subscriptions/create`.
+- `frontend/src/pages/Billing.jsx`: el proveedor se elige según país/contexto (`Mercado Pago` o `PayPal`) y el estado actual muestra trial, gracia, plan activo o falta de suscripción.
+- `backend/src/routes/subscriptions.js`: `activarPlan()` ahora persiste también `onboarding_plan` y `onboarding_billing_confirmed='1'`.
+- `backend/src/routes/subscriptions.js`: `POST /subscriptions/crear` acepta cualquier plan pago del catálogo comercial, no solo `PRO/MAX`.
+- `backend/src/lib/pricing.js`: `montoARS()` ya no depende de una lista fija de dos planes; toma el precio USD del catálogo comercial real.
+
+### Evidencia
+- `node --check backend/src/lib/pricing.js backend/src/routes/subscriptions.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Signup OAuth limpio + facturación confirmada explícitamente — 2026-06-28
 
 **Estado actual:** el alta inicial quedó más profesional en dos puntos clave: el retorno de OAuth en registro ya no deja errores fantasma en la URL y el `SetupWizard` ya no marca la facturación como confirmada si el usuario no la aprobó explícitamente.
