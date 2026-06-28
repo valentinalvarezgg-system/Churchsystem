@@ -1,6 +1,22 @@
 # BITÁCORA — Church System
 ---
 
+## Tendencia semanal agregada: menos queries repetidas en stats premium — 2026-06-28
+
+**Estado actual:** el cálculo de tendencia semanal dejó de recorrer semana por semana con queries repetidas. Tanto `/stats/tendencia` como el payload premium ahora reutilizan una agregación semanal compartida.
+
+### Falla detectada
+- `backend/src/routes/stats.js` seguía resolviendo la tendencia semanal con un loop por 12 semanas, combinando consultas separadas para asistencia y nuevas personas.
+- Eso impactaba especialmente a `/stats/premium`, que ya había quedado reducido a una sola request, pero todavía hacía demasiado trabajo por dentro.
+
+### Corrección aplicada
+- `backend/src/routes/stats.js`: agregado helper `weeklyTrendStats()` que agrega asistencia/cultos y nuevas personas por semana con solo dos queries agrupadas.
+- `backend/src/routes/stats.js`: `/stats/tendencia` y `premiumDashboardStats()` ahora reutilizan ese helper.
+
+### Evidencia
+- `node --check backend/src/routes/stats.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Dashboard Premium: 1 request en vez de 7 — 2026-06-28
 
 **Estado actual:** la vista ejecutiva premium quedó más liviana para frontend y backend. `DashboardPremium` ya no arma su estado con siete llamadas distintas a `/stats/*`, sino con un único payload agregado desde backend.

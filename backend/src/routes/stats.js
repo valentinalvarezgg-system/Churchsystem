@@ -24,6 +24,13 @@ function variation(current, previous) {
   return Math.round(((current - previous) / previous) * 100)
 }
 
+function startOfWeek(date = new Date()) {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - d.getDay())
+  return d
+}
+
 async function asistenciaResumen(iglesiaId, dateFrom = null, dateTo = null) {
   const params = [iglesiaId]
   let extra = ''
@@ -49,6 +56,67 @@ async function asistenciaResumen(iglesiaId, dateFrom = null, dateTo = null) {
     presentes,
     promedio: total > 0 ? Math.round((presentes / total) * 100) : 0,
   }
+}
+
+async function weeklyTrendStats(iglesiaId, weeks = 12) {
+  const fromDate = startOfWeek(new Date())
+  fromDate.setDate(fromDate.getDate() - (weeks - 1) * 7)
+  const from = fromDate.toISOString().slice(0, 10)
+
+  const [asistenciaRows, nuevosRows] = await Promise.all([
+    pgMany(
+      `SELECT DATE_TRUNC('week', TO_DATE(c."fecha",'YYYY-MM-DD'))::date AS semana,
+              COUNT(a."id") FILTER (WHERE a."presente"=true)::int AS presentes,
+              COUNT(DISTINCT c."id")::int AS cultos
+         FROM "Culto" c
+         LEFT JOIN "Asistencia" a ON a."cultoId"=c."id"
+        WHERE c."iglesiaId"=$1
+          AND c."deletedAt" IS NULL
+          AND TO_DATE(c."fecha",'YYYY-MM-DD') >= $2::date
+        GROUP BY 1
+        ORDER BY 1 ASC`,
+      [iglesiaId, from]
+    ),
+    pgMany(
+      `SELECT DATE_TRUNC('week', "createdAt")::date AS semana,
+              COUNT(*)::int AS nuevos
+         FROM "Persona"
+        WHERE "iglesiaId"=$1
+          AND "deletedAt" IS NULL
+          AND "createdAt" >= $2::date
+        GROUP BY 1
+        ORDER BY 1 ASC`,
+      [iglesiaId, from]
+    ),
+  ])
+
+  const asistenciaMap = new Map(
+    (asistenciaRows || []).map(row => [
+      new Date(row.semana).toISOString().slice(0, 10),
+      { asistencia: Number(row.presentes || 0), cultos: Number(row.cultos || 0) },
+    ])
+  )
+  const nuevosMap = new Map(
+    (nuevosRows || []).map(row => [
+      new Date(row.semana).toISOString().slice(0, 10),
+      Number(row.nuevos || 0),
+    ])
+  )
+
+  const result = []
+  for (let i = 0; i < weeks; i++) {
+    const current = new Date(fromDate)
+    current.setDate(fromDate.getDate() + i * 7)
+    const key = current.toISOString().slice(0, 10)
+    const asistencia = asistenciaMap.get(key) || { asistencia: 0, cultos: 0 }
+    result.push({
+      semana: `${current.getDate()}/${current.getMonth() + 1}`,
+      asistencia: asistencia.asistencia,
+      cultos: asistencia.cultos,
+      nuevos: Number(nuevosMap.get(key) || 0),
+    })
+  }
+  return result
 }
 
 async function dashboardStats(iglesiaId) {
@@ -325,33 +393,7 @@ async function premiumDashboardStats(iglesiaId) {
     ),
   ])
 
-  const weekPromises = []
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date()
-    d.setDate(d.getDate() - i * 7)
-    const inicio = new Date(d)
-    inicio.setDate(d.getDate() - d.getDay())
-    const fin = new Date(inicio)
-    fin.setDate(inicio.getDate() + 6)
-    const from = inicio.toISOString().slice(0, 10)
-    const to = fin.toISOString().slice(0, 10)
-    weekPromises.push(
-      Promise.all([
-        asistenciaResumen(iglesiaId, from, to),
-        pgOne(
-          `SELECT COUNT(*)::int AS c FROM "Persona"
-            WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND DATE("createdAt") BETWEEN $2 AND $3`,
-          [iglesiaId, from, to]
-        ),
-      ]).then(([asist, nuevos]) => ({
-        semana: `${inicio.getDate()}/${inicio.getMonth() + 1}`,
-        asistencia: asist.presentes,
-        cultos: asist.cultos,
-        nuevos: n(nuevos),
-      }))
-    )
-  }
-  const tendencia = await Promise.all(weekPromises)
+  const tendencia = await weeklyTrendStats(iglesiaId, 12)
 
   return {
     kpis: {
@@ -466,29 +508,7 @@ router.get('/tendencia', requireAuth, async (req, res) => {
   const iglesiaId = Number(req.user.iglesiaId || 0)
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
   await ensureOperationalTenantDataSynced(iglesiaId)
-  const semanas = []
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date()
-    d.setDate(d.getDate() - i * 7)
-    const inicio = new Date(d)
-    inicio.setDate(d.getDate() - d.getDay())
-    const fin = new Date(inicio)
-    fin.setDate(inicio.getDate() + 6)
-    const iStr = inicio.toISOString().slice(0, 10)
-    const fStr = fin.toISOString().slice(0, 10)
-    const asist = await asistenciaResumen(iglesiaId, iStr, fStr)
-    const nuevos = n(await pgOne(
-      `SELECT COUNT(*)::int AS c FROM "Persona"
-        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND DATE("createdAt") BETWEEN $2 AND $3`,
-      [iglesiaId, iStr, fStr]
-    ))
-    semanas.push({
-      semana: `${inicio.getDate()}/${inicio.getMonth() + 1}`,
-      asistencia: asist.presentes,
-      cultos: asist.cultos,
-      nuevos,
-    })
-  }
+  const semanas = await weeklyTrendStats(iglesiaId, 12)
   res.json({ semanas })
 })
 
