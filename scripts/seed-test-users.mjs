@@ -23,6 +23,21 @@ const PLAN_USERS = [
   ['qa.plan.church1000@churchsystem.test', 'CHURCH_1000', 'Plan Church 1000 QA'],
 ]
 
+const FRIENDLY_ALIAS_USERS = [
+  ['godmode@test.com', 'GODMODE', 'GODMODE', 'GodMode Test'],
+  ['pastor@test.com', 'PASTOR_GENERAL', 'MAX', 'Pastor General Test'],
+  ['culto@test.com', 'PASTOR_CULTO', 'MAX', 'Pastor Culto Test'],
+  ['consolidacion@test.com', 'CONSOLIDACION', 'MAX', 'Consolidacion Test'],
+  ['staff@test.com', 'STAFF', 'MAX', 'Staff Test'],
+  ['lider@test.com', 'LIDER', 'MAX', 'Lider Test'],
+  ['free@test.com', 'PASTOR_GENERAL', 'FREE', 'Plan Free Test'],
+  ['pro@test.com', 'PASTOR_GENERAL', 'PRO', 'Plan Pro Test'],
+  ['max@test.com', 'PASTOR_GENERAL', 'MAX', 'Plan Max Test'],
+  ['church100@test.com', 'PASTOR_GENERAL', 'CHURCH_100', 'Plan Church 100 Test'],
+  ['church500@test.com', 'PASTOR_GENERAL', 'CHURCH_500', 'Plan Church 500 Test'],
+  ['church1000@test.com', 'PASTOR_GENERAL', 'CHURCH_1000', 'Plan Church 1000 Test'],
+]
+
 function parseArgs(argv) {
   const clean = argv.filter(arg => arg !== '--')
   const valueAfter = name => {
@@ -123,6 +138,7 @@ async function main() {
   const passwordHash = await bcrypt.hash(opts.password, 10)
   const godRoleId = await ensureRole(pgOne, 'GODMODE')
   const rootChurch = await ensureChurch(pgOne, pgExec, 'GodMode QA', 'GODMODE-QA')
+  const churchByPlan = new Map()
   await upsertUser({
     pgOne,
     email: 'qa.godmode@churchsystem.test',
@@ -134,6 +150,7 @@ async function main() {
     passwordHash,
     superadmin: true,
   })
+  churchByPlan.set('GODMODE', { iglesiaId: rootChurch.id, roleId: godRoleId, rol: 'GODMODE' })
 
   const roleChurch = await ensureChurch(pgOne, pgExec, 'QA Roles Church', 'QA-ROLES-CHURCH')
   for (const [email, rol, plan, nombre] of ROLE_USERS) {
@@ -145,6 +162,23 @@ async function main() {
     const church = await ensureChurch(pgOne, pgExec, nombre.replace('Plan ', 'QA '), `QA-${plan}`)
     const roleId = await ensureRole(pgOne, 'PASTOR_GENERAL')
     await upsertUser({ pgOne, email, nombre, rol: 'PASTOR_GENERAL', plan, iglesiaId: church.id, roleId, passwordHash })
+    churchByPlan.set(plan, { iglesiaId: church.id, roleId, rol: 'PASTOR_GENERAL' })
+  }
+
+  for (const [email, rol, plan, nombre] of FRIENDLY_ALIAS_USERS) {
+    const mapped = churchByPlan.get(plan) || churchByPlan.get('MAX')
+    const roleId = rol === 'GODMODE' ? godRoleId : await ensureRole(pgOne, rol)
+    await upsertUser({
+      pgOne,
+      email,
+      nombre,
+      rol,
+      plan,
+      iglesiaId: mapped.iglesiaId,
+      roleId,
+      passwordHash,
+      superadmin: rol === 'GODMODE',
+    })
   }
 
   console.log('Cuentas QA listas')
@@ -154,6 +188,8 @@ async function main() {
   for (const [email, rol] of ROLE_USERS) console.log(`  ${rol}: ${email}`)
   console.log('Planes:')
   for (const [email, plan] of PLAN_USERS) console.log(`  ${plan}: ${email}`)
+  console.log('Aliases test:')
+  for (const [email, , plan] of FRIENDLY_ALIAS_USERS) console.log(`  ${plan}: ${email}`)
 }
 
 main().catch(err => {

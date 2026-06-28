@@ -1,6 +1,29 @@
 # BITÁCORA — Church System
 ---
 
+## Fix auth QA aliases + limpieza OAuth en login — 2026-06-28
+
+**Estado actual:** el login backend responde correctamente; el fallo reportado con `max@test.com` no era una caída de autenticación global sino una combinación de cuenta alias faltante tras el reset y reintentos del login con query params OAuth residuales que dejaban el toast genérico visible.
+
+### Fallas detectadas y corregidas
+- `max@test.com` y otros aliases humanos de prueba ya no existían después del reset productivo, por lo que `/auth/login` devolvía `401 Credenciales inválidas` aunque las cuentas QA formales seguían sanas.
+- `frontend/src/pages/Login.jsx` dejaba `?oauth=1` / `?error=...` en la URL cuando el refresh de OAuth fallaba o volvía con error; eso hacía reaparecer el toast `Error de autenticación` al recargar, mezclándose con el login por email.
+
+### Corrección aplicada
+- `scripts/seed-test-users.mjs`: ahora además de las 12 cuentas QA crea aliases simples para pruebas manuales (`godmode@test.com`, `max@test.com`, `pastor@test.com`, `free@test.com`, etc.) reutilizando iglesias/planes QA existentes.
+- Se reejecutó el seed local con password temporal de prueba entregada en la conversación para recrear los aliases faltantes.
+- `frontend/src/pages/Login.jsx`: al fallar o volver con error desde OAuth ahora limpia `oauth/error/setup` de la URL con `replace`, evitando toasts fantasma en recargas posteriores.
+
+### Evidencia
+- `POST http://127.0.0.1:4000/auth/login` con `max@test.com` → HTTP 200.
+- `POST http://127.0.0.1:4000/auth/login` con `godmode@test.com` → HTTP 200.
+- `GET http://127.0.0.1:4000/godmode/overview` con token de `godmode@test.com` → HTTP 200.
+- `POST http://127.0.0.1:4000/auth/login` con password inválida → HTTP 401 `Credenciales inválidas`.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
+### Nota operativa
+- La password temporal de los aliases QA se manejó solo en runtime; no se registra en Git. Si se quiere rotar nuevamente: `pnpm seed:test-users -- --password "<nuevo-temporal>"`.
+
 ## Autocuración local + launchd sin secretos — 2026-06-28
 
 **Estado actual:** el deploy local por Cloudflare Tunnel sigue online y ahora tiene una capa de recuperación más fuerte: backend y túnel se monitorean desde watchdog, y el plist del backend ya no guarda variables sensibles en claro.

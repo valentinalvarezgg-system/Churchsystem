@@ -77,6 +77,15 @@ export default function Login() {
   }).toString()
   const registroHref = `/app/registro?${ctxQuery}`
 
+  function clearOAuthParams() {
+    const next = new URLSearchParams(searchParams)
+    next.delete('oauth')
+    next.delete('error')
+    next.delete('setup')
+    const query = next.toString()
+    navigate({ pathname: '/app/login', search: query ? `?${query}` : '' }, { replace: true })
+  }
+
   useEffect(() => {
     const next = (searchParams.get('lang') || getStoredContext().lang || 'es').slice(0, 2)
     setLang(next)
@@ -102,13 +111,15 @@ export default function Login() {
           }
           await touchSesion()
           toast.success(copy.ok)
-          navigate('/')
+          navigate('/', { replace: true })
         } catch {
           toast.error(copy.authError)
+          clearOAuthParams()
         }
       } else if (error) {
         const msgs = copy.errors || {}
         toast.error(msgs[error] || copy.authError)
+        clearOAuthParams()
       }
     }
     handleOAuthReturn()
