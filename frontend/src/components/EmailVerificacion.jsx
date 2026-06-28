@@ -2,19 +2,47 @@ import { useState, useRef, useEffect } from 'react'
 import { apiFetch } from '../services/api.js'
 import { toast } from './Toast.jsx'
 
-export default function EmailVerificacion({ email, nombre, onVerificado }) {
+export default function EmailVerificacion({ email, nombre, onVerificado, initialDevCode = '', initialRequestAlreadySent = false }) {
   const [codigos, setCodigos] = useState(['','','','','',''])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [timer, setTimer] = useState(60)
   const inputs = useRef([])
+  const bootstrappedRef = useRef(false)
 
-  useEffect(() => { enviarCodigo() }, [])
+  useEffect(() => {
+    if (bootstrappedRef.current) return
+    bootstrappedRef.current = true
+
+    if (initialDevCode) {
+      setCodigos(String(initialDevCode).split('').slice(0, 6))
+      toast.info(`Código de prueba: ${initialDevCode}`)
+    }
+
+    if (initialRequestAlreadySent) {
+      setTimer(60)
+      return
+    }
+
+    enviarCodigo({ mode: 'enviar', silentSuccess: true })
+  }, [initialDevCode, initialRequestAlreadySent])
   useEffect(() => { if(timer<=0)return; const t=setTimeout(()=>setTimer(t=>t-1),1000); return()=>clearTimeout(t) }, [timer])
 
-  async function enviarCodigo() {
-    try { const r = await apiFetch('/verificacion/enviar',{method:'POST',body:JSON.stringify({email,nombre})}); setTimer(60); if(r.codigoDev) { toast.info('DEV: '+r.codigoDev); setCodigos(r.codigoDev.split('')) } }
-    catch(e) { setError(e.message) }
+  async function enviarCodigo({ mode = 'reenviar', silentSuccess = false } = {}) {
+    try {
+      setError('')
+      const endpoint = mode === 'enviar' ? '/verificacion/enviar' : '/verificacion/reenviar'
+      const payload = mode === 'enviar' ? { email, nombre } : { email }
+      const r = await apiFetch(endpoint, { method:'POST', body:JSON.stringify(payload) })
+      setTimer(60)
+      if (!silentSuccess) {
+        toast.success(r?.yaVerificado ? 'Tu cuenta ya estaba verificada.' : 'Te enviamos un nuevo código.')
+      }
+      if (r.codigoDev) {
+        setCodigos(String(r.codigoDev).split('').slice(0, 6))
+        toast.info(`Código de prueba: ${r.codigoDev}`)
+      }
+    } catch(e) { setError(e.message) }
   }
   function handleDigit(i,val) {
     const v=val.replace(/\D/g,'').slice(-1); const next=[...codigos]; next[i]=v; setCodigos(next)
@@ -25,7 +53,7 @@ export default function EmailVerificacion({ email, nombre, onVerificado }) {
   function handlePaste(e) { e.preventDefault(); const t=e.clipboardData.getData('text').replace(/\D/g,'').slice(0,6); if(t.length===6){setCodigos(t.split(''));inputs.current[5]?.focus();verificar(t)} }
   async function verificar(codigo) {
     setLoading(true); setError('')
-    try { await apiFetch('/verificacion/verificar',{method:'POST',body:JSON.stringify({email,codigo})}); onVerificado() }
+    try { await apiFetch('/verificacion/verificar',{method:'POST',body:JSON.stringify({email,codigo})}); toast.success('Email verificado correctamente.'); onVerificado() }
     catch(e) { setError(e.message); setCodigos(['','','','','','']); inputs.current[0]?.focus() }
     setLoading(false)
   }
@@ -46,7 +74,7 @@ export default function EmailVerificacion({ email, nombre, onVerificado }) {
       </form>
       <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:20}}>
         {timer>0?<p style={{fontSize:13,color:'#64748B'}}>Reenviar en <strong>{timer}s</strong></p>:
-        <button onClick={enviarCodigo} style={{background:'none',border:'none',cursor:'pointer',fontSize:13,color:'#6B5CFF',fontWeight:600,textDecoration:'underline'}}>Reenviar código</button>}
+        <button onClick={() => enviarCodigo({ mode: 'reenviar' })} style={{background:'none',border:'none',cursor:'pointer',fontSize:13,color:'#6B5CFF',fontWeight:600,textDecoration:'underline'}}>Reenviar código</button>}
       </div>
     </div>
   )

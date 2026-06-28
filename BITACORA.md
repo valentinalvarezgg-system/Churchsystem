@@ -1,6 +1,23 @@
 # BITÁCORA — Church System
 ---
 
+## Verificación email sin duplicar códigos — 2026-06-28
+
+**Estado actual:** el paso de verificación del signup quedó más profesional y consistente: ya no invalida el código inicial apenas se monta la pantalla y el reenvío usa su endpoint correcto.
+
+### Falla detectada
+- `frontend/src/components/EmailVerificacion.jsx` llamaba `/verificacion/enviar` automáticamente al montarse, aunque `/registro/crear` ya había emitido un código. Eso generaba un segundo código, invalidaba el primero y podía duplicar emails innecesariamente.
+- El componente usaba el mismo endpoint para alta inicial y reenvío, y en local mostraba el código dev con un toast poco pulido (`DEV: ...`).
+
+### Corrección aplicada
+- `frontend/src/pages/Registro.jsx`: ahora conserva `codigoVerificacionDev` de `/registro/crear` cuando existe en entorno local y se lo pasa al paso de verificación.
+- `frontend/src/components/EmailVerificacion.jsx`: si el registro ya envió el código, no vuelve a pedir otro al montar; solo activa el contador de reenvío.
+- `frontend/src/components/EmailVerificacion.jsx`: el botón de reenvío ahora usa `/verificacion/reenviar`, que es la ruta correcta para regenerar el código.
+- `frontend/src/components/EmailVerificacion.jsx`: se mejoraron los toasts para éxito, reenvío y código de prueba local.
+
+### Evidencia
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## SetupWizard más robusto y profesional — 2026-06-28
 
 **Estado actual:** el onboarding inicial ya no avanza “a ciegas”; ahora recupera configuración previa, bloquea pasos si falla el guardado y ofrece una experiencia más consistente para retomar el alta.

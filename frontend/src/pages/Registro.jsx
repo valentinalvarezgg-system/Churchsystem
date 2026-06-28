@@ -260,6 +260,7 @@ export default function Registro() {
   const [loading, setLoading]     = useState(false)
   const [emailReg, setEmailReg]   = useState('')
   const [nombreReg, setNombreReg] = useState('')
+  const [codigoVerificacionDev, setCodigoVerificacionDev] = useState('')
   const [iglesiaJoin, setIglesiaJoin] = useState(null)
   const [showPass, setShowPass]   = useState(false)
   const [showPass2, setShowPass2] = useState(false)
@@ -341,6 +342,7 @@ export default function Registro() {
       }
       setEmailReg(form.email.toLowerCase())
       setNombreReg(form.nombre)
+      setCodigoVerificacionDev(String(res?.codigoVerificacionDev || ''))
       setPaso(2)
     } catch(e) { toast.error(e.message || msg.createError) }
     finally { setLoading(false) }
@@ -773,6 +775,8 @@ export default function Registro() {
           <EmailVerificacion
             email={emailReg}
             nombre={nombreReg}
+            initialDevCode={codigoVerificacionDev}
+            initialRequestAlreadySent
             onVerificado={()=>setPaso(3)}
           />
         )}
