@@ -142,8 +142,17 @@ export default function Login() {
     finally { setLoading(false) }
   }
 
-  function handleGoogle() { window.location.href = `${API_BASE}/oauth/google` }
-  function handleApple()  { window.location.href = `${API_BASE}/oauth/apple` }
+  function oauthQuery() {
+    return new URLSearchParams({
+      country: searchParams.get('country') || storedContext.country || 'AR',
+      currency: searchParams.get('currency') || storedContext.currency || 'ARS',
+      lang,
+      plan: searchParams.get('plan') || 'FREE',
+      promo: searchParams.get('promo') || storedContext.promo || '',
+    }).toString()
+  }
+  function handleGoogle() { window.location.href = `${API_BASE}/oauth/google?${oauthQuery()}` }
+  function handleApple()  { window.location.href = `${API_BASE}/oauth/apple?${oauthQuery()}` }
 
   return (
     <div style={S.bg}>

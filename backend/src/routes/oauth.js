@@ -1,10 +1,13 @@
 import { Router } from 'express'
 import jwt from 'jsonwebtoken'
+import crypto from 'node:crypto'
 import logger from '../lib/logger.js'
 import { pgExec, pgOne } from '../lib/pg.js'
 import { sendNotificationEmail } from '../lib/email.js'
 import { exchangeGoogleDriveCode, fetchGoogleUserInfo } from '../lib/google-drive.js'
 import { readTenantConfig, upsertTenantConfig } from '../lib/tenant-config.js'
+import { getPlanPrice, normalizeCountry, normalizeLanguage, normalizePlan, PLANES } from '../lib/billing.js'
+import { issueSession } from '../lib/sessions.js'
 
 const router = Router()
 const SECRET     = () => {
@@ -55,29 +58,55 @@ function decodeJwtPayload(token = '') {
   }
 }
 
-function signSession(user) {
-  const payload = {
-    id: user.id,
-    email: user.email,
-    rol: user.rol,
-    nombre: user.nombre,
-    cultoDia: user.cultoDia,
-    cultoTurno: user.cultoTurno,
-    plan: user.plan || 'STARTER',
-    iglesiaId: user.iglesiaId || null,
-    pais: user.pais || 'AR',
-    divisa: user.divisa || 'ARS',
-    idioma: user.idioma || 'es',
-  }
-  return jwt.sign(payload, SECRET(), { expiresIn: '8h' })
+function signedOAuthState(req, provider = 'google') {
+  const countryInfo = normalizeCountry(req.query.country || 'AR')
+  const idioma = normalizeLanguage(req.query.lang || '', countryInfo)
+  const plan = normalizePlan(req.query.plan || 'FREE')
+  const currency = String(req.query.currency || countryInfo.currency || 'USD').toUpperCase()
+  return jwt.sign({
+    purpose: 'oauth-signup',
+    provider,
+    plan,
+    country: countryInfo.code,
+    currency,
+    lang: idioma,
+    promo: String(req.query.promo || '').trim().toUpperCase().slice(0, 40),
+  }, SECRET(), { expiresIn: '15m' })
 }
 
-async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '', emailVerified = true, frontUrl = process.env.FRONTEND_URL || process.env.BASE_URL || '' }) {
+function readOAuthState(raw = '') {
+  try {
+    const decoded = jwt.verify(String(raw || ''), SECRET())
+    if (decoded?.purpose !== 'oauth-signup') return {}
+    const countryInfo = normalizeCountry(decoded.country || 'AR')
+    return {
+      plan: normalizePlan(decoded.plan || 'FREE'),
+      country: countryInfo.code,
+      currency: String(decoded.currency || countryInfo.currency || 'USD').toUpperCase(),
+      lang: normalizeLanguage(decoded.lang || '', countryInfo),
+      promo: String(decoded.promo || '').trim().toUpperCase().slice(0, 40),
+    }
+  } catch {
+    return {}
+  }
+}
+
+function randomIglesiaToken() {
+  return `IGL-${crypto.randomBytes(5).toString('hex').toUpperCase()}`
+}
+
+async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '', emailVerified = true, context = {}, frontUrl = process.env.FRONTEND_URL || process.env.BASE_URL || '' }) {
   const normalizedEmail = String(email || '').toLowerCase()
   let user = await pgOne('SELECT * FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [normalizedEmail])
   let createdNow = false
 
   if (!user) {
+    const countryInfo = normalizeCountry(context.country || 'AR')
+    const selectedIdioma = normalizeLanguage(context.lang || '', countryInfo)
+    const selectedPlanKey = normalizePlan(context.plan || 'FREE')
+    const selectedCurrency = String(context.currency || countryInfo.currency || 'USD').toUpperCase()
+    const price = getPlanPrice(selectedPlanKey, selectedCurrency)
+    const trialFin = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
     const role = await pgOne(
       `INSERT INTO "Rol" ("codigo","nombre","createdAt","updatedAt")
        VALUES ('PASTOR_GENERAL','Pastor General',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
@@ -86,25 +115,58 @@ async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '',
     )
     const iglesia = await pgOne(
       'INSERT INTO "Iglesia" ("nombre","token","createdAt","updatedAt") VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING id',
-      ['Mi Iglesia', `IGL-${Date.now()}`]
+      ['Mi Iglesia', randomIglesiaToken()]
     )
-    const expira = new Date(Date.now() + 14 * 86400000).toISOString()
+    await pgExec(`ALTER TABLE "Iglesia" ADD COLUMN IF NOT EXISTS trial_hasta TIMESTAMPTZ`, []).catch(() => {})
+    await pgExec(
+      `UPDATE "Iglesia" SET trial_hasta = NOW() + INTERVAL '30 days', "updatedAt"=CURRENT_TIMESTAMP WHERE id=$1`,
+      [iglesia.id]
+    )
+    for (const [clave, valor] of [['trial_inicio', new Date().toISOString().slice(0, 10)], ['trial_fin', trialFin]]) {
+      await pgExec(
+        `INSERT INTO "Configuracion" ("iglesiaId","clave","valor","createdAt","updatedAt")
+         VALUES ($1,$2,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+         ON CONFLICT ("iglesiaId","clave") DO UPDATE SET "valor"=EXCLUDED."valor","updatedAt"=CURRENT_TIMESTAMP`,
+        [iglesia.id, clave, valor]
+      )
+    }
     await pgOne(
       `INSERT INTO "User"
-        ("nombre","email","password","rol","activo","emailVerificado","plan","expira","oauth_provider","oauth_id","iglesiaId","rolId","createdAt","updatedAt")
+        ("nombre","email","password","rol","activo","emailVerificado","plan","expira","oauth_provider","oauth_id","iglesiaId","rolId","pais","divisa","idioma","promoCode","createdAt","updatedAt")
        VALUES
-        ($1,$2,$3,'PASTOR_GENERAL',true,$4,'STARTER',$5,$6,$7,$8,$9,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+        ($1,$2,$3,'PASTOR_GENERAL',true,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
        RETURNING id`,
-      [nombre || normalizedEmail, normalizedEmail, '', !!emailVerified, expira, provider, providerId, iglesia.id, role.id]
+      [
+        nombre || normalizedEmail,
+        normalizedEmail,
+        '',
+        !!emailVerified,
+        selectedPlanKey,
+        new Date(Date.now() + 30 * 86400000).toISOString(),
+        provider,
+        providerId,
+        iglesia.id,
+        role.id,
+        countryInfo.code,
+        price.currency,
+        selectedIdioma,
+        context.promo || '',
+      ]
     )
     user = await pgOne('SELECT * FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [normalizedEmail])
     createdNow = true
+    const planInfo = PLANES[selectedPlanKey]
     await sendNotificationEmail({
       to: normalizedEmail,
       subject: 'Registro exitoso - Church System',
       title: 'Tu cuenta fue creada',
       intro: `Hola ${nombre || 'Pastor'}, ya tenes tu cuenta de Church System activa.`,
-      lines: ['El inicio de sesion se realizo con proveedor externo.', `Proveedor: ${provider}`],
+      lines: [
+        'El inicio de sesion se realizo con proveedor externo.',
+        `Proveedor: ${provider}`,
+        `Plan: ${planInfo?.label?.[selectedIdioma] || selectedPlanKey}`,
+        'Trial: 30 dias',
+      ],
       actionUrl: `${frontUrl}/app`,
     }).catch(() => {})
   } else {
@@ -133,6 +195,7 @@ router.get('/google', (req, res) => {
     scope:         'openid email profile',
     access_type:   'offline',
     prompt:        'select_account',
+    state:         signedOAuthState(req, 'google'),
   })
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`)
 })
@@ -178,7 +241,7 @@ router.get('/google/drive/callback', async (req, res) => {
 })
 
 router.get('/google/callback', async (req, res) => {
-  const { code } = req.query
+  const { code, state } = req.query
   const front = safeFrontUrl(req) || resolveFrontUrl(req)
   const base = safeBaseUrl(req)
   if (!code) return res.redirect(`${front}/app/login?error=no_code`)
@@ -214,14 +277,15 @@ router.get('/google/callback', async (req, res) => {
       email: info.email,
       nombre: info.name || info.given_name || '',
       emailVerified: true,
+      context: readOAuthState(state),
       frontUrl: front,
     })
 
     if (!user.activo) return res.redirect(`${front}/app/login?error=account_disabled`)
 
-    const token = signSession(user)
+    const session = await issueSession(user, req, res)
     const setup = createdNow ? '&setup=1' : ''
-    res.redirect(`${front}/app/login?token=${token}${setup}`)
+    res.redirect(`${front}/app/login?token=${session.accessToken}${setup}`)
 
   } catch(err) {
     logger.error({ err: err?.message }, 'OAuth Google error')
@@ -261,12 +325,13 @@ router.get('/apple', (req, res) => {
     response_type: 'code id_token',
     response_mode: 'form_post',
     scope: 'name email',
+    state: signedOAuthState(req, 'apple'),
   })
   res.redirect(`https://appleid.apple.com/auth/authorize?${params}`)
 })
 
 router.post('/apple/callback', async (req, res) => {
-  const { code, id_token } = req.body || {}
+  const { code, id_token, state } = req.body || {}
   const frontUrl = safeFrontUrl(req) || resolveFrontUrl(req)
   const baseUrl = safeBaseUrl(req)
   if (!code && !id_token) return res.redirect(`${frontUrl}/app/login?error=no_code`)
@@ -308,13 +373,14 @@ router.post('/apple/callback', async (req, res) => {
       email: info.email,
       nombre: info.email.split('@')[0],
       emailVerified: info.email_verified === true || info.email_verified === 'true',
+      context: readOAuthState(state),
       frontUrl,
     })
 
     if (!user.activo) return res.redirect(`${frontUrl}/app/login?error=account_disabled`)
-    const token = signSession(user)
+    const session = await issueSession(user, req, res)
     const setup = createdNow ? '&setup=1' : ''
-    res.redirect(`${frontUrl}/app/login?token=${token}${setup}`)
+    res.redirect(`${frontUrl}/app/login?token=${session.accessToken}${setup}`)
   } catch (err) {
     logger.error({ err: err?.message }, 'OAuth Apple error')
     res.redirect(`${frontUrl}/app/login?error=oauth_failed`)

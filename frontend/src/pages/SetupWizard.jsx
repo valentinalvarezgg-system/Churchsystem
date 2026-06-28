@@ -6,10 +6,11 @@ import { apiFetch, getUser } from '../services/api.js'
 import { EMAILS } from '../utils/legal.js'
 
 const PASOS = [
-  { id: 'iglesia',      icon: '▦', titulo: 'Tu iglesia',          sub: 'Nombre, dirección y pastor' },
-  { id: 'apariencia',  icon: '', titulo: 'Apariencia',          sub: 'Color y logo (opcional)' },
-  { id: 'integraciones',icon: '', titulo: 'Integraciones',       sub: 'WhatsApp y email' },
-  { id: 'listo',        icon: '', titulo: '¡Todo listo!',        sub: 'Empezá a usar Church System' },
+  { id: 'iglesia',      icon: '1', titulo: 'Tu iglesia',          sub: 'Nombre, dirección y pastor' },
+  { id: 'facturacion',  icon: '2', titulo: 'Facturación',         sub: 'Plan, trial y próximo paso comercial' },
+  { id: 'apariencia',   icon: '3', titulo: 'Apariencia',          sub: 'Color y logo (opcional)' },
+  { id: 'integraciones',icon: '4', titulo: 'Integraciones',       sub: 'WhatsApp y email' },
+  { id: 'listo',        icon: '5', titulo: 'Todo listo',          sub: 'Empezá a usar Church System' },
 ]
 
 const COLORES = [
@@ -28,6 +29,8 @@ export default function SetupWizard({ onCompleto }) {
   const user      = getUser()
   const [paso, setPaso]     = useState(0)
   const [saving, setSaving] = useState(false)
+  const [billing, setBilling] = useState(null)
+  const [plans, setPlans] = useState([])
   const [config, setConfig] = useState({
     nombre_iglesia:  '',
     pastor_nombre:   user?.nombre || '',
@@ -37,6 +40,8 @@ export default function SetupWizard({ onCompleto }) {
     sitio_web:       '',
     color_primario:  '#2563EB',
     logo_url:        '',
+    onboarding_plan: user?.plan || 'FREE',
+    onboarding_billing_confirmed: '0',
   })
 
   // Aplicar color en tiempo real
@@ -44,12 +49,22 @@ export default function SetupWizard({ onCompleto }) {
     document.documentElement.style.setProperty('--primary', config.color_primario)
   }, [config.color_primario])
 
+  useEffect(() => {
+    apiFetch('/subscriptions/billing-estado').then(setBilling).catch(() => {})
+    apiFetch(`/plan/lista?country=${user?.pais || 'AR'}&lang=${user?.idioma || 'es'}`, { skipAuthRedirect: true })
+      .then(list => setPlans(Array.isArray(list) ? list : []))
+      .catch(() => {})
+  }, [])
+
   const f = (k, v) => setConfig(p => ({ ...p, [k]: v }))
 
   async function guardarPaso() {
     setSaving(true)
     try {
-      await apiFetch('/config', { method: 'PUT', body: JSON.stringify(config) })
+      await apiFetch('/config', { method: 'PUT', body: JSON.stringify({
+        ...config,
+        onboarding_billing_confirmed: paso === 1 ? '1' : config.onboarding_billing_confirmed,
+      }) })
     } catch {}
     setSaving(false)
   }
@@ -178,8 +193,68 @@ export default function SetupWizard({ onCompleto }) {
               </div>
             )}
 
-            {/* ── PASO 2: Apariencia ──────────────────────────── */}
+            {/* ── PASO 2: Facturación ─────────────────────────── */}
             {paso === 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{
+                  padding: '14px 16px', borderRadius: 12,
+                  background: 'rgba(37,99,235,0.12)',
+                  border: '1px solid rgba(37,99,235,0.22)',
+                }}>
+                  <div style={{ color: '#93C5FD', fontWeight: 800, fontSize: 14, marginBottom: 4 }}>
+                    Trial activo por {billing?.diasTrial ?? 30} días
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, lineHeight: 1.5 }}>
+                    Plan efectivo: <strong style={{ color: 'white' }}>{billing?.efectivePlan || user?.plan || 'PRO'}</strong>.
+                    No hace falta cargar tarjeta para empezar; podés configurar el cobro cuando valides el plan.
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(145px,1fr))', gap: 10 }}>
+                  {plans.filter(p => ['FREE', 'PRO', 'MAX', 'CHURCH_100', 'CHURCH_500'].includes(p.id)).map(plan => {
+                    const selected = config.onboarding_plan === plan.id
+                    return (
+                      <button key={plan.id}
+                        onClick={() => f('onboarding_plan', plan.id)}
+                        style={{
+                          textAlign: 'left',
+                          padding: '14px',
+                          borderRadius: 12,
+                          background: selected ? 'rgba(124,58,237,0.20)' : 'rgba(255,255,255,0.04)',
+                          border: selected ? '1px solid rgba(167,139,250,0.75)' : '1px solid rgba(255,255,255,0.08)',
+                          color: 'white',
+                          cursor: 'pointer',
+                        }}>
+                        <div style={{ fontSize: 12, color: selected ? '#C4B5FD' : 'rgba(255,255,255,0.45)', fontWeight: 800 }}>
+                          {plan.label}
+                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 900, marginTop: 6 }}>
+                          {plan.free ? 'Gratis' : `${plan.currency} ${plan.precio}`}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 6, lineHeight: 1.4 }}>
+                          {plan.personas} personas · {plan.includedWhatsApp || 0} WhatsApp incluidos
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 10,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.5)',
+                  fontSize: 12,
+                  lineHeight: 1.6,
+                }}>
+                  Esta etapa deja documentado el plan objetivo del onboarding. El checkout real queda disponible luego en Facturación, con Mercado Pago/PayPal según país y configuración.
+                </div>
+              </div>
+            )}
+
+            {/* ── PASO 3: Apariencia ──────────────────────────── */}
+            {paso === 2 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <Field label="Color principal">
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
@@ -232,8 +307,8 @@ export default function SetupWizard({ onCompleto }) {
               </div>
             )}
 
-            {/* ── PASO 3: Integraciones ───────────────────────── */}
-            {paso === 2 && (
+            {/* ── PASO 4: Integraciones ───────────────────────── */}
+            {paso === 3 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{
                   padding: '12px 14px', borderRadius: 10,
@@ -280,8 +355,8 @@ export default function SetupWizard({ onCompleto }) {
               </div>
             )}
 
-            {/* ── PASO 4: Listo ───────────────────────────────── */}
-            {paso === 3 && (
+            {/* ── PASO 5: Listo ───────────────────────────────── */}
+            {paso === 4 && (
               <div style={{ textAlign: 'center', padding: '8px 0' }}>
                 <div style={{ fontSize: 64, marginBottom: 16 }}><Icons.Premium /></div>
                 <h3 style={{ color: 'white', fontSize: 20, fontWeight: 800, marginBottom: 10 }}>

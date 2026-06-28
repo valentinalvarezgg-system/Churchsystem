@@ -22,7 +22,7 @@ const ALLOWED = [
   'seg_frecuencia_default',
   'color_primario', 'logo_url', 'modo_oscuro_default',
   'resend_key', 'email_from', 'email_nombre',
-  'setup_completado',
+  'setup_completado', 'onboarding_plan', 'onboarding_billing_confirmed',
   'sesion_horas', 'max_intentos',
 ]
 

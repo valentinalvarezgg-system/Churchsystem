@@ -1,6 +1,46 @@
 # BITÁCORA — Church System
 ---
 
+## Auth/onboarding profesional + QA — 2026-06-28
+
+**Estado actual:** login/signup siguen operativos, GodMode ya recibe `es_superadmin` en el payload frontend y hay cuentas QA por rol/plan para pruebas.
+
+### Fallas detectadas y corregidas
+- OAuth creaba cuentas con trial de 14 días, plan `STARTER`, sin contexto de plan/país/idioma y sin sesión revocable en `sesiones_auth`.
+- `ProtectedRoute` exigía `user.es_superadmin` para GodMode, pero `userPayload()` no lo enviaba; el backend protegía bien, pero el frontend podía bloquear el panel aunque el usuario fuera superadmin.
+- El onboarding inicial no tenía una etapa explícita de facturación entre configuración y uso de la app.
+- Los textos del signup todavía hablaban de 14 días aunque backend usa trial de 30 días.
+
+### Corrección aplicada
+- `backend/src/routes/oauth.js`: Google/Apple reciben y preservan `plan`, `country`, `currency`, `lang`, `promo` mediante `state` firmado; nuevas cuentas OAuth quedan con trial de 30 días, config inicial y sesión revocable vía `issueSession()`.
+- `backend/src/lib/sessions.js`: `userPayload()` incluye `es_superadmin`.
+- `frontend/src/pages/Login.jsx` y `Registro.jsx`: botones OAuth envían contexto comercial; copy de trial actualizado a 30 días.
+- `frontend/src/pages/SetupWizard.jsx`: agregado paso intermedio de Facturación con estado de trial, plan efectivo y selección de plan objetivo.
+- `backend/src/routes/config.js`: admite `onboarding_plan` y `onboarding_billing_confirmed`.
+- Agregado `scripts/seed-test-users.mjs` + `pnpm seed:test-users` para crear cuentas QA por rol y plan sin commitear passwords.
+
+### Cuentas QA creadas
+- Password temporal entregada por conversación, no registrada en Git.
+- GodMode: `qa.godmode@churchsystem.test`.
+- Roles: `qa.pastor.general@churchsystem.test`, `qa.pastor.culto@churchsystem.test`, `qa.consolidacion@churchsystem.test`, `qa.staff@churchsystem.test`, `qa.lider@churchsystem.test`.
+- Planes: `qa.plan.free@churchsystem.test`, `qa.plan.pro@churchsystem.test`, `qa.plan.max@churchsystem.test`, `qa.plan.church100@churchsystem.test`, `qa.plan.church500@churchsystem.test`, `qa.plan.church1000@churchsystem.test`.
+
+### Evidencia
+- Login API OK para las 12 cuentas QA; GodMode devuelve `SUPERADMIN` en payload.
+- `GET /godmode/overview` con `qa.godmode@churchsystem.test` → OK.
+- Conteos finales: `Iglesia=10`, `User=14`, `Persona=0`, `Grupo=0`, `Culto=0`, `Mensaje=0`, `Comunicado=0`, `payments=0`, `suscripciones=0`, `subscription_plans=18`, `promo_codes=4`.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+- `cd backend && npx -y pnpm@9.15.5 audit:launch` → OK.
+- `pnpm smoke:signup -- --dry-run` → OK.
+- `pnpm smoke:signup` → OK: creó `reset-smoke+20260628110246@churchsystem.test`, validó trial 30 días, billing y onboarding inicial.
+- `pnpm verify:prod` → OK, 0 errores; advertencias esperadas por TLS local de Node, Cloudflare Tunnel local y falta de Render CLI/API key.
+
+### Pendiente operativo
+- La migración Business/Render sigue pendiente: producción continúa en `MODO_CLOUDFLARE_LOCAL`.
+- Rotar la password temporal QA cuando terminen las pruebas o regenerarla con `pnpm seed:test-users -- --password "..."`.
+
+---
+
 ## Reset productivo ejecutado — 2026-06-28
 
 **Estado actual:** la DB configurada quedó reseteada para cuentas/tenants y el alta desde cero volvió a pasar completa en producción pública.

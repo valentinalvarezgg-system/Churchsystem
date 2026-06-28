@@ -37,23 +37,23 @@ const REG_I18N = {
     passwordMismatch:'Las contraseñas no coinciden', passwordMin:'Mínimo 8 caracteres',
     createError:'Error al crear la cuenta', choosePlanToast:'Elegí un plan para continuar',
     stepCounter:'Paso 1 de 3', choosePlan:'Elegí tu plan',
-    chooseSub:'Podés cambiarlo cuando quieras · Todos incluyen 14 días de prueba gratis',
+    chooseSub:'Podés cambiarlo cuando quieras · Todos incluyen 30 días de prueba gratis',
     country:'País', currency:'Divisa', language:'Idioma', invitation:'Invitación',
     popular:'Más popular', selected:'OK Seleccionado', perMonth:'/mes',
-    free14:'14 días gratis', free14Copy:'No se cobra nada hasta que termine el período de prueba. Cancelá cuando quieras.',
+    free14:'30 días gratis', free14Copy:'No se cobra nada hasta que termine el período de prueba. Cancelá cuando quieras.',
     continueWith:'Continuar con', aPlan:'un plan', already:'¿Ya tenés cuenta?', signIn:'Ingresar',
     selectedPlan:'Plan seleccionado', change:'Cambiar', quickSignup:'Registrate rápido con', emailOption:'o con email',
     firstName:'Nombre *', lastName:'Apellido', email:'Email *', password:'Contraseña * (mín. 8)',
     confirmPassword:'Confirmar contraseña *', churchCode:'Código de iglesia (opcional)',
     churchHelp:'Pedíselo al pastor. Lo podés agregar después desde Mi Perfil.',
-    noCharge:'Sin cobro durante 14 días', afterTrial:'Después del período de prueba se cobra',
+    noCharge:'Sin cobro durante 30 días', afterTrial:'Después del período de prueba se cobra',
     invitationApplied:'Invitación aplicada', cancelBefore:'Cancelá antes si no querés continuar.',
     paymentBy:'El pago se gestiona por MercadoPago.', back:'← Volver', creating:'Creando...',
     createFree:'Crear cuenta gratis →', acceptA:'Acepto los', terms:'Términos y Condiciones', privacyJoin:'la',
     privacy:'Política de Privacidad', cookies:'y la Política de Cookies de Church System.',
     orgNotice:'Church System es una herramienta tecnológica de gestión. La organización es responsable por los datos que carga, los permisos que asigna y las comunicaciones que envía.',
     accountCreated:'¡Cuenta creada!', verificationOk:'Verificación exitosa para', planActivated:'Plan {plan} activado',
-    trialActivated:'14 días de prueba gratis', connected:'Conectado a {church}', yourChurch:'tu iglesia', enter:'Ingresar a Church System →',
+    trialActivated:'30 días de prueba gratis', connected:'Conectado a {church}', yourChurch:'tu iglesia', enter:'Ingresar a Church System →',
     footerTerms:'Términos', footerPrivacy:'Privacidad',
   },
   pt: {
@@ -62,23 +62,23 @@ const REG_I18N = {
     passwordMismatch:'As senhas não coincidem', passwordMin:'Mínimo de 8 caracteres',
     createError:'Erro ao criar a conta', choosePlanToast:'Escolha um plano para continuar',
     stepCounter:'Passo 1 de 3', choosePlan:'Escolha seu plano',
-    chooseSub:'Você pode mudar quando quiser · Todos incluem 14 dias de teste grátis',
+    chooseSub:'Você pode mudar quando quiser · Todos incluem 30 dias de teste grátis',
     country:'País', currency:'Moeda', language:'Idioma', invitation:'Convite',
     popular:'Mais popular', selected:'OK Selecionado', perMonth:'/mês',
-    free14:'14 dias grátis', free14Copy:'Nada será cobrado até o fim do período de teste. Cancele quando quiser.',
+    free14:'30 dias grátis', free14Copy:'Nada será cobrado até o fim do período de teste. Cancele quando quiser.',
     continueWith:'Continuar com', aPlan:'um plano', already:'Já tem conta?', signIn:'Entrar',
     selectedPlan:'Plano selecionado', change:'Alterar', quickSignup:'Cadastre-se rápido com', emailOption:'ou com email',
     firstName:'Nome *', lastName:'Sobrenome', email:'Email *', password:'Senha * (mín. 8)',
     confirmPassword:'Confirmar senha *', churchCode:'Código da igreja (opcional)',
     churchHelp:'Peça ao pastor. Você também pode adicionar depois em Meu Perfil.',
-    noCharge:'Sem cobrança por 14 dias', afterTrial:'Depois do período de teste será cobrado',
+    noCharge:'Sem cobrança por 30 dias', afterTrial:'Depois do período de teste será cobrado',
     invitationApplied:'Convite aplicado', cancelBefore:'Cancele antes se não quiser continuar.',
     paymentBy:'O pagamento é gerenciado pelo MercadoPago.', back:'← Voltar', creating:'Criando...',
     createFree:'Criar conta grátis →', acceptA:'Aceito os', terms:'Termos e Condições', privacyJoin:'a',
     privacy:'Política de Privacidade', cookies:'e a Política de Cookies do Church System.',
     orgNotice:'Church System é uma ferramenta tecnológica de gestão. A organização é responsável pelos dados que carrega, pelas permissões que atribui e pelas comunicações que envia.',
     accountCreated:'Conta criada!', verificationOk:'Verificação bem-sucedida para', planActivated:'Plano {plan} ativado',
-    trialActivated:'14 dias de teste grátis', connected:'Conectado a {church}', yourChurch:'sua igreja', enter:'Entrar no Church System →',
+    trialActivated:'30 dias de teste grátis', connected:'Conectado a {church}', yourChurch:'sua igreja', enter:'Entrar no Church System →',
     footerTerms:'Termos', footerPrivacy:'Privacidade',
   },
   en: {
@@ -87,23 +87,23 @@ const REG_I18N = {
     passwordMismatch:'Passwords do not match', passwordMin:'Minimum 8 characters',
     createError:'Error creating account', choosePlanToast:'Choose a plan to continue',
     stepCounter:'Step 1 of 3', choosePlan:'Choose your plan',
-    chooseSub:'You can change it anytime · All plans include a 14-day free trial',
+    chooseSub:'You can change it anytime · All plans include a 30-day free trial',
     country:'Country', currency:'Currency', language:'Language', invitation:'Invitation',
     popular:'Most popular', selected:'OK Selected', perMonth:'/mo',
-    free14:'14 days free', free14Copy:'Nothing is charged until the trial period ends. Cancel anytime.',
+    free14:'30 days free', free14Copy:'Nothing is charged until the trial period ends. Cancel anytime.',
     continueWith:'Continue with', aPlan:'a plan', already:'Already have an account?', signIn:'Sign in',
     selectedPlan:'Selected plan', change:'Change', quickSignup:'Sign up quickly with', emailOption:'or with email',
     firstName:'First name *', lastName:'Last name', email:'Email *', password:'Password * (min. 8)',
     confirmPassword:'Confirm password *', churchCode:'Church code (optional)',
     churchHelp:'Ask your pastor. You can also add it later from My Profile.',
-    noCharge:'No charge for 14 days', afterTrial:'After the trial period you will be charged',
+    noCharge:'No charge for 30 days', afterTrial:'After the trial period you will be charged',
     invitationApplied:'Invitation applied', cancelBefore:'Cancel before then if you do not want to continue.',
     paymentBy:'Payment is handled by MercadoPago.', back:'← Back', creating:'Creating...',
     createFree:'Create free account →', acceptA:'I accept the', terms:'Terms and Conditions', privacyJoin:'the',
     privacy:'Privacy Policy', cookies:'and Church System Cookie Policy.',
     orgNotice:'Church System is a technology management tool. The organization is responsible for the data it uploads, the permissions it assigns, and the communications it sends.',
     accountCreated:'Account created!', verificationOk:'Successful verification for', planActivated:'Plan {plan} activated',
-    trialActivated:'14-day free trial', connected:'Connected to {church}', yourChurch:'your church', enter:'Enter Church System →',
+    trialActivated:'30-day free trial', connected:'Connected to {church}', yourChurch:'your church', enter:'Enter Church System →',
     footerTerms:'Terms', footerPrivacy:'Privacy',
   },
 }
@@ -194,10 +194,17 @@ function Logo() {
 }
 
 // ── OAuth botones ─────────────────────────────────────────────────────────────
-function OAuthButtons({ label='Registrate' }) {
+function OAuthButtons({ context = {} }) {
+  const query = new URLSearchParams({
+    plan: context.plan || 'FREE',
+    country: context.country || 'AR',
+    currency: context.currency || 'ARS',
+    lang: context.lang || 'es',
+    promo: context.promo || '',
+  }).toString()
   return (
     <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
-      <button onClick={()=>{ window.location.href=`${API_BASE}/oauth/google` }}
+      <button onClick={()=>{ window.location.href=`${API_BASE}/oauth/google?${query}` }}
         style={{
           padding:'12px 10px', background:'rgba(66,133,244,.10)',
           border:'1.5px solid rgba(66,133,244,.3)', borderRadius:12,
@@ -215,7 +222,7 @@ function OAuthButtons({ label='Registrate' }) {
         </svg>
         Google
       </button>
-      <button onClick={()=>{ window.location.href=`${API_BASE}/oauth/apple` }}
+      <button onClick={()=>{ window.location.href=`${API_BASE}/oauth/apple?${query}` }}
         style={{
           padding:'12px 10px', background:'rgba(255,255,255,.05)',
           border:`1.5px solid ${c.border}`, borderRadius:12,
@@ -537,7 +544,7 @@ export default function Registro() {
               </div>
             ))}
 
-            {/* Info 14 días */}
+            {/* Info 30 días */}
             <div style={{
               background: isFreePlan ? 'rgba(59,130,246,.10)' : 'rgba(34,197,94,.08)',
               border: isFreePlan ? '1px solid rgba(59,130,246,.25)' : '1px solid rgba(34,197,94,.2)',
@@ -605,7 +612,7 @@ export default function Registro() {
               <p style={{fontSize:13, color:c.muted, marginBottom:12, textAlign:'center'}}>
                 {t('quickSignup')}
               </p>
-              <OAuthButtons label="Registrate"/>
+              <OAuthButtons context={{ plan: planSel || 'FREE', country, currency, lang, promo }}/>
             </div>
 
             {/* Divider */}

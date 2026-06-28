@@ -12,6 +12,7 @@
     "render:blueprint-link": "node scripts/render-blueprint-link.mjs",
     "render:validate": "node scripts/validate-render-blueprint.mjs",
     "reset:accounts": "node scripts/reset-account-data.mjs",
+    "seed:test-users": "node scripts/seed-test-users.mjs",
     "setup:cloudflared": "bash scripts/setup-cloudflared-launchd.sh",
     "smoke:signup": "node scripts/smoke-zero-signup.mjs",
     "verify:prod": "node scripts/verify-prod.mjs",

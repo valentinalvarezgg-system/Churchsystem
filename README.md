@@ -378,6 +378,17 @@ pnpm smoke:signup
 
 Después de un reset completo, ingresar por `/registro`, crear la primera cuenta y, si hace falta GodMode, volver a habilitar el dueño con `node scripts/make-superadmin.mjs <email>`.
 
+### Cuentas QA / GodMode
+
+El seeder crea cuentas de prueba por rol y por plan, sin guardar la contraseña en Git. Si no se pasa `--password`, genera una clave temporal y la imprime una sola vez.
+
+```bash
+pnpm seed:test-users
+pnpm seed:test-users -- --password "clave-temporal-segura"
+```
+
+Emails generados: `qa.godmode@churchsystem.test`, `qa.pastor.general@churchsystem.test`, `qa.pastor.culto@churchsystem.test`, `qa.consolidacion@churchsystem.test`, `qa.staff@churchsystem.test`, `qa.lider@churchsystem.test` y `qa.plan.*@churchsystem.test`.
+
 ---
 
 ## Convenciones de código

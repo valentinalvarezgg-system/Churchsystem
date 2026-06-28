@@ -48,6 +48,7 @@ export function userPayload(user) {
     pais: user.pais || 'AR',
     divisa: user.divisa || 'ARS',
     idioma: user.idioma || 'es',
+    es_superadmin: user.es_superadmin === true || user.es_superadmin === 1 || user.es_superadmin === '1',
   }
 }
 
