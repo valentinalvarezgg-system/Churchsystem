@@ -103,7 +103,7 @@ export async function apiFetch(path, options = {}) {
     throw new Error('No se pudo conectar con el servidor. Revisá tu conexión e intentá nuevamente.')
   }
 
-  if (res.status === 401 && !skipAuthRedirect) {
+  if (res.status === 401 && token && !skipAuthRedirect) {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     window.location.href = '/app/login'

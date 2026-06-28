@@ -1,6 +1,20 @@
 # BITÁCORA — Church System
 ---
 
+## Login público: no redirigir por 401 sin sesión — 2026-06-28
+
+**Estado actual:** el helper HTTP ya distingue entre “credenciales inválidas en pantalla pública” y “sesión vencida con token previo”, evitando errores engañosos en login.
+
+### Falla detectada
+- `frontend/src/services/api.js` redirigía a `/app/login` ante cualquier `401`, incluso cuando no había token cargado. En el formulario de login eso convertía un `401 Credenciales inválidas` en un flujo confuso y podía terminar disparando errores del tipo `undefined` o toasts poco claros.
+
+### Corrección aplicada
+- `frontend/src/services/api.js`: la redirección automática por `401` ahora solo corre si había un token activo en storage. Los `401` de pantallas públicas como login, signup o verificación vuelven al caller como error normal.
+
+### Evidencia
+- `POST http://127.0.0.1:4000/auth/login` con `max@test.com` y password inválida → HTTP `401 {"error":"Credenciales inválidas"}`.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Verificación email sin duplicar códigos — 2026-06-28
 
 **Estado actual:** el paso de verificación del signup quedó más profesional y consistente: ya no invalida el código inicial apenas se monta la pantalla y el reenvío usa su endpoint correcto.
