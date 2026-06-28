@@ -150,13 +150,3 @@ export function setStoredContext({ lang, country, currency, promo } = {}) {
   document.documentElement.lang = localStorage.getItem('church_lang') || 'es'
   emitDataChanged({ source: 'context-selector' })
 }
-
-export function decodeJwt(token) {
-  try {
-    const part = token.split('.')[1]
-    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'))
-    return JSON.parse(decodeURIComponent(Array.from(json).map(c => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`).join('')))
-  } catch {
-    return null
-  }
-}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { apiFetch, getApiUrl, getStoredContext, decodeJwt, syncContextFromUser } from '../services/api.js'
+import { apiFetch, getApiUrl, getStoredContext, syncContextFromUser } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 import { authCopy } from '../utils/i18n-auth.js'
 import { APP_VERSION_LABEL } from '../version.js'
@@ -89,7 +89,6 @@ export default function Login() {
 
   useEffect(() => {
     async function handleOAuthReturn() {
-      const token = searchParams.get('token')
       const oauth = searchParams.get('oauth')
       const error = searchParams.get('error')
       if (oauth === '1') {
@@ -107,25 +106,6 @@ export default function Login() {
         } catch {
           toast.error(copy.authError)
         }
-      } else if (token) {
-        localStorage.setItem('token', token)
-        if (searchParams.get('setup') === '1') {
-          localStorage.setItem('church_force_setup', '1')
-        }
-        try {
-          const user = await apiFetch('/auth/me')
-          localStorage.setItem('user', JSON.stringify(user))
-          syncContextFromUser(user)
-        } catch {
-          const decoded = decodeJwt(token)
-          if (decoded) {
-            localStorage.setItem('user', JSON.stringify(decoded))
-            syncContextFromUser(decoded)
-          }
-        }
-        await touchSesion()
-        toast.success(copy.ok)
-        navigate('/')
       } else if (error) {
         const msgs = copy.errors || {}
         toast.error(msgs[error] || copy.authError)

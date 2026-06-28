@@ -1,6 +1,42 @@
 # BITÁCORA — Church System
 ---
 
+## Auditoría objetivo + cierre JWT query frontend — 2026-06-28
+
+**Estado actual:** existe una auditoría reproducible del objetivo amplio (`pnpm audit:objective`) que cruza producción pública, hardening auth/OAuth, onboarding/facturación, reset de datos, cuentas QA por rol/plan y GodMode.
+
+### Fallas detectadas y corregidas
+- `Login.jsx` y `Registro.jsx` aún conservaban fallback legacy para consumir `?token=<jwt>` desde la URL aunque OAuth ya usa cookie refresh y backend ya no emite JWT por query string.
+- `decodeJwt()` quedó como código muerto en `services/api.js` después de quitar esos fallbacks.
+- `AuditLog` tenía entradas de LOGIN generadas por pruebas QA posteriores al reset; se limpió para que el estado de factory reset vuelva a ser verificable.
+
+### Corrección aplicada
+- `frontend/src/pages/Login.jsx` y `frontend/src/pages/Registro.jsx`: OAuth solo acepta `?oauth=1` y recupera sesión vía `/auth/refresh`; ya no lee `searchParams.get('token')`.
+- `frontend/src/services/api.js`: eliminado `decodeJwt()` sin uso.
+- Agregado `scripts/audit-objective.mjs` y script raíz `pnpm audit:objective`.
+- `AuditLog` truncado con `TRUNCATE TABLE "AuditLog" RESTART IDENTITY`.
+
+### Qué valida `pnpm audit:objective`
+- Producción pública: `/health`, home HTML y catálogo de planes.
+- Seguridad/frontend: sin `alert()`/`confirm()`, sin `hooks/useToast.js`, sin hardcodeos `localhost:4000` fuera del API helper y sin JWT admin por query.
+- Auth/OAuth/signup: OAuth con `state` firmado, redirects sin `token=`, Login/Registro con refresh cookie, endpoint `/registro/crear`.
+- Onboarding: etapa de facturación (`onboarding_plan`, `onboarding_billing_confirmed`) en frontend y backend.
+- Reset: `Persona`, `Grupo`, `Culto`, `Mensaje`, `Comunicado`, `Permiso`, `AuditLog`, `payments` y `suscripciones` en cero.
+- QA/GodMode: roles requeridos, 12 cuentas QA activas/verificadas, planes QA y `qa.godmode@churchsystem.test` con `es_superadmin=true`.
+
+### Evidencia
+- `pnpm audit:objective` → OK, 0 errores / 4 advertencias esperadas: TLS local de Node y `QA_TEST_PASSWORD` ausente para no exponer credenciales en entorno.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+- `cd backend && npx -y pnpm@9.15.5 audit:launch` → OK.
+- `pnpm verify:prod` → OK, 0 errores; producción sigue por Cloudflare Tunnel local.
+- `pnpm smoke:signup -- --dry-run` → OK.
+
+### Pendiente para cierre total del objetivo
+- Para probar contraseña QA sin exponerla en Git ni logs, correr localmente: `QA_TEST_PASSWORD=<password temporal> pnpm audit:objective`.
+- La migración Business/Render sigue pendiente; hasta que `pnpm verify:prod:render` pase, la disponibilidad depende de la Mac local.
+
+---
+
 ## Estabilidad producción + compatibilidad fetch — 2026-06-28
 
 **Estado actual:** `churchsystem.com.ar` responde `200 OK`; no hay 502 activo. La causa operativa sigue siendo la misma: producción depende de Cloudflare Tunnel hacia la Mac local (`localhost:4000`), por lo que cualquier caída del backend/túnel local vuelve a provocar 502 hasta completar el corte a Render Business.

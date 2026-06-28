@@ -1,7 +1,7 @@
 import { TEXTOS, EMAILS } from '../utils/legal.js'
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { apiFetch, decodeJwt, getApiUrl, getStoredContext, syncContextFromUser } from '../services/api.js'
+import { apiFetch, getApiUrl, getStoredContext, syncContextFromUser } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 import EmailVerificacion from '../components/EmailVerificacion.jsx'
 import { TokenIglesiaInput } from '../components/TokenIglesia.jsx'
@@ -267,10 +267,9 @@ export default function Registro() {
   const [form, setForm]           = useState({ nombre:'', apellido:'', email:'', password:'', confirmar:'', iglesiaToken:'' })
   const f = (k,v) => setForm(p=>({...p,[k]:v}))
 
-  // Si viene con token OAuth (redirect de vuelta)
+  // Si vuelve de OAuth, la sesión se recupera desde cookie refresh HttpOnly.
   useEffect(() => {
     async function handleOAuthReturn() {
-      const token = searchParams.get('token')
       const oauth = searchParams.get('oauth')
       const error = searchParams.get('error')
       if (oauth === '1') {
@@ -285,21 +284,6 @@ export default function Registro() {
         } catch {
           toast.error((REG_I18N[lang] || REG_I18N.es).oauthMissing)
         }
-      } else if (token) {
-        localStorage.setItem('token', token)
-        try {
-          const user = await apiFetch('/auth/me')
-          localStorage.setItem('user', JSON.stringify(user))
-          syncContextFromUser(user)
-        } catch {
-          const decoded = decodeJwt(token)
-          if (decoded) {
-            localStorage.setItem('user', JSON.stringify(decoded))
-            syncContextFromUser(decoded)
-          }
-        }
-        toast.success((REG_I18N[lang] || REG_I18N.es).oauthGoogleOk)
-        navigate('/')
       } else if (error === 'oauth_not_configured') {
         toast.error((REG_I18N[lang] || REG_I18N.es).oauthMissing)
       }
