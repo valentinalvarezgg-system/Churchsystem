@@ -1,103 +1,167 @@
 #!/usr/bin/env node
 /**
- * Watchdog de Church System.
- * Monitorea el health del backend cada 60s.
- * Si falla 3 veces seguidas: manda email de alerta + reinicia el servicio vía launchctl.
- * Se ejecuta como servicio launchd independiente del backend.
+ * Watchdog local de producción.
+ *
+ * MODO_CLOUDFLARE_LOCAL depende de dos piezas:
+ *   1) backend local en :4000
+ *   2) cloudflared exponiendo churchsystem.com.ar
+ *
+ * Este proceso monitorea ambas capas y usa launchctl kickstart para reiniciar
+ * solo lo necesario. No imprime secretos ni lee tokens del túnel.
  */
-import { execSync, exec } from 'child_process'
-import { readFileSync } from 'fs'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 
-// ── Configuración ──────────────────────────────────────────────────────
-const HEALTH_URL    = 'http://localhost:4000/health'
-const CHECK_INTERVAL_MS = 60_000          // cada 60 segundos
-const MAX_FAILURES  = 3                   // reiniciar después de 3 fallos consecutivos
-const LAUNCHD_LABEL = 'com.churchsystem.backend'
-const PLIST_PATH    = '/Users/Valentin/Library/LaunchAgents/com.churchsystem.backend.plist'
-const RESEND_KEY    = (() => {
+const execFileAsync = promisify(execFile)
+
+const LOCAL_HEALTH_URL = process.env.WATCHDOG_LOCAL_HEALTH_URL || 'http://127.0.0.1:4000/health'
+const PUBLIC_HEALTH_URL = process.env.WATCHDOG_PUBLIC_HEALTH_URL || 'https://churchsystem.com.ar/health'
+const CHECK_INTERVAL_MS = Number(process.env.WATCHDOG_INTERVAL_MS || 60_000)
+const MAX_FAILURES = Number(process.env.WATCHDOG_MAX_FAILURES || 3)
+const BACKEND_LABEL = process.env.WATCHDOG_BACKEND_LABEL || 'com.churchsystem.backend'
+const CLOUDFLARED_LABEL = process.env.WATCHDOG_CLOUDFLARED_LABEL || 'com.churchsystem.cloudflared'
+const ALERT_EMAIL = process.env.WATCHDOG_ALERT_EMAIL || process.env.EMAIL_SOPORTE || ''
+const RESEND_KEY = process.env.RESEND_API_KEY || ''
+const ALERT_COOLDOWN_MS = Number(process.env.WATCHDOG_ALERT_COOLDOWN_MS || 10 * 60_000)
+const STARTUP_GRACE_MS = Number(process.env.WATCHDOG_STARTUP_GRACE_MS || 15_000)
+const LAUNCHD_DOMAIN = `gui/${process.getuid?.() || ''}`
+
+let localFailures = 0
+let publicFailures = 0
+let lastAlertAt = 0
+let restartInProgress = false
+
+function ts() {
+  return new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+}
+
+function log(...args) {
+  console.log(`[${ts()}] [watchdog]`, ...args)
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function fetchHealth(url) {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 8000)
   try {
-    const env = readFileSync('/Users/Valentin/Desktop/church-system-alpha/backend/.env', 'utf8')
-    const m = env.match(/RESEND_API_KEY=(.+)/)
-    return m ? m[1].trim() : null
-  } catch { return null }
-})()
-const ALERT_EMAIL   = 'valentin.alvarez.gg@gmail.com'
-// ──────────────────────────────────────────────────────────────────────
-
-let fallosConsecutivos = 0
-let ultimaAlertaTs = 0
-let pid = process.pid
-
-function ts() { return new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) }
-function log(...args) { console.log(`[${ts()}] [watchdog]`, ...args) }
-
-async function checkHealth() {
-  try {
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 5000)
-    const res = await fetch(HEALTH_URL, { signal: ctrl.signal })
+    const response = await fetch(url, { signal: ctrl.signal, cache: 'no-store' })
+    const text = await response.text().catch(() => '')
+    if (response.ok && text.includes('"status":"ok"')) return { ok: true, status: response.status }
+    return { ok: false, status: response.status, error: text.slice(0, 140) || `HTTP ${response.status}` }
+  } catch (error) {
+    return { ok: false, status: 0, error: error.message || 'request_failed' }
+  } finally {
     clearTimeout(timer)
-    if (res.ok) {
-      if (fallosConsecutivos > 0) log(`Backend recuperado después de ${fallosConsecutivos} fallo(s).`)
-      fallosConsecutivos = 0
-      return true
-    }
-    throw new Error(`HTTP ${res.status}`)
-  } catch (e) {
-    fallosConsecutivos++
-    log(`⚠️  Fallo ${fallosConsecutivos}/${MAX_FAILURES}: ${e.message}`)
+  }
+}
+
+async function launchctlKick(label) {
+  const target = LAUNCHD_DOMAIN.endsWith('/') ? label : `${LAUNCHD_DOMAIN}/${label}`
+  await execFileAsync('launchctl', ['kickstart', '-k', target], { timeout: 15_000 })
+}
+
+async function processRunning(name) {
+  try {
+    await execFileAsync('pgrep', ['-x', name], { timeout: 5000 })
+    return true
+  } catch {
     return false
   }
 }
 
-async function sendAlert(asunto, cuerpo) {
-  if (!RESEND_KEY) { log('Sin RESEND_KEY, no se puede alertar.'); return }
-  const ahora = Date.now()
-  if (ahora - ultimaAlertaTs < 10 * 60_000) { log('Alerta suprimida (se mandó hace <10min)'); return }
-  ultimaAlertaTs = ahora
+async function sendAlert(subject, body) {
+  if (!RESEND_KEY || !ALERT_EMAIL) {
+    log('alerta omitida: email no configurado')
+    return
+  }
+  const now = Date.now()
+  if (now - lastAlertAt < ALERT_COOLDOWN_MS) {
+    log('alerta omitida por cooldown')
+    return
+  }
+  lastAlertAt = now
   try {
-    await fetch('https://api.resend.com/emails', {
+    const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'Church System Watchdog <no-reply@churchsystem.com.ar>',
+        from: process.env.EMAIL_FROM || 'Church System Watchdog <no-reply@churchsystem.com.ar>',
         to: ALERT_EMAIL,
-        subject: asunto,
-        text: cuerpo,
+        subject,
+        text: body,
       }),
     })
-    log('📧 Alerta enviada a', ALERT_EMAIL)
-  } catch (e) { log('Error enviando alerta:', e.message) }
+    if (!response.ok) log('alerta email falló:', response.status)
+    else log('alerta email enviada')
+  } catch (error) {
+    log('alerta email falló:', error.message)
+  }
 }
 
-async function reiniciarServicio() {
-  log('🔄 Reiniciando servicio via launchctl...')
+async function restart(label, reason) {
+  if (restartInProgress) {
+    log('reinicio omitido: ya hay uno en curso')
+    return
+  }
+  restartInProgress = true
   try {
-    execSync(`launchctl unload "${PLIST_PATH}"`, { timeout: 10000 })
-    await new Promise(r => setTimeout(r, 2000))
-    execSync(`launchctl load "${PLIST_PATH}"`, { timeout: 10000 })
-    log('✅ Servicio reiniciado.')
-    fallosConsecutivos = 0
-  } catch (e) {
-    log('❌ Error reiniciando:', e.message)
+    log(`reiniciando ${label}: ${reason}`)
+    await launchctlKick(label)
+    await sendAlert(
+      `Church System: reinicio ${label}`,
+      `Motivo: ${reason}\nHora: ${ts()}\nLocal: ${LOCAL_HEALTH_URL}\nPublic: ${PUBLIC_HEALTH_URL}`
+    )
+    await sleep(STARTUP_GRACE_MS)
+  } catch (error) {
+    log(`error reiniciando ${label}:`, error.message)
+  } finally {
+    restartInProgress = false
   }
 }
 
 async function tick() {
-  const ok = await checkHealth()
-  if (!ok && fallosConsecutivos >= MAX_FAILURES) {
-    const msg = `Church System backend caído (${fallosConsecutivos} fallos consecutivos). Reiniciando...`
-    log('🚨', msg)
-    await sendAlert('🚨 Church System CAÍDO — reiniciando', msg + `\nHora: ${ts()}\nHost: ${process.env.HOSTNAME || 'Mac local'}`)
-    await reiniciarServicio()
-    // Esperamos 15s extra para que Node arranque antes del próximo check
-    await new Promise(r => setTimeout(r, 15000))
+  const local = await fetchHealth(LOCAL_HEALTH_URL)
+  if (local.ok) {
+    if (localFailures > 0) log(`backend local recuperado tras ${localFailures} fallo(s)`)
+    localFailures = 0
+  } else {
+    localFailures += 1
+    log(`fallo local ${localFailures}/${MAX_FAILURES}: ${local.error}`)
+  }
+
+  const publicHealth = await fetchHealth(PUBLIC_HEALTH_URL)
+  if (publicHealth.ok) {
+    if (publicFailures > 0) log(`salud pública recuperada tras ${publicFailures} fallo(s)`)
+    publicFailures = 0
+  } else {
+    publicFailures += 1
+    log(`fallo público ${publicFailures}/${MAX_FAILURES}: ${publicHealth.error}`)
+  }
+
+  const cloudflaredUp = await processRunning('cloudflared')
+  if (!cloudflaredUp) log('cloudflared no está corriendo')
+
+  if (localFailures >= MAX_FAILURES) {
+    await restart(BACKEND_LABEL, `${LOCAL_HEALTH_URL} falló ${localFailures} veces`)
+    localFailures = 0
+    return
+  }
+
+  if ((!cloudflaredUp || publicFailures >= MAX_FAILURES) && local.ok) {
+    await restart(CLOUDFLARED_LABEL, `${PUBLIC_HEALTH_URL} falló ${publicFailures} veces; backend local OK`)
+    publicFailures = 0
+    return
+  }
+
+  if (publicFailures >= MAX_FAILURES) {
+    await restart(BACKEND_LABEL, `${PUBLIC_HEALTH_URL} falló ${publicFailures} veces y backend local no confirmó OK`)
+    publicFailures = 0
   }
 }
 
-log(`Watchdog iniciado (PID ${pid}). Monitoreando ${HEALTH_URL} cada ${CHECK_INTERVAL_MS/1000}s`)
-log(`Resend key: ${RESEND_KEY ? 'configurada ✓' : 'NO disponible — alertas email desactivadas'}`)
-
-// Primer check inmediato
-tick()
-setInterval(tick, CHECK_INTERVAL_MS)
+log(`Watchdog iniciado. Local=${LOCAL_HEALTH_URL} Public=${PUBLIC_HEALTH_URL} Interval=${CHECK_INTERVAL_MS / 1000}s`)
+tick().catch(error => log('tick inicial falló:', error.message))
+setInterval(() => tick().catch(error => log('tick falló:', error.message)), CHECK_INTERVAL_MS)

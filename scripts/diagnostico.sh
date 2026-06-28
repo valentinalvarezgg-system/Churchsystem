@@ -27,6 +27,7 @@ WATCHDOG_LABEL="${WATCHDOG_LABEL:-com.churchsystem.watchdog}"
 CAFFEINATE_LABEL="${CAFFEINATE_LABEL:-com.churchsystem.caffeinate}"
 CLOUDFLARED_LABEL="${CLOUDFLARED_LABEL:-com.churchsystem.cloudflared}"
 CLOUDFLARED_CONFIG="${CLOUDFLARED_CONFIG:-$HOME/.cloudflared/config.yml}"
+BACKEND_PLIST="${BACKEND_PLIST:-$HOME/Library/LaunchAgents/$BACKEND_LABEL.plist}"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; GREY='\033[0;90m'; NC='\033[0m'
 
@@ -114,6 +115,16 @@ launchd_state "$BACKEND_LABEL"
 launchd_state "$WATCHDOG_LABEL"
 launchd_state "$CAFFEINATE_LABEL"
 launchd_state "$CLOUDFLARED_LABEL"
+
+if [[ -f "$BACKEND_PLIST" ]]; then
+  if grep -q '<key>EnvironmentVariables</key>' "$BACKEND_PLIST"; then
+    warn "Backend plist contiene EnvironmentVariables; migrar a scripts/run-backend-launchd.sh para no guardar secretos en launchd"
+  else
+    ok "Backend plist no contiene EnvironmentVariables sensibles"
+  fi
+else
+  warn "No existe $BACKEND_PLIST"
+fi
 
 sep "Cloudflare Tunnel"
 if pgrep -x cloudflared >/dev/null 2>&1; then

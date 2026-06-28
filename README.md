@@ -300,15 +300,22 @@ El backend corre en la Mac gestionado por **launchd** y Cloudflare Tunnel expone
 - Si el proceso Node cae → se levanta solo en 10 segundos.
 - Si la Mac se reinicia → arranca automáticamente al loguear.
 - Plist: `~/Library/LaunchAgents/com.churchsystem.backend.plist`
+- El plist del backend no debe contener secretos: usa `scripts/run-backend-launchd.sh`, que carga `backend/.env` con permisos `600`.
 - Cloudflare Tunnel también debe quedar bajo `launchd`: `pnpm setup:cloudflared`.
+- El watchdog local revisa salud local y pública; si cae el backend reinicia `com.churchsystem.backend`, y si cae el túnel reinicia `com.churchsystem.cloudflared`.
 
 ```bash
+# Instalar/reparar backend como LaunchAgent sin secretos en el plist
+pnpm setup:backend
+
 # Reiniciar el backend manualmente si fuera necesario
-launchctl unload ~/Library/LaunchAgents/com.churchsystem.backend.plist
-launchctl load  ~/Library/LaunchAgents/com.churchsystem.backend.plist
+launchctl kickstart -k gui/$(id -u)/com.churchsystem.backend
 
 # Instalar/reparar Cloudflare Tunnel como LaunchAgent
 pnpm setup:cloudflared
+
+# Reiniciar Cloudflare Tunnel manualmente si fuera necesario
+launchctl kickstart -k gui/$(id -u)/com.churchsystem.cloudflared
 
 # Ver logs en vivo
 tail -f /tmp/church-back.log

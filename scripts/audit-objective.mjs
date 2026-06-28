@@ -204,6 +204,15 @@ function auditStaticCode() {
   assertCheck('onboarding', configRoute.includes('onboarding_billing_confirmed') && configRoute.includes('onboarding_plan'), 'backend permite guardar configuración de onboarding/facturación')
 
   assertCheck('backend', rg("from ['\\\"].*sql\\.js|from ['\\\"].*lib/db\\.js|require\\(['\\\"].*sql\\.js|require\\(['\\\"].*lib/db\\.js", ['backend/src']).length === 0, 'sin sql.js/lib/db.js en runtime backend')
+
+  const backendPlist = `${process.env.HOME || ''}/Library/LaunchAgents/com.churchsystem.backend.plist`
+  if (fs.existsSync(backendPlist)) {
+    const plist = read(backendPlist)
+    assertCheck('ops', !plist.includes('<key>EnvironmentVariables</key>'), 'backend launchd no guarda EnvironmentVariables sensibles')
+    assertCheck('ops', plist.includes('scripts/run-backend-launchd.sh'), 'backend launchd usa wrapper con backend/.env')
+  } else {
+    warning('ops', 'backend launchd plist no encontrado; se omite chequeo local de secretos')
+  }
 }
 
 async function auditDatabase(qaPassword, strictQaPassword) {

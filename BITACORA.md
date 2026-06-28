@@ -1,6 +1,45 @@
 # BITÁCORA — Church System
 ---
 
+## Autocuración local + launchd sin secretos — 2026-06-28
+
+**Estado actual:** el deploy local por Cloudflare Tunnel sigue online y ahora tiene una capa de recuperación más fuerte: backend y túnel se monitorean desde watchdog, y el plist del backend ya no guarda variables sensibles en claro.
+
+### Fallas detectadas y corregidas
+- `backend/watchdog.mjs` solo miraba `http://localhost:4000/health`; si `cloudflared` caía pero el backend seguía sano, el watchdog no detectaba el 502 público.
+- `~/Library/LaunchAgents/com.churchsystem.backend.plist` tenía `EnvironmentVariables` con secretos operativos; eso queda fuera de Git, pero aumenta riesgo local y contradice la higiene de migración.
+- Al reinstalar launchd sin PATH interactivo, Node podía no encontrarse; el wrapper ahora resuelve rutas comunes (`/usr/local/bin/node`, `/opt/homebrew/bin/node`).
+- Reapareció el síntoma de store corrupto (`Cannot find module 'unzipper'`); se reparó con reinstalación forzada desde lockfile.
+
+### Corrección aplicada
+- Agregado `scripts/run-backend-launchd.sh`: carga `backend/.env` en runtime con permisos `600` y arranca `backend/src/server.js` sin secretos en plist.
+- Agregado `scripts/setup-backend-launchd.sh` + `pnpm setup:backend`: reinstala `com.churchsystem.backend` como LaunchAgent limpio.
+- `backend/watchdog.mjs`: ahora valida salud local y pública; reinicia `com.churchsystem.backend` si cae local y `com.churchsystem.cloudflared` si cae la salud pública con backend local OK.
+- `scripts/diagnostico.sh`: ahora verifica que el backend plist no contenga `EnvironmentVariables`.
+- `scripts/audit-objective.mjs`: suma checks operativos del plist limpio y wrapper launchd.
+- README actualizado con `pnpm setup:backend`, `launchctl kickstart` y notas de watchdog.
+
+### Acción ejecutada en esta Mac
+- `pnpm setup:backend` reescribió `~/Library/LaunchAgents/com.churchsystem.backend.plist` sin secretos.
+- `cd backend && npx -y pnpm@9.15.5 install --force --frozen-lockfile` reparó dependencias (`unzipper`/`exceljs`).
+- `launchctl kickstart -k gui/$(id -u)/com.churchsystem.backend` y `launchctl kickstart -k gui/$(id -u)/com.churchsystem.watchdog` dejaron ambos servicios activos.
+
+### Evidencia
+- `http://127.0.0.1:4000/health` → HTTP 200, `{"status":"ok"}`.
+- `https://churchsystem.com.ar/health` → HTTP 200, `{"status":"ok"}`.
+- `pnpm diagnostico` → OK, 0 errores; confirma backend/watchdog/cloudflared activos y backend plist sin `EnvironmentVariables`.
+- `pnpm audit:objective` → OK, 0 errores / 4 advertencias esperadas (TLS local Node + `QA_TEST_PASSWORD` ausente).
+- `pnpm verify:prod` → OK, 0 errores; sigue advirtiendo dependencia de Cloudflare Tunnel local.
+- `pnpm smoke:signup -- --dry-run` → OK.
+- `cd backend && npx -y pnpm@9.15.5 audit:launch` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
+### Pendiente operativo
+- Rotar los secretos que alguna vez estuvieron en el plist local antes de migrarlos a la cuenta Business/Render.
+- Completar corte Render Business para que `pnpm verify:prod:render` pase y la disponibilidad no dependa de esta Mac.
+
+---
+
 ## Auditoría objetivo + cierre JWT query frontend — 2026-06-28
 
 **Estado actual:** existe una auditoría reproducible del objetivo amplio (`pnpm audit:objective`) que cruza producción pública, hardening auth/OAuth, onboarding/facturación, reset de datos, cuentas QA por rol/plan y GodMode.
