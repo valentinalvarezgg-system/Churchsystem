@@ -1,6 +1,25 @@
 # BITÁCORA — Church System
 ---
 
+## `pnpm diagnostico` ahora integra el estado del candidato Render — 2026-06-28
+
+**Estado actual:** el diagnóstico general del proyecto ya no se queda solo en backend local, túnel y dominio público. También ejecuta el diagnóstico puntual del candidato Render, así que el comando único `pnpm diagnostico` refleja todo el cuadro operativo actual.
+
+### Falla detectada
+- Después de agregar `pnpm render:diagnose`, todavía había que correr dos comandos distintos para entender el estado completo de producción: `pnpm diagnostico` por un lado y `pnpm render:diagnose` por otro.
+- Eso hacía más lento el troubleshooting de disponibilidad, especialmente cuando el dominio seguía sano por túnel local pero Render estaba caído o sin deploy healthy.
+
+### Corrección aplicada
+- `scripts/diagnostico.sh`: agregado bloque `Candidato Render` que ejecuta `scripts/diagnose-render-candidate.mjs` y resume sus hallazgos dentro del diagnóstico general.
+- `scripts/diagnostico.sh`: limpieza de archivos temporales extendida para incluir la salida del nuevo chequeo.
+
+### Evidencia
+- `bash -n scripts/diagnostico.sh` → OK.
+- `bash scripts/diagnostico.sh` → OK con advertencias esperadas, incluyendo:
+  - `verify-prod` OK funcional
+  - migración Render incompleta
+  - candidato Render con `/health` en timeout y siguiente paso externo claro
+
 ## Auth mobile/profesional: mejor autofill y password manager — 2026-06-28
 
 **Estado actual:** login, registro y verificación por código quedan mejor preparados para Safari/iPhone, gestores de contraseñas y autofill nativo. Esto reduce errores manuales y hace más fluido el acceso en mobile, donde está la mayor parte del uso real.

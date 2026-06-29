@@ -189,6 +189,18 @@ else
   warn "scripts/verify-prod.mjs no existe"
 fi
 
+sep "Candidato Render"
+if [[ -f "$ROOT_DIR/scripts/diagnose-render-candidate.mjs" ]]; then
+  if node "$ROOT_DIR/scripts/diagnose-render-candidate.mjs" >/tmp/churchsystem-render-diagnose.$$ 2>&1; then
+    ok "render:diagnose pasó"
+  else
+    warn "Candidato Render con observaciones; detalle:"
+    sed 's/^/    /' /tmp/churchsystem-render-diagnose.$$
+  fi
+else
+  warn "scripts/diagnose-render-candidate.mjs no existe"
+fi
+
 sep "Logs"
 if $SHOW_LOGS; then
   for file in /tmp/church-back-err.log /tmp/church-back.log /tmp/church-watchdog-err.log /tmp/church-watchdog.log; do
@@ -204,7 +216,7 @@ else
   info "Usá --logs para ver últimas 50 líneas redacted de logs locales"
 fi
 
-rm -f /tmp/churchsystem-diagnostic-body.$$ /tmp/churchsystem-diagnostic-curl.$$ /tmp/churchsystem-verify-render.$$ 2>/dev/null || true
+rm -f /tmp/churchsystem-diagnostic-body.$$ /tmp/churchsystem-diagnostic-curl.$$ /tmp/churchsystem-verify-render.$$ /tmp/churchsystem-render-diagnose.$$ 2>/dev/null || true
 
 sep "Resultado"
 if [[ "$ERRORS" -gt 0 ]]; then
