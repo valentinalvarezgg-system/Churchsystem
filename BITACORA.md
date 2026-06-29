@@ -1,6 +1,27 @@
 # BITÁCORA — Church System
 ---
 
+## Login con ayuda accionable + recupero precompletado — 2026-06-28
+
+**Estado actual:** cuando el backend responde errores de autenticación “útiles” (por ejemplo, cuenta creada con Google/Apple o cuenta sin contraseña configurada), el frontend ya no se queda solo en el toast rojo. Ahora guía al usuario hacia la acción correcta y le precompleta el email en recuperación.
+
+### Falla detectada
+- `frontend/src/pages/Login.jsx` mostraba el mensaje devuelto por backend, pero no convertía ese error en una siguiente acción clara dentro de la pantalla.
+- `frontend/src/pages/RecuperarPassword.jsx` no leía un email prellenado desde query params, así que incluso cuando el usuario decidía restablecer contraseña tenía que volver a escribirlo.
+- En cuentas migradas o creadas por Google/Apple esto agregaba fricción innecesaria justo en el momento más sensible del acceso.
+
+### Corrección aplicada
+- `frontend/src/pages/Login.jsx`: agregado bloque de ayuda contextual para errores accionables:
+  - cuenta creada con Google
+  - cuenta creada con Apple
+  - cuenta existente sin contraseña activa
+- `frontend/src/pages/Login.jsx`: esos casos ahora muestran CTA directo a recuperación con email precompletado.
+- `frontend/src/pages/RecuperarPassword.jsx`: ahora toma `?email=` desde la URL, autocompleta el email y mejora también sus `autocomplete`/OTP/password hints para mobile.
+
+### Evidencia
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+- Nuevos bundles generados: `frontend/dist/assets/Login-Cgpm611m.js` y `frontend/dist/assets/RecuperarPassword-Dy1i3ctV.js`.
+
 ## `pnpm diagnostico` ahora integra el estado del candidato Render — 2026-06-28
 
 **Estado actual:** el diagnóstico general del proyecto ya no se queda solo en backend local, túnel y dominio público. También ejecuta el diagnóstico puntual del candidato Render, así que el comando único `pnpm diagnostico` refleja todo el cuadro operativo actual.

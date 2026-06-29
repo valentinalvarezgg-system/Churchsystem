@@ -54,6 +54,13 @@ const S = {
   footerLinks: { display:'flex', justifyContent:'center', gap:16,
     paddingTop:16, borderTop:'1px solid rgba(255,255,255,0.05)' },
   footerLink: { fontSize:12, color:'#475569', textDecoration:'none' },
+  helpCard: {
+    marginTop:14, padding:'12px 14px', borderRadius:12,
+    background:'rgba(107,92,255,.08)', border:'1px solid rgba(107,92,255,.18)',
+  },
+  helpTitle: { fontSize:13, fontWeight:700, color:'#E2E8F0', margin:'0 0 4px' },
+  helpText: { fontSize:12, color:'#94A3B8', margin:0, lineHeight:1.5 },
+  helpLink: { fontSize:12, color:'#A78BFA', fontWeight:700, textDecoration:'none' },
 }
 
 const API_BASE = getApiUrl()
@@ -66,6 +73,7 @@ export default function Login() {
   const [password, setPassword]   = useState('')
   const [loading, setLoading]     = useState(false)
   const [showPass, setShowPass]   = useState(false)
+  const [authGuidance, setAuthGuidance] = useState(null)
   const [hoverGoogle, setHG]      = useState(false)
   const [hoverApple, setHA]       = useState(false)
   const copy = authCopy(lang).login
@@ -125,6 +133,44 @@ export default function Login() {
     handleOAuthReturn()
   }, [searchParams, navigate, lang])
 
+  function buildRecoverHref(targetEmail = email) {
+    const next = new URLSearchParams({
+      ...Object.fromEntries(new URLSearchParams(ctxQuery).entries()),
+      email: String(targetEmail || '').trim().toLowerCase(),
+    })
+    return `/app/recuperar?${next.toString()}`
+  }
+
+  function guidanceFromError(message = '', targetEmail = email) {
+    const text = String(message || '')
+    const recoverHref = buildRecoverHref(targetEmail)
+    if (/creada con Google/i.test(text)) {
+      return {
+        title: 'Esta cuenta usa Google',
+        body: 'Ingresá con el botón de Google o restablecé una contraseña si querés entrar con email.',
+        linkLabel: 'Restablecer contraseña',
+        href: recoverHref,
+      }
+    }
+    if (/creada con Apple/i.test(text)) {
+      return {
+        title: 'Esta cuenta usa Apple',
+        body: 'Ingresá con el botón de Apple o restablecé una contraseña si querés entrar con email.',
+        linkLabel: 'Restablecer contraseña',
+        href: recoverHref,
+      }
+    }
+    if (/todav[ií]a no tiene contrase/i.test(text) || /Restablecela para ingresar/i.test(text)) {
+      return {
+        title: 'Configurá una contraseña',
+        body: 'La cuenta existe, pero todavía no tiene una contraseña activa para entrar por email.',
+        linkLabel: 'Ir a recuperación',
+        href: recoverHref,
+      }
+    }
+    return null
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (loading) return
@@ -137,6 +183,7 @@ export default function Login() {
     }
     setEmail(nextEmail)
     setPassword(nextPassword)
+    setAuthGuidance(null)
     setLoading(true)
     try {
       const res = await apiFetch('/auth/login', { method:'POST', body:JSON.stringify({ email: nextEmail, password: nextPassword }) })
@@ -145,7 +192,11 @@ export default function Login() {
       syncContextFromUser(res.user)
       await touchSesion()
       navigate('/')
-    } catch(err) { toast.error(err.message || t('invalid')) }
+    } catch(err) {
+      const message = err.message || t('invalid')
+      setAuthGuidance(guidanceFromError(message, nextEmail))
+      toast.error(message)
+    }
     finally { setLoading(false) }
   }
 
@@ -262,6 +313,16 @@ export default function Login() {
             ¿Olvidaste tu contraseña?
           </a>
         </p>
+
+        {authGuidance && (
+          <div style={S.helpCard}>
+            <p style={S.helpTitle}>{authGuidance.title}</p>
+            <p style={S.helpText}>{authGuidance.body}</p>
+            <div style={{marginTop:8}}>
+              <a href={authGuidance.href} style={S.helpLink}>{authGuidance.linkLabel} →</a>
+            </div>
+          </div>
+        )}
 
         <p style={{textAlign:'center',fontSize:14,color:'#64748B',margin:'14px 0 0'}}>
           {t('noAccount')}{' '}

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 import BrandLogo from '../components/BrandLogo.jsx'
@@ -28,12 +28,18 @@ const S = {
 
 export default function RecuperarPassword() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [paso, setPaso] = useState(1)        // 1 = pedir email, 2 = código + nueva pass
   const [email, setEmail] = useState('')
   const [codigo, setCodigo] = useState('')
   const [password, setPassword] = useState('')
   const [password2, setPassword2] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const prefillEmail = String(searchParams.get('email') || '').trim().toLowerCase()
+    if (prefillEmail) setEmail(prefillEmail)
+  }, [searchParams])
 
   async function pedirCodigo(e) {
     e?.preventDefault()
@@ -92,9 +98,19 @@ export default function RecuperarPassword() {
           <>
             <h1 style={S.h1}>Recuperar contraseña</h1>
             <p style={S.sub}>Ingresá tu email y te enviamos un código de 6 dígitos para restablecerla.</p>
-            <form onSubmit={pedirCodigo}>
+            <form onSubmit={pedirCodigo} autoComplete="on">
               <label style={S.label}>Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              <input
+                type="email"
+                name="email"
+                autoComplete="username"
+                autoCorrect="off"
+                inputMode="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                enterKeyHint="send"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
                 placeholder="vos@iglesia.com" style={S.input} autoFocus />
               <button type="submit" disabled={loading} style={{...S.btn, opacity: loading ? .7 : 1}}>
                 {loading ? 'Enviando...' : 'Enviar código'}
@@ -105,16 +121,16 @@ export default function RecuperarPassword() {
           <>
             <h1 style={S.h1}>Ingresá el código</h1>
             <p style={S.sub}>Revisá tu email <strong style={{color:'#CBD5E1'}}>{email}</strong> y pegá el código. Expira en 15 minutos.</p>
-            <form onSubmit={resetear}>
+            <form onSubmit={resetear} autoComplete="on">
               <label style={S.label}>Código de 6 dígitos</label>
-              <input type="text" inputMode="numeric" maxLength={6} value={codigo}
+              <input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code" enterKeyHint="next" maxLength={6} value={codigo}
                 onChange={e => setCodigo(e.target.value.replace(/\D/g, ''))}
                 placeholder="••••••" style={S.inputCode} autoFocus />
               <label style={S.label}>Nueva contraseña</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              <input type="password" name="password" autoComplete="new-password" autoCorrect="off" autoCapitalize="none" spellCheck={false} enterKeyHint="next" value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="Mínimo 8 caracteres" style={S.input} />
               <label style={S.label}>Repetir contraseña</label>
-              <input type="password" value={password2} onChange={e => setPassword2(e.target.value)}
+              <input type="password" name="passwordConfirm" autoComplete="new-password" autoCorrect="off" autoCapitalize="none" spellCheck={false} enterKeyHint="done" value={password2} onChange={e => setPassword2(e.target.value)}
                 placeholder="Repetí la contraseña" style={S.input} />
               <button type="submit" disabled={loading} style={{...S.btn, opacity: loading ? .7 : 1}}>
                 {loading ? 'Cambiando...' : 'Cambiar contraseña'}
