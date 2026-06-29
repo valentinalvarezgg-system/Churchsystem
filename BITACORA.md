@@ -1,6 +1,25 @@
 # BITÁCORA — Church System
 ---
 
+## Personas más rápido: total y listado paginado en paralelo — 2026-06-29
+
+**Estado actual:** `GET /personas` mantiene los mismos filtros, roles y paginación, pero ya no espera primero el conteo total para recién después traer la página de datos.
+
+### Falla detectada
+- `backend/src/routes/personas.js` ejecutaba en serie:
+  - `COUNT(*)`
+  - consulta paginada con líder y grupo
+- La ruta es central en mobile y desktop, por lo que esa espera extra se acumulaba en búsquedas, filtros y navegación frecuente.
+
+### Corrección aplicada
+- `backend/src/routes/personas.js`: `COUNT(*)` y listado paginado ahora corren con `Promise.all`.
+- `backend/src/routes/personas.js`: se preservaron filtros por rol, búsqueda, estado, grupo, etapa espiritual, culto y rango de ingreso.
+- `backend/src/routes/personas.js`: índices de placeholders para `LIMIT/OFFSET` quedan estables antes de ejecutar ambas consultas.
+
+### Evidencia
+- `node --check backend/src/routes/personas.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Asistencia más escalable: guardado masivo en una sola operación SQL — 2026-06-29
 
 **Estado actual:** guardar asistencia de un culto ya no ejecuta un `UPSERT` por cada persona. Ahora usa una sola operación SQL basada en `INSERT ... SELECT ... ON CONFLICT`, manteniendo el mismo contrato de respuesta.

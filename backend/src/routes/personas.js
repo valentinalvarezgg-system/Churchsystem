@@ -62,19 +62,23 @@ router.get('/', requireAuth, async (req, res) => {
 
   const w = where.length ? `WHERE ${where.join(' AND ')}` : ''
   const offset = (Number(page) - 1) * Number(limit)
-  const totalRow = await pgOne(`SELECT COUNT(*)::int AS c FROM "Persona" p ${w}`, params)
-  const data = await pgMany(
-    `SELECT p.*,
-            u."nombre" AS "liderNombre",
-            g."nombre" AS "grupoNombre"
-       FROM "Persona" p
-       LEFT JOIN "User" u ON p."asignadoAUserId"=u."id"
-       LEFT JOIN "Grupo" g ON p."grupoId"=g."id" AND g."deletedAt" IS NULL
-       ${w}
-      ORDER BY p."id" DESC
-      LIMIT $${idx++} OFFSET $${idx++}`,
-    [...params, Number(limit), offset]
-  )
+  const limitIdx = idx++
+  const offsetIdx = idx++
+  const [totalRow, data] = await Promise.all([
+    pgOne(`SELECT COUNT(*)::int AS c FROM "Persona" p ${w}`, params),
+    pgMany(
+      `SELECT p.*,
+              u."nombre" AS "liderNombre",
+              g."nombre" AS "grupoNombre"
+         FROM "Persona" p
+         LEFT JOIN "User" u ON p."asignadoAUserId"=u."id"
+         LEFT JOIN "Grupo" g ON p."grupoId"=g."id" AND g."deletedAt" IS NULL
+         ${w}
+        ORDER BY p."id" DESC
+        LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+      [...params, Number(limit), offset]
+    ),
+  ])
 
   res.json({
     data,
