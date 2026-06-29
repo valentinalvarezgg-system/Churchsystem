@@ -141,10 +141,10 @@ export default function Login() {
     return `/app/recuperar?${next.toString()}`
   }
 
-  function guidanceFromError(message = '', targetEmail = email) {
+  function guidanceFromError(message = '', targetEmail = email, code = '') {
     const text = String(message || '')
     const recoverHref = buildRecoverHref(targetEmail)
-    if (/creada con Google/i.test(text)) {
+    if (code === 'AUTH_OAUTH_GOOGLE' || /creada con Google/i.test(text)) {
       return {
         title: 'Esta cuenta usa Google',
         body: 'Ingresá con el botón de Google o restablecé una contraseña si querés entrar con email.',
@@ -152,7 +152,7 @@ export default function Login() {
         href: recoverHref,
       }
     }
-    if (/creada con Apple/i.test(text)) {
+    if (code === 'AUTH_OAUTH_APPLE' || /creada con Apple/i.test(text)) {
       return {
         title: 'Esta cuenta usa Apple',
         body: 'Ingresá con el botón de Apple o restablecé una contraseña si querés entrar con email.',
@@ -160,7 +160,7 @@ export default function Login() {
         href: recoverHref,
       }
     }
-    if (/todav[ií]a no tiene contrase/i.test(text) || /Restablecela para ingresar/i.test(text)) {
+    if (code === 'AUTH_PASSWORD_NOT_SET' || /todav[ií]a no tiene contrase/i.test(text) || /Restablecela para ingresar/i.test(text)) {
       return {
         title: 'Configurá una contraseña',
         body: 'La cuenta existe, pero todavía no tiene una contraseña activa para entrar por email.',
@@ -194,7 +194,7 @@ export default function Login() {
       navigate('/')
     } catch(err) {
       const message = err.message || t('invalid')
-      setAuthGuidance(guidanceFromError(message, nextEmail))
+      setAuthGuidance(guidanceFromError(message, nextEmail, err.code))
       toast.error(message)
     }
     finally { setLoading(false) }

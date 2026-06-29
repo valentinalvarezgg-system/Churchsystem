@@ -113,7 +113,12 @@ export async function apiFetch(path, options = {}) {
   const raw = await res.text()
   let data = {}
   try { data = raw ? JSON.parse(raw) : {} } catch { data = { error: raw || `Error ${res.status}` } }
-  if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
+  if (!res.ok) {
+    const err = new Error(data.error || `Error ${res.status}`)
+    if (data.code) err.code = data.code
+    err.status = res.status
+    throw err
+  }
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
     emitDataChanged({ path, method })
   }

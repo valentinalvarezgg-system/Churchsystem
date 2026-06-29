@@ -110,11 +110,13 @@ router.post('/login', async (req, res) => {
   const { email = '', password = '' } = req.body || {}
   const cleanEmail = String(email || '').trim().toLowerCase()
   const cleanPassword = String(password || '')
-  if (!cleanEmail || !cleanPassword) return res.status(400).json({ error: 'Email y contraseña requeridos' })
+  if (!cleanEmail || !cleanPassword) {
+    return res.status(400).json({ code: 'AUTH_MISSING_CREDENTIALS', error: 'Email y contraseña requeridos' })
+  }
   const key = cleanEmail
   const entry = failed.get(key) || { n: 0, t: 0 }
   if (entry.n >= 10 && Date.now() - entry.t < 900000) {
-    return res.status(429).json({ error: 'Demasiados intentos. Esperá 15 minutos.' })
+    return res.status(429).json({ code: 'AUTH_RATE_LIMITED', error: 'Demasiados intentos. Esperá 15 minutos.' })
   }
 
   await new Promise(r => setTimeout(r, 50 + Math.random() * 100))
@@ -126,7 +128,7 @@ router.post('/login', async (req, res) => {
     )
     if (!user) {
       failed.set(key, { n: (entry.n || 0) + 1, t: Date.now() })
-      return res.status(401).json({ error: 'Credenciales inválidas' })
+      return res.status(401).json({ code: 'AUTH_INVALID_CREDENTIALS', error: 'Credenciales inválidas' })
     }
 
     const passwordHash = String(user.password || '').trim()
@@ -137,6 +139,11 @@ router.post('/login', async (req, res) => {
           ? 'Apple'
           : null
       return res.status(401).json({
+        code: providerLabel
+          ? providerLabel === 'Google'
+            ? 'AUTH_OAUTH_GOOGLE'
+            : 'AUTH_OAUTH_APPLE'
+          : 'AUTH_PASSWORD_NOT_SET',
         error: providerLabel
           ? `Tu cuenta fue creada con ${providerLabel}. Ingresá con ese botón o restablecé tu contraseña.`
           : 'Tu cuenta todavía no tiene contraseña configurada. Restablecela para ingresar.'
@@ -145,7 +152,7 @@ router.post('/login', async (req, res) => {
 
     if (!(await bcrypt.compare(cleanPassword, passwordHash))) {
       failed.set(key, { n: (entry.n || 0) + 1, t: Date.now() })
-      return res.status(401).json({ error: 'Credenciales inválidas' })
+      return res.status(401).json({ code: 'AUTH_INVALID_CREDENTIALS', error: 'Credenciales inválidas' })
     }
 
     failed.delete(key)
@@ -154,7 +161,7 @@ router.post('/login', async (req, res) => {
     return res.json({ token: session.accessToken, refreshToken: session.refreshToken, expiresIn: session.expiresIn, user: session.user })
   } catch (error) {
     logger.error({ err: error?.message }, 'Error en login')
-    return res.status(500).json({ error: 'Error de autenticación' })
+    return res.status(500).json({ code: 'AUTH_UNEXPECTED', error: 'Error de autenticación' })
   }
 })
 

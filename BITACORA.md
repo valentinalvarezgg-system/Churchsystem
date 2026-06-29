@@ -1,6 +1,31 @@
 # BITÁCORA — Church System
 ---
 
+## Auth más robusto: códigos de error estructurados para login — 2026-06-29
+
+**Estado actual:** el frontend ya no depende solo de textos libres para decidir cómo ayudar al usuario cuando falla el login. `apiFetch()` preserva `code` en los errores HTTP y `/auth/login` devuelve códigos semánticos estables para los casos más importantes.
+
+### Falla detectada
+- La mejora anterior de `Login.jsx` funcionaba, pero la ayuda contextual todavía dependía de detectar frases dentro de `err.message`.
+- Eso era frágil ante cambios de copy, i18n futura o pequeños ajustes del backend.
+
+### Corrección aplicada
+- `frontend/src/services/api.js`: los errores HTTP ahora propagan `err.code` y `err.status` además del mensaje.
+- `backend/src/routes/auth.js`: `/auth/login` ahora devuelve códigos estables:
+  - `AUTH_MISSING_CREDENTIALS`
+  - `AUTH_RATE_LIMITED`
+  - `AUTH_INVALID_CREDENTIALS`
+  - `AUTH_OAUTH_GOOGLE`
+  - `AUTH_OAUTH_APPLE`
+  - `AUTH_PASSWORD_NOT_SET`
+  - `AUTH_UNEXPECTED`
+- `frontend/src/pages/Login.jsx`: la ayuda contextual prioriza `err.code` y solo deja regex como fallback defensivo.
+
+### Evidencia
+- `node --check backend/src/routes/auth.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+- Nuevos bundles generados: `frontend/dist/assets/Login-DRemWvbU.js`.
+
 ## Login con ayuda accionable + recupero precompletado — 2026-06-28
 
 **Estado actual:** cuando el backend responde errores de autenticación “útiles” (por ejemplo, cuenta creada con Google/Apple o cuenta sin contraseña configurada), el frontend ya no se queda solo en el toast rojo. Ahora guía al usuario hacia la acción correcta y le precompleta el email en recuperación.
