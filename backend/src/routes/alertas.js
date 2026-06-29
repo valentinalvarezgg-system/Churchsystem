@@ -15,8 +15,15 @@ router.get('/', requireAuth, wrap(async (req, res) => {
   )
   const cultoIds = ultimos.map(c => Number(c.id))
 
-  const sinAsistir = cultoIds.length
-    ? await pgMany(
+  const [
+    sinAsistir,
+    sinSeguimiento,
+    visitantesSinConsolidar,
+    contactosVencidos,
+    cumpleanosSemana,
+  ] = await Promise.all([
+    cultoIds.length
+      ? pgMany(
       `SELECT p."id", p."nombre", p."apellido", p."telefono", p."estado", u."nombre" AS "liderNombre"
        FROM "Persona" p
        LEFT JOIN "User" u ON u."id" = p."asignadoAUserId" AND u."iglesiaId" = p."iglesiaId"
@@ -29,29 +36,33 @@ router.get('/', requireAuth, wrap(async (req, res) => {
          )
        ORDER BY p."nombre" ASC
        LIMIT 30`,
-      [iglesiaId, cultoIds]
-    )
-    : []
+        [iglesiaId, cultoIds]
+      )
+      : Promise.resolve([]),
 
-  const sinSeguimiento = await pgMany(
-    `SELECT p."id", p."nombre", p."apellido", p."telefono", u."nombre" AS "liderNombre",
-            (SELECT MAX(s."createdAt") FROM "Seguimiento" s WHERE s."iglesiaId"=$1 AND s."personaId"=p."id" AND s."deletedAt" IS NULL) AS "ultimoSeguimiento"
+    pgMany(
+      `WITH ultimo AS (
+         SELECT "personaId", MAX("createdAt") AS "ultimoSeguimiento"
+           FROM "Seguimiento"
+          WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
+          GROUP BY "personaId"
+       )
+       SELECT p."id", p."nombre", p."apellido", p."telefono", u."nombre" AS "liderNombre",
+              ultimo."ultimoSeguimiento"
      FROM "Persona" p
      LEFT JOIN "User" u ON u."id" = p."asignadoAUserId" AND u."iglesiaId" = p."iglesiaId"
+     LEFT JOIN ultimo ON ultimo."personaId"=p."id"
      WHERE p."iglesiaId"=$1
        AND p."deletedAt" IS NULL
        AND p."estado" IN ('ACTIVO','VISITANTE','NUEVO')
-       AND (
-         NOT EXISTS (SELECT 1 FROM "Seguimiento" s WHERE s."iglesiaId"=$1 AND s."personaId"=p."id" AND s."deletedAt" IS NULL)
-         OR (SELECT MAX(s."createdAt") FROM "Seguimiento" s WHERE s."iglesiaId"=$1 AND s."personaId"=p."id" AND s."deletedAt" IS NULL) < NOW() - INTERVAL '30 days'
-       )
+       AND (ultimo."ultimoSeguimiento" IS NULL OR ultimo."ultimoSeguimiento" < NOW() - INTERVAL '30 days')
      ORDER BY "ultimoSeguimiento" ASC NULLS FIRST
      LIMIT 20`,
-    [iglesiaId]
-  )
+      [iglesiaId]
+    ),
 
-  const visitantesSinConsolidar = await pgMany(
-    `SELECT p."id", p."nombre", p."apellido", p."telefono", p."fechaIngreso", u."nombre" AS "liderNombre"
+    pgMany(
+      `SELECT p."id", p."nombre", p."apellido", p."telefono", p."fechaIngreso", u."nombre" AS "liderNombre"
      FROM "Persona" p
      LEFT JOIN "User" u ON u."id" = p."asignadoAUserId" AND u."iglesiaId" = p."iglesiaId"
      WHERE p."iglesiaId"=$1
@@ -61,11 +72,11 @@ router.get('/', requireAuth, wrap(async (req, res) => {
        AND p."fechaIngreso" <= TO_CHAR(CURRENT_DATE - INTERVAL '14 days', 'YYYY-MM-DD')
      ORDER BY p."fechaIngreso" ASC
      LIMIT 20`,
-    [iglesiaId]
-  )
+      [iglesiaId]
+    ),
 
-  const contactosVencidos = await pgMany(
-    `SELECT s."proximoContacto", s."tipo", p."nombre", p."apellido", p."id" AS "personaId", p."telefono"
+    pgMany(
+      `SELECT s."proximoContacto", s."tipo", p."nombre", p."apellido", p."id" AS "personaId", p."telefono"
      FROM "Seguimiento" s
      JOIN "Persona" p ON p."id"=s."personaId" AND p."iglesiaId"=s."iglesiaId"
      WHERE s."iglesiaId"=$1
@@ -80,17 +91,18 @@ router.get('/', requireAuth, wrap(async (req, res) => {
        )
      ORDER BY s."proximoContacto" ASC
      LIMIT 15`,
-    [iglesiaId]
-  )
+      [iglesiaId]
+    ),
 
-  const cumpleanosSemana = await pgMany(
-    `SELECT "id", "nombre", "apellido", "telefono", "fechaNacimiento",
+    pgMany(
+      `SELECT "id", "nombre", "apellido", "telefono", "fechaNacimiento",
             TO_CHAR(("fechaNacimiento")::date, 'MM-DD') AS "cumDia"
      FROM "Persona"
      WHERE "iglesiaId"=$1
        AND "deletedAt" IS NULL
        AND "fechaNacimiento" IS NOT NULL
        AND "fechaNacimiento" <> ''
+       AND "fechaNacimiento" ~ '^\\d{4}-\\d{2}-\\d{2}$'
        AND (
          MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::int, EXTRACT(MONTH FROM ("fechaNacimiento")::date)::int, EXTRACT(DAY FROM ("fechaNacimiento")::date)::int)
          BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
@@ -99,8 +111,9 @@ router.get('/', requireAuth, wrap(async (req, res) => {
          BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
        )
      LIMIT 20`,
-    [iglesiaId]
-  ).catch(() => [])
+      [iglesiaId]
+    ).catch(() => []),
+  ])
 
   res.json({
     sinAsistir: { data: sinAsistir, total: sinAsistir.length },
@@ -116,4 +129,3 @@ router.get('/', requireAuth, wrap(async (req, res) => {
 }))
 
 export default router
-

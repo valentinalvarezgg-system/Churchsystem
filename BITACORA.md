@@ -1,6 +1,24 @@
 # BITÁCORA — Church System
 ---
 
+## Alertas backend más rápidas: consultas paralelas y seguimiento agregado — 2026-06-29
+
+**Estado actual:** `GET /alertas` ahora resuelve sus bloques independientes en paralelo y evita recalcular el último seguimiento con subconsultas repetidas por persona. La respuesta mantiene el mismo contrato para el frontend.
+
+### Falla detectada
+- `backend/src/routes/alertas.js` ejecutaba varias consultas independientes en serie después de buscar los últimos cultos.
+- La alerta `sinSeguimiento` calculaba `MAX("createdAt")` con subconsultas correlacionadas repetidas para cada persona.
+- La alerta de cumpleaños podía quedar vacía si existía una `fechaNacimiento` con formato inválido, porque el casteo a `date` se hacía antes de filtrar formato.
+
+### Corrección aplicada
+- `backend/src/routes/alertas.js`: las consultas de `sinAsistir`, `sinSeguimiento`, `visitantesSinConsolidar`, `contactosVencidos` y `cumpleanosSemana` ahora corren con `Promise.all`.
+- `backend/src/routes/alertas.js`: `sinSeguimiento` usa un CTE `ultimo` agrupado por `personaId`, eliminando subconsultas repetidas.
+- `backend/src/routes/alertas.js`: cumpleaños filtra `fechaNacimiento` con formato `YYYY-MM-DD` antes de castear a `date`.
+
+### Evidencia
+- `node --check backend/src/routes/alertas.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Dashboard más liviano: home con un solo request agregado — 2026-06-29
 
 **Estado actual:** la pantalla principal ya no carga `stats`, progreso de onboarding y estado de billing con tres requests separados. Ahora usa un endpoint agregado que devuelve todo junto, reduciendo latencia inicial y roundtrips innecesarios al abrir el home.
