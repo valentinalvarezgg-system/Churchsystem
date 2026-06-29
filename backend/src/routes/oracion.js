@@ -18,19 +18,29 @@ router.get('/', requireAuth, async (req, res) => {
 
   const wStr = 'WHERE ' + where.join(' AND ')
   const offset = (Number(page) - 1) * Number(limit)
-  const totalRow = await pgOne(`SELECT COUNT(*)::int AS c FROM "Oracion" o ${wStr}`, params)
+  const limitIdx = idx++
+  const offsetIdx = idx++
+  const [totalRow, data] = await Promise.all([
+    pgOne(`SELECT COUNT(*)::int AS c FROM "Oracion" o ${wStr}`, params),
+    pgMany(
+      `SELECT o.*,
+              u."nombre" as "autorNombre",
+              COALESCE(apoyos."apoyos", 0)::int as "apoyos"
+       FROM "Oracion" o
+       LEFT JOIN "User" u ON o."userId"=u."id"
+       LEFT JOIN (
+         SELECT "oracionId", COUNT(*)::int AS "apoyos"
+           FROM "OracionApoyo"
+          WHERE "iglesiaId"=$1
+          GROUP BY "oracionId"
+       ) apoyos ON apoyos."oracionId"=o."id"
+       ${wStr}
+       ORDER BY o."id" DESC
+       LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+      [...params, Number(limit), offset]
+    ),
+  ])
   const total = Number(totalRow?.c ?? 0)
-  const data = await pgMany(
-    `SELECT o.*,
-            u."nombre" as "autorNombre",
-            (SELECT COUNT(*)::int FROM "OracionApoyo" a WHERE a."oracionId"=o."id") as "apoyos"
-     FROM "Oracion" o
-     LEFT JOIN "User" u ON o."userId"=u."id"
-     ${wStr}
-     ORDER BY o."id" DESC
-     LIMIT $${idx++} OFFSET $${idx++}`,
-    [...params, Number(limit), offset]
-  )
   res.json({ data, total, pages: Math.ceil(total / Number(limit)) })
 })
 

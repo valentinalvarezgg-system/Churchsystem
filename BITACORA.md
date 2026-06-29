@@ -1,6 +1,24 @@
 # BITÁCORA — Church System
 ---
 
+## Oración más liviano: apoyos agregados y listado paralelo — 2026-06-29
+
+**Estado actual:** `GET /oracion` mantiene la misma respuesta, pero evita calcular apoyos con una subconsulta por pedido y reduce espera entre conteo total y página de datos.
+
+### Falla detectada
+- `backend/src/routes/oracion.js` ejecutaba el `COUNT(*)` y luego el listado paginado en serie.
+- Cada fila del listado calculaba apoyos con una subconsulta correlacionada.
+- El conteo de apoyos no filtraba explícitamente por `iglesiaId`.
+
+### Corrección aplicada
+- `backend/src/routes/oracion.js`: conteo total y listado paginado ahora corren con `Promise.all`.
+- `backend/src/routes/oracion.js`: apoyos se calculan con una agregación por `oracionId`.
+- `backend/src/routes/oracion.js`: la agregación de apoyos filtra por `iglesiaId`.
+
+### Evidencia
+- `node --check backend/src/routes/oracion.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Discipulado más liviano: listado con agregados y stats paralelas — 2026-06-29
 
 **Estado actual:** el módulo `Discipulado` evita subconsultas repetidas por persona y resuelve sus estadísticas principales en paralelo, manteniendo el mismo contrato de respuesta.
