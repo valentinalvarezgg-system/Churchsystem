@@ -33,6 +33,48 @@ if (!httpsAgent) {
 const pushSend = (subscription, payload, extra = {}) =>
   webpush.sendNotification(subscription, payload, { agent: httpsAgent, TTL: 86400, ...extra })
 
+function uniqueIds(values = []) {
+  return [...new Set(values.map(Number).filter(Number.isFinite).filter(id => id > 0))]
+}
+
+function toCountMap(rows = [], key = 'iglesiaId') {
+  return new Map(rows.map(row => [Number(row[key]), Number(row.n || 0)]))
+}
+
+async function getAdminSubscriptionsMap(iglesiaIds = []) {
+  const ids = uniqueIds(iglesiaIds)
+  if (!ids.length) return new Map()
+  const rows = await pgMany(
+    `SELECT ps."iglesiaId", ps."endpoint", ps."keys"
+       FROM "PushSubscription" ps
+       INNER JOIN "User" u ON u."id" = ps."userId"
+      WHERE ps."iglesiaId" = ANY($1::int[])
+        AND u."deletedAt" IS NULL
+        AND u."rol" IN ('PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION')`,
+    [ids]
+  ).catch(() => [])
+  const subsByChurch = new Map()
+  for (const row of rows) {
+    const iglesiaId = Number(row.iglesiaId)
+    if (!subsByChurch.has(iglesiaId)) subsByChurch.set(iglesiaId, [])
+    subsByChurch.get(iglesiaId).push(row)
+  }
+  return subsByChurch
+}
+
+async function getChurchNamesMap(iglesiaIds = []) {
+  const ids = uniqueIds(iglesiaIds)
+  if (!ids.length) return new Map()
+  const rows = await pgMany(
+    `SELECT "iglesiaId", "valor"
+       FROM "Configuracion"
+      WHERE "iglesiaId" = ANY($1::int[])
+        AND "clave"='nombre_iglesia'`,
+    [ids]
+  ).catch(() => [])
+  return new Map(rows.map(row => [Number(row.iglesiaId), row.valor || 'tu iglesia']))
+}
+
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
     process.env.VAPID_EMAIL || 'mailto:admin@churchsystem.com.ar',
@@ -105,18 +147,7 @@ router.post('/test', requireAuth, wrap(async (req, res) => {
 
 export async function sendPushToAdmins(iglesiaId, payload) {
   if (!process.env.VAPID_PUBLIC_KEY) return
-  const admins = await pgMany(
-    `SELECT "id" FROM "User"
-     WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
-       AND "rol" IN ('PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION')`,
-    [iglesiaId]
-  )
-  if (!admins.length) return
-  const ids = admins.map(a => Number(a.id))
-  const subs = await pgMany(
-    'SELECT "endpoint","keys" FROM "PushSubscription" WHERE "iglesiaId"=$1 AND "userId" = ANY($2::int[])',
-    [iglesiaId, ids]
-  )
+  const subs = (await getAdminSubscriptionsMap([iglesiaId])).get(Number(iglesiaId)) || []
   if (!subs.length) return
   const data = typeof payload === 'string' ? payload : JSON.stringify(payload)
   for (const row of subs) {
@@ -133,21 +164,47 @@ export async function sendPushToAdmins(iglesiaId, payload) {
 export async function enviarAlertas() {
   if (!process.env.VAPID_PUBLIC_KEY) return
   const iglesias = await pgMany('SELECT "id" FROM "Iglesia" WHERE "deletedAt" IS NULL')
+  const iglesiaIds = uniqueIds(iglesias.map(iglesia => iglesia.id))
+  const [cumpleanosMap, vencidosMap, visitantesMap, subsByChurch, churchNamesMap] = await Promise.all([
+    pgMany(
+      `SELECT "iglesiaId", COUNT(*)::int as n
+         FROM "Persona"
+        WHERE "iglesiaId" = ANY($1::int[])
+          AND "deletedAt" IS NULL
+          AND "estado" <> 'INACTIVO'
+          AND NULLIF("fechaNacimiento",'') IS NOT NULL
+          AND to_char((NULLIF("fechaNacimiento",'')::date), 'MM-DD') = to_char(CURRENT_DATE, 'MM-DD')
+        GROUP BY "iglesiaId"`,
+      [iglesiaIds]
+    ).then(rows => toCountMap(rows)).catch(() => new Map()),
+    pgMany(
+      `SELECT "iglesiaId", COUNT(*)::int as n
+         FROM "Seguimiento"
+        WHERE "iglesiaId" = ANY($1::int[])
+          AND "deletedAt" IS NULL
+          AND "proximoContacto" IS NOT NULL
+          AND ("proximoContacto")::date <= CURRENT_DATE
+        GROUP BY "iglesiaId"`,
+      [iglesiaIds]
+    ).then(rows => toCountMap(rows)).catch(() => new Map()),
+    pgMany(
+      `SELECT "iglesiaId", COUNT(*)::int as n
+         FROM "Persona"
+        WHERE "iglesiaId" = ANY($1::int[])
+          AND "deletedAt" IS NULL
+          AND "estado" = 'VISITANTE'
+          AND NULLIF("fechaIngreso",'') IS NOT NULL
+          AND (NULLIF("fechaIngreso",'')::date) <= CURRENT_DATE - INTERVAL '30 days'
+        GROUP BY "iglesiaId"`,
+      [iglesiaIds]
+    ).then(rows => toCountMap(rows)).catch(() => new Map()),
+    getAdminSubscriptionsMap(iglesiaIds),
+    getChurchNamesMap(iglesiaIds),
+  ])
 
   for (const iglesia of iglesias) {
     const iglesiaId = iglesia.id
-    const hoy = new Date().toISOString().slice(0, 10)
-
-    const cumpleanos = Number((await pgOne(
-      `SELECT COUNT(*)::int as n
-       FROM "Persona"
-       WHERE "iglesiaId"=$1
-         AND "deletedAt" IS NULL
-         AND "estado" <> 'INACTIVO'
-         AND NULLIF("fechaNacimiento",'') IS NOT NULL
-         AND to_char((NULLIF("fechaNacimiento",'')::date), 'MM-DD') = to_char(CURRENT_DATE, 'MM-DD')`,
-      [iglesiaId]
-    ))?.n || 0)
+    const cumpleanos = Number(cumpleanosMap.get(Number(iglesiaId)) || 0)
 
     // ── Enviar WhatsApp de cumpleaños a cada persona que cumpla hoy ──
     if (cumpleanos > 0) {
@@ -163,10 +220,7 @@ export async function enviarAlertas() {
              AND to_char((NULLIF(p."fechaNacimiento",'')::date), 'MM-DD') = to_char(CURRENT_DATE, 'MM-DD')`,
           [iglesiaId]
         )
-        const nombreIglesia = (await pgOne(
-          `SELECT c."valor" FROM "Configuracion" c WHERE c."iglesiaId"=$1 AND c."clave"='nombre_iglesia'`,
-          [iglesiaId]
-        ))?.valor || 'tu iglesia'
+        const nombreIglesia = churchNamesMap.get(Number(iglesiaId)) || 'tu iglesia'
 
         for (const p of cumpleaneros) {
           try {
@@ -182,26 +236,8 @@ export async function enviarAlertas() {
       }
     }
 
-    const vencidos = Number((await pgOne(
-      `SELECT COUNT(*)::int as n
-       FROM "Seguimiento"
-       WHERE "iglesiaId"=$1
-         AND "deletedAt" IS NULL
-         AND "proximoContacto" IS NOT NULL
-         AND ("proximoContacto")::date <= $2::date`,
-      [iglesiaId, hoy]
-    ))?.n || 0)
-
-    const visitantes = Number((await pgOne(
-      `SELECT COUNT(*)::int as n
-       FROM "Persona"
-       WHERE "iglesiaId"=$1
-         AND "deletedAt" IS NULL
-         AND "estado" = 'VISITANTE'
-         AND NULLIF("fechaIngreso",'') IS NOT NULL
-         AND (NULLIF("fechaIngreso",'')::date) <= CURRENT_DATE - INTERVAL '30 days'`,
-      [iglesiaId]
-    ))?.n || 0)
+    const vencidos = Number(vencidosMap.get(Number(iglesiaId)) || 0)
+    const visitantes = Number(visitantesMap.get(Number(iglesiaId)) || 0)
 
     const alertas = [
       ...(cumpleanos > 0 ? [`${cumpleanos} cumpleaños hoy`] : []),
@@ -210,21 +246,7 @@ export async function enviarAlertas() {
     ]
     if (!alertas.length) continue
 
-    const admins = await pgMany(
-      `SELECT "id"
-       FROM "User"
-       WHERE "iglesiaId"=$1
-         AND "deletedAt" IS NULL
-         AND "rol" IN ('PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION')`,
-      [iglesiaId]
-    )
-    if (!admins.length) continue
-
-    const ids = admins.map(a => Number(a.id))
-    const subs = await pgMany(
-      'SELECT "endpoint","keys" FROM "PushSubscription" WHERE "iglesiaId"=$1 AND "userId" = ANY($2::int[])',
-      [iglesiaId, ids]
-    )
+    const subs = subsByChurch.get(Number(iglesiaId)) || []
     if (!subs.length) continue
 
     const payload = JSON.stringify({

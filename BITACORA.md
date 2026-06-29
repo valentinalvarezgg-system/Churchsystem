@@ -1,6 +1,33 @@
 # BITÁCORA — Church System
 ---
 
+## Notificaciones diarias más eficientes: batching de counts, nombres y subscriptions admin — 2026-06-29
+
+**Estado actual:** el envío diario de alertas pastorales ya no consulta cumpleaños, seguimientos vencidos, visitantes, nombres de iglesia y subscriptions admin iglesia por iglesia. Ahora precarga esos datos en batch y después solo recorre los tenants para enviar.
+
+### Falla detectada
+- `backend/src/routes/notificaciones.js` tenía otro patrón N+1 dentro de `enviarAlertas()`: por cada iglesia corría varias `pgOne`/`pgMany` para counts, nombre de iglesia y subscriptions admin.
+- `sendPushToAdmins()` también resolvía admins + subscriptions en dos consultas repetidas por llamada.
+
+### Corrección aplicada
+- `backend/src/routes/notificaciones.js`: agregados helpers:
+  - `uniqueIds()`
+  - `toCountMap()`
+  - `getAdminSubscriptionsMap()`
+  - `getChurchNamesMap()`
+- `backend/src/routes/notificaciones.js`: `sendPushToAdmins()` ahora reutiliza `getAdminSubscriptionsMap()` en vez de consultar admins y subscriptions por separado.
+- `backend/src/routes/notificaciones.js`: `enviarAlertas()` ahora batcha:
+  - cumpleaños por iglesia
+  - seguimientos vencidos por iglesia
+  - visitantes sin consolidar por iglesia
+  - subscriptions admin por iglesia
+  - nombres de iglesia
+
+### Evidencia
+- `node --check backend/src/routes/notificaciones.js` → OK.
+- Verificación estructural → `hasSubsMap: true`, `hasChurchNamesMap: true`, `usesBatchCounts: true`, `sendPushUsesMap: true`.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Jobs diarios más livianos: batching de admins y métricas por iglesia — 2026-06-29
 
 **Estado actual:** los jobs diarios de trials, gracia y onboarding ya no hacen tantas consultas repetidas por iglesia. En vez de resolver admin + métricas con N+1 queries dentro de cada loop, ahora cargan esos datos en batch y reutilizan mapas en memoria.
