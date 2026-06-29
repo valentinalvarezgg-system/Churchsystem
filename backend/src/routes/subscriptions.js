@@ -251,6 +251,86 @@ async function savePaymentRow({
   )
 }
 
+export async function getBillingEstadoSummary(iglesiaId) {
+  await ensureSubscriptionSchema()
+
+  const rows = await pgMany(
+    `SELECT "clave","valor" FROM "Configuracion"
+      WHERE "iglesiaId"=$1
+        AND "clave" IN ('trial_inicio','trial_fin','suscripcion_activa','plan','suscripcion_vence')`,
+    [iglesiaId]
+  )
+  const cfg  = Object.fromEntries(rows.map(r => [r.clave, r.valor]))
+  const hoy  = new Date().toISOString().slice(0, 10)
+
+  const enTrial    = !!(cfg.trial_fin && hoy <= cfg.trial_fin)
+  const diasTrial  = cfg.trial_fin
+    ? Math.max(0, Math.ceil((new Date(cfg.trial_fin) - new Date()) / 86400000))
+    : 0
+  const suscActiva = cfg.suscripcion_activa === '1' && !!(cfg.suscripcion_vence && hoy <= cfg.suscripcion_vence)
+
+  const sus = await pgOne(
+    `SELECT id, preapproval_id, plan, estado, monto_usd, monto_ars, proximo_cobro_at, gracia_hasta
+       FROM suscripciones
+      WHERE iglesia_id=$1
+      ORDER BY creado_at DESC LIMIT 1`,
+    [iglesiaId]
+  ).catch(() => null)
+
+  const enGracia   = !!(sus?.gracia_hasta && new Date(sus.gracia_hasta) > new Date())
+  const diasGracia = sus?.gracia_hasta
+    ? Math.max(0, Math.ceil((new Date(sus.gracia_hasta) - new Date()) / 86400000))
+    : 0
+
+  let efectivePlan = 'FREE'
+  if (enTrial) efectivePlan = 'PRO'
+  else if (suscActiva || enGracia) efectivePlan = sus?.plan || cfg.plan || 'FREE'
+
+  const [montoProInfo, montoMaxInfo] = await Promise.all([
+    montoARS('PRO').catch(() => ({ usd: 12, ars: 14400, cotizacion: 1200 })),
+    montoARS('MAX').catch(() => ({ usd: 25, ars: 30000, cotizacion: 1200 })),
+  ])
+
+  return {
+    ok:            true,
+    enTrial,
+    diasTrial,
+    trialInicio:   cfg.trial_inicio || null,
+    trialFin:      cfg.trial_fin    || null,
+    suscActiva,
+    suscVence:     cfg.suscripcion_vence || null,
+    planPago:      sus?.plan || cfg.plan || null,
+    preapprovalId: sus?.preapproval_id || null,
+    estadoSus:     sus?.estado || null,
+    proximoCobro:  sus?.proximo_cobro_at || null,
+    enGracia,
+    diasGracia,
+    graciasHasta:  sus?.gracia_hasta || null,
+    efectivePlan,
+    montoPRO:      montoProInfo,
+    montoMAX:      montoMaxInfo,
+  }
+}
+
+export async function getOnboardingProgress(iglesiaId) {
+  const [personas, grupos, cultos, comunicados, users] = await Promise.all([
+    pgOne(`SELECT COUNT(*)::int AS n FROM "Persona"  WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL`, [iglesiaId]).catch(() => ({ n: 0 })),
+    pgOne(`SELECT COUNT(*)::int AS n FROM "Grupo"    WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL`, [iglesiaId]).catch(() => ({ n: 0 })),
+    pgOne(`SELECT COUNT(*)::int AS n FROM "Culto"    WHERE "iglesiaId"=$1`, [iglesiaId]).catch(() => ({ n: 0 })),
+    pgOne(`SELECT COUNT(*)::int AS n FROM "Mensaje"  WHERE "iglesiaId"=$1`, [iglesiaId]).catch(() => ({ n: 0 })),
+    pgOne(`SELECT COUNT(*)::int AS n FROM "User"     WHERE "iglesiaId"=$1 AND "activo"=true AND "deletedAt" IS NULL`, [iglesiaId]).catch(() => ({ n: 0 })),
+  ])
+
+  return {
+    ok: true,
+    personas:     Number(personas?.n || 0),
+    grupos:       Number(grupos?.n   || 0),
+    cultos:       Number(cultos?.n   || 0),
+    comunicados:  Number(comunicados?.n || 0),
+    users:        Number(users?.n    || 0),
+  }
+}
+
 async function updatePaymentBySubscription(subscriptionId, nextStatus, metadataPatch = {}) {
   const current = await pgOne('SELECT id, metadata FROM payments WHERE subscription_id=$1 ORDER BY id DESC LIMIT 1', [subscriptionId])
   if (!current) return null
@@ -679,86 +759,14 @@ router.post('/subscriptions/crear', requireAuth, requireRol('PASTOR_GENERAL'), a
 
 // ── GET /subscriptions/billing-estado — Estado unificado de billing ──
 router.get('/subscriptions/billing-estado', requireAuth, async (req, res) => {
-  await ensureSubscriptionSchema()
   const iglesiaId = req.user.iglesiaId
-
-  const rows = await pgMany(
-    `SELECT "clave","valor" FROM "Configuracion"
-      WHERE "iglesiaId"=$1
-        AND "clave" IN ('trial_inicio','trial_fin','suscripcion_activa','plan','suscripcion_vence')`,
-    [iglesiaId]
-  )
-  const cfg  = Object.fromEntries(rows.map(r => [r.clave, r.valor]))
-  const hoy  = new Date().toISOString().slice(0, 10)
-
-  const enTrial    = !!(cfg.trial_fin && hoy <= cfg.trial_fin)
-  const diasTrial  = cfg.trial_fin
-    ? Math.max(0, Math.ceil((new Date(cfg.trial_fin) - new Date()) / 86400000))
-    : 0
-  const suscActiva = cfg.suscripcion_activa === '1' && !!(cfg.suscripcion_vence && hoy <= cfg.suscripcion_vence)
-
-  // Buscar suscripción en tabla suscripciones
-  const sus = await pgOne(
-    `SELECT id, preapproval_id, plan, estado, monto_usd, monto_ars, proximo_cobro_at, gracia_hasta
-       FROM suscripciones
-      WHERE iglesia_id=$1
-      ORDER BY creado_at DESC LIMIT 1`,
-    [iglesiaId]
-  ).catch(() => null)
-
-  const enGracia   = !!(sus?.gracia_hasta && new Date(sus.gracia_hasta) > new Date())
-  const diasGracia = sus?.gracia_hasta
-    ? Math.max(0, Math.ceil((new Date(sus.gracia_hasta) - new Date()) / 86400000))
-    : 0
-
-  let efectivePlan = 'FREE'
-  if (enTrial)     efectivePlan = 'PRO'
-  else if (suscActiva || enGracia) efectivePlan = sus?.plan || cfg.plan || 'FREE'
-
-  const [montoProInfo, montoMaxInfo] = await Promise.all([
-    montoARS('PRO').catch(() => ({ usd: 12, ars: 14400, cotizacion: 1200 })),
-    montoARS('MAX').catch(() => ({ usd: 25, ars: 30000, cotizacion: 1200 })),
-  ])
-
-  res.json({
-    ok:            true,
-    enTrial,
-    diasTrial,
-    trialInicio:   cfg.trial_inicio || null,
-    trialFin:      cfg.trial_fin    || null,
-    suscActiva,
-    suscVence:     cfg.suscripcion_vence || null,
-    planPago:      sus?.plan || cfg.plan || null,
-    preapprovalId: sus?.preapproval_id || null,
-    estadoSus:     sus?.estado || null,
-    proximoCobro:  sus?.proximo_cobro_at || null,
-    enGracia,
-    diasGracia,
-    graciasHasta:  sus?.gracia_hasta || null,
-    efectivePlan,
-    montoPRO:      montoProInfo,
-    montoMAX:      montoMaxInfo,
-  })
+  res.json(await getBillingEstadoSummary(iglesiaId))
 })
 
 // ── GET /subscriptions/onboarding-progreso ───────────────────────
 router.get('/subscriptions/onboarding-progreso', requireAuth, async (req, res) => {
-  const id = req.user.iglesiaId
-  const [personas, grupos, cultos, comunicados, users] = await Promise.all([
-    pgOne(`SELECT COUNT(*)::int AS n FROM "Persona"  WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL`, [id]).catch(() => ({ n: 0 })),
-    pgOne(`SELECT COUNT(*)::int AS n FROM "Grupo"    WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL`, [id]).catch(() => ({ n: 0 })),
-    pgOne(`SELECT COUNT(*)::int AS n FROM "Culto"    WHERE "iglesiaId"=$1`, [id]).catch(() => ({ n: 0 })),
-    pgOne(`SELECT COUNT(*)::int AS n FROM "Mensaje"  WHERE "iglesiaId"=$1`, [id]).catch(() => ({ n: 0 })),
-    pgOne(`SELECT COUNT(*)::int AS n FROM "User"     WHERE "iglesiaId"=$1 AND "activo"=true AND "deletedAt" IS NULL`, [id]).catch(() => ({ n: 0 })),
-  ])
-  res.json({
-    ok: true,
-    personas:     Number(personas?.n || 0),
-    grupos:       Number(grupos?.n   || 0),
-    cultos:       Number(cultos?.n   || 0),
-    comunicados:  Number(comunicados?.n || 0),
-    users:        Number(users?.n    || 0),
-  })
+  const iglesiaId = req.user.iglesiaId
+  res.json(await getOnboardingProgress(iglesiaId))
 })
 
 // ── Webhook MP extendido: maneja preapproval + payment ────────────

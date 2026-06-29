@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
@@ -95,15 +95,8 @@ function Avatar({ nombre = '', apellido = '', size = 34 }) {
   )
 }
 
-function OnboardingChecklist({ navigate }) {
-  const [prog, setProg] = useState(null)
-  const [billingEstado, setBillingEstado] = useState(null)
+function OnboardingChecklist({ navigate, prog, billingEstado }) {
   const [collapsed, setCollapsed] = useState(false)
-
-  useEffect(() => {
-    apiFetch('/subscriptions/onboarding-progreso').then(setProg).catch(() => {})
-    apiFetch('/subscriptions/billing-estado').then(setBillingEstado).catch(() => {})
-  }, [])
 
   if (!billingEstado?.enTrial) return null
   if (!prog) return null
@@ -174,7 +167,7 @@ export default function Dashboard() {
   const navigate   = useNavigate()
   const user       = getUser()
   const ori = useDevice()
-  const { data: stats, loading, error } = useRealtimeQuery('stats', () => apiFetch('/stats'), [], { intervalMs: 10000 })
+  const { data: overview, loading, error } = useRealtimeQuery('stats-overview', () => apiFetch('/stats/overview'), [], { intervalMs: 10000 })
   const lang = (localStorage.getItem('church_lang') || user?.idioma || getStoredContext().lang || 'es').slice(0, 2)
   const copy = DASH_I18N[lang] || DASH_I18N.es
   const txt = key => copy[key] || DASH_I18N.es[key] || key
@@ -207,7 +200,7 @@ export default function Dashboard() {
     </div>
   )
 
-  const t   = stats?.totales ?? {}
+  const t   = overview?.totales ?? {}
   const pct = t.pctAsistencia || 0
   const pctColor = pct >= 70 ? 'var(--c-success)' : pct >= 45 ? 'var(--c-warning)' : 'var(--c-danger)'
 
@@ -240,7 +233,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── Onboarding checklist (trial) ─────────────────────────── */}
-        <OnboardingChecklist navigate={navigate} />
+        <OnboardingChecklist navigate={navigate} prog={overview?.onboarding || null} billingEstado={overview?.billing || null} />
 
         {/* ── Stats principales ──────────────────────────────────── */}
         <div style={{ display:'grid', gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12, marginBottom: 20 }}>
@@ -304,9 +297,9 @@ export default function Dashboard() {
               <h3 style={{ fontSize:13, fontWeight:700, margin:0 }}>{txt('recentServices')}</h3>
               <button className="btn btn-ghost btn-xs" onClick={() => navigate('/asistencia')}>{txt('seeAll')}</button>
             </div>
-            {(stats?.asistenciaReciente || []).length === 0
+            {(overview?.asistenciaReciente || []).length === 0
               ? <div className="empty" style={{ padding:'20px 0' }}><p>{txt('noServices')}<br/>{txt('createFirstService')}</p></div>
-              : (stats?.asistenciaReciente || []).slice(0, 5).map((c, i) => {
+              : (overview?.asistenciaReciente || []).slice(0, 5).map((c, i) => {
                   const p = c.total > 0 ? Math.round(c.presentes / c.total * 100) : 0
                   const col = p >= 70 ? 'var(--c-success)' : p >= 45 ? 'var(--c-warning)' : 'var(--c-danger)'
                   return (
@@ -328,12 +321,12 @@ export default function Dashboard() {
               <h3 style={{ fontSize:13, fontWeight:700, margin:0, display:'flex', alignItems:'center', gap:6 }}><Icons.History size={14} />{txt('followUps')}</h3>
               <button className="btn btn-ghost btn-xs" onClick={() => navigate('/alertas')}>{txt('seeAll')}</button>
             </div>
-            {(stats?.proximosContactos || []).length === 0
+            {(overview?.proximosContactos || []).length === 0
               ? <div className="empty" style={{ padding:'20px 0' }}>
                   <div className="empty-icon"><Icons.History size={24} color='var(--text-muted)' /></div>
                   <p>{txt('noFollowUps')}</p>
                 </div>
-              : (stats?.proximosContactos || []).slice(0, 6).map((s, i) => {
+              : (overview?.proximosContactos || []).slice(0, 6).map((s, i) => {
                   const dias    = Math.round((new Date(s.proximoContacto) - new Date()) / 86400000)
                   const urgente = dias <= 0
                   const pronto  = dias > 0 && dias <= 3
@@ -365,9 +358,9 @@ export default function Dashboard() {
               <h3 style={{ fontSize:13, fontWeight:700, margin:0, display:'flex', alignItems:'center', gap:6 }}><Icons.Heart size={14} />{txt('birthdays')}</h3>
               <span style={{ fontSize:11, color:'var(--text-muted)' }}>{txt('next30')}</span>
             </div>
-            {(stats?.cumpleanos || []).length === 0
+            {(overview?.cumpleanos || []).length === 0
               ? <div className="empty" style={{ padding:'20px 0' }}><p>{txt('noBirthdays')}</p></div>
-              : (stats?.cumpleanos || []).slice(0, 5).map((p, i) => {
+              : (overview?.cumpleanos || []).slice(0, 5).map((p, i) => {
                   const [m, d] = (p.cumDia || '').split('-').map(Number)
                   const f = new Date(new Date().getFullYear(), m - 1, d)
                   if (f < new Date()) f.setFullYear(f.getFullYear() + 1)
@@ -442,10 +435,10 @@ export default function Dashboard() {
               <h3 style={{ fontSize:13, fontWeight:700, margin:0, display:'flex', alignItems:'center', gap:6 }}><Icons.Reports size={14} />{txt('growth')}</h3>
               <span style={{ fontSize:11, color:'var(--text-muted)' }}>{txt('last12')}</span>
             </div>
-            {(stats?.crecimientoMensual || []).length === 0
+            {(overview?.crecimientoMensual || []).length === 0
               ? <div className="empty" style={{ padding:'16px 0' }}><p>{txt('noGrowth')}</p></div>
               : (() => {
-                  const data = (stats?.crecimientoMensual || []).slice(-12)
+                  const data = (overview?.crecimientoMensual || []).slice(-12)
                   const max  = Math.max(...data.map(m => m.nuevos || 0), 1)
                   return (
                     <div style={{ display:'flex', alignItems:'flex-end', gap:5, height:80 }}>
@@ -504,11 +497,11 @@ export default function Dashboard() {
         </div>
 
         {/* ── Actividad reciente ─────────────────────────────────────── */}
-        {(stats?.actividadReciente || []).length > 0 && (
+        {(overview?.actividadReciente || []).length > 0 && (
           <div className="card">
             <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14, display:'flex', alignItems:'center', gap:6 }}><Icons.History size={14} />{txt('recentActivity')}</h3>
             <div className="dashboard-activity-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.cols2},1fr)`, gap:0 }}>
-              {(stats?.actividadReciente || []).slice(0, 8).map((a, i) => {
+              {(overview?.actividadReciente || []).slice(0, 8).map((a, i) => {
                 const iconMap = { CREAR:<Icons.Plus size={13} />, ACTUALIZAR:<Icons.Edit size={13} />, ELIMINAR:<Icons.Delete size={13} />, MENSAJE:<Icons.Messages size={13} />, MASIVO:<Icons.Send size={13} />, IMPORTAR_EXCEL:<Icons.Excel size={13} />, BACKUP:<Icons.Archive size={13} />, LOGIN:<Icons.Profile size={13} /> }
                 const ico = iconMap[a.accion] || <Icons.Mail size={13} />
                 const time = a.createdAt ? new Date(a.createdAt).toLocaleTimeString(txt('locale'),{hour:'2-digit',minute:'2-digit'}) : ''

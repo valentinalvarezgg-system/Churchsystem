@@ -1,6 +1,33 @@
 # BITÁCORA — Church System
 ---
 
+## Dashboard más liviano: home con un solo request agregado — 2026-06-29
+
+**Estado actual:** la pantalla principal ya no carga `stats`, progreso de onboarding y estado de billing con tres requests separados. Ahora usa un endpoint agregado que devuelve todo junto, reduciendo latencia inicial y roundtrips innecesarios al abrir el home.
+
+### Falla detectada
+- `frontend/src/pages/Dashboard.jsx` pedía:
+  - `GET /stats`
+  - `GET /subscriptions/onboarding-progreso`
+  - `GET /subscriptions/billing-estado`
+- Eso agregaba espera acumulada en el dashboard y repetía costo de red justo en la vista más frecuente de la aplicación.
+
+### Corrección aplicada
+- `backend/src/routes/subscriptions.js`: extraídos helpers reutilizables:
+  - `getBillingEstadoSummary()`
+  - `getOnboardingProgress()`
+- `backend/src/routes/stats.js`: agregado `GET /stats/overview`, que responde en paralelo:
+  - métricas del dashboard
+  - progreso de onboarding
+  - estado de billing
+- `frontend/src/pages/Dashboard.jsx`: el home ahora consume `GET /stats/overview`.
+- `frontend/src/pages/Dashboard.jsx`: `OnboardingChecklist` dejó de disparar fetches propios y ahora reutiliza los datos ya cargados por el dashboard.
+
+### Evidencia
+- `node --check backend/src/routes/stats.js` → OK.
+- `node --check backend/src/routes/subscriptions.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Alertas más ágiles: envío masivo real en un solo request — 2026-06-29
 
 **Estado actual:** el módulo `Alertas` ya no dispara un request por persona cuando se hace contacto pastoral masivo desde la UI. Ahora reutiliza el endpoint batch existente y reduce fuerte la presión sobre frontend/backend en listas grandes.

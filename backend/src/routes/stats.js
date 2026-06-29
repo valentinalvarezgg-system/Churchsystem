@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middlewares/auth.js'
 import { pgMany, pgOne } from '../lib/pg.js'
 import { ensureOperationalTenantDataSynced } from '../lib/core-sync.js'
+import { getBillingEstadoSummary, getOnboardingProgress } from './subscriptions.js'
 
 const router = Router()
 
@@ -418,6 +419,23 @@ router.get('/', requireAuth, async (req, res) => {
   const iglesiaId = Number(req.user.iglesiaId || 0)
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
   res.json(await dashboardStats(iglesiaId))
+})
+
+router.get('/overview', requireAuth, async (req, res) => {
+  const iglesiaId = Number(req.user.iglesiaId || 0)
+  if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+
+  const [stats, onboarding, billing] = await Promise.all([
+    dashboardStats(iglesiaId),
+    getOnboardingProgress(iglesiaId),
+    getBillingEstadoSummary(iglesiaId),
+  ])
+
+  res.json({
+    ...stats,
+    onboarding,
+    billing,
+  })
 })
 
 router.get('/premium', requireAuth, async (req, res) => {
