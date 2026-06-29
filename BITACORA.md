@@ -1,6 +1,22 @@
 # BITÁCORA — Church System
 ---
 
+## Ministerios más eficiente: listado con conteos agregados — 2026-06-29
+
+**Estado actual:** el listado de ministerios ya no calcula miembros y tareas pendientes con subconsultas por cada ministerio. Ahora usa agregaciones por `ministerioId` y conserva el mismo contrato para frontend.
+
+### Falla detectada
+- `backend/src/routes/ministerios.js` calculaba `totalMiembros` y `tareasPendientes` con subconsultas correlacionadas por fila.
+- El detalle de ministerio cargaba datos principales y configuración de forma secuencial.
+
+### Corrección aplicada
+- `backend/src/routes/ministerios.js`: `GET /ministerios` usa agregados en `LEFT JOIN` para miembros activos y tareas pendientes.
+- `backend/src/routes/ministerios.js`: `GET /ministerios/:id` carga datos del ministerio y configuración con `Promise.all`.
+
+### Evidencia
+- `node --check backend/src/routes/ministerios.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Oración más liviano: apoyos agregados y listado paralelo — 2026-06-29
 
 **Estado actual:** `GET /oracion` mantiene la misma respuesta, pero evita calcular apoyos con una subconsulta por pedido y reduce espera entre conteo total y página de datos.

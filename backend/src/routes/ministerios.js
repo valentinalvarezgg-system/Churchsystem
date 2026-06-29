@@ -51,9 +51,21 @@ async function saveMinisterioConfig(ministerioId, datos) {
 router.get('/', requireAuth, wrap(async (req, res) => {
   const minis = await pgMany(`
     SELECT m.*,
-      (SELECT COUNT(*)::int FROM "MinisterioMiembro" mm WHERE mm."ministerioId"=m.id AND mm.activo=true) AS "totalMiembros",
-      (SELECT COUNT(*)::int FROM "MinisterioTarea" t WHERE t."ministerioId"=m.id AND t.estado='PENDIENTE' AND t."deletedAt" IS NULL) AS "tareasPendientes"
+      COALESCE(miembros."totalMiembros", 0)::int AS "totalMiembros",
+      COALESCE(tareas."tareasPendientes", 0)::int AS "tareasPendientes"
     FROM "Ministerio" m
+    LEFT JOIN (
+      SELECT "ministerioId", COUNT(*)::int AS "totalMiembros"
+      FROM "MinisterioMiembro"
+      WHERE activo=true
+      GROUP BY "ministerioId"
+    ) miembros ON miembros."ministerioId"=m.id
+    LEFT JOIN (
+      SELECT "ministerioId", COUNT(*)::int AS "tareasPendientes"
+      FROM "MinisterioTarea"
+      WHERE estado='PENDIENTE' AND "deletedAt" IS NULL
+      GROUP BY "ministerioId"
+    ) tareas ON tareas."ministerioId"=m.id
     WHERE m."iglesiaId"=$1 AND m."deletedAt" IS NULL
     ORDER BY m."orden" ASC, m."nombre" ASC
   `, [iglesiaId(req)])
@@ -80,13 +92,15 @@ router.post('/', requireAuth, wrap(async (req, res) => {
 router.get('/:id', requireAuth, wrap(async (req, res) => {
   if (!await checkAcceso(req.params.id, iglesiaId(req)))
     return res.status(404).json({ error: 'Ministerio no encontrado' })
-  const m = await pgOne(`
-    SELECT m.*,
-      (SELECT COUNT(*)::int FROM "MinisterioMiembro" mm WHERE mm."ministerioId"=m.id AND mm.activo=true) AS "totalMiembros",
-      (SELECT COUNT(*)::int FROM "MinisterioTarea" t WHERE t."ministerioId"=m.id AND t.estado='PENDIENTE' AND t."deletedAt" IS NULL) AS "tareasPendientes"
-    FROM "Ministerio" m WHERE m.id=$1
-  `, [req.params.id])
-  const config = await readMinisterioConfig(req.params.id)
+  const [m, config] = await Promise.all([
+    pgOne(`
+      SELECT m.*,
+        (SELECT COUNT(*)::int FROM "MinisterioMiembro" mm WHERE mm."ministerioId"=m.id AND mm.activo=true) AS "totalMiembros",
+        (SELECT COUNT(*)::int FROM "MinisterioTarea" t WHERE t."ministerioId"=m.id AND t.estado='PENDIENTE' AND t."deletedAt" IS NULL) AS "tareasPendientes"
+      FROM "Ministerio" m WHERE m.id=$1
+    `, [req.params.id]),
+    readMinisterioConfig(req.params.id),
+  ])
   return res.json({ ...m, config: config || {} })
 }))
 
@@ -930,4 +944,3 @@ router.put('/:id/onboarding/:obId', requireAuth, wrap(async (req, res) => {
 }))
 
 export default router
-
