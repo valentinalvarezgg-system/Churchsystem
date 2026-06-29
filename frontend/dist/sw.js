@@ -1,4 +1,4 @@
-const CACHE_NAME = 'church-system-v3'
+const CACHE_NAME = 'church-system-v4'
 const OFFLINE_URL = '/offline.html'
 const PRECACHE_ASSETS = ['/', '/offline.html']
 const API_CACHE_PATTERNS = [

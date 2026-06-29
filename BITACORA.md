@@ -1,6 +1,26 @@
 # BITÁCORA — Church System
 ---
 
+## Auth mobile: frontend viejo + service worker inmóvil — 2026-06-28
+
+**Estado actual:** el error de autenticación reportado en mobile queda corregido desde la publicación del frontend nuevo. El backend ya aceptaba `max@test.com`, pero la app web podía seguir ejecutando un bundle viejo en iPhone/iPad por caché agresivo del PWA.
+
+### Falla detectada
+- `https://churchsystem.com.ar/auth/login` responde `200 OK` correctamente para `max@test.com`, por lo que el problema ya no estaba en credenciales ni en `/auth/login`.
+- El bundle servido en producción seguía teniendo la lógica vieja de `frontend/src/services/api.js`: ante cualquier `401` redirigía a `/app/login` aunque no existiera token previo.
+- `sw.js` se estaba entregando con `Cache-Control: public, max-age=31536000, immutable`, lo que impedía que Safari/iOS actualizara rápidamente el service worker y el frontend corregido.
+
+### Corrección aplicada
+- `backend/src/server.js`: `sw.js` y `manifest.json` ahora se publican con `no-store` igual que los HTML, evitando que el browser quede pegado a una versión vieja del PWA.
+- `frontend/public/sw.js`: bump de caché interna a `church-system-v4` para invalidar storage previo del service worker.
+- `frontend/src/version.js`: versión subida a `2.9.1`.
+- `frontend/dist/`: rebuild completo para que el deploy publique el bundle actual, que sí conserva la lógica correcta (`401` solo redirige si había token).
+
+### Evidencia
+- `curl -X POST https://churchsystem.com.ar/auth/login ... max@test.com ...` → HTTP `200`.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+- Bundle nuevo generado: `frontend/dist/assets/index-CWvTBMtc.js` contiene la condición corregida `k.status===401&&a&&!p`.
+
 ## `useRealtimeQuery` sin recargas solapadas — 2026-06-28
 
 **Estado actual:** los paneles que usan recarga periódica ya no disparan cargas solapadas si el intervalo vence mientras una request sigue en vuelo. Esto reduce trabajo duplicado y baja el riesgo de estados viejos llegando tarde.

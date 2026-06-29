@@ -238,7 +238,11 @@ function staticOpts() {
     etag: true,
     lastModified: true,
     setHeaders(res, filePath) {
-      if (filePath.endsWith('.html')) noCache(res)
+      if (
+        filePath.endsWith('.html')
+        || filePath.endsWith(`${path.sep}sw.js`)
+        || filePath.endsWith(`${path.sep}manifest.json`)
+      ) noCache(res)
       else if (/\.(js|css|woff2?|png|svg|ico|webp)$/.test(filePath)) longCache(res)
     },
   }
