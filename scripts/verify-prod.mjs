@@ -21,6 +21,7 @@ const args = new Set(process.argv.slice(2))
 const requireRender = args.has('--require-render')
 const prodUrl = (process.env.PROD_URL || 'https://churchsystem.com.ar').replace(/\/$/, '')
 const prodHostname = new URL(prodUrl).hostname
+const renderUrl = (process.env.RENDER_EXTERNAL_URL || 'https://church-system.onrender.com').replace(/\/$/, '')
 const cloudflaredConfig = path.join(os.homedir(), '.cloudflared/config.yml')
 const insecureAgent = new https.Agent({ rejectUnauthorized: false })
 
@@ -119,6 +120,32 @@ async function checkRoot() {
   record('error', 'web', `${prodUrl} HTTP ${res.status}`, res.body.slice(0, 200))
 }
 
+async function checkRenderCandidate() {
+  const health = await get(`${renderUrl}/health`)
+  if (!health.ok) {
+    record('warn', 'render-candidate', `${renderUrl}/health no responde`, health.error)
+    return { healthy: false }
+  }
+
+  if (health.tlsWarning) {
+    record('warn', 'tls', 'Validación TLS de Node falló contra Render candidato; se reintentó con CA relajada', health.tlsWarning)
+  }
+
+  if (health.status === 200 && health.body.includes('"status":"ok"')) {
+    record('ok', 'render-candidate', `${renderUrl}/health responde OK`)
+    const root = await get(renderUrl)
+    if (root.ok && root.status === 200 && /<html|<div id="root"|Church System/i.test(root.body)) {
+      record('ok', 'render-candidate', `${renderUrl} responde HTML público`)
+    } else {
+      record('warn', 'render-candidate', `${renderUrl} no confirmó HTML público`, root.error || `HTTP ${root.status}`)
+    }
+    return { healthy: true }
+  }
+
+  record('warn', 'render-candidate', `${renderUrl}/health respondió inesperado`, `HTTP ${health.status}: ${health.body.slice(0, 160)}`)
+  return { healthy: false }
+}
+
 async function checkDns() {
   for (const host of [prodHostname, `www.${prodHostname}`]) {
     try {
@@ -142,7 +169,7 @@ async function checkDns() {
   }
 }
 
-function checkLocalTunnel() {
+function checkLocalTunnel(renderHealthy = false) {
   const ingress = readCloudflaredIngress()
   const prodIngress = ingress?.find(entry => entry.hostname === prodHostname || entry.hostname === `www.${prodHostname}`)
   const cloudflared = shellOk('pgrep', ['-x', 'cloudflared'])
@@ -150,6 +177,9 @@ function checkLocalTunnel() {
 
   if (isLocalService && cloudflared.ok) {
     record('warn', 'origen', `${prodHostname} depende de Cloudflare Tunnel local`, prodIngress.service)
+    if (renderHealthy) {
+      record('warn', 'cutover', 'Render candidato ya responde; falta cortar DNS/origen desde el túnel local', `Próximo paso: apuntar Cloudflare DNS a ${new URL(renderUrl).hostname} y luego apagar el túnel local.`)
+    }
   } else if (isLocalService) {
     record('error', 'origen', `${prodHostname} está configurado al túnel local pero cloudflared no corre`, prodIngress.service)
   } else if (prodIngress) {
@@ -159,7 +189,11 @@ function checkLocalTunnel() {
   }
 
   if (requireRender && isLocalService) {
-    record('error', 'migracion', '--require-render exige cortar dependencia de localhost:4000')
+    if (renderHealthy) {
+      record('error', 'migracion', '--require-render exige cortar dependencia de localhost:4000')
+    } else {
+      record('error', 'migracion', '--require-render exige Render operativo y cortar dependencia de localhost:4000')
+    }
   }
 }
 
@@ -189,7 +223,8 @@ function renderText() {
 
 await checkHealth()
 await checkRoot()
+const renderCandidate = await checkRenderCandidate()
 await checkDns()
-checkLocalTunnel()
+checkLocalTunnel(renderCandidate.healthy)
 checkRenderAccess()
 renderText()

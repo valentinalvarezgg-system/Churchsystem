@@ -1,6 +1,26 @@
 # BITÁCORA — Church System
 ---
 
+## Verificación de producción: distinguir túnel local vs candidato Render caído — 2026-06-28
+
+**Estado actual:** la auditoría operativa de producción ahora muestra con más precisión por qué todavía no se puede completar el corte a Render. Ya no alcanza con decir “seguís en Cloudflare Tunnel”; el verificador también confirma si el candidato `.onrender.com` está realmente vivo.
+
+### Falla detectada
+- `scripts/verify-prod.mjs` detectaba correctamente que `churchsystem.com.ar` seguía entrando por `cloudflared` local, pero no diferenciaba si el bloqueo restante era solo DNS pendiente o si el candidato Render todavía estaba caído/no desplegado.
+- En el estado actual, `https://church-system.onrender.com/health` queda en timeout total, por lo que el problema real no es solo “cambiar DNS”, sino que Render aún no está operativo.
+
+### Corrección aplicada
+- `scripts/verify-prod.mjs`: agregado chequeo explícito del candidato `RENDER_EXTERNAL_URL` (default `https://church-system.onrender.com`) sobre `/health` y raíz HTML.
+- `scripts/verify-prod.mjs`: `--require-render` ahora falla con mensaje más fiel: exige tanto Render operativo como cortar la dependencia de `localhost:4000`.
+- `scripts/verify-prod.mjs`: si el candidato Render ya estuviera sano pero el dominio siguiera por túnel, el script deja indicado que el próximo paso es el corte DNS/apagado del túnel.
+
+### Evidencia
+- `pnpm verify:prod` → OK funcional, pero advierte:
+  - `render-candidate ... /health no responde → timeout`
+  - `churchsystem.com.ar depende de Cloudflare Tunnel local`
+- `pnpm verify:prod:render` → falla con `--require-render exige Render operativo y cortar dependencia de localhost:4000`.
+- `RENDER_EXTERNAL_URL=https://church-system.onrender.com pnpm cutover:preflight` → sigue fallando porque el candidato Render no responde `/health`.
+
 ## Auditoría de reset: ignorar logins QA permitidos en `AuditLog` — 2026-06-28
 
 **Estado actual:** la auditoría amplia del objetivo vuelve a pasar en verde incluso después de verificar cuentas QA/GodMode. El check de reset ahora distingue correctamente entre datos tenant “reales” y actividad de prueba esperada.
