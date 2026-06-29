@@ -1,6 +1,34 @@
 # BITÁCORA — Church System
 ---
 
+## Signup más consistente: apellido persistido + retorno OAuth robusto también en registro — 2026-06-29
+
+**Estado actual:** el alta por email ya no pierde el apellido que el usuario carga en el formulario, y el retorno OAuth desde la pantalla de registro ahora usa el mismo puente de sesión robusto que ya habíamos agregado en login para browsers embebidos/mobile.
+
+### Falla detectada
+- `frontend/src/pages/Registro.jsx` pedía `Apellido`, pero `handleRegistro()` no lo enviaba al backend.
+- `backend/src/routes/registro.js` insertaba `"apellido"=''`, así que el dato se perdía aunque el usuario lo completara.
+- `frontend/src/pages/Registro.jsx` seguía dependiendo solo de `POST /auth/refresh` al volver desde Google/Apple, dejando un punto frágil similar al que ya habíamos corregido en `Login.jsx`.
+
+### Corrección aplicada
+- `frontend/src/pages/Registro.jsx`: `handleRegistro()` ahora envía `apellido`.
+- `backend/src/routes/registro.js`: `crearCuentaHandler()` ahora recibe `apellido`, lo persiste en `"User"` y lo incluye en el `RETURNING`.
+- `backend/src/lib/sessions.js`: `userPayload()` ahora propaga `apellido`, dejando el payload de sesión más completo y consistente con el perfil real.
+- `frontend/src/pages/Registro.jsx`: el retorno `?oauth=1` ahora intenta `POST /auth/refresh` y, si falla pero existe `bridge`, usa `POST /auth/oauth-bridge` igual que la pantalla de login.
+- `scripts/smoke-zero-signup.mjs`: el smoke de alta ahora verifica además que el apellido viaje en signup y quede disponible luego en `GET /auth/me`.
+
+### Evidencia
+- Smoke real sobre backend actualizado (`PORT=4100 node backend/src/server.js`):
+  - `OK signup: reset-smoke+20260629090655@churchsystem.test`
+  - `OK perfil auth: Smoke Test Signup`
+  - `OK billing: trial 30 días, plan efectivo PRO`
+  - `OK onboarding inicial`
+- Verificación sintáctica:
+  - `node --check backend/src/lib/sessions.js` → OK
+  - `node --check backend/src/routes/registro.js` → OK
+  - `node --check scripts/smoke-zero-signup.mjs` → OK
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## OAuth mobile más estable: puente de sesión para browsers embebidos — 2026-06-29
 
 **Estado actual:** el retorno desde Google/Apple ya no depende únicamente de que el browser móvil preserve la cookie `church_refresh` entre el callback OAuth y la pantalla de login. Ahora existe un puente de recuperación de sesión pensado para browsers embebidos como el de ChatGPT/iOS, donde ese salto podía terminar en el toast genérico `Error en autenticación`.

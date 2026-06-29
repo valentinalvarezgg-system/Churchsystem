@@ -60,6 +60,7 @@ export function userPayload(user) {
     email: user.email,
     rol: user.rol || 'LIDER',
     nombre: user.nombre,
+    apellido: user.apellido || '',
     cultoDia: user.cultoDia || '',
     cultoTurno: Number(user.cultoTurno || 0),
     plan: user.plan || 'STARTER',

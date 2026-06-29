@@ -99,6 +99,7 @@ async function main() {
   const payload = {
     nombreIglesia: `Smoke Church ${stamp}`,
     nombre: 'Smoke Test',
+    apellido: 'Signup',
     email,
     password: TEST_PASSWORD,
     telefono: '+5491100000000',
@@ -116,8 +117,13 @@ async function main() {
   assert(signup?.token, 'Signup no devolvió access token')
   assert(signup?.refreshToken, 'Signup no devolvió refresh token')
   assert(signup?.user?.iglesiaId, 'Signup no devolvió iglesiaId')
+  assert(signup?.user?.apellido === payload.apellido, 'Signup no devolvió el apellido cargado')
   assert(Number(signup?.trial?.dias || 0) === 30, 'Trial inicial no es de 30 días')
   console.log(`OK signup: ${email}`)
+
+  const me = await fetchJson(buildUrl(baseUrl, '/auth/me'), { headers: { Authorization: `Bearer ${signup.token}` } })
+  assert(me?.apellido === payload.apellido, 'auth/me no preservó el apellido del signup')
+  console.log(`OK perfil auth: ${me.nombre} ${me.apellido}`)
 
   const authHeaders = { Authorization: `Bearer ${signup.token}` }
   const billing = await fetchJson(buildUrl(baseUrl, '/subscriptions/billing-estado'), { headers: authHeaders })

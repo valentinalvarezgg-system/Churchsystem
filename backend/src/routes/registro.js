@@ -56,7 +56,7 @@ async function issueVerificationCode(userId, email, nombre = '') {
 // ── Handler exportado para que /auth/registro lo use como alias deprecado ─────
 export async function crearCuentaHandler(req, res) {
   const {
-    nombreIglesia, nombre, email, password,
+    nombreIglesia, nombre, apellido = '', email, password,
     telefono = '', plan = 'CONSOLIDACION',
     country = 'AR', pais = country, currency = '', divisa = currency,
     lang = '', idioma = lang, promo = '',
@@ -140,13 +140,14 @@ export async function crearCuentaHandler(req, res) {
         ("email","password","nombre","apellido","activo","emailVerificado","iglesiaId","rolId","createdAt","updatedAt",
          "rol","plan","pais","divisa","idioma","telefono","iglesia","promoCode","promoDescuento","promoMeses","promoUsadoAt")
        VALUES
-        ($1,$2,$3,'',true,false,$4,$5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,
-         'PASTOR_GENERAL',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
-       RETURNING "id","email","nombre","rol","iglesiaId","plan","pais","divisa","idioma"`,
+        ($1,$2,$3,$4,true,false,$5,$6,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,
+         'PASTOR_GENERAL',$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+       RETURNING "id","email","nombre","apellido","rol","iglesiaId","plan","pais","divisa","idioma"`,
       [
         email.trim().toLowerCase(),
         hashPwd,
         nombre?.trim() || 'Pastor',
+        String(apellido || '').trim(),
         iglesiaId,
         roleId,
         selectedPlanKey,
