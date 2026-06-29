@@ -1,6 +1,27 @@
 # BITÁCORA — Church System
 ---
 
+## Finanzas más liviano: resumen, listado y tendencia en paralelo — 2026-06-29
+
+**Estado actual:** `GET /finanzas` ya no espera una cadena serial de consultas para devolver totales, agrupaciones, listado paginado y tendencia. Ahora resuelve esos bloques en paralelo y conserva el mismo contrato para el frontend.
+
+### Falla detectada
+- `backend/src/routes/finanzas.js` ejecutaba en serie:
+  - totales
+  - agrupación por tipo
+  - listado paginado
+  - tendencia mensual
+- Las consultas de tendencia casteaban `fecha` a `date` sin filtrar formato previamente, lo que podía romper el resumen ante datos inconsistentes.
+
+### Corrección aplicada
+- `backend/src/routes/finanzas.js`: `GET /finanzas` ahora usa `Promise.all` para consultas independientes.
+- `backend/src/routes/finanzas.js`: se preservaron los mismos filtros, paginación y shape de respuesta.
+- `backend/src/routes/finanzas.js`: tendencia y resumen mensual ahora filtran fechas con formato `YYYY-MM-DD` antes de `to_date(...)`.
+
+### Evidencia
+- `node --check backend/src/routes/finanzas.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Alertas backend más rápidas: consultas paralelas y seguimiento agregado — 2026-06-29
 
 **Estado actual:** `GET /alertas` ahora resuelve sus bloques independientes en paralelo y evita recalcular el último seguimiento con subconsultas repetidas por persona. La respuesta mantiene el mismo contrato para el frontend.

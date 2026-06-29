@@ -23,35 +23,41 @@ router.get('/', requireAuth, async (req, res) => {
   const w = where.length ? `WHERE ${where.join(' AND ')}` : ''
 
   const offset = (Number(page) - 1) * Number(limit)
-  const totales = await pgOne(`SELECT COUNT(*)::int as registros, COALESCE(SUM("monto"),0)::float8 as total FROM "Finanza" f ${w}`, params)
-  const porTipo = await pgMany(
-    `SELECT "tipo", COUNT(*)::int as qty, COALESCE(SUM("monto"),0)::float8 as subtotal
-       FROM "Finanza" f ${w}
-      GROUP BY "tipo"`,
-    params
-  )
-  const data = await pgMany(
-    `SELECT f.*, c."nombre" as "cultoNombre", u."nombre" as "autorNombre"
-       FROM "Finanza" f
-       LEFT JOIN "Culto" c ON f."cultoId"=c."id"
-       LEFT JOIN "User" u ON f."userId"=u."id"
-       ${w}
-      ORDER BY f."fecha" DESC, f."id" DESC
-      LIMIT $${idx++} OFFSET $${idx++}`,
-    [...params, Number(limit), offset]
-  )
+  const limitIdx = idx++
+  const offsetIdx = idx++
+  const dataParams = [...params, Number(limit), offset]
+  const [totales, porTipo, data, tendencia] = await Promise.all([
+    pgOne(`SELECT COUNT(*)::int as registros, COALESCE(SUM("monto"),0)::float8 as total FROM "Finanza" f ${w}`, params),
+    pgMany(
+      `SELECT "tipo", COUNT(*)::int as qty, COALESCE(SUM("monto"),0)::float8 as subtotal
+         FROM "Finanza" f ${w}
+        GROUP BY "tipo"`,
+      params
+    ),
+    pgMany(
+      `SELECT f.*, c."nombre" as "cultoNombre", u."nombre" as "autorNombre"
+         FROM "Finanza" f
+         LEFT JOIN "Culto" c ON f."cultoId"=c."id"
+         LEFT JOIN "User" u ON f."userId"=u."id"
+         ${w}
+        ORDER BY f."fecha" DESC, f."id" DESC
+        LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+      dataParams
+    ),
+    pgMany(
+      `SELECT to_char(to_date("fecha",'YYYY-MM-DD'),'YYYY-MM') as mes,
+              COALESCE(SUM("monto"),0)::float8 as total,
+              COUNT(*)::int as qty
+         FROM "Finanza"
+        WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
+          AND "fecha" ~ '^\\d{4}-\\d{2}-\\d{2}$'
+          AND to_date("fecha",'YYYY-MM-DD') >= (CURRENT_DATE - INTERVAL '8 months')
+        GROUP BY to_char(to_date("fecha",'YYYY-MM-DD'),'YYYY-MM')
+        ORDER BY mes ASC`,
+      [iglesiaId]
+    ),
+  ])
   const total = Number(totales?.registros || 0)
-  const tendencia = await pgMany(
-    `SELECT to_char(to_date("fecha",'YYYY-MM-DD'),'YYYY-MM') as mes,
-            COALESCE(SUM("monto"),0)::float8 as total,
-            COUNT(*)::int as qty
-       FROM "Finanza"
-      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
-        AND to_date("fecha",'YYYY-MM-DD') >= (CURRENT_DATE - INTERVAL '8 months')
-      GROUP BY to_char(to_date("fecha",'YYYY-MM-DD'),'YYYY-MM')
-      ORDER BY mes ASC`,
-    [iglesiaId]
-  )
 
   res.json({
     data,
@@ -72,11 +78,12 @@ router.get('/resumen-mensual', requireAuth, async (req, res) => {
   const rows = await pgMany(
     `SELECT to_char(to_date("fecha",'YYYY-MM-DD'),'YYYY-MM') as mes, "tipo",
             COALESCE(SUM("monto"),0)::float8 as total, COUNT(*)::int as qty
-       FROM "Finanza"
-      WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
-        AND to_date("fecha",'YYYY-MM-DD') >= (CURRENT_DATE - INTERVAL '6 months')
-      GROUP BY mes,"tipo"
-      ORDER BY mes ASC`,
+      FROM "Finanza"
+     WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL
+       AND "fecha" ~ '^\\d{4}-\\d{2}-\\d{2}$'
+       AND to_date("fecha",'YYYY-MM-DD') >= (CURRENT_DATE - INTERVAL '6 months')
+     GROUP BY mes,"tipo"
+     ORDER BY mes ASC`,
     [iglesiaId]
   )
   res.json(rows)
@@ -166,4 +173,3 @@ router.get('/export', requireAuth, async (req, res) => {
 })
 
 export default router
-
