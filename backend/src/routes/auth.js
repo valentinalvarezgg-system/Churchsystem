@@ -10,6 +10,7 @@ import { sendNotificationEmail, sendSystemEmail, buildSystemEmail } from '../lib
 import {
   issueSession, refreshSession, revocarSesion, revocarTodas,
   revocarPorToken, listarSesiones, getCookieOptions, userPayload, hash,
+  consumeOAuthBridge,
 } from '../lib/sessions.js'
 import { crearCuentaHandler } from './registro.js'
 
@@ -217,6 +218,30 @@ router.post('/refresh', async (req, res) => {
     if (err.code === 'SESION_INVALIDA') return res.status(401).json({ error: 'Refresh token inválido o expirado' })
     logger.error({ err: err?.message }, 'Error en refresh')
     return res.status(500).json({ error: 'Error al renovar sesión' })
+  }
+})
+
+// ── POST /auth/oauth-bridge ──────────────────────────────────────────────────
+router.post('/oauth-bridge', async (req, res) => {
+  const bridge = String(req.body?.bridge || '').trim()
+  if (!bridge) {
+    return res.status(400).json({ code: 'AUTH_OAUTH_BRIDGE_REQUIRED', error: 'Bridge OAuth requerido' })
+  }
+
+  try {
+    const session = await consumeOAuthBridge(bridge, req, res)
+    return res.json({
+      token: session.accessToken,
+      refreshToken: session.refreshToken,
+      expiresIn: session.expiresIn,
+      user: session.user,
+    })
+  } catch (err) {
+    if (err?.code === 'OAUTH_BRIDGE_INVALID' || err?.code === 'SESION_INVALIDA') {
+      return res.status(401).json({ code: 'AUTH_OAUTH_BRIDGE_INVALID', error: 'La sesión OAuth expiró. Intentá nuevamente.' })
+    }
+    logger.error({ err: err?.message }, 'Error en oauth bridge')
+    return res.status(500).json({ code: 'AUTH_OAUTH_BRIDGE_FAILED', error: 'No se pudo recuperar la sesión OAuth.' })
   }
 })
 

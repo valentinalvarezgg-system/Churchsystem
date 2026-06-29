@@ -7,7 +7,7 @@ import { sendNotificationEmail } from '../lib/email.js'
 import { exchangeGoogleDriveCode, fetchGoogleUserInfo } from '../lib/google-drive.js'
 import { readTenantConfig, upsertTenantConfig } from '../lib/tenant-config.js'
 import { getPlanPrice, normalizeCountry, normalizeLanguage, normalizePlan, PLANES } from '../lib/billing.js'
-import { issueSession } from '../lib/sessions.js'
+import { issueOAuthBridge, issueSession } from '../lib/sessions.js'
 
 const router = Router()
 const SECRET     = () => {
@@ -309,10 +309,17 @@ router.get('/google/callback', async (req, res) => {
 
     if (!user.activo) return res.redirect(`${front}/app/login?error=account_disabled`)
 
-    await issueSession(user, req, res)
+    const session = await issueSession(user, req, res)
     const needsSetup = createdNow || await requiresSetupForUser(user)
     const setup = needsSetup ? '&setup=1' : ''
-    res.redirect(`${front}/app/login?oauth=1${setup}`)
+    let bridge = ''
+    try {
+      bridge = await issueOAuthBridge(session.sessionId, user.id)
+    } catch (bridgeErr) {
+      logger.error({ err: bridgeErr?.message, userId: user.id }, 'OAuth Google bridge error')
+    }
+    const bridgeQuery = bridge ? `&bridge=${encodeURIComponent(bridge)}` : ''
+    res.redirect(`${front}/app/login?oauth=1${setup}${bridgeQuery}`)
 
   } catch(err) {
     logger.error({ err: err?.message }, 'OAuth Google error')
@@ -405,10 +412,17 @@ router.post('/apple/callback', async (req, res) => {
     })
 
     if (!user.activo) return res.redirect(`${frontUrl}/app/login?error=account_disabled`)
-    await issueSession(user, req, res)
+    const session = await issueSession(user, req, res)
     const needsSetup = createdNow || await requiresSetupForUser(user)
     const setup = needsSetup ? '&setup=1' : ''
-    res.redirect(`${frontUrl}/app/login?oauth=1${setup}`)
+    let bridge = ''
+    try {
+      bridge = await issueOAuthBridge(session.sessionId, user.id)
+    } catch (bridgeErr) {
+      logger.error({ err: bridgeErr?.message, userId: user.id }, 'OAuth Apple bridge error')
+    }
+    const bridgeQuery = bridge ? `&bridge=${encodeURIComponent(bridge)}` : ''
+    res.redirect(`${frontUrl}/app/login?oauth=1${setup}${bridgeQuery}`)
   } catch (err) {
     logger.error({ err: err?.message }, 'OAuth Apple error')
     res.redirect(`${frontUrl}/app/login?error=oauth_failed`)

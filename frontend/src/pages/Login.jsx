@@ -90,6 +90,7 @@ export default function Login() {
     next.delete('oauth')
     next.delete('error')
     next.delete('setup')
+    next.delete('bridge')
     const query = next.toString()
     navigate({ pathname: '/app/login', search: query ? `?${query}` : '' }, { replace: true })
   }
@@ -110,7 +111,18 @@ export default function Login() {
       const error = searchParams.get('error')
       if (oauth === '1') {
         try {
-          const res = await apiFetch('/auth/refresh', { method: 'POST', skipAuthRedirect: true })
+          const bridge = String(searchParams.get('bridge') || '').trim()
+          let res
+          try {
+            res = await apiFetch('/auth/refresh', { method: 'POST', skipAuthRedirect: true })
+          } catch (refreshErr) {
+            if (!bridge) throw refreshErr
+            res = await apiFetch('/auth/oauth-bridge', {
+              method: 'POST',
+              skipAuthRedirect: true,
+              body: JSON.stringify({ bridge }),
+            })
+          }
           localStorage.setItem('token', res.token)
           localStorage.setItem('user', JSON.stringify(res.user))
           syncContextFromUser(res.user)

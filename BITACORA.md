@@ -1,6 +1,36 @@
 # BITÁCORA — Church System
 ---
 
+## OAuth mobile más estable: puente de sesión para browsers embebidos — 2026-06-29
+
+**Estado actual:** el retorno desde Google/Apple ya no depende únicamente de que el browser móvil preserve la cookie `church_refresh` entre el callback OAuth y la pantalla de login. Ahora existe un puente de recuperación de sesión pensado para browsers embebidos como el de ChatGPT/iOS, donde ese salto podía terminar en el toast genérico `Error en autenticación`.
+
+### Falla detectada
+- `frontend/src/pages/Login.jsx` mostraba `Error en autenticación` cuando volvía con `?oauth=1` y el `POST /auth/refresh` fallaba.
+- En iPhone y browsers embebidos, especialmente en retornos desde Apple/Google, la cookie HttpOnly del callback puede no quedar disponible inmediatamente después del redirect.
+- Eso dejaba el alta/login OAuth funcionando en backend, pero roto en la última milla del frontend.
+
+### Corrección aplicada
+- `backend/src/lib/sessions.js`: agregada tabla `oauth_bridge_tokens` y helpers:
+  - `issueOAuthBridge()`
+  - `consumeOAuthBridge()`
+- `backend/src/lib/sessions.js`: `issueSession()` ahora también devuelve `sessionId`, y la rotación de refresh quedó centralizada para reutilizarse desde el bridge.
+- `backend/src/routes/oauth.js`: los callbacks de Google y Apple ahora emiten `bridge=<token>` junto al redirect de `oauth=1`.
+- `backend/src/routes/auth.js`: agregado `POST /auth/oauth-bridge` para reconstruir la sesión, reemitir cookie refresh y devolver access token cuando el browser perdió el refresh inicial.
+- `frontend/src/pages/Login.jsx`: al volver de OAuth, primero intenta `POST /auth/refresh`; si eso falla y hay `bridge`, usa automáticamente `POST /auth/oauth-bridge` antes de mostrar error.
+
+### Evidencia
+- Verificación backend:
+  - `node --check backend/src/lib/sessions.js` → OK
+  - `node --check backend/src/routes/auth.js` → OK
+  - `node --check backend/src/routes/oauth.js` → OK
+- Prueba directa del bridge:
+  - `issuedSession: true`
+  - `bridgeIssued: true`
+  - `bridgedUser: 'max@test.com'`
+  - `bridgedToken: true`
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Signup Free más limpio: onboarding sin bloqueo falso de facturación — 2026-06-29
 
 **Estado actual:** el plan Free ya no queda atrapado en una lógica de facturación pensada para planes pagos. El wizard inicial y el gate global ahora distinguen correctamente cuándo hace falta confirmar billing y cuándo no.

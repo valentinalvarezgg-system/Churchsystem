@@ -6,6 +6,7 @@ import { pgExec, pgOne, pgMany } from './pg.js'
 const ACCESS_TTL = '15m'
 const REFRESH_DAYS = 30
 const OLD_TOKEN_RE = /^[0-9a-f]{96}$/i   // tokens legacy (hex 96 chars, texto plano)
+const OAUTH_BRIDGE_TTL_MS = 5 * 60 * 1000
 
 // ── Crear tabla al boot ───────────────────────────────────────────────────────
 pgExec(`
@@ -27,6 +28,24 @@ pgExec(`
 pgExec(`
   CREATE INDEX IF NOT EXISTS idx_sesiones_usuario
   ON sesiones_auth(usuario_id) WHERE revocado_at IS NULL
+`).catch(() => {})
+
+pgExec(`
+  CREATE TABLE IF NOT EXISTS oauth_bridge_tokens (
+    id         UUID        PRIMARY KEY,
+    token_hash TEXT        NOT NULL UNIQUE,
+    session_id UUID        NOT NULL,
+    user_id    INTEGER     NOT NULL,
+    creado_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expira_at  TIMESTAMPTZ NOT NULL,
+    usado_at   TIMESTAMPTZ
+  )
+`).catch(err => logger.error({ err: err.message }, 'oauth_bridge_tokens: fallo al crear tabla'))
+
+pgExec(`
+  CREATE INDEX IF NOT EXISTS idx_oauth_bridge_tokens_session
+  ON oauth_bridge_tokens(session_id)
+  WHERE usado_at IS NULL
 `).catch(() => {})
 
 // ── Helpers exportados ────────────────────────────────────────────────────────
@@ -94,7 +113,27 @@ export async function issueSession(usuario, req, res = null) {
 
   res?.cookie?.('church_refresh', refreshToken, getCookieOptions())
 
-  return { accessToken, refreshToken, user: payload, expiresIn: ACCESS_TTL }
+  return { sessionId, accessToken, refreshToken, user: payload, expiresIn: ACCESS_TTL }
+}
+
+async function rotateSessionById(sessionId) {
+  const sesion = await pgOne(
+    `SELECT * FROM sesiones_auth
+     WHERE id=$1 AND revocado_at IS NULL AND expira_at > NOW()
+     LIMIT 1`,
+    [sessionId]
+  )
+  if (!sesion) {
+    throw Object.assign(new Error('Sesión inválida'), { code: 'SESION_INVALIDA' })
+  }
+
+  const newRefresh = crypto.randomBytes(48).toString('base64url')
+  const newHash = hash(newRefresh)
+  await pgExec(
+    'UPDATE sesiones_auth SET token_hash=$1, ultimo_uso_at=NOW() WHERE id=$2',
+    [newHash, sesion.id]
+  )
+  return { sesion, refreshToken: newRefresh }
 }
 
 // ── refreshSession ────────────────────────────────────────────────────────────
@@ -152,15 +191,7 @@ export async function refreshSession(refreshToken) {
   }
 
   // Rotación: nuevo token, actualizar hash
-  const newRefresh = crypto.randomBytes(48).toString('base64url')
-  const newHash = hash(newRefresh)
-
-  await pgExec(
-    'UPDATE sesiones_auth SET token_hash=$1, ultimo_uso_at=NOW() WHERE id=$2',
-    [newHash, sesion.id]
-  )
-
-  return { sesion, refreshToken: newRefresh }
+  return rotateSessionById(sesion.id)
 }
 
 // ── Revocación ────────────────────────────────────────────────────────────────
@@ -212,4 +243,57 @@ export async function listarSesiones(usuarioId, sesionActualHash = null) {
     [Number(usuarioId), sesionActualHash || '']
   )
   return rows
+}
+
+export async function issueOAuthBridge(sessionId, userId, ttlMs = OAUTH_BRIDGE_TTL_MS) {
+  const bridgeToken = crypto.randomBytes(32).toString('base64url')
+  const bridgeId = crypto.randomUUID()
+  const expiraAt = new Date(Date.now() + ttlMs).toISOString()
+  await pgExec(
+    `INSERT INTO oauth_bridge_tokens
+      (id, token_hash, session_id, user_id, expira_at)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [bridgeId, hash(bridgeToken), sessionId, Number(userId), expiraAt]
+  )
+  return bridgeToken
+}
+
+export async function consumeOAuthBridge(bridgeToken, req, res = null) {
+  const tokenHash = hash(bridgeToken)
+  const bridge = await pgOne(
+    `SELECT * FROM oauth_bridge_tokens
+     WHERE token_hash=$1 AND usado_at IS NULL AND expira_at > NOW()
+     LIMIT 1`,
+    [tokenHash]
+  )
+  if (!bridge) {
+    throw Object.assign(new Error('Bridge OAuth inválido o expirado'), { code: 'OAUTH_BRIDGE_INVALID' })
+  }
+
+  await pgExec(
+    'UPDATE oauth_bridge_tokens SET usado_at=NOW() WHERE id=$1 AND usado_at IS NULL',
+    [bridge.id]
+  )
+
+  const { sesion, refreshToken } = await rotateSessionById(bridge.session_id)
+  const user = await pgOne(
+    `SELECT * FROM "User"
+     WHERE "id"=$1 AND "activo"=true AND "deletedAt" IS NULL
+     LIMIT 1`,
+    [bridge.user_id]
+  )
+  if (!user) {
+    throw Object.assign(new Error('Usuario no encontrado'), { code: 'SESION_INVALIDA' })
+  }
+
+  const payload = userPayload(user)
+  const accessToken = signAccessToken(payload)
+  res?.cookie?.('church_refresh', refreshToken, getCookieOptions())
+
+  await pgExec(
+    'UPDATE sesiones_auth SET ultimo_uso_at=NOW() WHERE id=$1',
+    [sesion.id]
+  ).catch(() => {})
+
+  return { accessToken, refreshToken, user: payload, expiresIn: ACCESS_TTL }
 }
