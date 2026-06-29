@@ -3,6 +3,22 @@ import { pgMany, pgExec, pgOne } from './pg.js'
 import { invalidarCotizacion } from './pricing.js'
 import { sendNotificationEmail, buildSystemEmail, sendSystemEmail } from './email.js'
 
+function uniqueChurchIds(items = [], key = 'iglesiaId') {
+  return [...new Set(
+    items
+      .map(item => Number(item?.[key] ?? item?.iglesia_id))
+      .filter(Number.isFinite)
+      .filter(id => id > 0)
+  )]
+}
+
+function ensureStatsEntry(map, iglesiaId) {
+  if (!map.has(iglesiaId)) {
+    map.set(iglesiaId, { personas: 0, grupos: 0, cultos: 0, mensajes: 0, users: 0 })
+  }
+  return map.get(iglesiaId)
+}
+
 async function upsertConfig(iglesiaId, clave, valor) {
   await pgExec(
     `INSERT INTO "Configuracion" ("iglesiaId","clave","valor","createdAt","updatedAt")
@@ -27,6 +43,21 @@ async function getAdmin(iglesiaId) {
   ).catch(() => null)
 }
 
+async function getAdminsMap(iglesiaIds = []) {
+  if (!iglesiaIds.length) return new Map()
+  const rows = await pgMany(
+    `SELECT DISTINCT ON ("iglesiaId") "iglesiaId", email, nombre
+       FROM "User"
+      WHERE "iglesiaId" = ANY($1::int[])
+        AND "rol"='PASTOR_GENERAL'
+        AND "activo"=true
+        AND "deletedAt" IS NULL
+      ORDER BY "iglesiaId", id ASC`,
+    [iglesiaIds]
+  ).catch(() => [])
+  return new Map(rows.map(row => [Number(row.iglesiaId), row]))
+}
+
 async function getOngoardingStats(iglesiaId) {
   const [p, g, c, m, u] = await Promise.all([
     pgOne(`SELECT COUNT(*)::int AS n FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL`, [iglesiaId]).catch(() => ({ n: 0 })),
@@ -36,6 +67,25 @@ async function getOngoardingStats(iglesiaId) {
     pgOne(`SELECT COUNT(*)::int AS n FROM "User"    WHERE "iglesiaId"=$1 AND "activo"=true AND "deletedAt" IS NULL`, [iglesiaId]).catch(() => ({ n: 0 })),
   ])
   return { personas: p?.n || 0, grupos: g?.n || 0, cultos: c?.n || 0, mensajes: m?.n || 0, users: u?.n || 0 }
+}
+
+async function getOnboardingStatsMap(iglesiaIds = []) {
+  if (!iglesiaIds.length) return new Map()
+  const [personas, grupos, cultos, mensajes, users] = await Promise.all([
+    pgMany(`SELECT "iglesiaId", COUNT(*)::int AS n FROM "Persona" WHERE "iglesiaId" = ANY($1::int[]) AND "deletedAt" IS NULL GROUP BY "iglesiaId"`, [iglesiaIds]).catch(() => []),
+    pgMany(`SELECT "iglesiaId", COUNT(*)::int AS n FROM "Grupo" WHERE "iglesiaId" = ANY($1::int[]) AND "deletedAt" IS NULL GROUP BY "iglesiaId"`, [iglesiaIds]).catch(() => []),
+    pgMany(`SELECT "iglesiaId", COUNT(*)::int AS n FROM "Culto" WHERE "iglesiaId" = ANY($1::int[]) GROUP BY "iglesiaId"`, [iglesiaIds]).catch(() => []),
+    pgMany(`SELECT "iglesiaId", COUNT(*)::int AS n FROM "Mensaje" WHERE "iglesiaId" = ANY($1::int[]) GROUP BY "iglesiaId"`, [iglesiaIds]).catch(() => []),
+    pgMany(`SELECT "iglesiaId", COUNT(*)::int AS n FROM "User" WHERE "iglesiaId" = ANY($1::int[]) AND "activo"=true AND "deletedAt" IS NULL GROUP BY "iglesiaId"`, [iglesiaIds]).catch(() => []),
+  ])
+  const statsByChurch = new Map()
+  for (const iglesiaId of iglesiaIds) ensureStatsEntry(statsByChurch, iglesiaId)
+  for (const row of personas) ensureStatsEntry(statsByChurch, Number(row.iglesiaId)).personas = Number(row.n || 0)
+  for (const row of grupos) ensureStatsEntry(statsByChurch, Number(row.iglesiaId)).grupos = Number(row.n || 0)
+  for (const row of cultos) ensureStatsEntry(statsByChurch, Number(row.iglesiaId)).cultos = Number(row.n || 0)
+  for (const row of mensajes) ensureStatsEntry(statsByChurch, Number(row.iglesiaId)).mensajes = Number(row.n || 0)
+  for (const row of users) ensureStatsEntry(statsByChurch, Number(row.iglesiaId)).users = Number(row.n || 0)
+  return statsByChurch
 }
 
 async function procesarTrials() {
@@ -49,15 +99,18 @@ async function procesarTrials() {
         AND c."valor" BETWEEN $1 AND $2`,
     [hoy, new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)]
   ).catch(() => [])
+  const porVencerChurchIds = uniqueChurchIds(porVencer)
+  const adminsMap = await getAdminsMap(porVencerChurchIds)
+  const statsMap = await getOnboardingStatsMap(porVencerChurchIds)
 
   for (const row of porVencer) {
     const dias = Math.ceil((new Date(row.trial_fin) - new Date()) / 86400000)
     if (![7, 3, 1].includes(dias)) continue
 
-    const admin = await getAdmin(row.iglesiaId)
+    const admin = adminsMap.get(Number(row.iglesiaId))
     if (!admin?.email) continue
 
-    const stats = await getOngoardingStats(row.iglesiaId)
+    const stats = statsMap.get(Number(row.iglesiaId)) || { personas: 0, grupos: 0, cultos: 0, mensajes: 0, users: 0 }
     const appUrl = process.env.FRONTEND_URL || process.env.PUBLIC_URL || ''
     sendNotificationEmail({
       to:          admin.email,
@@ -105,10 +158,11 @@ async function procesarGracia() {
         AND estado IN ('authorized','pending')`,
     []
   ).catch(() => [])
+  const graciaAdminsMap = await getAdminsMap(uniqueChurchIds(enGracia, 'iglesia_id'))
 
   for (const sus of enGracia) {
     const dias = Math.ceil((new Date(sus.gracia_hasta) - ahora) / 86400000)
-    const admin = await getAdmin(sus.iglesia_id)
+    const admin = graciaAdminsMap.get(Number(sus.iglesia_id))
     if (!admin?.email) continue
 
     const appUrl = process.env.FRONTEND_URL || process.env.PUBLIC_URL || ''
@@ -135,6 +189,7 @@ async function procesarGracia() {
         AND estado != 'cancelled'`,
     []
   ).catch(() => [])
+  const graciaVencidaAdminsMap = await getAdminsMap(uniqueChurchIds(graciaVencida, 'iglesia_id'))
 
   for (const sus of graciaVencida) {
     await degradarAFree(sus.iglesia_id).catch(() => {})
@@ -144,7 +199,7 @@ async function procesarGracia() {
       [sus.iglesia_id, sus.preapproval_id]
     ).catch(() => {})
 
-    const admin = await getAdmin(sus.iglesia_id)
+    const admin = graciaVencidaAdminsMap.get(Number(sus.iglesia_id))
     if (admin?.email) {
       const appUrl = process.env.FRONTEND_URL || process.env.PUBLIC_URL || ''
       sendNotificationEmail({
@@ -173,16 +228,19 @@ async function procesarEmailsOnboarding() {
       WHERE c."clave"='trial_inicio'`,
     []
   ).catch(() => [])
+  const iniciosChurchIds = uniqueChurchIds(inicios)
+  const onboardingAdminsMap = await getAdminsMap(iniciosChurchIds)
+  const onboardingStatsMap = await getOnboardingStatsMap(iniciosChurchIds)
 
   for (const row of inicios) {
     const inicio = new Date(row.trial_inicio)
     const dias   = Math.round((ahora - inicio) / 86400000)
     if (!DIAS_SECUENCIA.includes(dias)) continue
 
-    const admin  = await getAdmin(row.iglesiaId)
+    const admin  = onboardingAdminsMap.get(Number(row.iglesiaId))
     if (!admin?.email) continue
 
-    const stats  = await getOngoardingStats(row.iglesiaId)
+    const stats  = onboardingStatsMap.get(Number(row.iglesiaId)) || { personas: 0, grupos: 0, cultos: 0, mensajes: 0, users: 0 }
     const appUrl = process.env.FRONTEND_URL || process.env.PUBLIC_URL || ''
 
     const sequences = {

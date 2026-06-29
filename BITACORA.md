@@ -1,6 +1,28 @@
 # BITÁCORA — Church System
 ---
 
+## Jobs diarios más livianos: batching de admins y métricas por iglesia — 2026-06-29
+
+**Estado actual:** los jobs diarios de trials, gracia y onboarding ya no hacen tantas consultas repetidas por iglesia. En vez de resolver admin + métricas con N+1 queries dentro de cada loop, ahora cargan esos datos en batch y reutilizan mapas en memoria.
+
+### Falla detectada
+- `backend/src/lib/jobs.js` hacía `getAdmin()` y `getOngoardingStats()` dentro de loops sobre trials, gracia y onboarding.
+- Eso multiplicaba queries por iglesia justo en una tarea programada que puede crecer con la base de tenants y afectar operación diaria sin aportar valor adicional.
+
+### Corrección aplicada
+- `backend/src/lib/jobs.js`: agregados helpers:
+  - `uniqueChurchIds()`
+  - `getAdminsMap()`
+  - `getOnboardingStatsMap()`
+- `backend/src/lib/jobs.js`: `procesarTrials()` ahora batcha admins + métricas antes del loop.
+- `backend/src/lib/jobs.js`: `procesarGracia()` ahora batcha admins para gracia activa y gracia vencida.
+- `backend/src/lib/jobs.js`: `procesarEmailsOnboarding()` ahora batcha admins + métricas del onboarding.
+
+### Evidencia
+- `node --check backend/src/lib/jobs.js` → OK.
+- Verificación estructural → `hasAdminsMap: true`, `hasStatsMap: true`, `usesBatchTrials: true`, `usesBatchOnboarding: true`.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Reset más operable: reseed y verificación QA/GodMode desde el mismo flujo — 2026-06-29
 
 **Estado actual:** el reset de datos ya no queda “a mitad de camino”. El script de reset ahora puede dejar resembradas las cuentas QA/GodMode y verificar el acceso inmediatamente después, usando la misma contraseña/base URL definida para pruebas.
