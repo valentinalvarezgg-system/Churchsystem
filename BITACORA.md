@@ -1,6 +1,22 @@
 # BITÁCORA — Church System
 ---
 
+## `useRealtimeQuery` sin recargas solapadas — 2026-06-28
+
+**Estado actual:** los paneles que usan recarga periódica ya no disparan cargas solapadas si el intervalo vence mientras una request sigue en vuelo. Esto reduce trabajo duplicado y baja el riesgo de estados viejos llegando tarde.
+
+### Falla detectada
+- `frontend/src/hooks/useRealtimeQuery.js` lanzaba `load()` en cada intervalo y en cada `church:data-changed` sin controlar si ya había otra carga en progreso.
+- Eso podía generar requests duplicadas en dashboards/reportes y condiciones de carrera al actualizar estado con respuestas tardías.
+
+### Corrección aplicada
+- `frontend/src/hooks/useRealtimeQuery.js`: se agregó control de request en vuelo con `inFlightRef`.
+- `frontend/src/hooks/useRealtimeQuery.js`: si llega otro refresh mientras hay una carga activa, se marca un rerun único y se ejecuta al terminar la request actual.
+- `frontend/src/hooks/useRealtimeQuery.js`: se evita actualizar estado después de un unmount.
+
+### Evidencia
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Tendencia semanal agregada: menos queries repetidas en stats premium — 2026-06-28
 
 **Estado actual:** el cálculo de tendencia semanal dejó de recorrer semana por semana con queries repetidas. Tanto `/stats/tendencia` como el payload premium ahora reutilizan una agregación semanal compartida.
