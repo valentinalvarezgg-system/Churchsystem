@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
+import { spawnSync } from 'node:child_process'
 
 const CONFIRM_TEXT = 'RESET_ACCOUNT_DATA'
 const PRESERVED_TABLES = new Set([
@@ -21,6 +22,10 @@ function parseArgs(argv) {
     allowProduction: args.has('--allow-production') || process.env.ALLOW_ACCOUNT_RESET === '1',
     json: args.has('--json'),
     includeCatalogs: args.has('--include-catalogs'),
+    reseedQa: args.has('--reseed-qa'),
+    verifyQa: args.has('--verify-qa'),
+    qaPassword: valueAfter('--qa-password') || process.env.QA_TEST_PASSWORD || '',
+    qaBaseUrl: valueAfter('--qa-base-url') || process.env.QA_VERIFY_BASE_URL || 'http://127.0.0.1:4000',
   }
 }
 
@@ -110,6 +115,11 @@ async function main() {
     for (const row of summary.preserved) console.log(`  - ${row.table}: ${row.count}`)
     console.log('\nSe resetearía:')
     for (const row of summary.truncate) console.log(`  - ${row.table}: ${row.count}`)
+    if (opts.reseedQa) {
+      console.log(`\nPost-reset QA: reseed habilitado${opts.verifyQa ? ' + verificación automática' : ''}`)
+      console.log(`  Password QA: ${opts.qaPassword || '(la manejará seed-test-users)'}`)
+      console.log(`  Base URL verify: ${opts.qaBaseUrl}`)
+    }
   }
 
   if (!opts.execute) {
@@ -131,6 +141,44 @@ async function main() {
 
   await pgExec(`TRUNCATE TABLE ${targetTables.map(quoteIdent).join(', ')} RESTART IDENTITY CASCADE`)
   console.log(`\nReset completo: ${targetTables.length} tablas truncadas.`)
+
+  if (opts.reseedQa) {
+    const seedArgs = ['scripts/seed-test-users.mjs']
+    if (opts.qaPassword) seedArgs.push('--password', opts.qaPassword)
+    const seeded = spawnSync(process.execPath, seedArgs, {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        ...(opts.qaPassword ? { QA_TEST_PASSWORD: opts.qaPassword } : {}),
+      },
+    })
+    if (seeded.status !== 0) {
+      throw new Error(`El reseed QA falló con código ${seeded.status || 1}.`)
+    }
+    console.log('\nQA/GodMode resembrado correctamente.')
+  }
+
+  if (opts.verifyQa) {
+    if (!opts.qaPassword) {
+      throw new Error('Para --verify-qa necesitás indicar --qa-password o QA_TEST_PASSWORD.')
+    }
+    const verifyArgs = ['scripts/verify-qa-access.mjs', '--password', opts.qaPassword, '--base-url', opts.qaBaseUrl]
+    const verified = spawnSync(process.execPath, verifyArgs, {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        QA_TEST_PASSWORD: opts.qaPassword,
+        QA_VERIFY_BASE_URL: opts.qaBaseUrl,
+      },
+    })
+    if (verified.status !== 0) {
+      throw new Error(`La verificación QA falló con código ${verified.status || 1}.`)
+    }
+    console.log('\nQA/GodMode verificado correctamente después del reset.')
+  }
+
   process.exit(0)
 }
 

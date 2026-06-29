@@ -1,6 +1,28 @@
 # BITÁCORA — Church System
 ---
 
+## Reset más operable: reseed y verificación QA/GodMode desde el mismo flujo — 2026-06-29
+
+**Estado actual:** el reset de datos ya no queda “a mitad de camino”. El script de reset ahora puede dejar resembradas las cuentas QA/GodMode y verificar el acceso inmediatamente después, usando la misma contraseña/base URL definida para pruebas.
+
+### Falla detectada
+- `scripts/reset-account-data.mjs` solo truncaba tablas; no ofrecía un puente directo para reconstruir y validar las cuentas QA/GodMode después del reset.
+- Eso obligaba a recordar una secuencia manual separada (`reset` → `seed:test-users` → `verify:qa-access`) justo en el momento más sensible del estado de fábrica.
+
+### Corrección aplicada
+- `scripts/reset-account-data.mjs`: agregados flags:
+  - `--reseed-qa`
+  - `--verify-qa`
+  - `--qa-password`
+  - `--qa-base-url`
+- `scripts/reset-account-data.mjs`: después del truncado, ahora puede ejecutar `scripts/seed-test-users.mjs` y luego `scripts/verify-qa-access.mjs` con `spawnSync`.
+- `scripts/reset-account-data.mjs`: el dry-run muestra también el plan de post-reset QA si esos flags están activos.
+
+### Evidencia
+- `node --check scripts/reset-account-data.mjs` → OK.
+- `node scripts/reset-account-data.mjs --json --reseed-qa --verify-qa --qa-password 'ChurchTest-2026!'` → dry-run OK.
+- `QA_TEST_PASSWORD='ChurchTest-2026!' node scripts/verify-qa-access.mjs` → OK, 12 cuentas QA formales + 12 aliases + `GodMode overview`.
+
 ## OAuth más prolijo: forzar setup también en cuentas existentes con onboarding incompleto — 2026-06-29
 
 **Estado actual:** Google y Apple ya no fuerzan setup solo en cuentas recién creadas. Si el usuario ya existía pero todavía tenía onboarding incompleto, el callback OAuth ahora devuelve `setup=1` igual y la app entra directo al wizard inicial.
