@@ -1,6 +1,32 @@
 # BITÁCORA — Church System
 ---
 
+## Reset + QA/GodMode más operables: atajos `pnpm` para fábrica, auditoría y elevación — 2026-06-29
+
+**Estado actual:** además de que el reset, la auditoría QA y GodMode ya funcionaban, ahora también quedaron expuestos con comandos cortos y memorables para operación diaria. Esto reduce errores manuales justo en el flujo sensible de “dejar la app limpia, resembrar QA y volver a verificar acceso total”.
+
+### Falla detectada
+- Aunque ya existían `scripts/reset-account-data.mjs`, `scripts/audit-objective.mjs` y `scripts/make-superadmin.mjs`, todavía había que recordar flags largos o comandos sueltos para correr:
+  - reset destructivo + reseed QA + verify QA
+  - auditoría estricta con contraseña QA
+  - elevación manual a GodMode
+- Eso agregaba fricción operativa innecesaria incluso con la lógica ya resuelta.
+
+### Corrección aplicada
+- `package.json`: agregado `audit:objective:qa` → corre `scripts/audit-objective.mjs --strict-qa-password`.
+- `package.json`: agregado `reset:factory:qa` → corre reset completo + reseed QA + verify QA en un solo comando.
+- `package.json`: agregado `godmode:grant` → expone `scripts/make-superadmin.mjs` como comando raíz.
+- `README.md`: documentados los tres flujos nuevos con ejemplos listos para copiar.
+
+### Evidencia
+- Estado actual auditado:
+  - `QA_TEST_PASSWORD='ChurchTest-2026!' node scripts/audit-objective.mjs --base-url http://127.0.0.1:4000` → `0 error(es), 0 advertencia(s), 62 check(s) OK`
+  - `QA_TEST_PASSWORD='ChurchTest-2026!' node scripts/audit-objective.mjs --base-url https://churchsystem.com.ar` → `0 error(es), 6 advertencia(s), 62 check(s) OK` (advertencias TLS esperadas del runtime local de Node)
+- Verificación estructural de scripts en `package.json`:
+  - `audit:objective:qa`
+  - `godmode:grant`
+  - `reset:factory:qa`
+
 ## Signup más consistente: apellido persistido + retorno OAuth robusto también en registro — 2026-06-29
 
 **Estado actual:** el alta por email ya no pierde el apellido que el usuario carga en el formulario, y el retorno OAuth desde la pantalla de registro ahora usa el mismo puente de sesión robusto que ya habíamos agregado en login para browsers embebidos/mobile.

@@ -5,6 +5,7 @@
   "scripts": {
     "audit": "node scripts/audit.mjs",
     "audit:objective": "node scripts/audit-objective.mjs",
+    "audit:objective:qa": "node scripts/audit-objective.mjs --strict-qa-password",
     "audit:json": "node scripts/audit.mjs --json",
     "audit:log": "node scripts/audit.mjs --out logs/audit-$(date +%Y%m%d-%H%M%S).log",
     "diagnostico": "bash scripts/diagnostico.sh",
@@ -13,7 +14,9 @@
     "render:diagnose": "node scripts/diagnose-render-candidate.mjs",
     "render:blueprint-link": "node scripts/render-blueprint-link.mjs",
     "render:validate": "node scripts/validate-render-blueprint.mjs",
+    "godmode:grant": "node scripts/make-superadmin.mjs",
     "reset:accounts": "node scripts/reset-account-data.mjs",
+    "reset:factory:qa": "node scripts/reset-account-data.mjs --execute --confirm RESET_ACCOUNT_DATA --allow-production --reseed-qa --verify-qa",
     "seed:test-users": "node scripts/seed-test-users.mjs",
     "setup:backend": "bash scripts/setup-backend-launchd.sh",
     "setup:cloudflared": "bash scripts/setup-cloudflared-launchd.sh",

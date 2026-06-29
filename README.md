@@ -378,6 +378,9 @@ pnpm reset:accounts
 # Ejecutar solo cuando se quiera borrar la data de cuentas de la DB configurada:
 pnpm reset:accounts -- --execute --confirm RESET_ACCOUNT_DATA --allow-production
 
+# Flujo completo de fábrica + QA (requiere QA_TEST_PASSWORD en el entorno):
+QA_TEST_PASSWORD="tu-clave-qa" pnpm reset:factory:qa
+
 # Smoke no destructivo: health + catálogo de planes/tarjetas
 pnpm smoke:signup -- --dry-run
 
@@ -394,6 +397,15 @@ El seeder crea cuentas de prueba por rol y por plan, sin guardar la contraseña 
 ```bash
 pnpm seed:test-users
 pnpm seed:test-users -- --password "clave-temporal-segura"
+
+# Verificar logins QA + aliases + GodMode overview
+QA_TEST_PASSWORD="clave-temporal-segura" pnpm verify:qa-access
+
+# Auditoría objetiva completa con chequeo estricto de contraseña QA
+QA_TEST_PASSWORD="clave-temporal-segura" pnpm audit:objective:qa
+
+# Dar GodMode a un usuario existente con su contraseña actual
+pnpm godmode:grant -- pastor@tuiglesia.com
 ```
 
 Emails generados: `qa.godmode@churchsystem.test`, `qa.pastor.general@churchsystem.test`, `qa.pastor.culto@churchsystem.test`, `qa.consolidacion@churchsystem.test`, `qa.staff@churchsystem.test`, `qa.lider@churchsystem.test` y `qa.plan.*@churchsystem.test`.
