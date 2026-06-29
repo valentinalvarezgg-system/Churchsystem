@@ -1,6 +1,36 @@
 # BITÁCORA — Church System
 ---
 
+## Auditoría producción: web viva, origen aún dependiente de túnel local — 2026-06-29
+
+**Estado actual:** `churchsystem.com.ar` responde correctamente desde producción y la auditoría objetiva pasa sin errores. El riesgo principal de disponibilidad ya no aparece como un fallo actual de auth/backend, sino como dependencia operativa del Cloudflare Tunnel local hacia `localhost:4000`.
+
+### Falla/riesgo detectado
+- `https://churchsystem.com.ar` responde `200`.
+- `https://churchsystem.com.ar/health` responde `{"status":"ok"}`.
+- `https://churchsystem.com.ar/auth/me` responde `401` sin sesión, comportamiento esperado.
+- `scripts/verify-prod.mjs` reporta 0 errores, pero advierte que el origen depende de Cloudflare Tunnel local.
+- El candidato Render `https://church-system.onrender.com/health` queda en timeout.
+- No hay `render` CLI ni `RENDER_API_KEY` en esta sesión, por lo que no se pueden inspeccionar logs/deploys remotos desde Codex.
+
+### Diagnóstico aplicado
+- `node scripts/verify-prod.mjs` → `0 error(es), 4 advertencia(s)`.
+- `QA_TEST_PASSWORD='ChurchTest-2026!' node scripts/audit-objective.mjs --base-url https://churchsystem.com.ar` → `0 error(es), 6 advertencia(s), 62 check(s) OK`.
+- `node scripts/validate-render-blueprint.mjs` → `0 error(es), 0 advertencia(s)`.
+- `node scripts/check-migration-env.mjs` → `0 error(es), 1 advertencia(s)` por secretos opcionales/manuales.
+- `node scripts/diagnose-render-candidate.mjs` → timeout en candidato Render; requiere revisar dashboard Render Business.
+
+### Próximo paso operativo
+- Entrar al dashboard Render Business con la cuenta nueva.
+- Crear o revisar el Blueprint con:
+  - `https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2Fvalentinalvarezgg-system%2FChurchsystem`
+- Cargar secretos mínimos obligatorios:
+  - `DATABASE_URL`
+  - `JWT_SECRET`
+  - `QR_SECRET`
+- Confirmar deploy healthy en `https://church-system.onrender.com/health`.
+- Recién después ejecutar preflight de corte y mover origen/DNS para dejar de depender del túnel local.
+
 ## Eventos más liviano: RSVP con consultas paralelas — 2026-06-29
 
 **Estado actual:** el resumen RSVP de eventos mantiene la misma respuesta, pero resuelve resumen y detalle en paralelo y refuerza el join de persona por tenant.
