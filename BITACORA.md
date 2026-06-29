@@ -1,6 +1,27 @@
 # BITÁCORA — Church System
 ---
 
+## Signup Free más limpio: onboarding sin bloqueo falso de facturación — 2026-06-29
+
+**Estado actual:** el plan Free ya no queda atrapado en una lógica de facturación pensada para planes pagos. El wizard inicial y el gate global ahora distinguen correctamente cuándo hace falta confirmar billing y cuándo no.
+
+### Falla detectada
+- `frontend/src/App.jsx` reabría el wizard si existía estado de onboarding y `onboarding_billing_confirmed` seguía en `0`, incluso para cuentas `FREE`.
+- `frontend/src/pages/SetupWizard.jsx` también exigía esa confirmación en el paso comercial aunque el usuario hubiera elegido `FREE`.
+- Eso hacía que el alta gratuita se sintiera artificialmente “incompleta” y menos profesional.
+
+### Corrección aplicada
+- `frontend/src/App.jsx`: el gate global ahora solo exige `onboarding_billing_confirmed` si el plan seleccionado requiere facturación (`onboardingPlan !== 'FREE'`).
+- `frontend/src/pages/SetupWizard.jsx`: el paso comercial ahora usa `requiresBillingConfirmation` para validar solo planes pagos.
+- `frontend/src/pages/SetupWizard.jsx`: para `FREE`, se reemplaza el checkbox de confirmación comercial por un mensaje claro de que puede completar setup sin configurar cobro.
+
+### Evidencia
+- Verificación estructural:
+  - `appUsesFreeGate: true`
+  - `setupUsesFreeGate: true`
+  - `setupHasFreeMessage: true`
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Notificaciones diarias más eficientes: batching de counts, nombres y subscriptions admin — 2026-06-29
 
 **Estado actual:** el envío diario de alertas pastorales ya no consulta cumpleaños, seguimientos vencidos, visitantes, nombres de iglesia y subscriptions admin iglesia por iglesia. Ahora precarga esos datos en batch y después solo recorre los tenants para enviar.

@@ -11,6 +11,7 @@ import UpgradeGate from './components/UpgradeGate.jsx'
 import BugReporter from './components/BugReporter.jsx'
 import { OfflineBadge } from './components/OfflineBadge.jsx'
 import { useDevice } from './hooks/useDevice.js'
+import { normalizeCommercialPlan } from './lib/commercialPlans.js'
 
 // Lazy-loaded pages — cada página se descarga solo cuando el usuario navega a ella
 const Login            = lazy(() => import('./pages/Login.jsx'))
@@ -101,10 +102,12 @@ function useSetupCheck() {
       .then(cfg => {
         const completado  = cfg.setup_completado === '1' || cfg.setup_completado === true
         const billingOk = cfg.onboarding_billing_confirmed === '1' || cfg.onboarding_billing_confirmed === true
+        const onboardingPlan = normalizeCommercialPlan(cfg.onboarding_plan || user?.plan || 'FREE') || 'FREE'
+        const requiresBillingConfirmation = onboardingPlan !== 'FREE'
         const tieneNombre = !!cfg.nombre_iglesia
         const hasOnboardingState = typeof cfg.onboarding_billing_confirmed !== 'undefined'
           || typeof cfg.onboarding_plan !== 'undefined'
-        setMostrarWizard(!completado || !tieneNombre || (hasOnboardingState && !billingOk))
+        setMostrarWizard(!completado || !tieneNombre || (hasOnboardingState && requiresBillingConfirmation && !billingOk))
         setCheckeado(true)
       })
       .catch(() => setCheckeado(true))

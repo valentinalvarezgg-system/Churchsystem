@@ -85,6 +85,7 @@ export default function SetupWizard({ onCompleto }) {
 
   const f = (k, v) => setConfig(p => ({ ...p, [k]: v }))
   const selectedOnboardingPlan = normalizeCommercialPlan(config.onboarding_plan || user?.plan || 'FREE') || 'FREE'
+  const requiresBillingConfirmation = selectedOnboardingPlan !== 'FREE'
   const shouldRouteToBilling = selectedOnboardingPlan !== 'FREE' && !billing?.suscActiva
   const onboardingPlans = COMMERCIAL_PLAN_ORDER
     .map(key => {
@@ -106,7 +107,7 @@ export default function SetupWizard({ onCompleto }) {
       toast.error('Completá el nombre de la iglesia para continuar.')
       return false
     }
-    if (paso === 1 && String(config.onboarding_billing_confirmed || '0') !== '1') {
+    if (paso === 1 && requiresBillingConfirmation && String(config.onboarding_billing_confirmed || '0') !== '1') {
       toast.error('Confirmá el plan y el próximo paso de facturación para continuar.')
       return false
     }
@@ -329,38 +330,54 @@ export default function SetupWizard({ onCompleto }) {
                   fontSize: 12,
                   lineHeight: 1.6,
                 }}>
-                  Esta etapa deja documentado el plan objetivo del onboarding. Si elegís un plan pago, al terminar este wizard te llevamos a Facturación para revisar el checkout real con Mercado Pago/PayPal según país y configuración.
+                  {requiresBillingConfirmation
+                    ? 'Esta etapa deja documentado el plan objetivo del onboarding. Si elegís un plan pago, al terminar este wizard te llevamos a Facturación para revisar el checkout real con Mercado Pago/PayPal según país y configuración.'
+                    : 'Esta etapa deja documentado que arrancás con el plan Free. Podés terminar el onboarding sin configurar cobro y subir de plan después cuando lo necesites.'}
                 </div>
 
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 10,
-                  padding: '14px',
-                  borderRadius: 12,
-                  background: String(config.onboarding_billing_confirmed || '0') === '1'
-                    ? 'rgba(22,163,74,0.12)'
-                    : 'rgba(255,255,255,0.04)',
-                  border: String(config.onboarding_billing_confirmed || '0') === '1'
-                    ? '1px solid rgba(22,163,74,0.3)'
-                    : '1px solid rgba(255,255,255,0.08)',
-                  cursor: 'pointer',
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={String(config.onboarding_billing_confirmed || '0') === '1'}
-                    onChange={e => f('onboarding_billing_confirmed', e.target.checked ? '1' : '0')}
-                    style={{ marginTop: 3 }}
-                  />
-                  <div>
-                    <div style={{ color: 'white', fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
-                      Confirmo el plan objetivo del onboarding
+                {requiresBillingConfirmation ? (
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    padding: '14px',
+                    borderRadius: 12,
+                    background: String(config.onboarding_billing_confirmed || '0') === '1'
+                      ? 'rgba(22,163,74,0.12)'
+                      : 'rgba(255,255,255,0.04)',
+                    border: String(config.onboarding_billing_confirmed || '0') === '1'
+                      ? '1px solid rgba(22,163,74,0.3)'
+                      : '1px solid rgba(255,255,255,0.08)',
+                    cursor: 'pointer',
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={String(config.onboarding_billing_confirmed || '0') === '1'}
+                      onChange={e => f('onboarding_billing_confirmed', e.target.checked ? '1' : '0')}
+                      style={{ marginTop: 3 }}
+                    />
+                    <div>
+                      <div style={{ color: 'white', fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
+                        Confirmo el plan objetivo del onboarding
+                      </div>
+                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, lineHeight: 1.5 }}>
+                        Entiendo que el trial queda activo ahora y que la configuración comercial final se completa después desde Facturación.
+                      </div>
                     </div>
-                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, lineHeight: 1.5 }}>
-                      Entiendo que el trial queda activo ahora y que la configuración comercial final se completa después desde Facturación.
-                    </div>
+                  </label>
+                ) : (
+                  <div style={{
+                    padding: '14px',
+                    borderRadius: 12,
+                    background: 'rgba(22,163,74,0.12)',
+                    border: '1px solid rgba(22,163,74,0.3)',
+                    color: 'rgba(255,255,255,0.78)',
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                  }}>
+                    El plan Free no requiere confirmar facturación en esta etapa. Podés completar el setup ahora y decidir un upgrade más adelante desde Facturación.
                   </div>
-                </label>
+                )}
               </div>
             )}
 
