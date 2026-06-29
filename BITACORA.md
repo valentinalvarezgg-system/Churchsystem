@@ -1,6 +1,39 @@
 # BITÁCORA — Church System
 ---
 
+## Reportes más livianos: menos queries seriales y más agregación reutilizable — 2026-06-29
+
+**Estado actual:** el módulo `Reportes` ya no arma sus respuestas combinando tantas consultas seriales para métricas base. Ahora reutiliza un helper agregado para totales de personas/grupos y ejecuta sus datasets en paralelo, manteniendo el mismo contrato para frontend.
+
+### Falla detectada
+- `backend/src/routes/reportes.js` seguía siendo un cuello real de backend:
+  - `/reportes/semanal` resolvía varias consultas una detrás de otra y además calculaba `totales` con cuatro `pgOne()` seriales.
+  - `/reportes/general` repetía el mismo patrón para `totales`.
+  - `/reportes/mensual` también corría datasets de forma secuencial aunque eran independientes.
+- Como `frontend/src/pages/Reportes.jsx` refresca usando `useRealtimeQuery`, ese costo extra se paga cada vez que la vista se vuelve a pedir.
+
+### Corrección aplicada
+- `backend/src/routes/reportes.js`: agregado helper `getReportTotals()` que consolida en menos roundtrips:
+  - personas
+  - activos
+  - visitantes
+  - grupos
+- `backend/src/routes/reportes.js`: `/reportes/semanal` ahora ejecuta `nuevasPersonas`, `cultos`, `seguimientos`, `ofrendas` y `totales` con `Promise.all`.
+- `backend/src/routes/reportes.js`: `/reportes/general` ahora ejecuta `nuevasPersonas`, `cultos`, `seguimientos`, `crecimiento` y `totales` con `Promise.all`.
+- `backend/src/routes/reportes.js`: `/reportes/mensual` ahora carga `personas`, `crecimiento`, `asistencia` y `finanzas` en paralelo.
+
+### Evidencia
+- Verificación estructural:
+  - `getReportTotals: true`
+  - `Promise.all` en `reportes.js`: `4`
+- Verificación sintáctica:
+  - `node --check backend/src/routes/reportes.js` → OK
+- Verificación funcional sobre backend fresco (`PORT=4102 node backend/src/server.js`):
+  - login QA `max@test.com` → OK
+  - `GET /reportes/general?periodo=mes` → `200`
+  - respuesta con `periodo`, `totales`, `nuevasPersonas`, `cultos`, `seguimientos`, `crecimiento`
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Reset + QA/GodMode más operables: atajos `pnpm` para fábrica, auditoría y elevación — 2026-06-29
 
 **Estado actual:** además de que el reset, la auditoría QA y GodMode ya funcionaban, ahora también quedaron expuestos con comandos cortos y memorables para operación diaria. Esto reduce errores manuales justo en el flujo sensible de “dejar la app limpia, resembrar QA y volver a verificar acceso total”.
