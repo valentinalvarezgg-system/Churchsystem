@@ -64,7 +64,7 @@ export default function EmailVerificacion({ email, nombre, onVerificado, initial
       <p style={{fontSize:13,color:'#94A3B8',margin:'0 0 28px'}}>Código de 6 dígitos enviado a <strong style={{color:'#CBD5E1'}}>{email}</strong></p>
       <form onSubmit={e=>{e.preventDefault();if(completo)verificar(codigos.join(''))}}>
         <div style={{display:'flex',gap:10,justifyContent:'center',marginBottom:24}}>
-          {codigos.map((d,i)=><input key={i} ref={el=>inputs.current[i]=el} type="text" inputMode="numeric" maxLength={1} value={d}
+          {codigos.map((d,i)=><input key={i} ref={el=>inputs.current[i]=el} type="text" inputMode="numeric" pattern="[0-9]*" autoComplete={i===0?'one-time-code':'off'} enterKeyHint={i===5?'done':'next'} maxLength={1} value={d}
             onChange={e=>handleDigit(i,e.target.value)} onKeyDown={e=>handleKeyDown(i,e)} onPaste={i===0?handlePaste:undefined} disabled={loading}
             style={{width:48,height:56,textAlign:'center',fontSize:24,fontWeight:800,fontFamily:'monospace',background:d?'#6B5CFF18':'rgba(15,23,42,0.6)',border:`2px solid ${d?'#6B5CFF':error?'#ef4444':'rgba(255,255,255,0.1)'}`,borderRadius:12,color:'#F1F5F9',outline:'none'}}/>)}
         </div>

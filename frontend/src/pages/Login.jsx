@@ -206,10 +206,18 @@ export default function Login() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="on">
           <div style={{marginBottom:14}}>
             <label style={S.label}>Email</label>
-            <input name="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false}
+            <input
+              id="login-email"
+              name="email"
+              autoComplete="username"
+              autoCorrect="off"
+              inputMode="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="next"
               type="email" required disabled={loading} value={email}
               onChange={e=>setEmail(e.target.value)} placeholder="vos@iglesia.com"
               style={S.input}
@@ -220,6 +228,11 @@ export default function Login() {
             <label style={S.label}>{t('password')}</label>
             <div style={{position:'relative'}}>
               <input name="password" autoComplete="current-password"
+                id="login-password"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                enterKeyHint="go"
                 type={showPass?'text':'password'} required disabled={loading} value={password}
                 onChange={e=>setPassword(e.target.value)} placeholder="••••••••"
                 style={{...S.input, paddingRight:44}}

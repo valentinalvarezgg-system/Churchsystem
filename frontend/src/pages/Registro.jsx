@@ -640,18 +640,28 @@ export default function Registro() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleRegistro} style={{display:'flex', flexDirection:'column', gap:13}}>
+            <form onSubmit={handleRegistro} autoComplete="on" style={{display:'flex', flexDirection:'column', gap:13}}>
               <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:12}}>
                 <div>
                   <label style={label}>{t('firstName')}</label>
-                  <input type="text" required value={form.nombre} placeholder="Juan"
+                  <input
+                    name="givenName"
+                    autoComplete="given-name"
+                    autoCapitalize="words"
+                    enterKeyHint="next"
+                    type="text" required value={form.nombre} placeholder="Juan"
                     style={inp} onChange={e=>f('nombre',e.target.value)}
                     onFocus={e=>e.target.style.borderColor=c.pri}
                     onBlur={e=>e.target.style.borderColor=c.border}/>
                 </div>
                 <div>
                   <label style={label}>{t('lastName')}</label>
-                  <input type="text" value={form.apellido} placeholder="Pérez"
+                  <input
+                    name="familyName"
+                    autoComplete="family-name"
+                    autoCapitalize="words"
+                    enterKeyHint="next"
+                    type="text" value={form.apellido} placeholder="Pérez"
                     style={inp} onChange={e=>f('apellido',e.target.value)}
                     onFocus={e=>e.target.style.borderColor=c.pri}
                     onBlur={e=>e.target.style.borderColor=c.border}/>
@@ -659,7 +669,15 @@ export default function Registro() {
               </div>
               <div>
                 <label style={label}>{t('email')}</label>
-                <input type="email" required value={form.email} placeholder="vos@iglesia.com"
+                <input
+                  name="email"
+                  autoComplete="username"
+                  autoCorrect="off"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  enterKeyHint="next"
+                  type="email" required value={form.email} placeholder="vos@iglesia.com"
                   style={inp} onChange={e=>f('email',e.target.value)}
                   onFocus={e=>e.target.style.borderColor=c.pri}
                   onBlur={e=>e.target.style.borderColor=c.border}/>
@@ -667,7 +685,14 @@ export default function Registro() {
               <div>
                 <label style={label}>{t('password')}</label>
                 <div style={{position:'relative'}}>
-                  <input type={showPass?'text':'password'} required minLength={8}
+                  <input
+                    name="password"
+                    autoComplete="new-password"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    enterKeyHint="next"
+                    type={showPass?'text':'password'} required minLength={8}
                     value={form.password} placeholder="••••••••"
                     style={{...inp, paddingRight:40}} onChange={e=>f('password',e.target.value)}
                     onFocus={e=>e.target.style.borderColor=c.pri}
@@ -684,7 +709,14 @@ export default function Registro() {
               <div>
                 <label style={label}>{t('confirmPassword')}</label>
                 <div style={{position:'relative'}}>
-                  <input type={showPass2?'text':'password'} required
+                  <input
+                    name="passwordConfirm"
+                    autoComplete="new-password"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    enterKeyHint="done"
+                    type={showPass2?'text':'password'} required
                     value={form.confirmar} placeholder="••••••••"
                     style={{...inp, paddingRight:40,
                       borderColor: form.confirmar && form.confirmar!==form.password ? '#ef4444' : c.border}}

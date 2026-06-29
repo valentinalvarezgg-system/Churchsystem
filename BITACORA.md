@@ -1,6 +1,24 @@
 # BITÁCORA — Church System
 ---
 
+## Auth mobile/profesional: mejor autofill y password manager — 2026-06-28
+
+**Estado actual:** login, registro y verificación por código quedan mejor preparados para Safari/iPhone, gestores de contraseñas y autofill nativo. Esto reduce errores manuales y hace más fluido el acceso en mobile, donde está la mayor parte del uso real.
+
+### Falla detectada
+- `frontend/src/pages/Login.jsx` y `frontend/src/pages/Registro.jsx` ya funcionaban, pero varios campos todavía no exponían metadatos semánticos ideales para password managers (`username`, `new-password`, `given-name`, `family-name`, `enterKeyHint`, etc.).
+- `frontend/src/components/EmailVerificacion.jsx` usaba `inputMode="numeric"`, pero no marcaba el primer input como `one-time-code`, perdiendo ayuda del autofill OTP en iOS.
+- En mobile esto puede empeorar la experiencia: sugerencias inconsistentes del llavero, menos autocompletado y más fricción al crear/restablecer credenciales.
+
+### Corrección aplicada
+- `frontend/src/pages/Login.jsx`: formulario con `autoComplete="on"`; email marcado como `username`; password marcado como `current-password`; agregados `enterKeyHint`, `autoCorrect="off"` y `spellCheck={false}`.
+- `frontend/src/pages/Registro.jsx`: nombres con `given-name` / `family-name`; email como `username`; password y confirmación como `new-password`; agregados `enterKeyHint`, `inputMode`, `autoCapitalize` y `spellCheck` acordes.
+- `frontend/src/components/EmailVerificacion.jsx`: primer input del código marcado con `autoComplete="one-time-code"` y `pattern="[0-9]*"` para mejorar OTP/autofill en mobile.
+
+### Evidencia
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+- Nuevos bundles generados: `frontend/dist/assets/Login-Bi5iQfXA.js` y `frontend/dist/assets/Registro-DUd6PAeO.js`.
+
 ## Diagnóstico dedicado para candidato Render caído — 2026-06-28
 
 **Estado actual:** además del verificador de producción y del preflight de cutover, ahora existe un diagnóstico puntual para el candidato `.onrender.com`. Esto ayuda a distinguir rápidamente si el bloqueo restante es DNS, healthcheck o falta de acceso al dashboard/CLI de Render.
