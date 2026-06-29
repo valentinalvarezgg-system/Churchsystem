@@ -49,5 +49,14 @@ done < "$ENV_FILE"
 export NODE_ENV="${NODE_ENV:-production}"
 export PORT="${PORT:-4000}"
 
+if [[ -z "${NODE_EXTRA_CA_CERTS:-}" ]]; then
+  for ca in /etc/ssl/cert.pem /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt; do
+    if [[ -r "$ca" ]]; then
+      export NODE_EXTRA_CA_CERTS="$ca"
+      break
+    fi
+  done
+fi
+
 cd "$BACKEND_DIR"
 exec "$NODE_BIN" "$BACKEND_DIR/src/server.js"

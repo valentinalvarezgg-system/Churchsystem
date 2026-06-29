@@ -33,7 +33,7 @@ function normalizePlanInput(raw = '') {
 const REG_I18N = {
   es: {
     steps:['Plan', 'Cuenta', 'Verificar', 'Listo'],
-    oauthOk:'Cuenta creada correctamente', oauthMissing:'OAuth no configurado aún', oauthError:'No pudimos completar el acceso con este proveedor.',
+    oauthOk:'Cuenta creada correctamente', oauthMissing:'OAuth no configurado para este dominio', oauthError:'No pudimos completar el acceso con este proveedor. Intentá nuevamente o usá email.', oauthExpired:'La sesión OAuth expiró en el navegador. Volvé a tocar Google o Apple.', oauthNoToken:'El proveedor no devolvió token. Revisá la configuración OAuth del dominio.',
     passwordMismatch:'Las contraseñas no coinciden', passwordMin:'Mínimo 8 caracteres',
     createError:'Error al crear la cuenta', choosePlanToast:'Elegí un plan para continuar',
     stepCounter:'Paso 1 de 3', choosePlan:'Elegí tu plan',
@@ -58,7 +58,7 @@ const REG_I18N = {
   },
   pt: {
     steps:['Plano', 'Conta', 'Verificar', 'Pronto'],
-    oauthOk:'Conta criada com sucesso', oauthMissing:'OAuth ainda não configurado', oauthError:'Não foi possível concluir o acesso com este provedor.',
+    oauthOk:'Conta criada com sucesso', oauthMissing:'OAuth não está configurado para este domínio', oauthError:'Não foi possível concluir o acesso com este provedor. Tente novamente ou use email.', oauthExpired:'A sessão OAuth expirou no navegador. Toque novamente em Google ou Apple.', oauthNoToken:'O provedor não devolveu token. Revise a configuração OAuth do domínio.',
     passwordMismatch:'As senhas não coincidem', passwordMin:'Mínimo de 8 caracteres',
     createError:'Erro ao criar a conta', choosePlanToast:'Escolha um plano para continuar',
     stepCounter:'Passo 1 de 3', choosePlan:'Escolha seu plano',
@@ -83,7 +83,7 @@ const REG_I18N = {
   },
   en: {
     steps:['Plan', 'Account', 'Verify', 'Done'],
-    oauthOk:'Account created successfully', oauthMissing:'OAuth is not configured yet', oauthError:'We could not complete sign in with this provider.',
+    oauthOk:'Account created successfully', oauthMissing:'OAuth is not configured for this domain', oauthError:'We could not complete sign in with this provider. Try again or use email.', oauthExpired:'The OAuth session expired in the browser. Tap Google or Apple again.', oauthNoToken:'The provider did not return a token. Check the domain OAuth configuration.',
     passwordMismatch:'Passwords do not match', passwordMin:'Minimum 8 characters',
     createError:'Error creating account', choosePlanToast:'Choose a plan to continue',
     stepCounter:'Step 1 of 3', choosePlan:'Choose your plan',
@@ -289,8 +289,8 @@ export default function Registro() {
       const oauth = searchParams.get('oauth')
       const error = searchParams.get('error')
       if (oauth === '1') {
+        const bridge = String(searchParams.get('bridge') || '').trim()
         try {
-          const bridge = String(searchParams.get('bridge') || '').trim()
           let res
           try {
             res = await apiFetch('/auth/refresh', { method: 'POST', skipAuthRedirect: true })
@@ -309,13 +309,25 @@ export default function Registro() {
           await touchSesion()
           toast.success(msg.oauthOk)
           navigate('/', { replace: true })
-        } catch {
-          toast.error(msg.oauthError)
+        } catch (err) {
+          const oauthFallback = bridge ? msg.oauthExpired : msg.oauthError
+          toast.error(bridge ? (err?.message || oauthFallback) : oauthFallback)
           clearOAuthParams()
         }
       } else if (error) {
-        const missing = error === 'oauth_not_configured' || error === 'apple_not_configured'
-        toast.error(missing ? msg.oauthMissing : msg.oauthError)
+        const oauthMessages = {
+          oauth_not_configured: msg.oauthMissing,
+          apple_not_configured: msg.oauthMissing,
+          no_token: msg.oauthNoToken,
+          no_code: msg.oauthError,
+          oauth_failed: msg.oauthError,
+          account_disabled: lang === 'pt'
+            ? 'Conta desativada. Fale com o administrador.'
+            : lang === 'en'
+              ? 'Account disabled. Contact the administrator.'
+              : 'Cuenta desactivada. Contactá al administrador.',
+        }
+        toast.error(oauthMessages[error] || msg.oauthError)
         clearOAuthParams()
       }
     }

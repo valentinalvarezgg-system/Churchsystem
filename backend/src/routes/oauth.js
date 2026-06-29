@@ -112,7 +112,9 @@ async function requiresSetupForUser(user) {
   const hasOnboardingState = typeof cfg?.billingConfirmed !== 'undefined' && cfg?.billingConfirmed !== null
     || typeof cfg?.onboardingPlan !== 'undefined' && cfg?.onboardingPlan !== null
   const tieneNombre = !!String(cfg?.nombreIglesia || '').trim()
-  return !completado || !tieneNombre || (hasOnboardingState && !billingOk)
+  const onboardingPlan = normalizePlan(cfg?.onboardingPlan || user.plan || 'FREE')
+  const planRequiresBilling = onboardingPlan !== 'FREE'
+  return !completado || !tieneNombre || (hasOnboardingState && planRequiresBilling && !billingOk)
 }
 
 async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '', emailVerified = true, context = {}, frontUrl = process.env.FRONTEND_URL || process.env.BASE_URL || '' }) {

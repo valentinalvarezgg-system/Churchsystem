@@ -110,8 +110,8 @@ export default function Login() {
       const oauth = searchParams.get('oauth')
       const error = searchParams.get('error')
       if (oauth === '1') {
+        const bridge = String(searchParams.get('bridge') || '').trim()
         try {
-          const bridge = String(searchParams.get('bridge') || '').trim()
           let res
           try {
             res = await apiFetch('/auth/refresh', { method: 'POST', skipAuthRedirect: true })
@@ -132,8 +132,11 @@ export default function Login() {
           await touchSesion()
           toast.success(copy.ok)
           navigate('/', { replace: true })
-        } catch {
-          toast.error(copy.authError)
+        } catch (err) {
+          const oauthFallback = bridge
+            ? (copy.errors?.oauth_session_expired || copy.authError)
+            : copy.authError
+          toast.error(bridge ? (err?.message || oauthFallback) : oauthFallback)
           clearOAuthParams()
         }
       } else if (error) {
@@ -180,6 +183,14 @@ export default function Login() {
         href: recoverHref,
       }
     }
+    if (code === 'AUTH_INVALID_CREDENTIALS' || /credenciales inv[aá]lidas/i.test(text)) {
+      return {
+        title: 'Revisá el email del llavero',
+        body: 'El iPhone puede completar una contraseña guardada para otra cuenta. Confirmá que el email y la contraseña correspondan.',
+        linkLabel: 'Recuperar contraseña',
+        href: recoverHref,
+      }
+    }
     return null
   }
 
@@ -205,8 +216,9 @@ export default function Login() {
       await touchSesion()
       navigate('/')
     } catch(err) {
-      const message = err.message || t('invalid')
-      setAuthGuidance(guidanceFromError(message, nextEmail, err.code))
+      const invalidCredentials = err.code === 'AUTH_INVALID_CREDENTIALS' || /credenciales inv[aá]lidas/i.test(err.message || '')
+      const message = invalidCredentials ? t('invalid') : (err.message || t('invalid'))
+      setAuthGuidance(guidanceFromError(message, nextEmail, invalidCredentials ? 'AUTH_INVALID_CREDENTIALS' : err.code))
       toast.error(message)
     }
     finally { setLoading(false) }

@@ -1,6 +1,37 @@
 # BITÁCORA — Church System
 ---
 
+## Auth/OAuth mobile recuperado: CA del backend + mensajes accionables — 2026-06-29
+
+**Estado actual:** el login por email vuelve a responder con códigos estructurados en producción y el acceso con Google ya no cae en `oauth_failed` por falla TLS local del backend. El usuario deja de ver el toast genérico `Error en autenticación` y recibe una guía específica según credenciales, OAuth o configuración del proveedor.
+
+### Falla detectada
+- El screenshot móvil mostraba `Error en autenticación` después de intentar acceder desde `churchsystem.com.ar`.
+- En logs de producción local apareció `OAuth Google error` con `fetch failed` durante `/oauth/google/callback`.
+- La prueba directa con Node confirmó `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` al llamar `https://oauth2.googleapis.com/token`; `curl` sí funcionaba.
+- El backend productivo estaba levantado por `launchd`, pero el wrapper no exportaba `NODE_EXTRA_CA_CERTS`, por lo que los `fetch()` externos de Node no confiaban en la CA del sistema.
+- El frontend además seguía mostrando mensajes demasiado genéricos para `oauth_failed`, `no_token` y credenciales inválidas/autofill de iPhone.
+
+### Corrección aplicada
+- `scripts/run-backend-launchd.sh`: ahora exporta `NODE_EXTRA_CA_CERTS` automáticamente desde la CA disponible del sistema (`/etc/ssl/cert.pem`, Debian o RHEL) antes de arrancar Node.
+- `frontend/src/utils/i18n-auth.js`: mensajes de login/OAuth más accionables en es/pt/en, incluyendo sesión OAuth expirada y configuración del dominio.
+- `frontend/src/pages/Login.jsx`: credenciales inválidas se mapean a guía de recuperación/autofill y el retorno OAuth usa mensajes específicos cuando falla refresh/bridge.
+- `frontend/src/pages/Registro.jsx`: signup/OAuth muestra errores específicos para proveedor no configurado, token ausente y sesión OAuth expirada.
+- `backend/src/lib/sessions.js`: `sesiones_auth` y `oauth_bridge_tokens` ahora se aseguran bajo demanda además del boot, evitando carreras al crear/consumir el bridge OAuth.
+- `backend/src/routes/oauth.js`: el setup OAuth ya no exige confirmación de billing para plan `FREE`.
+- Backend local productivo reiniciado con `launchctl kickstart -k gui/$(id -u)/com.churchsystem.backend`.
+
+### Evidencia
+- `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem node -e "fetch('https://oauth2.googleapis.com/token', ...)"` → llega a Google y devuelve HTTP `401 invalid_client` controlado, sin error TLS.
+- Callback Google con código inválido: `GET /oauth/google/callback?code=invalid&state=...` → redirige a `/app/login?error=no_token`, confirmando que ya no cae en `oauth_failed` por TLS.
+- `curl https://churchsystem.com.ar/health` → `{"status":"ok"}`.
+- `POST https://churchsystem.com.ar/auth/login` con `max@test.com` → HTTP `200` y cookie `church_refresh`.
+- `POST https://churchsystem.com.ar/auth/login` con credenciales inválidas → HTTP `401 {"code":"AUTH_INVALID_CREDENTIALS","error":"Credenciales inválidas"}`.
+- `node --check backend/src/lib/sessions.js && node --check backend/src/routes/oauth.js && bash -n scripts/run-backend-launchd.sh` → OK.
+- `cd backend && VERIFY_EMAIL='max@test.com' VERIFY_PASS='ChurchTest-2026!' node scripts/verify-auth.mjs` → 9/9 checks OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+- `node scripts/verify-prod.mjs` → `0 error(es), 4 advertencia(s)`; siguen pendientes las advertencias operativas de Render/túnel local.
+
 ## Auditoría producción: web viva, origen aún dependiente de túnel local — 2026-06-29
 
 **Estado actual:** `churchsystem.com.ar` responde correctamente desde producción y la auditoría objetiva pasa sin errores. El riesgo principal de disponibilidad ya no aparece como un fallo actual de auth/backend, sino como dependencia operativa del Cloudflare Tunnel local hacia `localhost:4000`.

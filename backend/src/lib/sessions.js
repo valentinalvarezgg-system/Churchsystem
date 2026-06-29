@@ -8,8 +8,7 @@ const REFRESH_DAYS = 30
 const OLD_TOKEN_RE = /^[0-9a-f]{96}$/i   // tokens legacy (hex 96 chars, texto plano)
 const OAUTH_BRIDGE_TTL_MS = 5 * 60 * 1000
 
-// ── Crear tabla al boot ───────────────────────────────────────────────────────
-pgExec(`
+const SESSIONS_SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS sesiones_auth (
     id            UUID        PRIMARY KEY,
     usuario_id    INTEGER     NOT NULL,
@@ -23,14 +22,14 @@ pgExec(`
     expira_at     TIMESTAMPTZ NOT NULL,
     revocado_at   TIMESTAMPTZ
   )
-`).catch(err => logger.error({ err: err.message }, 'sesiones_auth: fallo al crear tabla'))
+`
 
-pgExec(`
+const SESSIONS_INDEX_SQL = `
   CREATE INDEX IF NOT EXISTS idx_sesiones_usuario
   ON sesiones_auth(usuario_id) WHERE revocado_at IS NULL
-`).catch(() => {})
+`
 
-pgExec(`
+const OAUTH_BRIDGE_SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS oauth_bridge_tokens (
     id         UUID        PRIMARY KEY,
     token_hash TEXT        NOT NULL UNIQUE,
@@ -40,13 +39,47 @@ pgExec(`
     expira_at  TIMESTAMPTZ NOT NULL,
     usado_at   TIMESTAMPTZ
   )
-`).catch(err => logger.error({ err: err.message }, 'oauth_bridge_tokens: fallo al crear tabla'))
+`
 
-pgExec(`
+const OAUTH_BRIDGE_INDEX_SQL = `
   CREATE INDEX IF NOT EXISTS idx_oauth_bridge_tokens_session
   ON oauth_bridge_tokens(session_id)
   WHERE usado_at IS NULL
-`).catch(() => {})
+`
+
+let sessionsSchemaPromise = null
+let oauthBridgeSchemaPromise = null
+
+export function ensureSessionsSchema() {
+  if (!sessionsSchemaPromise) {
+    sessionsSchemaPromise = (async () => {
+      await pgExec(SESSIONS_SCHEMA_SQL)
+      await pgExec(SESSIONS_INDEX_SQL).catch(() => {})
+    })().catch(err => {
+      sessionsSchemaPromise = null
+      throw err
+    })
+  }
+  return sessionsSchemaPromise
+}
+
+export function ensureOAuthBridgeSchema() {
+  if (!oauthBridgeSchemaPromise) {
+    oauthBridgeSchemaPromise = (async () => {
+      await ensureSessionsSchema()
+      await pgExec(OAUTH_BRIDGE_SCHEMA_SQL)
+      await pgExec(OAUTH_BRIDGE_INDEX_SQL).catch(() => {})
+    })().catch(err => {
+      oauthBridgeSchemaPromise = null
+      throw err
+    })
+  }
+  return oauthBridgeSchemaPromise
+}
+
+// ── Crear tablas al boot y repetir bajo demanda si el primer intento falla ────
+ensureSessionsSchema().catch(err => logger.error({ err: err.message }, 'sesiones_auth: fallo al crear tabla'))
+ensureOAuthBridgeSchema().catch(err => logger.error({ err: err.message }, 'oauth_bridge_tokens: fallo al crear tabla'))
 
 // ── Helpers exportados ────────────────────────────────────────────────────────
 
@@ -94,6 +127,7 @@ function signAccessToken(payload) {
 // req: Express request (para user-agent e ip)
 // res: Express response opcional (para setear cookie httpOnly)
 export async function issueSession(usuario, req, res = null) {
+  await ensureSessionsSchema()
   const sessionId = crypto.randomUUID()
   const refreshToken = crypto.randomBytes(48).toString('base64url')
   const tokenHash = hash(refreshToken)
@@ -118,6 +152,7 @@ export async function issueSession(usuario, req, res = null) {
 }
 
 async function rotateSessionById(sessionId) {
+  await ensureSessionsSchema()
   const sesion = await pgOne(
     `SELECT * FROM sesiones_auth
      WHERE id=$1 AND revocado_at IS NULL AND expira_at > NOW()
@@ -141,6 +176,7 @@ async function rotateSessionById(sessionId) {
 // Devuelve { sesion, refreshToken } donde sesion tiene usuario_id e iglesia_id.
 // Maneja backward-compat: tokens legacy hex-96 se migran automáticamente.
 export async function refreshSession(refreshToken) {
+  await ensureSessionsSchema()
   // ── Compat: token legacy hex 96 chars (formato anterior) ──
   if (OLD_TOKEN_RE.test(refreshToken)) {
     const oldRow = await pgOne(
@@ -234,6 +270,7 @@ export async function revocarPorToken(refreshToken) {
 
 // ── Listar sesiones activas ───────────────────────────────────────────────────
 export async function listarSesiones(usuarioId, sesionActualHash = null) {
+  await ensureSessionsSchema()
   const rows = await pgMany(
     `SELECT id, dispositivo, ip, scope, creado_at, ultimo_uso_at, expira_at,
             CASE WHEN token_hash=$2 THEN true ELSE false END AS es_actual
@@ -247,6 +284,7 @@ export async function listarSesiones(usuarioId, sesionActualHash = null) {
 }
 
 export async function issueOAuthBridge(sessionId, userId, ttlMs = OAUTH_BRIDGE_TTL_MS) {
+  await ensureOAuthBridgeSchema()
   const bridgeToken = crypto.randomBytes(32).toString('base64url')
   const bridgeId = crypto.randomUUID()
   const expiraAt = new Date(Date.now() + ttlMs).toISOString()
@@ -260,6 +298,7 @@ export async function issueOAuthBridge(sessionId, userId, ttlMs = OAUTH_BRIDGE_T
 }
 
 export async function consumeOAuthBridge(bridgeToken, req, res = null) {
+  await ensureOAuthBridgeSchema()
   const tokenHash = hash(bridgeToken)
   const bridge = await pgOne(
     `SELECT * FROM oauth_bridge_tokens
