@@ -13,9 +13,15 @@ router.get('/', requireAuth, async (req, res) => {
   const rows = await pgMany(
     `SELECT g.*,
             u."nombre" AS "liderNombre",
-            (SELECT COUNT(*)::int FROM "Persona" p WHERE p."grupoId"=g."id" AND p."iglesiaId"=g."iglesiaId" AND p."deletedAt" IS NULL) AS "totalPersonas"
+            COALESCE(miembros."totalPersonas", 0)::int AS "totalPersonas"
        FROM "Grupo" g
        LEFT JOIN "User" u ON g."liderId"=u."id"
+       LEFT JOIN (
+         SELECT "grupoId", "iglesiaId", COUNT(*)::int AS "totalPersonas"
+           FROM "Persona"
+          WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL AND "grupoId" IS NOT NULL
+          GROUP BY "grupoId", "iglesiaId"
+       ) miembros ON miembros."grupoId"=g."id" AND miembros."iglesiaId"=g."iglesiaId"
       WHERE g."iglesiaId"=$1 AND g."deletedAt" IS NULL
       ORDER BY g."id" DESC`,
     [Number(req.user.iglesiaId)]
@@ -115,55 +121,59 @@ router.get('/:id/stats', requireAuth, async (req, res) => {
   )
   if (!g) return res.status(404).json({ error: 'Grupo no encontrado' })
 
-  // Crecimiento mensual: cuántas personas se unieron al grupo cada mes (últimos 12 meses)
+  const desde = new Date()
+  desde.setDate(1)
+  desde.setMonth(desde.getMonth() - 11)
+
+  const [crecimientoRows, porEtapa, porEstado, resumen, ultimo] = await Promise.all([
+    pgMany(
+      `SELECT to_char("createdAt",'YYYY-MM') AS mes, COUNT(*)::int AS nuevos
+         FROM "Persona"
+        WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL
+          AND "createdAt" >= $3::date
+        GROUP BY 1
+        ORDER BY 1 ASC`,
+      [iglesiaId, grupoId, desde.toISOString().slice(0, 10)]
+    ),
+    pgMany(
+      `SELECT "estadoEspiritual", COUNT(*)::int AS total
+       FROM "Persona"
+       WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL
+       GROUP BY "estadoEspiritual"`,
+      [iglesiaId, grupoId]
+    ),
+    pgMany(
+      `SELECT "estado", COUNT(*)::int AS total
+       FROM "Persona"
+       WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL
+       GROUP BY "estado"`,
+      [iglesiaId, grupoId]
+    ),
+    pgOne(
+      `SELECT COUNT(*)::int AS total,
+              SUM(CASE WHEN "bautizadoAgua" THEN 1 ELSE 0 END)::int AS bautizados,
+              SUM(CASE WHEN "discipuladoCompletado" THEN 1 ELSE 0 END)::int AS discipulados
+       FROM "Persona"
+       WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL`,
+      [iglesiaId, grupoId]
+    ),
+    pgOne(
+      `SELECT "nombre","apellido","createdAt" FROM "Persona"
+       WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL
+       ORDER BY "createdAt" DESC LIMIT 1`,
+      [iglesiaId, grupoId]
+    ),
+  ])
+
+  const crecimientoMap = new Map((crecimientoRows || []).map(row => [row.mes, Number(row.nuevos || 0)]))
   const crecimiento = []
   for (let i = 11; i >= 0; i--) {
-    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i)
+    const d = new Date()
+    d.setDate(1)
+    d.setMonth(d.getMonth() - i)
     const mes = d.toISOString().slice(0, 7)
-    const row = await pgOne(
-      `SELECT COUNT(*)::int AS c FROM "Persona"
-       WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL
-         AND to_char("createdAt",'YYYY-MM')=$3`,
-      [iglesiaId, grupoId, mes]
-    )
-    crecimiento.push({ mes, nuevos: Number(row?.c || 0) })
+    crecimiento.push({ mes, nuevos: Number(crecimientoMap.get(mes) || 0) })
   }
-
-  // Distribución por etapa espiritual
-  const porEtapa = await pgMany(
-    `SELECT "estadoEspiritual", COUNT(*)::int AS total
-     FROM "Persona"
-     WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL
-     GROUP BY "estadoEspiritual"`,
-    [iglesiaId, grupoId]
-  )
-
-  // Distribución por estado (ACTIVO / VISITANTE / INACTIVO)
-  const porEstado = await pgMany(
-    `SELECT "estado", COUNT(*)::int AS total
-     FROM "Persona"
-     WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL
-     GROUP BY "estado"`,
-    [iglesiaId, grupoId]
-  )
-
-  // Total actual y bautizados
-  const resumen = await pgOne(
-    `SELECT COUNT(*)::int AS total,
-            SUM(CASE WHEN "bautizadoAgua" THEN 1 ELSE 0 END)::int AS bautizados,
-            SUM(CASE WHEN "discipuladoCompletado" THEN 1 ELSE 0 END)::int AS discipulados
-     FROM "Persona"
-     WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL`,
-    [iglesiaId, grupoId]
-  )
-
-  // Miembro más reciente
-  const ultimo = await pgOne(
-    `SELECT "nombre","apellido","createdAt" FROM "Persona"
-     WHERE "iglesiaId"=$1 AND "grupoId"=$2 AND "deletedAt" IS NULL
-     ORDER BY "createdAt" DESC LIMIT 1`,
-    [iglesiaId, grupoId]
-  )
 
   res.json({ grupo: g, crecimiento, porEtapa, porEstado, resumen: resumen || {}, ultimo })
 })
@@ -448,5 +458,4 @@ router.put('/mapa/grupo/:id', requireAuth, async (req, res) => {
 })
 
 export default router
-
 

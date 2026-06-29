@@ -1,6 +1,24 @@
 # BITÁCORA — Church System
 ---
 
+## Grupos más eficientes: conteos y estadísticas sin N+1 — 2026-06-29
+
+**Estado actual:** el listado y las estadísticas de grupos reducen consultas repetidas por fila/mes. El frontend recibe la misma información, pero el backend hace menos trabajo al crecer la cantidad de grupos y miembros.
+
+### Falla detectada
+- `backend/src/routes/grupos.js` calculaba `totalPersonas` con una subconsulta correlacionada por cada grupo listado.
+- `GET /grupos/:id/stats` calculaba crecimiento mensual con un loop de 12 consultas, una por mes.
+- Luego pedía distribuciones, resumen y último miembro de forma secuencial.
+
+### Corrección aplicada
+- `backend/src/routes/grupos.js`: el listado usa un `LEFT JOIN` contra una agregación de miembros por grupo.
+- `backend/src/routes/grupos.js`: crecimiento mensual se obtiene con una sola consulta agrupada y se completa en memoria para los 12 meses.
+- `backend/src/routes/grupos.js`: distribuciones, resumen y último miembro ahora corren en paralelo con `Promise.all`.
+
+### Evidencia
+- `node --check backend/src/routes/grupos.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Personas más rápido: total y listado paginado en paralelo — 2026-06-29
 
 **Estado actual:** `GET /personas` mantiene los mismos filtros, roles y paginación, pero ya no espera primero el conteo total para recién después traer la página de datos.
