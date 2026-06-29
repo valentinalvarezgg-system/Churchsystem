@@ -360,6 +360,7 @@ Rollback rápido:
 ```bash
 pnpm diagnostico        # backend local, launchd, Cloudflare Tunnel y dominio
 pnpm migration:env      # inventario seguro de variables para Render Business
+pnpm render:diagnose    # estado puntual del candidato .onrender.com
 pnpm render:blueprint-link # genera deeplink al Blueprint de Render
 pnpm render:validate    # validación local de campos críticos de render.yaml
 pnpm cutover:preflight  # valida candidato Render antes de tocar DNS

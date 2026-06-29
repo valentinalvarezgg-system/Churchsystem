@@ -1,6 +1,27 @@
 # BITÁCORA — Church System
 ---
 
+## Diagnóstico dedicado para candidato Render caído — 2026-06-28
+
+**Estado actual:** además del verificador de producción y del preflight de cutover, ahora existe un diagnóstico puntual para el candidato `.onrender.com`. Esto ayuda a distinguir rápidamente si el bloqueo restante es DNS, healthcheck o falta de acceso al dashboard/CLI de Render.
+
+### Falla detectada
+- El estado operativo ya mostraba que `churchsystem.com.ar` seguía por Cloudflare Tunnel local y que `https://church-system.onrender.com/health` no respondía.
+- Faltaba una herramienta breve y específica que tradujera ese síntoma en hipótesis accionables para la cuenta Business de Render, sin mezclarlo con checks del dominio productivo.
+
+### Corrección aplicada
+- Agregado `scripts/diagnose-render-candidate.mjs`.
+- Agregado `pnpm render:diagnose` en `package.json`.
+- `README.md`: listado de diagnóstico actualizado para incluir el chequeo puntual del candidato Render.
+
+### Evidencia
+- `pnpm render:diagnose` → reporta:
+  - DNS del candidato OK (`gcp-us-west1-1.origin.onrender.com`)
+  - `/health` en timeout
+  - causas probables: servicio no desplegado, deploy colgado, instancia caída o healthcheck bloqueado
+  - sin `render` CLI / `RENDER_API_KEY` en esta sesión para inspeccionar logs remotos
+- `node --check scripts/diagnose-render-candidate.mjs scripts/verify-prod.mjs` → OK.
+
 ## Verificación de producción: distinguir túnel local vs candidato Render caído — 2026-06-28
 
 **Estado actual:** la auditoría operativa de producción ahora muestra con más precisión por qué todavía no se puede completar el corte a Render. Ya no alcanza con decir “seguís en Cloudflare Tunnel”; el verificador también confirma si el candidato `.onrender.com` está realmente vivo.

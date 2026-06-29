@@ -10,6 +10,7 @@
     "diagnostico": "bash scripts/diagnostico.sh",
     "cutover:preflight": "node scripts/preflight-render-cutover.mjs",
     "migration:env": "node scripts/check-migration-env.mjs",
+    "render:diagnose": "node scripts/diagnose-render-candidate.mjs",
     "render:blueprint-link": "node scripts/render-blueprint-link.mjs",
     "render:validate": "node scripts/validate-render-blueprint.mjs",
     "reset:accounts": "node scripts/reset-account-data.mjs",
