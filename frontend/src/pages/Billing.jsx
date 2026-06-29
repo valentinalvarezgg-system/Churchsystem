@@ -115,6 +115,9 @@ export default function Billing() {
     if (searchParams.get('pago') === 'ok') {
       toast.success('Checkout iniciado. Tu plan se actualizará cuando el proveedor confirme el cobro.')
     }
+    if (searchParams.get('onboarding') === '1') {
+      toast.success('Configuración inicial lista. Revisá facturación para dejar preparado el plan comercial de tu iglesia.')
+    }
   }, [cargar, searchParams])
 
   async function suscribir(planKey) {

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { apiFetch, getUser } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 import { EMAILS } from '../utils/legal.js'
+import { COMMERCIAL_PLAN_ORDER, getCommercialPlanUi, normalizeCommercialPlan } from '../lib/commercialPlans.js'
 
 const PASOS = [
   { id: 'iglesia',      icon: '1', titulo: 'Tu iglesia',          sub: 'Nombre, dirección y pastor' },
@@ -83,6 +84,22 @@ export default function SetupWizard({ onCompleto }) {
   }, [])
 
   const f = (k, v) => setConfig(p => ({ ...p, [k]: v }))
+  const selectedOnboardingPlan = normalizeCommercialPlan(config.onboarding_plan || user?.plan || 'FREE') || 'FREE'
+  const shouldRouteToBilling = selectedOnboardingPlan !== 'FREE' && !billing?.suscActiva
+  const onboardingPlans = COMMERCIAL_PLAN_ORDER
+    .map(key => {
+      const plan = plans.find(item => String(item.id || '').toUpperCase() === key)
+      if (!plan) return null
+      const ui = getCommercialPlanUi(key, user?.idioma || 'es')
+      return {
+        ...plan,
+        label: plan.label || ui.name,
+        description: plan.description || ui.description,
+        badge: ui.badge || '',
+        group: ui.group,
+      }
+    })
+    .filter(Boolean)
 
   function validarPasoActual() {
     if (paso === 0 && !String(config.nombre_iglesia || '').trim()) {
@@ -127,7 +144,7 @@ export default function SetupWizard({ onCompleto }) {
       })
       toast.success('Configuración inicial guardada.')
       onCompleto?.()
-      navigate('/')
+      navigate(shouldRouteToBilling ? '/billing?onboarding=1' : '/')
     } catch (err) {
       toast.error(err.message || 'No se pudo completar la configuración inicial.')
     } finally {
@@ -272,7 +289,7 @@ export default function SetupWizard({ onCompleto }) {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(145px,1fr))', gap: 10 }}>
-                  {plans.filter(p => ['FREE', 'PRO', 'MAX', 'CHURCH_100', 'CHURCH_500', 'CHURCH_1000'].includes(p.id)).map(plan => {
+                  {onboardingPlans.map(plan => {
                     const selected = config.onboarding_plan === plan.id
                     return (
                       <button key={plan.id}
@@ -295,6 +312,9 @@ export default function SetupWizard({ onCompleto }) {
                         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 6, lineHeight: 1.4 }}>
                           {plan.personas} personas · {plan.includedWhatsApp || 0} WhatsApp incluidos
                         </div>
+                        <div style={{ fontSize: 11, color: selected ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.42)', marginTop: 8, lineHeight: 1.5 }}>
+                          {plan.description}
+                        </div>
                       </button>
                     )
                   })}
@@ -309,7 +329,7 @@ export default function SetupWizard({ onCompleto }) {
                   fontSize: 12,
                   lineHeight: 1.6,
                 }}>
-                  Esta etapa deja documentado el plan objetivo del onboarding. El checkout real queda disponible luego en Facturación, con Mercado Pago/PayPal según país y configuración.
+                  Esta etapa deja documentado el plan objetivo del onboarding. Si elegís un plan pago, al terminar este wizard te llevamos a Facturación para revisar el checkout real con Mercado Pago/PayPal según país y configuración.
                 </div>
 
                 <label style={{
@@ -457,6 +477,20 @@ export default function SetupWizard({ onCompleto }) {
                   Church System está configurado para tu iglesia.<br />
                   Podés empezar cargando personas, grupos y cultos.
                 </p>
+                {shouldRouteToBilling && (
+                  <div style={{
+                    padding: '12px 14px',
+                    borderRadius: 12,
+                    margin: '0 0 20px',
+                    background: 'rgba(37,99,235,0.12)',
+                    border: '1px solid rgba(37,99,235,0.22)',
+                    color: 'rgba(255,255,255,0.74)',
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                  }}>
+                    Siguiente paso recomendado: revisar facturación y checkout para dejar listo el plan <strong style={{ color: 'white' }}>{selectedOnboardingPlan}</strong>.
+                  </div>
+                )}
                 <div style={{
                   display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 8, textAlign: 'left',
                   marginBottom: 8,
@@ -537,7 +571,7 @@ export default function SetupWizard({ onCompleto }) {
                     border: 'none', color: 'white', fontSize: 15, fontWeight: 800,
                     opacity: saving || loading ? 0.6 : 1,
                   }}>
-                  {saving ? 'Guardando...' : ' Empezar'}
+                  {saving ? 'Guardando...' : shouldRouteToBilling ? 'Continuar a facturación →' : 'Empezar'}
                 </button>
               )}
             </div>

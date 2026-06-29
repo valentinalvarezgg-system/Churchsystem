@@ -1,6 +1,25 @@
 # BITÁCORA — Church System
 ---
 
+## Signup más profesional: onboarding conectado con facturación real para planes pagos — 2026-06-29
+
+**Estado actual:** el wizard inicial ya no termina siempre en dashboard. Si durante el alta se eligió un plan pago, al completar setup la app deriva a `Billing` para revisar la parte comercial/checkout. Además, el paso de facturación del wizard muestra el catálogo comercial completo en vez de un subconjunto hardcodeado.
+
+### Falla detectada
+- `frontend/src/pages/SetupWizard.jsx` cerraba siempre con `navigate('/')`, incluso cuando el onboarding venía de un plan pago todavía sin suscripción activa.
+- Eso dejaba el flujo “setup + billing” incompleto: el usuario sentía que ya había terminado, aunque todavía faltaba pasar por la etapa comercial real.
+- El paso de facturación del wizard usaba una lista fija (`FREE`, `PRO`, `MAX`, `CHURCH_*`) y dejaba afuera planes comerciales válidos como `STARTER`.
+
+### Corrección aplicada
+- `frontend/src/pages/SetupWizard.jsx`: ahora deriva a `/billing?onboarding=1` al completar el wizard si el plan seleccionado es pago y todavía no hay suscripción activa.
+- `frontend/src/pages/SetupWizard.jsx`: el CTA final cambia a `Continuar a facturación →` en esos casos y muestra un aviso de siguiente paso recomendado.
+- `frontend/src/pages/SetupWizard.jsx`: el selector de plan del paso comercial ahora usa `COMMERCIAL_PLAN_ORDER` + `getCommercialPlanUi()` en vez de un filtro hardcodeado.
+- `frontend/src/pages/Billing.jsx`: agregado toast contextual cuando se entra desde onboarding (`?onboarding=1`).
+
+### Evidencia
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+- Login QA + `GET /config` con token real → OK (`setup_completado: 1` en tenant de prueba).
+
 ## Onboarding y billing más estables: suscripciones sin `gen_random_uuid()` + activación correcta de plan — 2026-06-29
 
 **Estado actual:** el wizard inicial y la pantalla de facturación quedan más robustos en bases nuevas o migradas. La tabla `suscripciones` ya no depende de `gen_random_uuid()`, y la activación por webhook deja de correr el riesgo de asignar `MAX` por error debido a una precedencia incorrecta.
