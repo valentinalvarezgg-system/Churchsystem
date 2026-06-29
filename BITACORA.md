@@ -1,6 +1,25 @@
 # BITÁCORA — Church System
 ---
 
+## Discipulado más liviano: listado con agregados y stats paralelas — 2026-06-29
+
+**Estado actual:** el módulo `Discipulado` evita subconsultas repetidas por persona y resuelve sus estadísticas principales en paralelo, manteniendo el mismo contrato de respuesta.
+
+### Falla detectada
+- `backend/src/routes/discipulado.js` calculaba `totalSeguimientos` y `materialesCompletados` con subconsultas por cada persona del listado.
+- `GET /discipulado` hacía conteo total y listado en serie.
+- `GET /discipulado/stats` pedía etapa, bautismos/progreso y materiales de forma secuencial.
+
+### Corrección aplicada
+- `backend/src/routes/discipulado.js`: el listado usa agregaciones por `personaId` para seguimientos y materiales completados.
+- `backend/src/routes/discipulado.js`: conteo total y listado paginado corren con `Promise.all`.
+- `backend/src/routes/discipulado.js`: stats de etapa, bautismos/progreso y materiales corren con `Promise.all`.
+- `backend/src/routes/discipulado.js`: los agregados usan `iglesiaId` explícito para mantener aislamiento multi-tenant.
+
+### Evidencia
+- `node --check backend/src/routes/discipulado.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Grupos más eficientes: conteos y estadísticas sin N+1 — 2026-06-29
 
 **Estado actual:** el listado y las estadísticas de grupos reducen consultas repetidas por fila/mes. El frontend recibe la misma información, pero el backend hace menos trabajo al crecer la cantidad de grupos y miembros.
