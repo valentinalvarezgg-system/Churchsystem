@@ -1,6 +1,26 @@
 # BITÁCORA — Church System
 ---
 
+## Asistencia más escalable: guardado masivo en una sola operación SQL — 2026-06-29
+
+**Estado actual:** guardar asistencia de un culto ya no ejecuta un `UPSERT` por cada persona. Ahora usa una sola operación SQL basada en `INSERT ... SELECT ... ON CONFLICT`, manteniendo el mismo contrato de respuesta.
+
+### Falla detectada
+- `backend/src/routes/cultos.js` hacía:
+  - un `SELECT` de todas las personas del tenant
+  - un loop con `pgExec()` por persona para marcar presente/ausente
+- En iglesias medianas o grandes, guardar asistencia multiplicaba escrituras y podía generar latencia o timeouts en momentos de uso real.
+- `GET /cultos/stats` también resolvía tendencia y promedio por día de forma secuencial aunque eran consultas independientes.
+
+### Corrección aplicada
+- `backend/src/routes/cultos.js`: `POST /cultos/:id/asistencia` ahora inserta/actualiza asistencia para todas las personas activas del tenant en una sola query.
+- `backend/src/routes/cultos.js`: se normalizan IDs seleccionados con `Set` antes de enviarlos a SQL.
+- `backend/src/routes/cultos.js`: `GET /cultos/stats` ahora resuelve `tendencias` y `porDia` con `Promise.all`.
+
+### Evidencia
+- `node --check backend/src/routes/cultos.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Finanzas más liviano: resumen, listado y tendencia en paralelo — 2026-06-29
 
 **Estado actual:** `GET /finanzas` ya no espera una cadena serial de consultas para devolver totales, agrupaciones, listado paginado y tendencia. Ahora resuelve esos bloques en paralelo y conserva el mismo contrato para el frontend.

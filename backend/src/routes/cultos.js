@@ -58,41 +58,42 @@ router.get('/stats', requireAuth, async (req, res) => {
 
   const limit = Math.min(Number(req.query.limit || 12), 52)
 
-  const tendencias = await pgMany(
-    `SELECT c."id", c."nombre", c."fecha", c."cultoDia",
-            COUNT(a."id")::int AS "total",
-            COALESCE(SUM(CASE WHEN a."presente"=true THEN 1 ELSE 0 END), 0)::int AS "presentes"
-       FROM "Culto" c
-       LEFT JOIN "Asistencia" a ON a."cultoId"=c."id" AND a."iglesiaId"=$1
-      WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
-      GROUP BY c."id", c."nombre", c."fecha", c."cultoDia"
-      ORDER BY c."fecha" DESC, c."id" DESC
-      LIMIT $2`,
-    [iglesiaId, limit]
-  )
+  const [tendencias, porDia] = await Promise.all([
+    pgMany(
+      `SELECT c."id", c."nombre", c."fecha", c."cultoDia",
+              COUNT(a."id")::int AS "total",
+              COALESCE(SUM(CASE WHEN a."presente"=true THEN 1 ELSE 0 END), 0)::int AS "presentes"
+         FROM "Culto" c
+         LEFT JOIN "Asistencia" a ON a."cultoId"=c."id" AND a."iglesiaId"=$1
+        WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
+        GROUP BY c."id", c."nombre", c."fecha", c."cultoDia"
+        ORDER BY c."fecha" DESC, c."id" DESC
+        LIMIT $2`,
+      [iglesiaId, limit]
+    ),
+    pgMany(
+      `SELECT c."cultoDia",
+              ROUND(AVG(sub."presentes")::numeric, 1)::float AS "promedio",
+              COUNT(DISTINCT c."id")::int AS "cultos"
+         FROM "Culto" c
+         JOIN (
+           SELECT "cultoId",
+                  SUM(CASE WHEN "presente"=true THEN 1 ELSE 0 END)::int AS "presentes"
+             FROM "Asistencia"
+            WHERE "iglesiaId"=$1
+            GROUP BY "cultoId"
+         ) sub ON sub."cultoId"=c."id"
+        WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
+          AND c."cultoDia" IS NOT NULL AND c."cultoDia" != ''
+        GROUP BY c."cultoDia"
+        ORDER BY MIN(CASE c."cultoDia"
+          WHEN 'LUNES' THEN 1 WHEN 'MARTES' THEN 2 WHEN 'MIERCOLES' THEN 3
+          WHEN 'JUEVES' THEN 4 WHEN 'VIERNES' THEN 5 WHEN 'SABADO' THEN 6
+          WHEN 'DOMINGO' THEN 7 ELSE 8 END)`,
+      [iglesiaId]
+    ),
+  ])
   tendencias.reverse()
-
-  const porDia = await pgMany(
-    `SELECT c."cultoDia",
-            ROUND(AVG(sub."presentes")::numeric, 1)::float AS "promedio",
-            COUNT(DISTINCT c."id")::int AS "cultos"
-       FROM "Culto" c
-       JOIN (
-         SELECT "cultoId",
-                SUM(CASE WHEN "presente"=true THEN 1 ELSE 0 END)::int AS "presentes"
-           FROM "Asistencia"
-          WHERE "iglesiaId"=$1
-          GROUP BY "cultoId"
-       ) sub ON sub."cultoId"=c."id"
-      WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
-        AND c."cultoDia" IS NOT NULL AND c."cultoDia" != ''
-      GROUP BY c."cultoDia"
-      ORDER BY MIN(CASE c."cultoDia"
-        WHEN 'LUNES' THEN 1 WHEN 'MARTES' THEN 2 WHEN 'MIERCOLES' THEN 3
-        WHEN 'JUEVES' THEN 4 WHEN 'VIERNES' THEN 5 WHEN 'SABADO' THEN 6
-        WHEN 'DOMINGO' THEN 7 ELSE 8 END)`,
-    [iglesiaId]
-  )
 
   res.json({ tendencias, porDia })
 })
@@ -197,17 +198,16 @@ router.post('/:id/asistencia', requireAuth, async (req, res) => {
 
   const { presentes = [] } = req.body || {}
   const cultoId = Number(req.params.id)
-  const ids = await pgMany('SELECT "id" FROM "Persona" WHERE "iglesiaId"=$1 AND "deletedAt" IS NULL', [iglesiaId])
-  const presentSet = new Set((presentes || []).map(Number))
+  const presentesIds = Array.from(new Set((presentes || []).map(Number).filter(Boolean)))
 
-  for (const row of ids) {
-    await pgExec(
-      `INSERT INTO "Asistencia" ("iglesiaId","cultoId","personaId","presente","createdAt")
-       VALUES ($1,$2,$3,$4,CURRENT_TIMESTAMP)
-       ON CONFLICT ("cultoId","personaId") DO UPDATE SET "presente"=EXCLUDED."presente"`,
-      [iglesiaId, cultoId, Number(row.id), presentSet.has(Number(row.id))]
-    )
-  }
+  await pgExec(
+    `INSERT INTO "Asistencia" ("iglesiaId","cultoId","personaId","presente","createdAt")
+     SELECT $1, $2, p."id", p."id" = ANY($3::int[]), CURRENT_TIMESTAMP
+       FROM "Persona" p
+      WHERE p."iglesiaId"=$1 AND p."deletedAt" IS NULL
+     ON CONFLICT ("cultoId","personaId") DO UPDATE SET "presente"=EXCLUDED."presente"`,
+    [iglesiaId, cultoId, presentesIds]
+  )
 
   registrar({
     userId: req.user.id,
@@ -216,11 +216,10 @@ router.post('/:id/asistencia', requireAuth, async (req, res) => {
     accion: 'ASISTENCIA',
     entidad: 'CULTO',
     entidadId: cultoId,
-    detalle: `${presentSet.size} presentes`,
+    detalle: `${presentesIds.length} presentes`,
     iglesiaId,
   })
-  res.json({ ok: true, presentes: presentSet.size })
+  res.json({ ok: true, presentes: presentesIds.length })
 })
 
 export default router
-
