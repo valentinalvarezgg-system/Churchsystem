@@ -10,7 +10,7 @@ const OLD_TOKEN_RE = /^[0-9a-f]{96}$/i   // tokens legacy (hex 96 chars, texto p
 // ── Crear tabla al boot ───────────────────────────────────────────────────────
 pgExec(`
   CREATE TABLE IF NOT EXISTS sesiones_auth (
-    id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    id            UUID        PRIMARY KEY,
     usuario_id    INTEGER     NOT NULL,
     iglesia_id    INTEGER,
     scope         TEXT        NOT NULL DEFAULT 'ADMIN',
@@ -74,6 +74,7 @@ function signAccessToken(payload) {
 // req: Express request (para user-agent e ip)
 // res: Express response opcional (para setear cookie httpOnly)
 export async function issueSession(usuario, req, res = null) {
+  const sessionId = crypto.randomUUID()
   const refreshToken = crypto.randomBytes(48).toString('base64url')
   const tokenHash = hash(refreshToken)
   const scope = usuario.scope || 'ADMIN'
@@ -83,9 +84,9 @@ export async function issueSession(usuario, req, res = null) {
 
   await pgExec(
     `INSERT INTO sesiones_auth
-      (usuario_id, iglesia_id, scope, token_hash, dispositivo, ip, expira_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [usuario.id, usuario.iglesiaId || null, scope, tokenHash, dispositivo, ip, expiraAt.toISOString()]
+      (id, usuario_id, iglesia_id, scope, token_hash, dispositivo, ip, expira_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [sessionId, usuario.id, usuario.iglesiaId || null, scope, tokenHash, dispositivo, ip, expiraAt.toISOString()]
   )
 
   const payload = userPayload(usuario)
@@ -113,13 +114,14 @@ export async function refreshSession(refreshToken) {
 
     const newRefresh = crypto.randomBytes(48).toString('base64url')
     const newHash = hash(newRefresh)
+    const sessionId = crypto.randomUUID()
 
     await pgExec(
       `INSERT INTO sesiones_auth
-        (usuario_id, iglesia_id, scope, token_hash, dispositivo, ip, expira_at)
-       VALUES ($1, $2, 'ADMIN', $3, $4, $5, $6)`,
+        (id, usuario_id, iglesia_id, scope, token_hash, dispositivo, ip, expira_at)
+       VALUES ($1, $2, $3, 'ADMIN', $4, $5, $6, $7)`,
       [
-        oldRow.userId, null, newHash,
+        sessionId, oldRow.userId, null, newHash,
         String(oldRow.userAgent || '').slice(0, 120),
         String(oldRow.ip || ''),
         new Date(oldRow.expiresAt).toISOString(),

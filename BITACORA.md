@@ -1,6 +1,25 @@
 # BITÁCORA — Church System
 ---
 
+## Auth estable en cuentas migradas: sesiones sin dependencia de `gen_random_uuid()` — 2026-06-29
+
+**Estado actual:** el login queda blindado para bases PostgreSQL nuevas o migradas donde todavía no exista la función `gen_random_uuid()`. La creación de sesiones ya no depende de extensiones de DB para generar el `id` de `sesiones_auth`.
+
+### Falla detectada
+- `backend/src/lib/sessions.js` creaba `sesiones_auth` con `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`.
+- En una base nueva asociada a una migración de account/business, si la extensión/función no estaba disponible, la tabla podía no crearse correctamente o el flujo de sesión podía romperse al iniciar sesión.
+- Ese escenario encaja con un síntoma de login que termina en `AUTH_UNEXPECTED` / “Error en autenticación” aun cuando las credenciales sean válidas.
+
+### Corrección aplicada
+- `backend/src/lib/sessions.js`: la tabla `sesiones_auth` ahora define `id UUID PRIMARY KEY` sin depender de `gen_random_uuid()`.
+- `backend/src/lib/sessions.js`: `issueSession()` ahora genera el `id` en la app con `crypto.randomUUID()`.
+- `backend/src/lib/sessions.js`: la migración automática de refresh tokens legacy también inserta sesiones nuevas con `crypto.randomUUID()`.
+
+### Evidencia
+- `node --check backend/src/lib/sessions.js` → OK.
+- `cd backend && VERIFY_EMAIL='max@test.com' VERIFY_PASS='ChurchTest-2026!' node scripts/verify-auth.mjs` → OK, 9/9 checks.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Auth más robusto: códigos de error estructurados para login — 2026-06-29
 
 **Estado actual:** el frontend ya no depende solo de textos libres para decidir cómo ayudar al usuario cuando falla el login. `apiFetch()` preserva `code` en los errores HTTP y `/auth/login` devuelve códigos semánticos estables para los casos más importantes.
