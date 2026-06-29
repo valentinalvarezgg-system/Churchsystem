@@ -102,20 +102,22 @@ router.get('/:id/rsvp', requireAuth, async (req, res) => {
   `).catch(() => {})
   await pgExec(`CREATE INDEX IF NOT EXISTS "EventoRSVP_evento_idx" ON "EventoRSVP"("eventoId")`).catch(() => {})
 
-  const resumen = await pgMany(
-    `SELECT r."respuesta", COUNT(*)::int AS total
-     FROM "EventoRSVP" r WHERE r."eventoId"=$1 AND r."iglesiaId"=$2
-     GROUP BY r."respuesta"`,
-    [eventoId, iglesiaId]
-  )
-  const detalle = await pgMany(
-    `SELECT r."id",r."nombre",r."respuesta",r."createdAt",p."apellido"
-     FROM "EventoRSVP" r
-     LEFT JOIN "Persona" p ON r."personaId"=p."id"
-     WHERE r."eventoId"=$1 AND r."iglesiaId"=$2
-     ORDER BY r."createdAt" DESC`,
-    [eventoId, iglesiaId]
-  )
+  const [resumen, detalle] = await Promise.all([
+    pgMany(
+      `SELECT r."respuesta", COUNT(*)::int AS total
+       FROM "EventoRSVP" r WHERE r."eventoId"=$1 AND r."iglesiaId"=$2
+       GROUP BY r."respuesta"`,
+      [eventoId, iglesiaId]
+    ),
+    pgMany(
+      `SELECT r."id",r."nombre",r."respuesta",r."createdAt",p."apellido"
+       FROM "EventoRSVP" r
+       LEFT JOIN "Persona" p ON r."personaId"=p."id" AND p."iglesiaId"=r."iglesiaId"
+       WHERE r."eventoId"=$1 AND r."iglesiaId"=$2
+       ORDER BY r."createdAt" DESC`,
+      [eventoId, iglesiaId]
+    ),
+  ])
   const si     = resumen.find(r => r.respuesta === 'SI')?.total || 0
   const no     = resumen.find(r => r.respuesta === 'NO')?.total || 0
   const talvez = resumen.find(r => r.respuesta === 'TALVEZ')?.total || 0
@@ -198,4 +200,3 @@ router.get('/rsvp/confirmar', async (req, res) => {
 })
 
 export default router
-

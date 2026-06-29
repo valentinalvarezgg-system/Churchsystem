@@ -1,6 +1,22 @@
 # BITÁCORA — Church System
 ---
 
+## Eventos más liviano: RSVP con consultas paralelas — 2026-06-29
+
+**Estado actual:** el resumen RSVP de eventos mantiene la misma respuesta, pero resuelve resumen y detalle en paralelo y refuerza el join de persona por tenant.
+
+### Falla detectada
+- `backend/src/routes/eventos.js` ejecutaba primero el resumen RSVP y luego el detalle.
+- El `LEFT JOIN` con `Persona` no incluía explícitamente `iglesiaId`, aunque el filtro principal sí lo hacía sobre RSVP.
+
+### Corrección aplicada
+- `backend/src/routes/eventos.js`: `GET /eventos/:id/rsvp` ahora usa `Promise.all` para resumen y detalle.
+- `backend/src/routes/eventos.js`: el join de persona incluye `p."iglesiaId"=r."iglesiaId"`.
+
+### Evidencia
+- `node --check backend/src/routes/eventos.js` → OK.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Ministerios más eficiente: listado con conteos agregados — 2026-06-29
 
 **Estado actual:** el listado de ministerios ya no calcula miembros y tareas pendientes con subconsultas por cada ministerio. Ahora usa agregaciones por `ministerioId` y conserva el mismo contrato para frontend.
