@@ -15,6 +15,8 @@ const ALERT_I18N = {
         overdue:'Vencidos', birthdays:'Cumpleaños',
         noAlerts:'¡Sin alertas en esta categoría!', people:'personas',
         selectAll:'Seleccionar todos', selected:'seleccionados', massWA:'WA masivo',
+        massResult:'{ok} enviados',
+        massResultWithErrors:'{ok} enviados · {err} fallaron',
         sending:'Enviando...', profile:'Perfil', whatsapp:'WhatsApp',
         leader:'Líder', lastContact:'Último contacto', joined:'Ingresó',
         type:'Tipo', expires:'Vencía', birthday:'Cumpleaños',
@@ -31,6 +33,8 @@ const ALERT_I18N = {
         overdue:'Vencidos', birthdays:'Aniversários',
         noAlerts:'Sem alertas nesta categoria!', people:'pessoas',
         selectAll:'Selecionar todos', selected:'selecionados', massWA:'WA em massa',
+        massResult:'{ok} enviados',
+        massResultWithErrors:'{ok} enviados · {err} falharam',
         sending:'Enviando...', profile:'Perfil', whatsapp:'WhatsApp',
         leader:'Líder', lastContact:'Último contato', joined:'Ingresso',
         type:'Tipo', expires:'Vencia', birthday:'Aniversário',
@@ -47,6 +51,8 @@ const ALERT_I18N = {
         overdue:'Overdue', birthdays:'Birthdays',
         noAlerts:'No alerts in this category!', people:'people',
         selectAll:'Select all', selected:'selected', massWA:'Mass WA',
+        massResult:'{ok} sent',
+        massResultWithErrors:'{ok} sent · {err} failed',
         sending:'Sending...', profile:'Profile', whatsapp:'WhatsApp',
         leader:'Leader', lastContact:'Last contact', joined:'Joined',
         type:'Type', expires:'Expired', birthday:'Birthday',
@@ -103,22 +109,28 @@ export default function Alertas() {
   }
 
   async function ejecutarMasivo() {
-    const personas = current.filter(p => seleccionados.includes(p.personaId||p.id))
+    const ids = current
+      .map(p => p.personaId || p.id)
+      .filter(id => seleccionados.includes(id))
     setConfirmMasivo(false)
     setEnviandoMasivo(true); setMsgMasivo(null)
-    let ok=0, err=0
-    for (const p of personas) {
-      try {
-        const r = await apiFetch('/mensajes/enviar', {
-          method:'POST',
-          body: JSON.stringify({ personaId: p.personaId||p.id, tipo:'WHATSAPP',
-            mensaje: `Hola ${p.nombre}! Te contactamos desde la iglesia. ¡Te esperamos!` })
+    try {
+      const r = await apiFetch('/mensajes/masivo-segmentado', {
+        method:'POST',
+        body: JSON.stringify({
+          ids,
+          tipo:'WHATSAPP',
+          mensaje:'Hola {nombre}! Te contactamos desde la iglesia. ¡Te esperamos!',
         })
-        r.enviado || r.demo ? ok++ : err++
-      } catch { err++ }
+      })
+      const msg = r.errores
+        ? t('massResultWithErrors').replace('{ok}', r.enviados ?? 0).replace('{err}', r.errores ?? 0)
+        : t('massResult').replace('{ok}', r.enviados ?? 0)
+      setMsgMasivo(msg)
+    } catch (e) {
+      setMsgMasivo(e.message || 'Error')
     }
     setEnviandoMasivo(false)
-    setMsgMasivo(`${ok} enviados${err?` · Error ${err} fallaron`:''}`)
     setSeleccionados([])
   }
 
@@ -222,7 +234,7 @@ export default function Alertas() {
               <>
                 <button className="btn btn-ghost btn-sm" style={{color:'var(--c-success)',borderColor:'rgba(22,163,74,.3)'}}
                   onClick={enviarMasivo} disabled={enviandoMasivo}>
-                  {enviandoMasivo ? `… ${t('sending')}` : `Email ${t('massWA')} (${seleccionados.length})`}
+                  {enviandoMasivo ? `… ${t('sending')}` : `${t('whatsapp')} ${t('massWA')} (${seleccionados.length})`}
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setSeleccionados([])}>
                   × {t('clear')}
@@ -400,7 +412,7 @@ function AlertasDesktop({ current, navigate, t, tab, seleccionados, toggleSelecc
                         data-tip="Enviar WhatsApp rápido"
                         disabled={enviando===pid}
                         onClick={() => enviarWA(pid, p.nombre)}>
-                        {enviando===pid ? '…' : 'Email'}
+                        {enviando===pid ? '…' : t('whatsapp')}
                         {msgEnvio[pid] && <span style={{marginLeft:4}}>{msgEnvio[pid]}</span>}
                       </button>
                     )}

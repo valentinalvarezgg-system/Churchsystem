@@ -1,6 +1,23 @@
 # BITÁCORA — Church System
 ---
 
+## Alertas más ágiles: envío masivo real en un solo request — 2026-06-29
+
+**Estado actual:** el módulo `Alertas` ya no dispara un request por persona cuando se hace contacto pastoral masivo desde la UI. Ahora reutiliza el endpoint batch existente y reduce fuerte la presión sobre frontend/backend en listas grandes.
+
+### Falla detectada
+- `frontend/src/pages/Alertas.jsx` ejecutaba `apiFetch('/mensajes/enviar')` dentro de un loop secuencial por cada seleccionado.
+- En listas medianas o grandes, eso multiplicaba latencia, saturaba el browser con requests encadenados y aumentaba la probabilidad de fallas parciales visibles para el usuario.
+- La misma vista además mostraba etiquetas inconsistentes de UI (`Email`) en acciones que en realidad enviaban `WHATSAPP`.
+
+### Corrección aplicada
+- `frontend/src/pages/Alertas.jsx`: `ejecutarMasivo()` ahora envía un único `POST /mensajes/masivo-segmentado` con `ids` seleccionados y mensaje parametrizado con `{nombre}`.
+- `frontend/src/pages/Alertas.jsx`: el resultado del batch ahora muestra resumen agregado de enviados/errores sin depender de contabilización request por request en el cliente.
+- `frontend/src/pages/Alertas.jsx`: corregidas las etiquetas de acción para mostrar `WhatsApp` tanto en el envío rápido como en la acción masiva.
+
+### Evidencia
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Reportes más livianos: menos queries seriales y más agregación reutilizable — 2026-06-29
 
 **Estado actual:** el módulo `Reportes` ya no arma sus respuestas combinando tantas consultas seriales para métricas base. Ahora reutiliza un helper agregado para totales de personas/grupos y ejecuta sus datasets en paralelo, manteniendo el mismo contrato para frontend.
