@@ -1,6 +1,27 @@
 # BITÁCORA — Church System
 ---
 
+## Onboarding y billing más estables: suscripciones sin `gen_random_uuid()` + activación correcta de plan — 2026-06-29
+
+**Estado actual:** el wizard inicial y la pantalla de facturación quedan más robustos en bases nuevas o migradas. La tabla `suscripciones` ya no depende de `gen_random_uuid()`, y la activación por webhook deja de correr el riesgo de asignar `MAX` por error debido a una precedencia incorrecta.
+
+### Falla detectada
+- `backend/src/routes/subscriptions.js` creaba `suscripciones` con `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`.
+- En una base nueva/business account sin esa función, `ensureSubscriptionSchema()` podía romper `/subscriptions/billing-estado`, el setup wizard y el checkout inicial.
+- Además, en `procesarWebhookSuscripcion()`, la expresión `sus?.plan || mpData.reason?.includes('MAX') ? 'MAX' : 'PRO'` podía resolver `MAX` incorrectamente cuando `sus?.plan` era truthy.
+- El mismo helper consultaba `sus?.gracia_hasta` sin traer esa columna del `SELECT`, debilitando el manejo del período de gracia.
+
+### Corrección aplicada
+- `backend/src/routes/subscriptions.js`: `suscripciones` ahora define `id UUID PRIMARY KEY` sin `gen_random_uuid()`.
+- `backend/src/routes/subscriptions.js`: los inserts de `suscripciones` generan UUID en la app con `crypto.randomUUID()`.
+- `backend/src/routes/subscriptions.js`: `procesarWebhookSuscripcion()` ahora calcula `planKey` explícitamente y reutiliza ese valor al guardar/activar.
+- `backend/src/routes/subscriptions.js`: el `SELECT` de suscripción ahora incluye `gracia_hasta`.
+
+### Evidencia
+- `node --check backend/src/routes/subscriptions.js` → OK.
+- Login QA + `GET /subscriptions/billing-estado` con token real → OK (`{ ok: true, enTrial: true, planPago: null, efectivePlan: 'PRO' }`).
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Auth estable en cuentas migradas: sesiones sin dependencia de `gen_random_uuid()` — 2026-06-29
 
 **Estado actual:** el login queda blindado para bases PostgreSQL nuevas o migradas donde todavía no exista la función `gen_random_uuid()`. La creación de sesiones ya no depende de extensiones de DB para generar el `id` de `sesiones_auth`.

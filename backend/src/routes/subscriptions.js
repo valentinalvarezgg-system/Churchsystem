@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import https from 'https'
+import crypto from 'crypto'
 import logger from '../lib/logger.js'
 import { requireAuth, requireRol } from '../middlewares/auth.js'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
@@ -149,7 +150,7 @@ async function ensureSubscriptionSchema() {
     // Tabla de suscripciones recurrentes (fuente de verdad)
     await pgExec(`
       CREATE TABLE IF NOT EXISTS suscripciones (
-        id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        id              UUID        PRIMARY KEY,
         iglesia_id      INTEGER     NOT NULL REFERENCES "Iglesia"(id) ON DELETE CASCADE,
         proveedor       TEXT        NOT NULL DEFAULT 'mercadopago',
         preapproval_id  TEXT        UNIQUE,
@@ -655,11 +656,11 @@ router.post('/subscriptions/crear', requireAuth, requireRol('PASTOR_GENERAL'), a
     }
 
     await pgExec(
-      `INSERT INTO suscripciones (iglesia_id, preapproval_id, plan, estado, monto_usd, monto_ars, cotizacion)
-       VALUES ($1,$2,$3,'pending',$4,$5,$6)
+      `INSERT INTO suscripciones (id, iglesia_id, preapproval_id, plan, estado, monto_usd, monto_ars, cotizacion)
+       VALUES ($1,$2,$3,$4,'pending',$5,$6,$7)
        ON CONFLICT (preapproval_id) DO UPDATE
          SET estado='pending', actualizado_at=CURRENT_TIMESTAMP`,
-      [req.user.iglesiaId, createRes.data.id, planKey, usd, ars, cotizacion]
+      [crypto.randomUUID(), req.user.iglesiaId, createRes.data.id, planKey, usd, ars, cotizacion]
     )
 
     logger.info({ planKey, iglesiaId: req.user.iglesiaId, preapprovalId: createRes.data.id }, 'Suscripción creada')
@@ -770,7 +771,7 @@ async function procesarWebhookSuscripcion(iglesiaId, preapprovalId, mpData) {
   const proximoCobro = mpData.next_payment_date || mpData.application_id || null
 
   const sus = await pgOne(
-    `SELECT id, plan, estado, last_event FROM suscripciones WHERE preapproval_id=$1 LIMIT 1`,
+    `SELECT id, plan, estado, last_event, gracia_hasta FROM suscripciones WHERE preapproval_id=$1 LIMIT 1`,
     [preapprovalId]
   ).catch(() => null)
 
@@ -779,22 +780,23 @@ async function procesarWebhookSuscripcion(iglesiaId, preapprovalId, mpData) {
   if (sus?.last_event === eventKey) return
 
   if (statusRaw === 'authorized') {
+    const planKey = sus?.plan || (mpData.reason?.includes('MAX') ? 'MAX' : 'PRO')
     // Upsert suscripción como authorized
     await pgExec(
-      `INSERT INTO suscripciones (iglesia_id, preapproval_id, plan, estado, monto_ars, proximo_cobro_at, gracia_hasta, last_event)
-       VALUES ($1,$2,$3,'authorized',$4,$5,NULL,$6)
+      `INSERT INTO suscripciones (id, iglesia_id, preapproval_id, plan, estado, monto_ars, proximo_cobro_at, gracia_hasta, last_event)
+       VALUES ($1,$2,$3,$4,'authorized',$5,$6,NULL,$7)
        ON CONFLICT (preapproval_id) DO UPDATE
-         SET estado='authorized', gracia_hasta=NULL, proximo_cobro_at=$5, last_event=$6, actualizado_at=CURRENT_TIMESTAMP`,
+         SET estado='authorized', gracia_hasta=NULL, proximo_cobro_at=$6, last_event=$7, actualizado_at=CURRENT_TIMESTAMP`,
       [
+        crypto.randomUUID(),
         iglesiaId,
         preapprovalId,
-        sus?.plan || mpData.reason?.includes('MAX') ? 'MAX' : 'PRO',
+        planKey,
         Number(mpData.auto_recurring?.transaction_amount || 0),
         proximoCobro ? new Date(proximoCobro).toISOString() : null,
         eventKey,
       ]
     )
-    const planKey = sus?.plan || (mpData.reason?.includes('MAX') ? 'MAX' : 'PRO')
     await activarPlan(iglesiaId, planKey, proximoCobro)
 
     const admin = await getAdminEmail(iglesiaId).catch(() => null)
@@ -816,11 +818,11 @@ async function procesarWebhookSuscripcion(iglesiaId, preapprovalId, mpData) {
     if (!sus?.gracia_hasta || new Date(sus.gracia_hasta) < new Date()) {
       const graciaHasta = new Date(Date.now() + 7 * 86400000).toISOString()
       await pgExec(
-        `INSERT INTO suscripciones (iglesia_id, preapproval_id, plan, estado, gracia_hasta, last_event)
-         VALUES ($1,$2,$3,'authorized',$4,$5)
+        `INSERT INTO suscripciones (id, iglesia_id, preapproval_id, plan, estado, gracia_hasta, last_event)
+         VALUES ($1,$2,$3,$4,'authorized',$5,$6)
          ON CONFLICT (preapproval_id) DO UPDATE
-           SET gracia_hasta=$4, last_event=$5, actualizado_at=CURRENT_TIMESTAMP`,
-        [iglesiaId, preapprovalId, sus?.plan || 'PRO', graciaHasta, eventKey]
+           SET gracia_hasta=$5, last_event=$6, actualizado_at=CURRENT_TIMESTAMP`,
+        [crypto.randomUUID(), iglesiaId, preapprovalId, sus?.plan || 'PRO', graciaHasta, eventKey]
       )
       const admin = await getAdminEmail(iglesiaId).catch(() => null)
       if (admin?.email) {
