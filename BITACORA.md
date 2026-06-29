@@ -1,6 +1,27 @@
 # BITÁCORA — Church System
 ---
 
+## OAuth más prolijo: forzar setup también en cuentas existentes con onboarding incompleto — 2026-06-29
+
+**Estado actual:** Google y Apple ya no fuerzan setup solo en cuentas recién creadas. Si el usuario ya existía pero todavía tenía onboarding incompleto, el callback OAuth ahora devuelve `setup=1` igual y la app entra directo al wizard inicial.
+
+### Falla detectada
+- `backend/src/routes/oauth.js` solo agregaba `&setup=1` cuando `createdNow === true`.
+- Eso dejaba un hueco para cuentas existentes/migradas con `setup_completado`, `nombre_iglesia` u `onboarding_billing_confirmed` todavía incompletos: podían volver desde Google/Apple sin una señal explícita de reingresar al onboarding.
+
+### Corrección aplicada
+- `backend/src/routes/oauth.js`: agregado helper `requiresSetupForUser()` que relee `Configuracion` del tenant y evalúa:
+  - `setup_completado`
+  - `nombre_iglesia`
+  - `onboarding_billing_confirmed`
+  - `onboarding_plan`
+- `backend/src/routes/oauth.js`: tanto en Google como en Apple, el callback ahora usa `createdNow || requiresSetupForUser(user)` para decidir `setup=1`.
+
+### Evidencia
+- `node --check backend/src/routes/oauth.js` → OK.
+- Verificación estructural del archivo → `hasHelper: true`, `hasSetupRedirect: true`.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Signup más profesional: onboarding conectado con facturación real para planes pagos — 2026-06-29
 
 **Estado actual:** el wizard inicial ya no termina siempre en dashboard. Si durante el alta se eligió un plan pago, al completar setup la app deriva a `Billing` para revisar la parte comercial/checkout. Además, el paso de facturación del wizard muestra el catálogo comercial completo en vez de un subconjunto hardcodeado.

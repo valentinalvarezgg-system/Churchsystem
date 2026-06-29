@@ -95,6 +95,26 @@ function randomIglesiaToken() {
   return `IGL-${crypto.randomBytes(5).toString('hex').toUpperCase()}`
 }
 
+async function requiresSetupForUser(user) {
+  if (!user?.iglesiaId || user?.rol !== 'PASTOR_GENERAL') return false
+  const cfg = await pgOne(
+    `SELECT
+       MAX(CASE WHEN "clave"='setup_completado' THEN "valor" END) AS "setupCompletado",
+       MAX(CASE WHEN "clave"='onboarding_billing_confirmed' THEN "valor" END) AS "billingConfirmed",
+       MAX(CASE WHEN "clave"='onboarding_plan' THEN "valor" END) AS "onboardingPlan",
+       MAX(CASE WHEN "clave"='nombre_iglesia' THEN "valor" END) AS "nombreIglesia"
+     FROM "Configuracion"
+     WHERE "iglesiaId"=$1`,
+    [user.iglesiaId]
+  ).catch(() => null)
+  const completado = cfg?.setupCompletado === '1' || cfg?.setupCompletado === true
+  const billingOk = cfg?.billingConfirmed === '1' || cfg?.billingConfirmed === true
+  const hasOnboardingState = typeof cfg?.billingConfirmed !== 'undefined' && cfg?.billingConfirmed !== null
+    || typeof cfg?.onboardingPlan !== 'undefined' && cfg?.onboardingPlan !== null
+  const tieneNombre = !!String(cfg?.nombreIglesia || '').trim()
+  return !completado || !tieneNombre || (hasOnboardingState && !billingOk)
+}
+
 async function findOrCreateOAuthUser({ provider, providerId, email, nombre = '', emailVerified = true, context = {}, frontUrl = process.env.FRONTEND_URL || process.env.BASE_URL || '' }) {
   const normalizedEmail = String(email || '').toLowerCase()
   let user = await pgOne('SELECT * FROM "User" WHERE lower("email")=lower($1) LIMIT 1', [normalizedEmail])
@@ -290,7 +310,8 @@ router.get('/google/callback', async (req, res) => {
     if (!user.activo) return res.redirect(`${front}/app/login?error=account_disabled`)
 
     await issueSession(user, req, res)
-    const setup = createdNow ? '&setup=1' : ''
+    const needsSetup = createdNow || await requiresSetupForUser(user)
+    const setup = needsSetup ? '&setup=1' : ''
     res.redirect(`${front}/app/login?oauth=1${setup}`)
 
   } catch(err) {
@@ -385,7 +406,8 @@ router.post('/apple/callback', async (req, res) => {
 
     if (!user.activo) return res.redirect(`${frontUrl}/app/login?error=account_disabled`)
     await issueSession(user, req, res)
-    const setup = createdNow ? '&setup=1' : ''
+    const needsSetup = createdNow || await requiresSetupForUser(user)
+    const setup = needsSetup ? '&setup=1' : ''
     res.redirect(`${frontUrl}/app/login?oauth=1${setup}`)
   } catch (err) {
     logger.error({ err: err?.message }, 'OAuth Apple error')
