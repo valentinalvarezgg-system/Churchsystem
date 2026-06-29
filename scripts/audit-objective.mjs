@@ -23,6 +23,21 @@ const QA_EMAILS = [
   'qa.plan.church500@churchsystem.test',
   'qa.plan.church1000@churchsystem.test',
 ]
+const QA_ALIAS_EMAILS = [
+  'godmode@test.com',
+  'pastor@test.com',
+  'culto@test.com',
+  'consolidacion@test.com',
+  'staff@test.com',
+  'lider@test.com',
+  'free@test.com',
+  'pro@test.com',
+  'max@test.com',
+  'church100@test.com',
+  'church500@test.com',
+  'church1000@test.com',
+]
+const RESET_AUDITLOG_ALLOWED_EMAILS = [...QA_EMAILS, ...QA_ALIAS_EMAILS]
 const REQUIRED_ROLES = ['GODMODE', 'PASTOR_GENERAL', 'PASTOR_CULTO', 'CONSOLIDACION', 'STAFF', 'LIDER']
 const REQUIRED_PLANS = ['GODMODE', 'FREE', 'PRO', 'MAX', 'CHURCH_100', 'CHURCH_500', 'CHURCH_1000']
 const RESET_TABLES = [
@@ -215,7 +230,7 @@ function auditStaticCode() {
   }
 }
 
-async function auditDatabase(qaPassword, strictQaPassword, baseline = {}) {
+async function auditDatabase(qaPassword, strictQaPassword) {
   if (!process.env.DATABASE_URL) {
     error('db', 'DATABASE_URL no configurado; no se puede auditar reset/QA')
     return
@@ -225,12 +240,14 @@ async function auditDatabase(qaPassword, strictQaPassword, baseline = {}) {
   for (const table of RESET_TABLES) {
     let row
     if (table === 'AuditLog') {
-      const limitId = Number(baseline.auditLogMaxId || 0)
       row = await pgOne(
         `SELECT COUNT(*)::int AS total
-           FROM "AuditLog"
-          WHERE id <= $1`,
-        [limitId]
+           FROM "AuditLog" a
+           LEFT JOIN "User" u ON u.id = a."userId"
+          WHERE a.action <> 'LOGIN'
+             OR u.email IS NULL
+             OR lower(u.email) <> ALL($1)`,
+        [RESET_AUDITLOG_ALLOWED_EMAILS]
       )
     } else {
       const hasDeletedAt = await pgOne(
@@ -322,16 +339,9 @@ async function main() {
   console.log(`Church System — auditoría objetivo`)
   console.log(`URL: ${opts.baseUrl}`)
 
-  let baseline = { auditLogMaxId: 0 }
-  if (process.env.DATABASE_URL) {
-    const { pgOne } = await import('../backend/src/lib/pg.js')
-    const row = await pgOne('SELECT COALESCE(MAX(id), 0)::int AS max_id FROM "AuditLog"', [])
-    baseline.auditLogMaxId = Number(row?.max_id || 0)
-  }
-
   await auditProduction(opts.baseUrl)
   auditStaticCode()
-  await auditDatabase(opts.qaPassword, opts.strictQaPassword, baseline)
+  await auditDatabase(opts.qaPassword, opts.strictQaPassword)
   await auditAuthRuntime(opts.baseUrl, opts.qaPassword, opts.strictQaPassword)
 
   console.log(`\nResultado: ${results.errors} error(es), ${results.warnings} advertencia(s), ${results.ok} check(s) OK`)

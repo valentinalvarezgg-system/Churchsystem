@@ -1,6 +1,25 @@
 # BITÁCORA — Church System
 ---
 
+## Auditoría de reset: ignorar logins QA permitidos en `AuditLog` — 2026-06-28
+
+**Estado actual:** la auditoría amplia del objetivo vuelve a pasar en verde incluso después de verificar cuentas QA/GodMode. El check de reset ahora distingue correctamente entre datos tenant “reales” y actividad de prueba esperada.
+
+### Falla detectada
+- `scripts/audit-objective.mjs` seguía tratando cualquier fila en `AuditLog` como señal de reset incompleto.
+- Después del reset, las verificaciones de QA/GodMode y los logins manuales de aliases (`max@test.com`, `godmode@test.com`, etc.) repueblan `AuditLog` con entradas legítimas de `LOGIN`.
+- Eso producía un falso negativo: la app estaba limpia de datos tenant, pero la auditoría fallaba por actividad QA posterior al reset.
+
+### Corrección aplicada
+- `scripts/audit-objective.mjs`: agregado whitelist explícito de cuentas QA formales + aliases amigables.
+- `scripts/audit-objective.mjs`: el check de `AuditLog` ahora solo falla si encuentra actividad distinta de `LOGIN` o logins que no pertenezcan a cuentas QA/alias esperadas.
+- Se eliminó la dependencia de un baseline por `MAX(id)` que no alcanzaba para distinguir actividad de prueba permitida de datos operativos residuales.
+
+### Evidencia
+- `QA_TEST_PASSWORD='ChurchTest-2026!' pnpm audit:objective -- --strict-qa-password` → OK, `0 error(es), 6 advertencia(s), 62 check(s) OK`.
+- `QA_TEST_PASSWORD='ChurchTest-2026!' pnpm verify:qa-access` → OK, 12 cuentas QA formales + 12 aliases + `GodMode overview`.
+- `cd frontend && npx -y pnpm@9.15.5 build` → OK.
+
 ## Auth mobile: frontend viejo + service worker inmóvil — 2026-06-28
 
 **Estado actual:** el error de autenticación reportado en mobile queda corregido desde la publicación del frontend nuevo. El backend ya aceptaba `max@test.com`, pero la app web podía seguir ejecutando un bundle viejo en iPhone/iPad por caché agresivo del PWA.
