@@ -26,6 +26,9 @@
 - `node --check backend/src/routes/subscriptions.js` → OK.
 - `git diff --check` → OK.
 - `cd frontend && pnpm build` con Node/Pnpm del runtime Codex → OK.
+- Backend productivo local reiniciado con `launchctl kickstart -k gui/$(id -u)/com.churchsystem.backend`.
+- `curl https://churchsystem.com.ar/health` post-reinicio → HTTP `200`.
+- `POST https://churchsystem.com.ar/api/payments/mercadopago/webhook` post-reinicio → HTTP `200`, confirmando alias compatible.
 
 ## Auth/OAuth mobile recuperado: CA del backend + mensajes accionables — 2026-06-29
 
