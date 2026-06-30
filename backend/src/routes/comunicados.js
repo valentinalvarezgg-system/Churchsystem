@@ -3,6 +3,7 @@ import { pgExec, pgMany, pgOne } from '../lib/pg.js'
 import { requireAuth } from '../middlewares/auth.js'
 
 const router = Router()
+let schemaReady = null
 
 // Variables dinámicas disponibles para plantillas
 export const VARIABLES_DISPONIBLES = ['{nombre}','{fecha}','{evento}','{lugar}','{hora}','{iglesia}']
@@ -19,9 +20,23 @@ export function interpolarVariables(texto, vars = {}) {
     .replace(/\{iglesia\}/g, vars.iglesia || '{iglesia}')
 }
 
+function ensureComunicadosSchema() {
+  if (!schemaReady) {
+    schemaReady = pgExec(`
+      ALTER TABLE "Comunicado"
+      ADD COLUMN IF NOT EXISTS "scheduledAt" TIMESTAMPTZ
+    `).catch(err => {
+      schemaReady = null
+      throw err
+    })
+  }
+  return schemaReady
+}
+
 router.get('/', requireAuth, async (req, res) => {
   const iglesiaId = Number(req.user.iglesiaId || 0)
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  await ensureComunicadosSchema()
 
   const { page = 1, limit = 15 } = req.query
   const where = [`c."iglesiaId"=$1`, `c."archivado"=false`]
@@ -56,6 +71,7 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/programados', requireAuth, async (req, res) => {
   const iglesiaId = Number(req.user.iglesiaId || 0)
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  await ensureComunicadosSchema()
   if (!['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION'].includes(req.user.rol)) {
     return res.status(403).json({ error: 'Sin permisos' })
   }
@@ -73,17 +89,13 @@ router.get('/programados', requireAuth, async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   const iglesiaId = Number(req.user.iglesiaId || 0)
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  await ensureComunicadosSchema()
 
   const {
     titulo, contenido, tipo = 'GENERAL', destinatarios = 'TODOS',
     fijado = false, scheduledAt = null
   } = req.body || {}
   if (!titulo?.trim() || !contenido?.trim()) return res.status(400).json({ error: 'Título y contenido requeridos' })
-
-  // Asegurar que la columna scheduledAt exista (idempotente)
-  await pgExec(`
-    ALTER TABLE "Comunicado" ADD COLUMN IF NOT EXISTS "scheduledAt" TIMESTAMPTZ
-  `).catch(() => {})
 
   const scheduled = scheduledAt ? new Date(scheduledAt) : null
   // Si es programado en el futuro, no publicar todavía (scheduledAt lo controla)
@@ -98,6 +110,7 @@ router.post('/', requireAuth, async (req, res) => {
 router.put('/:id', requireAuth, async (req, res) => {
   const iglesiaId = Number(req.user.iglesiaId || 0)
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
+  await ensureComunicadosSchema()
 
   const c = await pgOne('SELECT * FROM "Comunicado" WHERE "id"=$1 AND "iglesiaId"=$2', [Number(req.params.id), iglesiaId])
   if (!c) return res.status(404).json({ error: 'No encontrado' })

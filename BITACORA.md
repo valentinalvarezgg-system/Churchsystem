@@ -1,6 +1,39 @@
 # BITÁCORA — Church System
 ---
 
+## Auditoría funcional módulos + Comunicados recuperado — 2026-06-30
+
+**Estado actual:** la web pública y los módulos principales quedan operativos. El smoke read-only de producción recorrió 44 endpoints críticos con usuario QA `PASTOR_GENERAL/MAX` y terminó `44/44` OK, sin endpoints 5xx ni timeouts. La falla real encontrada fue `GET /comunicados`, que quedaba colgado porque el código leía `scheduledAt` aunque la columna sólo se creaba al hacer `POST /comunicados`.
+
+### Corrección aplicada
+- `backend/src/routes/comunicados.js`: se agregó `ensureComunicadosSchema()` idempotente antes de listar, programar, crear o editar comunicados.
+- `backend/prisma/migrations/20260630073000_comunicados_scheduled_at/migration.sql`: se agregó la migración formal para `scheduledAt` e índices de lectura/programación.
+- Base activa Neon: se aplicó `ALTER TABLE "Comunicado" ADD COLUMN IF NOT EXISTS "scheduledAt" TIMESTAMPTZ` e índices idempotentes para recuperar producción inmediatamente.
+- `scripts/smoke-modules.mjs` + `pnpm smoke:modules`: nuevo smoke read-only repetible para auditar módulos sin crear/borrar datos.
+- `backend/pnpm-workspace.yaml`: overrides/builds permitidos movidos al formato compatible con pnpm 11; `backend/package.json` ya no usa `pnpm.overrides` legacy.
+- `.gitignore`: se ignora sólo el lockfile raíz generado por el package orquestador, manteniendo `backend/pnpm-lock.yaml` y `frontend/pnpm-lock.yaml` como fuentes reales.
+
+### Evidencia
+- Antes del fix: `GET https://churchsystem.com.ar/comunicados` → timeout `20000ms`.
+- Diagnóstico DB: `column c.scheduledAt does not exist`.
+- Después del fix: `GET https://churchsystem.com.ar/comunicados` → HTTP `200` en `369ms`.
+- `QA_TEST_PASSWORD='ChurchTest-2026!' pnpm smoke:modules -- --base-url https://churchsystem.com.ar` → `44` total, `44` passed, `0` failed, `p50=86ms`, `p95=160ms`, `max=779ms`.
+- `pnpm --dir frontend build` → OK con Vite `6.4.3`.
+- `CI=true pnpm --config.confirmModulesPurge=false --dir backend audit:launch` → OK, sin rutas desprotegidas.
+- `pnpm --dir backend audit --json` y `pnpm --dir frontend audit --json` → `0` low/moderate/high/critical.
+- `pnpm verify:prod` → `0 error(es), 3 advertencia(s)`.
+- `pnpm diagnostico` → `0 errores, 4 advertencia(s)`.
+
+### Lectura de estabilidad actual
+- Estabilidad funcional del código: **92%**. Login/QA/GodMode/billing/módulos críticos responden; no hay advisories de dependencias.
+- Funcionamiento de módulos auditados: **100% read-only** en endpoints críticos (`44/44`). No incluye acciones destructivas ni flujos externos reales de pago/WhatsApp.
+- Rapidez API medida: **94%**. `p50=86ms`, `p95=160ms`, `max=779ms`; sin endpoints >1500ms en el smoke final.
+- Disponibilidad operativa real: **82%**. El sitio está arriba, pero sigue dependiendo de Cloudflare Tunnel local hacia `localhost:4000`; Render Business todavía no responde healthy.
+
+### Pendiente no destructivo/destructivo
+- `pnpm audit:objective:qa -- --base-url https://churchsystem.com.ar` sigue marcando reset no limpio: `Persona=130`, `Permiso=1`, `AuditLog=2`. No se ejecutó reset destructivo automático para no borrar datos activos sin confirmación explícita.
+- Próximo cuello de disponibilidad: completar Render Business, cargar secretos, confirmar `https://church-system.onrender.com/health` y cortar la dependencia del túnel local.
+
 ## Dependencias frontend blindadas: Vite/Router/esbuild/Babel/tar sin advisories — 2026-06-30
 
 **Estado actual:** la auditoría de dependencias queda limpia en frontend y backend. El aviso de GitHub/Dependabot venía del árbol frontend, especialmente Vite/esbuild en tooling de desarrollo y React Router en runtime.
