@@ -8,15 +8,29 @@ import { COMMERCIAL_PLAN_ORDER, getCommercialPlanUi, normalizeCommercialPlan } f
 
 const MERCADOPAGO_COUNTRIES = new Set(['AR', 'BR', 'CL', 'CO', 'MX', 'PE', 'UY'])
 
-function PlanCard({ plan, current, loading, onSuscribir, lang }) {
+function PlanCard({ plan, current, pending, trialEffective, loading, onSuscribir, lang }) {
   const ui = getCommercialPlanUi(plan.id, lang)
   const selectedPrice = Number(plan.precio ?? 0)
   const currency = plan.currency || 'USD'
   const isFeatured = !!plan.featured || ui.badge === 'Más popular'
+  const badge = current
+    ? 'Plan actual'
+    : pending
+      ? 'Checkout pendiente'
+      : trialEffective
+        ? 'Plan del trial'
+        : (ui.badge || 'Recomendado')
+  const accent = current
+    ? 'var(--c-success)'
+    : pending
+      ? 'var(--c-warning)'
+      : isFeatured || trialEffective
+        ? 'var(--primary)'
+        : 'var(--border)'
   return (
     <div style={{
       background: 'var(--surface)',
-      border: `2px solid ${current ? 'var(--c-success)' : isFeatured ? 'var(--primary)' : 'var(--border)'}`,
+      border: `2px solid ${accent}`,
       borderRadius: 18,
       padding: '24px 20px',
       display: 'flex',
@@ -26,13 +40,13 @@ function PlanCard({ plan, current, loading, onSuscribir, lang }) {
       flex: '1 1 280px',
       minWidth: 260,
     }}>
-      {(isFeatured || current) && (
+      {(isFeatured || current || pending || trialEffective) && (
         <div style={{
           position: 'absolute',
           top: -12,
           left: '50%',
           transform: 'translateX(-50%)',
-          background: current ? 'var(--c-success)' : 'var(--primary)',
+          background: current ? 'var(--c-success)' : pending ? 'var(--c-warning)' : 'var(--primary)',
           color: '#fff',
           fontSize: 11,
           fontWeight: 700,
@@ -40,7 +54,7 @@ function PlanCard({ plan, current, loading, onSuscribir, lang }) {
           borderRadius: 20,
           whiteSpace: 'nowrap',
         }}>
-          {current ? 'Plan actual' : (ui.badge || 'Recomendado')}
+          {badge}
         </div>
       )}
       <div>
@@ -79,7 +93,7 @@ function PlanCard({ plan, current, loading, onSuscribir, lang }) {
           </div>
         ) : (
           <button className="btn btn-primary" style={{ width: '100%' }} disabled={loading} onClick={() => onSuscribir(plan.id)}>
-            {loading ? <span className="spinner-sm" /> : `Ir al checkout de ${plan.label}`}
+            {loading ? <span className="spinner-sm" /> : pending ? `Reintentar checkout de ${plan.label}` : `Ir al checkout de ${plan.label}`}
           </button>
         )}
       </div>
@@ -184,10 +198,13 @@ export default function Billing() {
     },
   ].filter(group => group.plans.length > 0)
 
-  const currentPlan = normalizeCommercialPlan(estado.planPago || estado.efectivePlan || 'FREE') || 'FREE'
+  const paidCurrentPlan = normalizeCommercialPlan(estado.planPago || '')
+  const effectivePlanKey = normalizeCommercialPlan(estado.efectivePlan || 'FREE') || 'FREE'
+  const pendingPlan = normalizeCommercialPlan(estado.planPendiente || '')
   const {
-    enTrial, diasTrial, trialFin, suscActiva, suscVence, efectivePlan, enGracia, diasGracia, estadoSus,
+    enTrial, diasTrial, trialFin, suscActiva, suscVence, enGracia, diasGracia, estadoSus, estadoPendiente,
   } = estado
+  const activeCardPlan = paidCurrentPlan || (enGracia ? effectivePlanKey : '')
 
   return (
     <div className="layout"><Menu />
@@ -207,15 +224,23 @@ export default function Billing() {
                 <div style={{ padding: '12px 16px', borderRadius: 10, flex: 1, minWidth: 220, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 1 }}>Trial activo</div>
                   <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text)', marginTop: 4 }}>{diasTrial} días</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Hasta {trialFin || '—'} · plan efectivo {efectivePlan || 'PRO'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Hasta {trialFin || '—'} · plan efectivo {effectivePlanKey || 'PRO'}</div>
                 </div>
               )}
 
               {suscActiva && (
                 <div style={{ padding: '12px 16px', borderRadius: 10, flex: 1, minWidth: 220, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.18)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-success)', textTransform: 'uppercase', letterSpacing: 1 }}>Suscripción activa</div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text)', marginTop: 4 }}>{currentPlan}</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text)', marginTop: 4 }}>{paidCurrentPlan || effectivePlanKey}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Vence {suscVence || '—'} · estado {estadoSus || 'active'}</div>
+                </div>
+              )}
+
+              {pendingPlan && (
+                <div style={{ padding: '12px 16px', borderRadius: 10, flex: 1, minWidth: 220, background: 'var(--c-warning-bg)', border: '1px solid var(--c-warning-brd)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-warning)', textTransform: 'uppercase', letterSpacing: 1 }}>Checkout pendiente</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text)', marginTop: 4 }}>{pendingPlan}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Estado {estadoPendiente || 'pending'} · completá o reintentá el pago.</div>
                 </div>
               )}
 
@@ -257,7 +282,9 @@ export default function Billing() {
                       key={plan.id}
                       plan={plan}
                       lang={lang}
-                      current={currentPlan === normalizeCommercialPlan(plan.id) && (suscActiva || enTrial)}
+                      current={activeCardPlan === normalizeCommercialPlan(plan.id) && (suscActiva || enGracia)}
+                      pending={pendingPlan === normalizeCommercialPlan(plan.id)}
+                      trialEffective={enTrial && effectivePlanKey === normalizeCommercialPlan(plan.id)}
                       onSuscribir={suscribir}
                       loading={loadingPlan === plan.id}
                     />
@@ -283,7 +310,7 @@ export default function Billing() {
             <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Preguntas frecuentes</h3>
             {[
               ['¿Pierdo mis datos si cancelo?', 'No. Tus datos se conservan durante 90 días después de la cancelación.'],
-              ['¿Puedo cambiar de plan en cualquier momento?', 'Sí. Podés iniciar un checkout nuevo para el plan objetivo y luego coordinar la transición comercial.'],
+              ['¿Puedo cambiar de plan en cualquier momento?', 'Sí. Iniciá el checkout del plan objetivo y se activará automáticamente cuando el proveedor confirme la suscripción.'],
               ['¿Cómo se realiza el cobro?', 'Church System deriva al checkout real del proveedor configurado para tu país.'],
               ['¿Esto impacta el onboarding?', 'Sí. Cuando el proveedor confirma la suscripción, la iglesia queda marcada con facturación confirmada en el onboarding.'],
             ].map(([q, a]) => (

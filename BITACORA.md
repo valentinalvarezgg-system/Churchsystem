@@ -1,6 +1,32 @@
 # BITÁCORA — Church System
 ---
 
+## Cambio de planes recuperado: webhooks y estado billing coherentes — 2026-06-30
+
+**Estado actual:** el flujo de cambio de plan vuelve a quedar conectado de punta a punta. El checkout nuevo guarda el plan objetivo como pendiente, vuelve a `/app/billing`, MercadoPago notifica al endpoint correcto y la pantalla distingue plan efectivo de trial, plan pago activo y checkout pendiente.
+
+### Falla detectada
+- `POST /subscriptions/create` generaba `notification_url` hacia `/api/payments/mercadopago/webhook`, pero producción sólo respondía `POST /payments/mercadopago/webhook`; la prueba pública devolvía `404` en la ruta `/api/...` y `200` en la ruta real.
+- El checkout nuevo no persistía la fila canónica en `suscripciones`, por lo que el webhook podía activar `PRO` por inferencia aunque el usuario hubiera elegido `CHURCH_100`, `CHURCH_500`, etc.
+- `GET /subscriptions/billing-estado` tomaba la última suscripción aunque fuera `pending`, mezclando plan pendiente con plan pago activo.
+- `frontend/src/pages/Billing.jsx` marcaba como “Plan actual” el plan efectivo del trial, bloqueando elegir ese mismo plan como plan pago objetivo.
+- PayPal actualizaba la fila `payments`, pero no sincronizaba `suscripciones` ni `Configuracion`, por lo que una activación no confirmaba el plan en onboarding/billing.
+
+### Corrección aplicada
+- `backend/src/routes/subscriptions.js`: `/subscriptions/create` usa `back_url` a `/app/billing` y `notification_url` a `/payments/mercadopago/webhook`.
+- `backend/src/routes/subscriptions.js`: se agregó compatibilidad para `POST /api/payments/mercadopago/webhook`, cubriendo checkouts creados antes de la corrección.
+- `backend/src/routes/subscriptions.js`: el checkout MP/PayPal ahora crea o actualiza `suscripciones` como `pending` con el plan exacto elegido.
+- `backend/src/routes/subscriptions.js`: los webhooks activan/degradan planes sincronizando `suscripciones`, `Configuracion`, onboarding y datos de gracia sin inferir planes incorrectos.
+- `frontend/src/pages/Billing.jsx`: la UI separa `planPago`, `planPendiente` y `efectivePlan`; durante trial muestra “Plan del trial” pero permite iniciar checkout del plan pago.
+- `frontend/pnpm-workspace.yaml`: se dejó permitido sólo el build script de `esbuild` para que `pnpm build` sea reproducible con pnpm 11.
+- `frontend/dist`: regenerado porque el deploy actual versiona `frontend/dist` para servir producción.
+
+### Evidencia
+- `curl -X POST https://churchsystem.com.ar/api/payments/mercadopago/webhook --data '{}'` antes del parche → HTTP `404`; la ruta real `/payments/mercadopago/webhook` respondía HTTP `200`.
+- `node --check backend/src/routes/subscriptions.js` → OK.
+- `git diff --check` → OK.
+- `cd frontend && pnpm build` con Node/Pnpm del runtime Codex → OK.
+
 ## Auth/OAuth mobile recuperado: CA del backend + mensajes accionables — 2026-06-29
 
 **Estado actual:** el login por email vuelve a responder con códigos estructurados en producción y el acceso con Google ya no cae en `oauth_failed` por falla TLS local del backend. El usuario deja de ver el toast genérico `Error en autenticación` y recibe una guía específica según credenciales, OAuth o configuración del proveedor.

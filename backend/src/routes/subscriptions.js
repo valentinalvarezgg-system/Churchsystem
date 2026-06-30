@@ -141,6 +141,53 @@ function normalizePlatform(raw = '') {
   return key === 'paypal' ? 'paypal' : 'mercadopago'
 }
 
+function normalizeKnownPlan(raw = '') {
+  const text = String(raw || '').trim()
+  if (!text) return ''
+  const direct = text.toUpperCase().replace(/\s+/g, '_')
+  if (COMMERCIAL_PLANS[direct]) return direct
+
+  const normalized = normalizePlan(text)
+  const aliases = new Set([
+    'lider',
+    'culto',
+    'consolidacion',
+    'administracion',
+    'general',
+    'basico',
+    'estandar',
+    'pro',
+    'starter',
+    'max',
+    'free',
+    'church100',
+    'church_100',
+    'church500',
+    'church_500',
+    'church1000',
+    'church_1000',
+  ])
+  return aliases.has(text.toLowerCase()) && COMMERCIAL_PLANS[normalized] ? normalized : ''
+}
+
+function detectPlanInText(raw = '') {
+  const text = String(raw || '').toUpperCase()
+  return Object.keys(COMMERCIAL_PLANS)
+    .filter(plan => plan !== 'FREE')
+    .sort((a, b) => b.length - a.length)
+    .find(plan => text.includes(plan) || text.includes(plan.replace('_', ' '))) || ''
+}
+
+function planFromExternalReference(ref = '') {
+  return normalizeKnownPlan(String(ref || '').split('|')[2]) || ''
+}
+
+function toIsoOrNull(value) {
+  if (!value) return null
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? null : d.toISOString()
+}
+
 async function ensureSubscriptionSchema() {
   if (schemaReadyPromise) return schemaReadyPromise
   schemaReadyPromise = (async () => {
@@ -251,13 +298,63 @@ async function savePaymentRow({
   )
 }
 
+async function syncSubscriptionRecord({
+  iglesiaId,
+  proveedor,
+  subscriptionId,
+  plan,
+  estado = 'pending',
+  amountUsd = null,
+  amountArs = null,
+  cotizacion = null,
+  proximoCobro = null,
+  graciaHasta = null,
+  lastEvent = null,
+}) {
+  await ensureSubscriptionSchema()
+  const planKey = normalizeKnownPlan(plan) || normalizePlan(plan || 'PRO')
+  await pgExec(
+    `INSERT INTO suscripciones
+       (id, iglesia_id, proveedor, preapproval_id, plan, estado, monto_usd, monto_ars, cotizacion,
+        proximo_cobro_at, gracia_hasta, last_event, creado_at, actualizado_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+     ON CONFLICT (preapproval_id) DO UPDATE
+       SET iglesia_id=$2,
+           proveedor=$3,
+           plan=$5,
+           estado=$6,
+           monto_usd=COALESCE($7, suscripciones.monto_usd),
+           monto_ars=COALESCE($8, suscripciones.monto_ars),
+           cotizacion=COALESCE($9, suscripciones.cotizacion),
+           proximo_cobro_at=$10,
+           gracia_hasta=$11,
+           last_event=COALESCE($12, suscripciones.last_event),
+           actualizado_at=CURRENT_TIMESTAMP`,
+    [
+      crypto.randomUUID(),
+      iglesiaId,
+      proveedor,
+      String(subscriptionId || ''),
+      planKey,
+      String(estado || 'pending').toLowerCase(),
+      amountUsd,
+      amountArs,
+      cotizacion,
+      toIsoOrNull(proximoCobro),
+      toIsoOrNull(graciaHasta),
+      lastEvent,
+    ]
+  )
+  return planKey
+}
+
 export async function getBillingEstadoSummary(iglesiaId) {
   await ensureSubscriptionSchema()
 
   const rows = await pgMany(
     `SELECT "clave","valor" FROM "Configuracion"
       WHERE "iglesiaId"=$1
-        AND "clave" IN ('trial_inicio','trial_fin','suscripcion_activa','plan','suscripcion_vence')`,
+        AND "clave" IN ('trial_inicio','trial_fin','suscripcion_activa','plan','suscripcion_vence','plan_pendiente','checkout_reference')`,
     [iglesiaId]
   )
   const cfg  = Object.fromEntries(rows.map(r => [r.clave, r.valor]))
@@ -269,22 +366,48 @@ export async function getBillingEstadoSummary(iglesiaId) {
     : 0
   const suscActiva = cfg.suscripcion_activa === '1' && !!(cfg.suscripcion_vence && hoy <= cfg.suscripcion_vence)
 
-  const sus = await pgOne(
-    `SELECT id, preapproval_id, plan, estado, monto_usd, monto_ars, proximo_cobro_at, gracia_hasta
+  const activeSus = await pgOne(
+    `SELECT id, preapproval_id, proveedor, plan, estado, monto_usd, monto_ars, proximo_cobro_at, gracia_hasta
        FROM suscripciones
       WHERE iglesia_id=$1
-      ORDER BY creado_at DESC LIMIT 1`,
+        AND lower(estado) IN ('authorized','active')
+      ORDER BY actualizado_at DESC, creado_at DESC
+      LIMIT 1`,
     [iglesiaId]
   ).catch(() => null)
 
-  const enGracia   = !!(sus?.gracia_hasta && new Date(sus.gracia_hasta) > new Date())
-  const diasGracia = sus?.gracia_hasta
-    ? Math.max(0, Math.ceil((new Date(sus.gracia_hasta) - new Date()) / 86400000))
+  const graceSus = activeSus || await pgOne(
+    `SELECT id, preapproval_id, proveedor, plan, estado, monto_usd, monto_ars, proximo_cobro_at, gracia_hasta
+       FROM suscripciones
+      WHERE iglesia_id=$1
+        AND gracia_hasta IS NOT NULL
+      ORDER BY gracia_hasta DESC, actualizado_at DESC
+      LIMIT 1`,
+    [iglesiaId]
+  ).catch(() => null)
+
+  const pendingSus = await pgOne(
+    `SELECT id, preapproval_id, proveedor, plan, estado, monto_usd, monto_ars, proximo_cobro_at, gracia_hasta
+       FROM suscripciones
+      WHERE iglesia_id=$1
+        AND lower(estado) IN ('pending','approval_pending','created')
+      ORDER BY actualizado_at DESC, creado_at DESC
+      LIMIT 1`,
+    [iglesiaId]
+  ).catch(() => null)
+
+  const enGracia   = !!(graceSus?.gracia_hasta && new Date(graceSus.gracia_hasta) > new Date())
+  const diasGracia = graceSus?.gracia_hasta
+    ? Math.max(0, Math.ceil((new Date(graceSus.gracia_hasta) - new Date()) / 86400000))
     : 0
+  const paidPlan = activeSus?.plan || (suscActiva ? cfg.plan : null)
+  const gracePlan = graceSus?.plan || cfg.plan || 'FREE'
+  const pendingPlan = pendingSus?.plan || cfg.plan_pendiente || null
 
   let efectivePlan = 'FREE'
   if (enTrial) efectivePlan = 'PRO'
-  else if (suscActiva || enGracia) efectivePlan = sus?.plan || cfg.plan || 'FREE'
+  else if (suscActiva) efectivePlan = paidPlan || 'FREE'
+  else if (enGracia) efectivePlan = gracePlan || 'FREE'
 
   const [montoProInfo, montoMaxInfo] = await Promise.all([
     montoARS('PRO').catch(() => ({ usd: 12, ars: 14400, cotizacion: 1200 })),
@@ -299,13 +422,18 @@ export async function getBillingEstadoSummary(iglesiaId) {
     trialFin:      cfg.trial_fin    || null,
     suscActiva,
     suscVence:     cfg.suscripcion_vence || null,
-    planPago:      sus?.plan || cfg.plan || null,
-    preapprovalId: sus?.preapproval_id || null,
-    estadoSus:     sus?.estado || null,
-    proximoCobro:  sus?.proximo_cobro_at || null,
+    planPago:      paidPlan || null,
+    preapprovalId: activeSus?.preapproval_id || null,
+    proveedor:     activeSus?.proveedor || null,
+    estadoSus:     activeSus?.estado || (suscActiva ? 'authorized' : null),
+    proximoCobro:  activeSus?.proximo_cobro_at || null,
+    planPendiente: pendingPlan,
+    estadoPendiente: pendingSus?.estado || (cfg.plan_pendiente ? 'pending' : null),
+    pendingPreapprovalId: pendingSus?.preapproval_id || null,
+    checkoutReference: cfg.checkout_reference || null,
     enGracia,
     diasGracia,
-    graciasHasta:  sus?.gracia_hasta || null,
+    graciasHasta:  graceSus?.gracia_hasta || null,
     efectivePlan,
     montoPRO:      montoProInfo,
     montoMAX:      montoMaxInfo,
@@ -332,7 +460,7 @@ export async function getOnboardingProgress(iglesiaId) {
 }
 
 async function updatePaymentBySubscription(subscriptionId, nextStatus, metadataPatch = {}) {
-  const current = await pgOne('SELECT id, metadata FROM payments WHERE subscription_id=$1 ORDER BY id DESC LIMIT 1', [subscriptionId])
+  const current = await pgOne('SELECT * FROM payments WHERE subscription_id=$1 ORDER BY id DESC LIMIT 1', [subscriptionId])
   if (!current) return null
   const merged = { ...(current.metadata || {}), ...(metadataPatch || {}) }
   await pgExec(
@@ -341,7 +469,7 @@ async function updatePaymentBySubscription(subscriptionId, nextStatus, metadataP
       WHERE id=$1`,
     [current.id, nextStatus, JSON.stringify(merged)]
   )
-  return current.id
+  return { ...current, status: nextStatus, metadata: merged }
 }
 
 async function verifyPayPalWebhook(req) {
@@ -401,8 +529,8 @@ router.post('/subscriptions/create', requireAuth, requireRol('PASTOR_GENERAL'), 
           transaction_amount: amount,
           currency_id: 'ARS',
         },
-        back_url: `${baseUrl}/app/configuracion?pago=ok&metodo=mercadopago`,
-        notification_url: `${baseUrl}/api/payments/mercadopago/webhook${MP_WEBHOOK_SECRET ? `?secret=${encodeURIComponent(MP_WEBHOOK_SECRET)}` : ''}`,
+        back_url: `${baseUrl}/app/billing?pago=ok&metodo=mercadopago`,
+        notification_url: `${baseUrl}/payments/mercadopago/webhook${MP_WEBHOOK_SECRET ? `?secret=${encodeURIComponent(MP_WEBHOOK_SECRET)}` : ''}`,
         status: 'authorized',
       }
       const createRes = await mpRequest('POST', '/preapproval', payload)
@@ -420,6 +548,16 @@ router.post('/subscriptions/create', requireAuth, requireRol('PASTOR_GENERAL'), 
         currency: 'ARS',
         status: createRes.data.status || 'authorized',
         metadata: { frequency, extRef, init_point: createRes.data.init_point || '' },
+      })
+      await syncSubscriptionRecord({
+        iglesiaId: req.user.iglesiaId,
+        proveedor: 'mercadopago',
+        subscriptionId: createRes.data.id,
+        plan: planName,
+        estado: 'pending',
+        amountArs: amount,
+        proximoCobro: createRes.data.next_payment_date || null,
+        lastEvent: `created:${createRes.data.status || 'pending'}`,
       })
       logger.info({ platform, planName, frequency, userId: req.user.id, subscriptionId: createRes.data.id }, 'Subscription created')
       return res.json({
@@ -442,8 +580,8 @@ router.post('/subscriptions/create', requireAuth, requireRol('PASTOR_GENERAL'), 
       custom_id: customId,
       application_context: {
         brand_name: 'Church System',
-        return_url: `${baseUrl}/app/configuracion?pago=ok&metodo=paypal`,
-        cancel_url: `${baseUrl}/app/configuracion?pago=error&metodo=paypal`,
+        return_url: `${baseUrl}/app/billing?pago=ok&metodo=paypal`,
+        cancel_url: `${baseUrl}/app/billing?pago=error&metodo=paypal`,
       },
     }
     const ppCreate = await ppRequest('POST', '/v1/billing/subscriptions', createPayload, accessToken)
@@ -462,6 +600,15 @@ router.post('/subscriptions/create', requireAuth, requireRol('PASTOR_GENERAL'), 
       currency: 'USD',
       status: ppCreate.data.status || 'APPROVAL_PENDING',
       metadata: { frequency, customId },
+    })
+    await syncSubscriptionRecord({
+      iglesiaId: req.user.iglesiaId,
+      proveedor: 'paypal',
+      subscriptionId: ppCreate.data.id,
+      plan: planName,
+      estado: 'pending',
+      amountUsd: Number(plan.price_usd || 0),
+      lastEvent: `created:${ppCreate.data.status || 'APPROVAL_PENDING'}`,
     })
     logger.info({ platform, planName, frequency, userId: req.user.id, subscriptionId: ppCreate.data.id }, 'Subscription created')
     return res.json({
@@ -575,7 +722,7 @@ router.put('/subscriptions/:id/cancel', requireAuth, requireRol('PASTOR_GENERAL'
   }
 })
 
-router.post('/payments/mercadopago/webhook', async (req, res) => {
+async function handleMercadoPagoWebhook(req, res) {
   try {
     if (MP_WEBHOOK_SECRET && !verifyMpWebhook(req)) return res.status(401).json({ ok: false, error: 'Invalid webhook signature' })
 
@@ -593,6 +740,7 @@ router.post('/payments/mercadopago/webhook', async (req, res) => {
       const status = ['authorized', 'paused', 'cancelled'].includes(statusRaw) ? statusRaw : statusRaw || 'unknown'
       const extRef = String(detail.data.external_reference || '')
       const [userId, iglesiaId] = extRef.split('|')
+      const planKey = planFromExternalReference(extRef) || detectPlanInText(detail.data.reason) || 'PRO'
       if (userId && iglesiaId) {
         const existingId = await updatePaymentBySubscription(String(detail.data.id), status, { webhook: req.body || {}, extRef })
         if (!existingId) {
@@ -601,7 +749,7 @@ router.post('/payments/mercadopago/webhook', async (req, res) => {
             iglesiaId: Number(iglesiaId),
             platform: 'mercadopago',
             subscriptionId: String(detail.data.id),
-            planName: String(detail.data.reason || 'UNKNOWN'),
+            planName: planKey,
             amount: Number(detail.data.auto_recurring?.transaction_amount || 0),
             currency: String(detail.data.auto_recurring?.currency_id || 'ARS'),
             status,
@@ -622,7 +770,10 @@ router.post('/payments/mercadopago/webhook', async (req, res) => {
     logger.error({ err: err.message }, 'MercadoPago webhook failed')
     return res.status(500).json({ ok: false })
   }
-})
+}
+
+router.post('/payments/mercadopago/webhook', handleMercadoPagoWebhook)
+router.post('/api/payments/mercadopago/webhook', handleMercadoPagoWebhook)
 
 router.post('/payments/paypal/webhook', async (req, res) => {
   try {
@@ -641,7 +792,22 @@ router.post('/payments/paypal/webhook', async (req, res) => {
     if (evt === 'BILLING.SUBSCRIPTION.CANCELLED') status = 'cancelled'
     if (!status) return res.status(200).json({ ok: true })
 
-    await updatePaymentBySubscription(String(subscriptionId), status, { webhook: req.body || {} })
+    const payment = await updatePaymentBySubscription(String(subscriptionId), status, { webhook: req.body || {} })
+    if (payment?.iglesia_id) {
+      const planKey = normalizeKnownPlan(payment.plan_name) || 'PRO'
+      await syncSubscriptionRecord({
+        iglesiaId: payment.iglesia_id,
+        proveedor: 'paypal',
+        subscriptionId: String(subscriptionId),
+        plan: planKey,
+        estado: status,
+        amountUsd: Number(payment.amount || 0),
+        proximoCobro: req.body?.resource?.billing_info?.next_billing_time || null,
+        lastEvent: `paypal:${evt}:${status}`,
+      })
+      if (status === 'authorized') await activarPlan(payment.iglesia_id, planKey, req.body?.resource?.billing_info?.next_billing_time || null)
+      if (status === 'cancelled') await degradarAFree(payment.iglesia_id)
+    }
     logger.info({ subscriptionId, event: evt, status }, 'PayPal webhook processed')
     return res.status(200).json({ ok: true })
   } catch (err) {
@@ -652,16 +818,22 @@ router.post('/payments/paypal/webhook', async (req, res) => {
 
 // ── Helpers internos para activar/degradar plan ───────────────
 async function activarPlan(iglesiaId, plan, proximoCobro) {
-  const vence = proximoCobro
-    ? new Date(proximoCobro).toISOString().slice(0, 10)
+  const planKey = normalizeKnownPlan(plan) || normalizePlan(plan || 'PRO')
+  const planInfo = getCommercialPlan(planKey)
+  const proximoCobroIso = toIsoOrNull(proximoCobro)
+  const vence = proximoCobroIso
+    ? proximoCobroIso.slice(0, 10)
     : (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 10) })()
   const updates = {
-    plan,
-    plan_label:         plan,
+    plan:               planKey,
+    plan_label:         planInfo?.labels?.es || planKey,
+    plan_personas_max:  String(planInfo?.personas || 0),
     suscripcion_activa: '1',
     suscripcion_vence:  vence,
     ultimo_pago:        new Date().toISOString().slice(0, 10),
-    onboarding_plan:    plan,
+    plan_pendiente:     '',
+    checkout_reference: '',
+    onboarding_plan:    planKey,
     onboarding_billing_confirmed: '1',
   }
   for (const [k, v] of Object.entries(updates)) {
@@ -675,7 +847,13 @@ async function activarPlan(iglesiaId, plan, proximoCobro) {
 }
 
 async function degradarAFree(iglesiaId) {
-  for (const [k, v] of [['suscripcion_activa','0'],['plan','FREE'],['plan_label','Free']]) {
+  for (const [k, v] of [
+    ['suscripcion_activa', '0'],
+    ['plan', 'FREE'],
+    ['plan_label', 'Free'],
+    ['plan_personas_max', '50'],
+    ['plan_pendiente', ''],
+  ]) {
     await pgExec(
       `INSERT INTO "Configuracion" ("iglesiaId","clave","valor","createdAt","updatedAt")
        VALUES ($1,$2,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
@@ -776,7 +954,7 @@ router.get('/subscriptions/onboarding-progreso', requireAuth, async (req, res) =
 async function procesarWebhookSuscripcion(iglesiaId, preapprovalId, mpData) {
   await ensureSubscriptionSchema()
   const statusRaw   = String(mpData.status || '').toLowerCase()
-  const proximoCobro = mpData.next_payment_date || mpData.application_id || null
+  const proximoCobro = mpData.next_payment_date || null
 
   const sus = await pgOne(
     `SELECT id, plan, estado, last_event, gracia_hasta FROM suscripciones WHERE preapproval_id=$1 LIMIT 1`,
@@ -787,24 +965,23 @@ async function procesarWebhookSuscripcion(iglesiaId, preapprovalId, mpData) {
   const eventKey = `${statusRaw}:${proximoCobro || ''}`
   if (sus?.last_event === eventKey) return
 
+  const planKey = normalizeKnownPlan(sus?.plan)
+    || planFromExternalReference(mpData.external_reference)
+    || detectPlanInText(mpData.reason)
+    || 'PRO'
+
   if (statusRaw === 'authorized') {
-    const planKey = sus?.plan || (mpData.reason?.includes('MAX') ? 'MAX' : 'PRO')
-    // Upsert suscripción como authorized
-    await pgExec(
-      `INSERT INTO suscripciones (id, iglesia_id, preapproval_id, plan, estado, monto_ars, proximo_cobro_at, gracia_hasta, last_event)
-       VALUES ($1,$2,$3,$4,'authorized',$5,$6,NULL,$7)
-       ON CONFLICT (preapproval_id) DO UPDATE
-         SET estado='authorized', gracia_hasta=NULL, proximo_cobro_at=$6, last_event=$7, actualizado_at=CURRENT_TIMESTAMP`,
-      [
-        crypto.randomUUID(),
-        iglesiaId,
-        preapprovalId,
-        planKey,
-        Number(mpData.auto_recurring?.transaction_amount || 0),
-        proximoCobro ? new Date(proximoCobro).toISOString() : null,
-        eventKey,
-      ]
-    )
+    await syncSubscriptionRecord({
+      iglesiaId,
+      proveedor: 'mercadopago',
+      subscriptionId: preapprovalId,
+      plan: planKey,
+      estado: 'authorized',
+      amountArs: Number(mpData.auto_recurring?.transaction_amount || 0),
+      proximoCobro,
+      graciaHasta: null,
+      lastEvent: eventKey,
+    })
     await activarPlan(iglesiaId, planKey, proximoCobro)
 
     const admin = await getAdminEmail(iglesiaId).catch(() => null)
@@ -825,13 +1002,15 @@ async function procesarWebhookSuscripcion(iglesiaId, preapprovalId, mpData) {
     // Pago pendiente en cobro recurrente → iniciar gracia si no hay
     if (!sus?.gracia_hasta || new Date(sus.gracia_hasta) < new Date()) {
       const graciaHasta = new Date(Date.now() + 7 * 86400000).toISOString()
-      await pgExec(
-        `INSERT INTO suscripciones (id, iglesia_id, preapproval_id, plan, estado, gracia_hasta, last_event)
-         VALUES ($1,$2,$3,$4,'authorized',$5,$6)
-         ON CONFLICT (preapproval_id) DO UPDATE
-           SET gracia_hasta=$5, last_event=$6, actualizado_at=CURRENT_TIMESTAMP`,
-        [crypto.randomUUID(), iglesiaId, preapprovalId, sus?.plan || 'PRO', graciaHasta, eventKey]
-      )
+      await syncSubscriptionRecord({
+        iglesiaId,
+        proveedor: 'mercadopago',
+        subscriptionId: preapprovalId,
+        plan: planKey,
+        estado: 'pending',
+        graciaHasta,
+        lastEvent: eventKey,
+      })
       const admin = await getAdminEmail(iglesiaId).catch(() => null)
       if (admin?.email) {
         sendNotificationEmail({
@@ -847,11 +1026,15 @@ async function procesarWebhookSuscripcion(iglesiaId, preapprovalId, mpData) {
     }
 
   } else if (['cancelled', 'paused'].includes(statusRaw)) {
-    await pgExec(
-      `UPDATE suscripciones SET estado=$2, last_event=$3, actualizado_at=CURRENT_TIMESTAMP
-        WHERE preapproval_id=$1`,
-      [preapprovalId, statusRaw, eventKey]
-    )
+    await syncSubscriptionRecord({
+      iglesiaId,
+      proveedor: 'mercadopago',
+      subscriptionId: preapprovalId,
+      plan: planKey,
+      estado: statusRaw,
+      graciaHasta: sus?.gracia_hasta || null,
+      lastEvent: eventKey,
+    })
     // Si no hay gracia activa, degradar a FREE
     const graciaActiva = sus?.gracia_hasta && new Date(sus.gracia_hasta) > new Date()
     if (!graciaActiva) {
