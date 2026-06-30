@@ -10,7 +10,7 @@
 - `backend/prisma/migrations/20260630073000_comunicados_scheduled_at/migration.sql`: se agregó la migración formal para `scheduledAt` e índices de lectura/programación.
 - Base activa Neon: se aplicó `ALTER TABLE "Comunicado" ADD COLUMN IF NOT EXISTS "scheduledAt" TIMESTAMPTZ` e índices idempotentes para recuperar producción inmediatamente.
 - `scripts/smoke-modules.mjs` + `pnpm smoke:modules`: nuevo smoke read-only repetible para auditar módulos sin crear/borrar datos.
-- `backend/pnpm-workspace.yaml`: overrides/builds permitidos movidos al formato compatible con pnpm 11; `backend/package.json` ya no usa `pnpm.overrides` legacy.
+- `backend/pnpm-workspace.yaml` y `frontend/pnpm-workspace.yaml`: `packages: ['.']` agregado para compatibilidad con pnpm 9/Render y settings duplicados con `package.json` para que pnpm 9 y pnpm 11 lean los mismos overrides.
 - `.gitignore`: se ignora sólo el lockfile raíz generado por el package orquestador, manteniendo `backend/pnpm-lock.yaml` y `frontend/pnpm-lock.yaml` como fuentes reales.
 
 ### Evidencia
@@ -19,6 +19,8 @@
 - Después del fix: `GET https://churchsystem.com.ar/comunicados` → HTTP `200` en `369ms`.
 - `QA_TEST_PASSWORD='ChurchTest-2026!' pnpm smoke:modules -- --base-url https://churchsystem.com.ar` → `44` total, `44` passed, `0` failed, `p50=86ms`, `p95=160ms`, `max=779ms`.
 - `pnpm --dir frontend build` → OK con Vite `6.4.3`.
+- `CI=true pnpm dlx pnpm@9.15.5 --dir backend install --force --frozen-lockfile` → OK, compatible con buildCommand de Render.
+- `CI=true pnpm dlx pnpm@9.15.5 --dir frontend install --force --frozen-lockfile` → OK, compatible con buildCommand de Render.
 - `CI=true pnpm --config.confirmModulesPurge=false --dir backend audit:launch` → OK, sin rutas desprotegidas.
 - `pnpm --dir backend audit --json` y `pnpm --dir frontend audit --json` → `0` low/moderate/high/critical.
 - `pnpm verify:prod` → `0 error(es), 3 advertencia(s)`.
