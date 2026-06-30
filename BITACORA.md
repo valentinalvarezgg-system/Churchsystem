@@ -1,6 +1,28 @@
 # BITÁCORA — Church System
 ---
 
+## Dependencias frontend blindadas: Vite/Router/esbuild/Babel/tar sin advisories — 2026-06-30
+
+**Estado actual:** la auditoría de dependencias queda limpia en frontend y backend. El aviso de GitHub/Dependabot venía del árbol frontend, especialmente Vite/esbuild en tooling de desarrollo y React Router en runtime.
+
+### Vulnerabilidades detectadas
+- `vite@5.4.21`: advisories de path traversal / lectura de archivos en dev server, incluyendo severidad alta `GHSA-fx2h-pf6j-xcff`.
+- `esbuild@0.21.5`: dev server podía aceptar requests cross-origin y exponer respuestas (`GHSA-67mh-4wv8-2f99`).
+- `react-router@6.30.3`: open redirect con URLs protocol-relative (`GHSA-2j2x-hqr9-3h42`).
+- `tar@7.5.15`: file smuggling por interpretación diferencial de headers PAX/GNU (`GHSA-vmf3-w455-68vh`).
+- `@babel/core@7.29.0`: lectura arbitraria por `sourceMappingURL` (`GHSA-4x5r-pxfx-6jf8`).
+
+### Corrección aplicada
+- `frontend/package.json`: `vite` subido a `^6.4.3`, `@vitejs/plugin-react` a `^4.7.0`, `react-router-dom` a `^6.30.4` y `@capacitor/cli` a `^8.4.1`.
+- `frontend/pnpm-workspace.yaml`: overrides explícitos para `@babel/core@7.29.7` y `tar@7.5.19`; se mantiene `allowBuilds.esbuild=true` para builds reproducibles con pnpm 11.
+- `frontend/pnpm-lock.yaml` y `frontend/dist`: regenerados con versiones parcheadas.
+
+### Evidencia
+- `pnpm --dir frontend audit --json` → `0` low/moderate/high/critical.
+- `pnpm --dir backend audit --json` → `0` low/moderate/high/critical.
+- `pnpm --dir frontend build` → OK con Vite `6.4.3`.
+- `node scripts/verify-prod.mjs` → `0 error(es), 3 advertencia(s)`; siguen advertencias operativas esperadas por túnel local/Render.
+
 ## Cambio de planes recuperado: webhooks y estado billing coherentes — 2026-06-30
 
 **Estado actual:** el flujo de cambio de plan vuelve a quedar conectado de punta a punta. El checkout nuevo guarda el plan objetivo como pendiente, vuelve a `/app/billing`, MercadoPago notifica al endpoint correcto y la pantalla distingue plan efectivo de trial, plan pago activo y checkout pendiente.
