@@ -14,17 +14,19 @@ const DASH_I18N = {
     overdueFollowUps:'seguimientos vencidos', unconsolidatedVisitors:'visitantes sin consolidar', viewAlerts:'Ver alertas →',
     recentServices:'Últimos cultos', seeAll:'Ver todos →', noServices:'Sin cultos aún.', createFirstService:'Creá el primero en Asistencia.',
     followUps:'Seguimientos', noFollowUps:'Sin seguimientos pendientes', overdue:'¡Vencido!', today:'Hoy',
-    birthdays:'Cumpleaños', next30:'próximos 30 días', noBirthdays:'Sin cumpleaños próximos', inDays:'en {days}d', todayBang:'Hoy!',
+    birthdays:'Cumpleaños', next30:'próximos 30 días', noBirthdays:'Sin cumpleaños próximos', inDays:'en {days}d', todayBang:'¡Hoy!',
     quick:'Acceso rápido', growth:'Crecimiento mensual', last12:'últimos 12 meses', noGrowth:'Sin datos de crecimiento aún',
     status:'Estado', consolidation:'Consolidación', activePrayer:'Oración activa', noTracking:'Sin seguimiento',
-    recentActivity:'Actividad reciente',
+    recentActivity:'Actividad reciente', firstSteps:'Primeros pasos', trialDays:'{days} días de prueba restantes',
+    collapse:'Colapsar', loadError:'No se pudo cargar el dashboard.', retry:'Reintentar',
+    setupSteps:['Registrá tu primera persona','Creá un grupo o célula','Registrá un culto','Enviá un comunicado','Invitá a un líder o colaborador'],
     actions:[
       ['Nueva persona', 'Registrar miembro o visitante'],
       ['Registrar culto', 'Tomar asistencia del servicio'],
       ['Check-in QR', 'Generar código QR para entrada'],
       ['Enviar mensaje', 'Contactar persona o grupo'],
       ['Asistente IA', 'Consultar datos con inteligencia artificial'],
-      ['Ver alertas', 'Seguimientos y avisos pendientes'],
+      ['Comunicados', 'Novedades internas para la iglesia'],
       ['Reportes', 'Estadísticas y métricas de la iglesia'],
     ],
   },
@@ -38,14 +40,16 @@ const DASH_I18N = {
     birthdays:'Aniversários', next30:'próximos 30 dias', noBirthdays:'Sem aniversários próximos', inDays:'em {days}d', todayBang:'Hoje!',
     quick:'Acesso rápido', growth:'Crescimento mensal', last12:'últimos 12 meses', noGrowth:'Sem dados de crescimento ainda',
     status:'Estado', consolidation:'Consolidação', activePrayer:'Oração ativa', noTracking:'Sem acompanhamento',
-    recentActivity:'Atividade recente',
+    recentActivity:'Atividade recente', firstSteps:'Primeiros passos', trialDays:'{days} dias de teste restantes',
+    collapse:'Recolher', loadError:'Não foi possível carregar o dashboard.', retry:'Tentar novamente',
+    setupSteps:['Registre sua primeira pessoa','Crie um grupo ou célula','Registre um culto','Envie um comunicado','Convide um líder ou colaborador'],
     actions:[
       ['Nova pessoa', 'Registrar membro ou visitante'],
       ['Registrar culto', 'Registrar presença do culto'],
       ['Check-in QR', 'Gerar código QR para entrada'],
       ['Enviar mensagem', 'Contatar pessoa ou grupo'],
       ['Assistente IA', 'Consultar dados com inteligência artificial'],
-      ['Ver alertas', 'Acompanhamentos e avisos pendentes'],
+      ['Comunicados', 'Novidades internas para a igreja'],
       ['Relatórios', 'Estatísticas e métricas da igreja'],
     ],
   },
@@ -59,14 +63,16 @@ const DASH_I18N = {
     birthdays:'Birthdays', next30:'next 30 days', noBirthdays:'No upcoming birthdays', inDays:'in {days}d', todayBang:'Today!',
     quick:'Quick access', growth:'Monthly growth', last12:'last 12 months', noGrowth:'No growth data yet',
     status:'Status', consolidation:'Consolidation', activePrayer:'Active prayer', noTracking:'No follow-up',
-    recentActivity:'Recent activity',
+    recentActivity:'Recent activity', firstSteps:'First steps', trialDays:'{days} trial days left',
+    collapse:'Collapse', loadError:'Could not load the dashboard.', retry:'Retry',
+    setupSteps:['Register your first person','Create a group or cell','Register a service','Send an announcement','Invite a leader or collaborator'],
     actions:[
       ['New person', 'Register member or visitor'],
       ['Register service', 'Take service attendance'],
       ['QR check-in', 'Generate entry QR code'],
       ['Send message', 'Contact person or group'],
       ['AI assistant', 'Ask questions about church data'],
-      ['View alerts', 'Pending follow-ups and notices'],
+      ['Announcements', 'Internal news for the church'],
       ['Reports', 'Church statistics and metrics'],
     ],
   },
@@ -95,18 +101,52 @@ function Avatar({ nombre = '', apellido = '', size = 34 }) {
   )
 }
 
-function OnboardingChecklist({ navigate, prog, billingEstado }) {
+function startOfLocalDay(date = new Date()) {
+  const next = new Date(date)
+  next.setHours(0, 0, 0, 0)
+  return next
+}
+
+function daysUntilDate(value) {
+  const raw = String(value || '').slice(0, 10)
+  const [year, month, day] = raw.split('-').map(Number)
+  if (!year || !month || !day) return 0
+  const target = startOfLocalDay(new Date(year, month - 1, day))
+  const today = startOfLocalDay()
+  return Math.round((target - today) / 86400000)
+}
+
+function daysUntilBirthday(cumDia) {
+  const [month, day] = String(cumDia || '').split('-').map(Number)
+  if (!month || !day) return null
+  const today = startOfLocalDay()
+  const target = startOfLocalDay(new Date(today.getFullYear(), month - 1, day))
+  if (target < today) target.setFullYear(target.getFullYear() + 1)
+  return Math.round((target - today) / 86400000)
+}
+
+function formatBirthday(person, locale) {
+  const source = person.fechaNacimiento
+    ? `${String(person.fechaNacimiento).slice(0, 10)}T12:00:00`
+    : `2000-${person.cumDia || '01-01'}T12:00:00`
+  const date = new Date(source)
+  if (Number.isNaN(date.getTime())) return person.cumDia || ''
+  return date.toLocaleDateString(locale, { day:'numeric', month:'long' })
+}
+
+function OnboardingChecklist({ navigate, prog, billingEstado, copy, txt }) {
   const [collapsed, setCollapsed] = useState(false)
 
   if (!billingEstado?.enTrial) return null
   if (!prog) return null
 
+  const labels = copy.setupSteps || DASH_I18N.es.setupSteps
   const steps = [
-    { key: 'personas',    label: 'Registrá tu primera persona',   done: prog.personas > 0,    path: '/personas' },
-    { key: 'grupos',      label: 'Creá un grupo o célula',        done: prog.grupos > 0,      path: '/grupos' },
-    { key: 'cultos',      label: 'Registrá un culto',             done: prog.cultos > 0,      path: '/asistencia' },
-    { key: 'comunicados', label: 'Enviá un comunicado',           done: prog.comunicados > 0, path: '/comunicados' },
-    { key: 'users',       label: 'Invitá a un líder o colaborador', done: prog.users > 1,    path: '/users' },
+    { key: 'personas',    label: labels[0], done: prog.personas > 0,    path: '/personas' },
+    { key: 'grupos',      label: labels[1], done: prog.grupos > 0,      path: '/grupos' },
+    { key: 'cultos',      label: labels[2], done: prog.cultos > 0,      path: '/asistencia' },
+    { key: 'comunicados', label: labels[3], done: prog.comunicados > 0, path: '/comunicados' },
+    { key: 'users',       label: labels[4], done: prog.users > 1,       path: '/users' },
   ]
   const done = steps.filter(s => s.done).length
   if (done === steps.length) return null
@@ -119,14 +159,14 @@ function OnboardingChecklist({ navigate, prog, billingEstado }) {
             <Icons.CheckCircle size={16} color="var(--primary)" />
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700 }}>Primeros pasos — {done}/{steps.length}</div>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>{txt('firstSteps')} — {done}/{steps.length}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              {billingEstado.diasTrial} días de trial restantes
+              {txt('trialDays').replace('{days}', billingEstado.diasTrial ?? 0)}
             </div>
           </div>
         </div>
         <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
-          onClick={() => setCollapsed(c => !c)} aria-label="Colapsar">
+          onClick={() => setCollapsed(c => !c)} aria-label={txt('collapse')}>
           <Icons.ChevronDown size={16} style={{ transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform .2s' }} />
         </button>
       </div>
@@ -167,7 +207,7 @@ export default function Dashboard() {
   const navigate   = useNavigate()
   const user       = getUser()
   const ori = useDevice()
-  const { data: overview, loading, error } = useRealtimeQuery('stats-overview', () => apiFetch('/stats/overview'), [], { intervalMs: 10000 })
+  const { data: overview, loading, error } = useRealtimeQuery('stats-overview', () => apiFetch('/stats/overview'), [], { intervalMs: ori.isPhone ? 30000 : 20000 })
   const lang = (localStorage.getItem('church_lang') || user?.idioma || getStoredContext().lang || 'es').slice(0, 2)
   const copy = DASH_I18N[lang] || DASH_I18N.es
   const txt = key => copy[key] || DASH_I18N.es[key] || key
@@ -193,8 +233,8 @@ export default function Dashboard() {
       <main className="main">
         <div className="empty">
           <div className="empty-icon"><Icons.Dashboard /></div>
-          <p>No se pudo cargar el dashboard.</p>
-          <button className="btn btn-ghost btn-sm" onClick={() => window.location.reload()}>Reintentar</button>
+          <p>{txt('loadError')}</p>
+          <button className="btn btn-ghost btn-sm" onClick={() => window.location.reload()}>{txt('retry')}</button>
         </div>
       </main>
     </div>
@@ -233,7 +273,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── Onboarding checklist (trial) ─────────────────────────── */}
-        <OnboardingChecklist navigate={navigate} prog={overview?.onboarding || null} billingEstado={overview?.billing || null} />
+        <OnboardingChecklist navigate={navigate} prog={overview?.onboarding || null} billingEstado={overview?.billing || null} copy={copy} txt={txt} />
 
         {/* ── Stats principales ──────────────────────────────────── */}
         <div style={{ display:'grid', gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12, marginBottom: 20 }}>
@@ -327,8 +367,8 @@ export default function Dashboard() {
                   <p>{txt('noFollowUps')}</p>
                 </div>
               : (overview?.proximosContactos || []).slice(0, 6).map((s, i) => {
-                  const dias    = Math.round((new Date(s.proximoContacto) - new Date()) / 86400000)
-                  const urgente = dias <= 0
+                  const dias    = daysUntilDate(s.proximoContacto)
+                  const urgente = dias < 0
                   const pronto  = dias > 0 && dias <= 3
                   const col     = urgente ? 'var(--c-danger)' : pronto ? 'var(--c-warning)' : 'var(--text-muted)'
                   const bg      = urgente ? 'var(--c-danger-bg)' : pronto ? 'var(--c-warning-bg)' : 'var(--bg)'
@@ -361,10 +401,7 @@ export default function Dashboard() {
             {(overview?.cumpleanos || []).length === 0
               ? <div className="empty" style={{ padding:'20px 0' }}><p>{txt('noBirthdays')}</p></div>
               : (overview?.cumpleanos || []).slice(0, 5).map((p, i) => {
-                  const [m, d] = (p.cumDia || '').split('-').map(Number)
-                  const f = new Date(new Date().getFullYear(), m - 1, d)
-                  if (f < new Date()) f.setFullYear(f.getFullYear() + 1)
-                  const dias = Math.round((f - new Date()) / 86400000)
+                  const dias = Number.isFinite(Number(p.dias)) ? Number(p.dias) : daysUntilBirthday(p.cumDia)
                   return (
                     <div key={i}
                       style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 0', borderBottom:'1px solid var(--border)', cursor:'pointer' }}
@@ -373,7 +410,7 @@ export default function Dashboard() {
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:12, fontWeight:600 }}>{p.nombre} {p.apellido}</div>
                         <div style={{ fontSize:11, color:'var(--text-muted)' }}>
-                          {new Date(p.fechaNacimiento+'T12:00:00').toLocaleDateString(txt('locale'),{day:'numeric',month:'long'})}
+                          {formatBirthday(p, txt('locale'))}
                         </div>
                       </div>
                       <span style={{
@@ -381,7 +418,7 @@ export default function Dashboard() {
                         background: dias === 0 ? 'var(--c-success-bg)' : 'var(--bg)',
                         color: dias === 0 ? 'var(--c-success)' : 'var(--text-muted)',
                       }}>
-                        {dias === 0 ? txt('todayBang') : txt('inDays').replace('{days}', dias)}
+                        {dias === 0 ? txt('todayBang') : txt('inDays').replace('{days}', dias ?? 0)}
                       </span>
                     </div>
                   )
@@ -399,7 +436,7 @@ export default function Dashboard() {
                 { Ic: Icons.QrCode,     label:copy.actions[2][0], desc:copy.actions[2][1], path:'/checkin',      color:'#0891B2' },
                 { Ic: Icons.Messages,   label:copy.actions[3][0], desc:copy.actions[3][1], path:'/mensajes',     color:'#D97706' },
                 { Ic: Icons.AI,         label:copy.actions[4][0], desc:copy.actions[4][1], path:'/asistente-ia', color:'#7C3AED' },
-                { Ic: Icons.Comunicados,label:copy.actions[5][0], desc:copy.actions[5][1], path:'/alertas',      color:'#DC2626' },
+                { Ic: Icons.Comunicados,label:copy.actions[5][0], desc:copy.actions[5][1], path:'/comunicados',  color:'#DC2626' },
                 { Ic: Icons.Reports,    label:copy.actions[6][0], desc:copy.actions[6][1], path:'/reportes',     color:'#9333EA' },
               ].map(a => (
                 <button key={a.path} onClick={() => navigate(a.path)}

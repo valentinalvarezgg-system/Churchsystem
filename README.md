@@ -324,7 +324,7 @@ tail -f /tmp/church-cloudflared.log
 tail -f /tmp/church-cloudflared-err.log
 ```
 
-### Migrar a Render / cuenta Business
+### Migrar a Render
 
 La rama `master` se auto-despliega en Render cuando se hace push, pero el corte a Render solo se considera completo cuando `pnpm verify:prod:render` pasa sin errores.
 
@@ -340,7 +340,7 @@ git push origin master
 ```
 
 Checklist de corte:
-1. Crear/seleccionar el servicio `church-system` en la cuenta Business.
+1. Crear/seleccionar el servicio `church-system` en Render.
 2. Abrir el Blueprint: `pnpm render:blueprint-link` y entrar al link generado.
 3. Copiar todas las variables `sync: false` de `render.yaml` desde el entorno anterior o gestor de secretos.
 4. No fijar `PORT` manualmente en Render: el Web Service lo inyecta automáticamente.
@@ -359,7 +359,7 @@ Rollback rápido:
 
 ```bash
 pnpm diagnostico        # backend local, launchd, Cloudflare Tunnel y dominio
-pnpm migration:env      # inventario seguro de variables para Render Business
+pnpm migration:env      # inventario seguro de variables para Render
 pnpm render:diagnose    # estado puntual del candidato .onrender.com
 pnpm render:blueprint-link # genera deeplink al Blueprint de Render
 pnpm render:validate    # validación local de campos críticos de render.yaml

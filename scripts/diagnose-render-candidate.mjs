@@ -142,7 +142,7 @@ function suggestNextStep() {
   }
 
   if (healthTimeout) {
-    record('warn', 'next-step', 'Bloqueo externo confirmado', 'Hace falta entrar al dashboard Render Business, confirmar que el servicio exista, tenga secretos cargados y muestre un deploy healthy.')
+    record('warn', 'next-step', 'Bloqueo externo confirmado', 'Hace falta entrar al dashboard Render, confirmar que el servicio exista, tenga secretos cargados y muestre un deploy healthy.')
     return
   }
 

@@ -177,7 +177,7 @@ if (missingBootInRender.length) {
 
 section('Variables usadas por código no declaradas en render.yaml')
 if (missingInRender.length) {
-  warn('Revisar si estas variables deben cargarse en la cuenta Business:')
+  warn('Revisar si estas variables deben cargarse en Render:')
   console.log(formatList(missingInRender))
 } else {
   ok('Todas las variables runtime usadas por backend/src están declaradas o ignoradas')

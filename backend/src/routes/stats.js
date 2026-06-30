@@ -10,8 +10,16 @@ function n(row, key = 'c') {
   return Number(row?.[key] ?? 0)
 }
 
+function pad2(value) {
+  return String(value).padStart(2, '0')
+}
+
+function dateKey(date = new Date()) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
+}
+
 function monthKey(date = new Date()) {
-  return date.toISOString().slice(0, 7)
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}`
 }
 
 function previousMonthKey() {
@@ -44,7 +52,7 @@ async function asistenciaResumen(iglesiaId, dateFrom = null, dateTo = null) {
             COUNT(a."id")::int as total,
             COUNT(CASE WHEN a."presente"=true THEN 1 END)::int as presentes
        FROM "Culto" c
-       LEFT JOIN "Asistencia" a ON a."cultoId"=c."id"
+       LEFT JOIN "Asistencia" a ON a."cultoId"=c."id" AND a."iglesiaId"=c."iglesiaId"
       WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL ${extra}
       GROUP BY c."id"`,
     params
@@ -62,15 +70,15 @@ async function asistenciaResumen(iglesiaId, dateFrom = null, dateTo = null) {
 async function weeklyTrendStats(iglesiaId, weeks = 12) {
   const fromDate = startOfWeek(new Date())
   fromDate.setDate(fromDate.getDate() - (weeks - 1) * 7)
-  const from = fromDate.toISOString().slice(0, 10)
+  const from = dateKey(fromDate)
 
   const [asistenciaRows, nuevosRows] = await Promise.all([
     pgMany(
-      `SELECT DATE_TRUNC('week', TO_DATE(c."fecha",'YYYY-MM-DD'))::date AS semana,
+      `SELECT TO_CHAR(DATE_TRUNC('week', TO_DATE(c."fecha",'YYYY-MM-DD')), 'YYYY-MM-DD') AS semana,
               COUNT(a."id") FILTER (WHERE a."presente"=true)::int AS presentes,
               COUNT(DISTINCT c."id")::int AS cultos
          FROM "Culto" c
-         LEFT JOIN "Asistencia" a ON a."cultoId"=c."id"
+         LEFT JOIN "Asistencia" a ON a."cultoId"=c."id" AND a."iglesiaId"=c."iglesiaId"
         WHERE c."iglesiaId"=$1
           AND c."deletedAt" IS NULL
           AND TO_DATE(c."fecha",'YYYY-MM-DD') >= $2::date
@@ -79,7 +87,7 @@ async function weeklyTrendStats(iglesiaId, weeks = 12) {
       [iglesiaId, from]
     ),
     pgMany(
-      `SELECT DATE_TRUNC('week', "createdAt")::date AS semana,
+      `SELECT TO_CHAR(DATE_TRUNC('week', "createdAt"), 'YYYY-MM-DD') AS semana,
               COUNT(*)::int AS nuevos
          FROM "Persona"
         WHERE "iglesiaId"=$1
@@ -93,13 +101,13 @@ async function weeklyTrendStats(iglesiaId, weeks = 12) {
 
   const asistenciaMap = new Map(
     (asistenciaRows || []).map(row => [
-      new Date(row.semana).toISOString().slice(0, 10),
+      String(row.semana).slice(0, 10),
       { asistencia: Number(row.presentes || 0), cultos: Number(row.cultos || 0) },
     ])
   )
   const nuevosMap = new Map(
     (nuevosRows || []).map(row => [
-      new Date(row.semana).toISOString().slice(0, 10),
+      String(row.semana).slice(0, 10),
       Number(row.nuevos || 0),
     ])
   )
@@ -108,7 +116,7 @@ async function weeklyTrendStats(iglesiaId, weeks = 12) {
   for (let i = 0; i < weeks; i++) {
     const current = new Date(fromDate)
     current.setDate(fromDate.getDate() + i * 7)
-    const key = current.toISOString().slice(0, 10)
+    const key = dateKey(current)
     const asistencia = asistenciaMap.get(key) || { asistencia: 0, cultos: 0 }
     result.push({
       semana: `${current.getDate()}/${current.getMonth() + 1}`,
@@ -122,7 +130,7 @@ async function weeklyTrendStats(iglesiaId, weeks = 12) {
 
 async function dashboardStats(iglesiaId) {
   await ensureOperationalTenantDataSynced(iglesiaId)
-  const hoy = new Date().toISOString().slice(0, 10)
+  const hoy = dateKey()
   const mesActual = monthKey()
   const mesPasado = previousMonthKey()
   const crecimientoInicio = new Date()
@@ -209,7 +217,7 @@ async function dashboardStats(iglesiaId) {
               COUNT(a."id")::int as total,
               COUNT(CASE WHEN a."presente"=true THEN 1 END)::int as presentes
          FROM "Culto" c
-         LEFT JOIN "Asistencia" a ON a."cultoId"=c."id"
+         LEFT JOIN "Asistencia" a ON a."cultoId"=c."id" AND a."iglesiaId"=c."iglesiaId"
         WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
         GROUP BY c."id"
         ORDER BY c."fecha" DESC, c."id" DESC
@@ -219,7 +227,7 @@ async function dashboardStats(iglesiaId) {
     pgMany(
       `SELECT s."personaId", s."tipo", s."proximoContacto", p."nombre", p."apellido"
          FROM "Seguimiento" s
-         JOIN "Persona" p ON p."id"=s."personaId"
+         JOIN "Persona" p ON p."id"=s."personaId" AND p."iglesiaId"=s."iglesiaId" AND p."deletedAt" IS NULL
         WHERE s."iglesiaId"=$1 AND s."deletedAt" IS NULL
           AND s."proximoContacto" IS NOT NULL
           AND s."id" IN (
@@ -246,7 +254,7 @@ async function dashboardStats(iglesiaId) {
               COALESCE(u."email",'sistema') AS "usuario",
               a."createdAt"
          FROM "AuditLog" a
-         LEFT JOIN "User" u ON a."userId"=u."id"
+         LEFT JOIN "User" u ON a."userId"=u."id" AND u."iglesiaId"=a."iglesiaId"
         WHERE a."iglesiaId"=$1
         ORDER BY a."id" DESC
         LIMIT 12`,
@@ -260,7 +268,7 @@ async function dashboardStats(iglesiaId) {
           AND "createdAt" >= $2::date
         GROUP BY 1
         ORDER BY 1 ASC`,
-      [iglesiaId, crecimientoInicio.toISOString().slice(0, 10)]
+      [iglesiaId, dateKey(crecimientoInicio)]
     ),
   ])
 
@@ -295,7 +303,7 @@ async function dashboardStats(iglesiaId) {
     const d = new Date()
     d.setDate(1)
     d.setMonth(d.getMonth() - i)
-    const mes = d.toISOString().slice(0, 7)
+    const mes = monthKey(d)
     crecimientoMensual.push({ mes, nuevos: Number(crecimientoMap.get(mes) || 0) })
   }
 
@@ -330,8 +338,8 @@ async function premiumDashboardStats(iglesiaId) {
   const mesPasado = previousMonthKey()
   const prevMonthDate = new Date()
   prevMonthDate.setMonth(prevMonthDate.getMonth() - 1)
-  const prevMonthFrom = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), 1).toISOString().slice(0, 10)
-  const prevMonthTo = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0).toISOString().slice(0, 10)
+  const prevMonthFrom = dateKey(new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), 1))
+  const prevMonthTo = dateKey(new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0))
 
   const [
     totalPersonasRow,
@@ -386,7 +394,7 @@ async function premiumDashboardStats(iglesiaId) {
     pgMany(
       `SELECT s."id", s."tipo", s."createdAt", p."nombre", p."apellido"
          FROM "Seguimiento" s
-         LEFT JOIN "Persona" p ON s."personaId"=p."id"
+         LEFT JOIN "Persona" p ON s."personaId"=p."id" AND p."iglesiaId"=s."iglesiaId" AND p."deletedAt" IS NULL
         WHERE s."iglesiaId"=$1 AND s."deletedAt" IS NULL
         ORDER BY s."createdAt" DESC
         LIMIT 5`,
@@ -467,14 +475,14 @@ router.get('/asistencias', requireAuth, async (req, res) => {
   const actual = await asistenciaResumen(iglesiaId)
   const d = new Date()
   d.setMonth(d.getMonth() - 1)
-  const ini = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)
-  const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10)
+  const ini = dateKey(new Date(d.getFullYear(), d.getMonth(), 1))
+  const fin = dateKey(new Date(d.getFullYear(), d.getMonth() + 1, 0))
   const pasado = await asistenciaResumen(iglesiaId, ini, fin)
   const mes = monthKey()
   const totalMes = n(await pgOne(
     `SELECT COUNT(*)::int AS c
        FROM "Asistencia" a
-       JOIN "Culto" c ON c."id"=a."cultoId"
+       JOIN "Culto" c ON c."id"=a."cultoId" AND c."iglesiaId"=a."iglesiaId"
       WHERE c."iglesiaId"=$1 AND c."deletedAt" IS NULL
         AND a."presente"=true
         AND to_char(to_date(c."fecha",'YYYY-MM-DD'),'YYYY-MM')=$2`,
@@ -541,7 +549,7 @@ router.get('/actividad', requireAuth, async (req, res) => {
   const seguimientos = await pgMany(
     `SELECT s.*, p."nombre", p."apellido"
        FROM "Seguimiento" s
-       LEFT JOIN "Persona" p ON s."personaId"=p."id"
+       LEFT JOIN "Persona" p ON s."personaId"=p."id" AND p."iglesiaId"=s."iglesiaId" AND p."deletedAt" IS NULL
       WHERE s."iglesiaId"=$1 AND s."deletedAt" IS NULL
       ORDER BY s."createdAt" DESC
       LIMIT 5`,

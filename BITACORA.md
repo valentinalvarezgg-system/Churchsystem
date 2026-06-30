@@ -1,6 +1,36 @@
 # BITÁCORA — Church System
 ---
 
+## Dashboard revisado: fechas, i18n y stats multi-tenant — 2026-06-30
+
+**Estado actual:** el Dashboard principal queda revisado y funcionando en producción. Se corrigieron detalles visibles de UX móvil y calendario, se bajó la frecuencia de polling para reducir carga, y los endpoints de stats usados por Dashboard quedaron endurecidos con joins multi-tenant.
+
+### Corrección aplicada
+- `frontend/src/pages/Dashboard.jsx`: cumpleaños de hoy ahora se muestran como `¡Hoy!` y no saltan al próximo año por comparar contra la hora actual.
+- `frontend/src/pages/Dashboard.jsx`: seguimientos con fecha de hoy ahora se muestran como `Hoy`; sólo fechas anteriores quedan como `¡Vencido!`.
+- `frontend/src/pages/Dashboard.jsx`: checklist de primeros pasos ya usa i18n `es/pt/en`; el error del Dashboard y el botón de reintento también quedan traducidos.
+- `frontend/src/pages/Dashboard.jsx`: acceso rápido de `Comunicados` ahora navega a `/comunicados` en vez de mezclar icono de comunicados con ruta de alertas.
+- `frontend/src/pages/Dashboard.jsx`: polling de `/stats/overview` pasa de 10s a 20s desktop/tablet y 30s phone; se mantiene actualización por evento `church:data-changed`.
+- `backend/src/routes/stats.js`: fechas del Dashboard usan día/mes local en vez de `toISOString()`, evitando desfases por UTC en Argentina.
+- `backend/src/routes/stats.js`: joins de `Asistencia`, `Persona` y `User` ahora incluyen `iglesiaId`/`deletedAt` donde corresponde para blindar aislamiento tenant en tarjetas y actividad.
+- `BITACORA.md`, `README.md` y scripts Render: se eliminó la referencia incorrecta a un plan específico; queda “Render” genérico.
+
+### Evidencia
+- `pnpm --dir frontend build` → OK; `frontend/dist` regenerado.
+- `CI=true pnpm --config.confirmModulesPurge=false --dir backend audit:launch` → OK.
+- `node --check backend/src/routes/stats.js scripts/diagnose-render-candidate.mjs scripts/check-migration-env.mjs` → OK.
+- Backend local productivo reiniciado con `launchctl kickstart -k gui/$(id -u)/com.churchsystem.backend`.
+- `curl https://churchsystem.com.ar/health` → `{"status":"ok"}`.
+- Dashboard público SPA: `GET https://churchsystem.com.ar/app/dashboard` → HTTP `200`.
+- Endpoints Dashboard: `/stats/overview`, `/stats/premium`, `/stats/tendencia`, `/stats/actividad` → HTTP `200`.
+- `QA_TEST_PASSWORD='ChurchTest-2026!' pnpm smoke:modules -- --base-url https://churchsystem.com.ar` → `44/44` OK, `p50=87ms`, `p95=190ms`, `max=438ms`.
+- `/stats/overview` caliente medido 5 veces → `p50=219ms`, `max=796ms`.
+- `pnpm verify:prod` → `0 error(es), 3 advertencia(s)`.
+- `pnpm diagnostico` → `0 errores, 4 advertencia(s)`; advertencias esperadas por dependencia actual de Cloudflare Tunnel local y candidato Render sin health.
+
+### Pendiente
+- Si “Dashboard” se refería al panel web de Render y no al Dashboard de la app, falta acceso autenticado al dashboard de Render o `RENDER_API_KEY`; desde esta sesión sólo se puede diagnosticar el candidato público `.onrender.com`, que sigue en timeout.
+
 ## Auditoría funcional módulos + Comunicados recuperado — 2026-06-30
 
 **Estado actual:** la web pública y los módulos principales quedan operativos. El smoke read-only de producción recorrió 44 endpoints críticos con usuario QA `PASTOR_GENERAL/MAX` y terminó `44/44` OK, sin endpoints 5xx ni timeouts. La falla real encontrada fue `GET /comunicados`, que quedaba colgado porque el código leía `scheduledAt` aunque la columna sólo se creaba al hacer `POST /comunicados`.
@@ -30,11 +60,11 @@
 - Estabilidad funcional del código: **92%**. Login/QA/GodMode/billing/módulos críticos responden; no hay advisories de dependencias.
 - Funcionamiento de módulos auditados: **100% read-only** en endpoints críticos (`44/44`). No incluye acciones destructivas ni flujos externos reales de pago/WhatsApp.
 - Rapidez API medida: **94%**. `p50=86ms`, `p95=160ms`, `max=779ms`; sin endpoints >1500ms en el smoke final.
-- Disponibilidad operativa real: **82%**. El sitio está arriba, pero sigue dependiendo de Cloudflare Tunnel local hacia `localhost:4000`; Render Business todavía no responde healthy.
+- Disponibilidad operativa real: **82%**. El sitio está arriba, pero sigue dependiendo de Cloudflare Tunnel local hacia `localhost:4000`; el candidato Render todavía no responde healthy.
 
 ### Pendiente no destructivo/destructivo
 - `pnpm audit:objective:qa -- --base-url https://churchsystem.com.ar` sigue marcando reset no limpio: `Persona=130`, `Permiso=1`, `AuditLog=2`. No se ejecutó reset destructivo automático para no borrar datos activos sin confirmación explícita.
-- Próximo cuello de disponibilidad: completar Render Business, cargar secretos, confirmar `https://church-system.onrender.com/health` y cortar la dependencia del túnel local.
+- Próximo cuello de disponibilidad: completar Render, cargar secretos, confirmar `https://church-system.onrender.com/health` y cortar la dependencia del túnel local.
 
 ## Dependencias frontend blindadas: Vite/Router/esbuild/Babel/tar sin advisories — 2026-06-30
 
@@ -135,10 +165,10 @@
 - `QA_TEST_PASSWORD='ChurchTest-2026!' node scripts/audit-objective.mjs --base-url https://churchsystem.com.ar` → `0 error(es), 6 advertencia(s), 62 check(s) OK`.
 - `node scripts/validate-render-blueprint.mjs` → `0 error(es), 0 advertencia(s)`.
 - `node scripts/check-migration-env.mjs` → `0 error(es), 1 advertencia(s)` por secretos opcionales/manuales.
-- `node scripts/diagnose-render-candidate.mjs` → timeout en candidato Render; requiere revisar dashboard Render Business.
+- `node scripts/diagnose-render-candidate.mjs` → timeout en candidato Render; requiere revisar dashboard Render.
 
 ### Próximo paso operativo
-- Entrar al dashboard Render Business con la cuenta nueva.
+- Entrar al dashboard Render con la cuenta correspondiente.
 - Crear o revisar el Blueprint con:
   - `https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2Fvalentinalvarezgg-system%2FChurchsystem`
 - Cargar secretos mínimos obligatorios:
@@ -735,7 +765,7 @@
 
 ### Falla detectada
 - El estado operativo ya mostraba que `churchsystem.com.ar` seguía por Cloudflare Tunnel local y que `https://church-system.onrender.com/health` no respondía.
-- Faltaba una herramienta breve y específica que tradujera ese síntoma en hipótesis accionables para la cuenta Business de Render, sin mezclarlo con checks del dominio productivo.
+- Faltaba una herramienta breve y específica que tradujera ese síntoma en hipótesis accionables para la cuenta de Render, sin mezclarlo con checks del dominio productivo.
 
 ### Corrección aplicada
 - Agregado `scripts/diagnose-render-candidate.mjs`.
@@ -1120,8 +1150,8 @@
 - `cd frontend && npx -y pnpm@9.15.5 build` → OK.
 
 ### Pendiente operativo
-- Rotar los secretos que alguna vez estuvieron en el plist local antes de migrarlos a la cuenta Business/Render.
-- Completar corte Render Business para que `pnpm verify:prod:render` pase y la disponibilidad no dependa de esta Mac.
+- Rotar los secretos que alguna vez estuvieron en el plist local antes de migrarlos a Render.
+- Completar corte Render para que `pnpm verify:prod:render` pase y la disponibilidad no dependa de esta Mac.
 
 ---
 
@@ -1157,13 +1187,13 @@
 
 ### Pendiente para cierre total del objetivo
 - Para probar contraseña QA sin exponerla en Git ni logs, correr localmente: `QA_TEST_PASSWORD=<password temporal> pnpm audit:objective`.
-- La migración Business/Render sigue pendiente; hasta que `pnpm verify:prod:render` pase, la disponibilidad depende de la Mac local.
+- La migración Render sigue pendiente; hasta que `pnpm verify:prod:render` pase, la disponibilidad depende de la Mac local.
 
 ---
 
 ## Estabilidad producción + compatibilidad fetch — 2026-06-28
 
-**Estado actual:** `churchsystem.com.ar` responde `200 OK`; no hay 502 activo. La causa operativa sigue siendo la misma: producción depende de Cloudflare Tunnel hacia la Mac local (`localhost:4000`), por lo que cualquier caída del backend/túnel local vuelve a provocar 502 hasta completar el corte a Render Business.
+**Estado actual:** `churchsystem.com.ar` responde `200 OK`; no hay 502 activo. La causa operativa sigue siendo la misma: producción depende de Cloudflare Tunnel hacia la Mac local (`localhost:4000`), por lo que cualquier caída del backend/túnel local vuelve a provocar 502 hasta completar el corte a Render.
 
 ### Fallas detectadas y corregidas
 - `apiFetch()` forzaba `Content-Type: application/json` en todos los requests, lo que podía romper bodies nativos (`FormData`, `URLSearchParams`, `Blob`, `ArrayBuffer`) y formularios/subidas multipart.
@@ -1185,10 +1215,10 @@
 - `pnpm render:validate` → OK, 0 errores / 0 advertencias.
 - `pnpm migration:env` → OK, 0 errores; advierte secretos `sync:false` que deben cargarse manualmente si aplican.
 - `pnpm verify:prod` → OK, 0 errores; advertencias esperadas por TLS local de Node, Cloudflare Tunnel local y falta de Render CLI/API key.
-- `pnpm verify:prod:render` → falla correctamente por dependencia de `localhost:4000`; esto confirma que la migración Business/Render sigue pendiente.
+- `pnpm verify:prod:render` → falla correctamente por dependencia de `localhost:4000`; esto confirma que la migración Render sigue pendiente.
 
 ### Pendiente operativo P0
-- Crear/activar el servicio Render en la cuenta Business, cargar secretos `sync:false`, validar el candidato `.onrender.com` con `pnpm cutover:preflight` y recién después cambiar DNS/Cloudflare para eliminar la dependencia de la Mac.
+- Crear/activar el servicio Render, cargar secretos `sync:false`, validar el candidato `.onrender.com` con `pnpm cutover:preflight` y recién después cambiar DNS/Cloudflare para eliminar la dependencia de la Mac.
 
 ---
 
@@ -1254,7 +1284,7 @@
 - `pnpm verify:prod` → OK, 0 errores; advertencias esperadas por TLS local de Node, Cloudflare Tunnel local y falta de Render CLI/API key.
 
 ### Pendiente operativo
-- La migración Business/Render sigue pendiente: producción continúa en `MODO_CLOUDFLARE_LOCAL`.
+- La migración Render sigue pendiente: producción continúa en `MODO_CLOUDFLARE_LOCAL`.
 - Rotar la password temporal QA cuando terminen las pruebas o regenerarla con `pnpm seed:test-users -- --password "..."`.
 
 ---
@@ -1293,7 +1323,7 @@ pnpm reset:accounts -- --execute --confirm RESET_ACCOUNT_DATA --allow-production
 - `cd frontend && npx -y pnpm@9.15.5 build` → OK.
 
 ### Notas operativas
-- La página sigue disponible por `MODO_CLOUDFLARE_LOCAL`; la migración Business/Render queda pendiente hasta que `pnpm verify:prod:render` pase.
+- La página sigue disponible por `MODO_CLOUDFLARE_LOCAL`; la migración Render queda pendiente hasta que `pnpm verify:prod:render` pase.
 - Si Valentín quiere usar GodMode con una cuenta real nueva, crear primero la cuenta desde `/registro` y luego ejecutar `node scripts/make-superadmin.mjs <email>`.
 - Rotar/no reutilizar credenciales legacy GodMode si existieron en entornos anteriores.
 
@@ -1356,7 +1386,7 @@ pnpm reset:accounts -- --execute --confirm RESET_ACCOUNT_DATA --allow-production
 - Modernizado `scripts/diagnostico.sh`: deja de revisar PM2/nginx/puerto 3000 y ahora diagnostica backend local :4000, launchd, Cloudflare Tunnel, dominio público, git y migración Render sin imprimir secretos.
 - Eliminado seed legacy `GODMODE_USER_EMAIL`/`GODMODE_USER_PASSWORD` del arranque y de auditorías/plantillas; GodMode queda solo por flag DB + `scripts/make-superadmin.mjs`.
 - Agregado `scripts/check-migration-env.mjs` + `pnpm migration:env` para cruzar variables usadas por backend contra `render.yaml` y fuentes locales sin exponer valores.
-- `render.yaml` declara ahora todas las variables runtime detectadas para la migración Business (pagos, OAuth, Resend inbound, Meta, IA, transferencia y Twilio legacy).
+- `render.yaml` declara ahora todas las variables runtime detectadas para la migración Render (pagos, OAuth, Resend inbound, Meta, IA, transferencia y Twilio legacy).
 - Variables legacy GodMode removidas del `launchd` local y de `backend/.env`; si existían en entornos anteriores, rotarlas/no migrarlas.
 - Agregado `scripts/preflight-render-cutover.mjs` + `pnpm cutover:preflight` para validar un candidato `.onrender.com` antes de cambiar DNS.
 - `ALLOWED_ORIGINS` en `render.yaml` incluye `https://church-system.onrender.com` para permitir prueba pre-DNS del servicio Render.
@@ -1376,8 +1406,8 @@ pnpm reset:accounts -- --execute --confirm RESET_ACCOUNT_DATA --allow-production
 - `pnpm verify:prod` → OK con advertencias esperadas: TLS local de Node, origen Cloudflare Tunnel local, sin `render` CLI/`RENDER_API_KEY`.
 - `pnpm verify:prod:render` → falla correctamente mientras `churchsystem.com.ar` dependa de `localhost:4000`.
 - `pnpm diagnostico` → confirma backend local, launchd y Cloudflare Tunnel activos; advierte que producción todavía depende de `localhost:4000`.
-- `pnpm migration:env` → OK sin errores: todas las variables usadas por `backend/src` están declaradas en `render.yaml`; queda advertencia de secretos opcionales/manuales que deben cargarse en Render Business si aplican.
-- `pnpm cutover:preflight` → producción actual OK; falla en candidato `https://church-system.onrender.com/health` por timeout hasta que exista/deploye el servicio Render Business.
+- `pnpm migration:env` → OK sin errores: todas las variables usadas por `backend/src` están declaradas en `render.yaml`; queda advertencia de secretos opcionales/manuales que deben cargarse en Render si aplican.
+- `pnpm cutover:preflight` → producción actual OK; falla en candidato `https://church-system.onrender.com/health` por timeout hasta que exista/deploye el servicio Render.
 - `pnpm render:blueprint-link` → genera `https://dashboard.render.com/blueprint/new?repo=https%3A%2F%2Fgithub.com%2Fvalentinalvarezgg-system%2FChurchsystem`.
 - `pnpm render:validate` → OK, 0 errores / 0 advertencias.
 - `pnpm setup:cloudflared` → instala/carga `~/Library/LaunchAgents/com.churchsystem.cloudflared.plist` usando `~/.cloudflared/config.yml` sin commitear tokens.
@@ -1385,7 +1415,7 @@ pnpm reset:accounts -- --execute --confirm RESET_ACCOUNT_DATA --allow-production
 
 ### Pendiente operativo P0
 - Resolver la contradicción de deploy: la bitácora decía `MODO_RENDER`, pero la web pública actualmente depende del túnel local de Cloudflare.
-- Si se quiere completar migración a cuenta Business/Render nueva, copiar secretos `sync:false` en Render (`DATABASE_URL`, `JWT_SECRET`, `QR_SECRET`, VAPID, Resend, Meta, OAuth, pagos) y apuntar DNS al origen correcto.
+- Si se quiere completar migración a Render, copiar secretos `sync:false` (`DATABASE_URL`, `JWT_SECRET`, `QR_SECRET`, VAPID, Resend, Meta, OAuth, pagos) y apuntar DNS al origen correcto.
 - Verificar logs/deploy de Render desde dashboard o CLI autenticada; en esta máquina no hay `render` CLI ni `RENDER_API_KEY`.
 - Criterio de cierre de migración: `pnpm verify:prod:render` debe pasar sin errores después del cambio DNS.
 
@@ -1695,7 +1725,7 @@ tail -f /tmp/church-back.log
 ```bash
 node scripts/audit.mjs
 pnpm diagnostico        # diagnóstico 502: backend local, launchd, tunnel y dominio
-pnpm migration:env      # inventario seguro para migrar variables a Render Business
+pnpm migration:env      # inventario seguro para migrar variables a Render
 pnpm render:blueprint-link # genera deeplink al Blueprint de Render
 pnpm render:validate    # validación local de campos críticos de render.yaml
 pnpm cutover:preflight  # valida candidato Render antes de tocar DNS
@@ -1757,7 +1787,7 @@ Antes de cualquier troubleshooting de infra, registrar aquí el modo activo:
 | `MP_ACCESS_TOKEN` / `MP_PUBLIC_KEY` | MercadoPago |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth |
 
-Ejecutar `pnpm migration:env` antes del corte: el script no imprime secretos y marca qué variables `sync:false` faltan cargar manualmente en la cuenta Business.
+Ejecutar `pnpm migration:env` antes del corte: el script no imprime secretos y marca qué variables `sync:false` faltan cargar manualmente en Render.
 
 ### Cambiar DNS en Cloudflare
 
