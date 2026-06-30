@@ -316,7 +316,8 @@ router.get('/google/callback', async (req, res) => {
     const setup = needsSetup ? '&setup=1' : ''
     try {
       const bridge = await issueOAuthBridge(session.sessionId, user.id)
-      res.cookie('church_oauth_bridge', bridge, { httpOnly: true, sameSite: 'lax', maxAge: 5 * 60 * 1000, path: '/' })
+      const isProd = process.env.NODE_ENV === 'production'
+      res.cookie('church_oauth_bridge', bridge, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 5 * 60 * 1000, path: '/' })
     } catch (bridgeErr) {
       logger.error({ err: bridgeErr?.message, userId: user.id }, 'OAuth Google bridge error')
     }
@@ -418,7 +419,8 @@ router.post('/apple/callback', async (req, res) => {
     const setup = needsSetup ? '&setup=1' : ''
     try {
       const bridge = await issueOAuthBridge(session.sessionId, user.id)
-      res.cookie('church_oauth_bridge', bridge, { httpOnly: true, sameSite: 'lax', maxAge: 5 * 60 * 1000, path: '/' })
+      const isProd = process.env.NODE_ENV === 'production'
+      res.cookie('church_oauth_bridge', bridge, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 5 * 60 * 1000, path: '/' })
     } catch (bridgeErr) {
       logger.error({ err: bridgeErr?.message, userId: user.id }, 'OAuth Apple bridge error')
     }
