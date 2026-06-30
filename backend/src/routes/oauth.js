@@ -7,7 +7,7 @@ import { sendNotificationEmail } from '../lib/email.js'
 import { exchangeGoogleDriveCode, fetchGoogleUserInfo } from '../lib/google-drive.js'
 import { readTenantConfig, upsertTenantConfig } from '../lib/tenant-config.js'
 import { getPlanPrice, normalizeCountry, normalizeLanguage, normalizePlan, PLANES } from '../lib/billing.js'
-import { issueOAuthBridge, issueSession } from '../lib/sessions.js'
+import { setOAuthBridgeCookie, issueSession } from '../lib/sessions.js'
 
 const router = Router()
 const SECRET     = () => {
@@ -315,9 +315,7 @@ router.get('/google/callback', async (req, res) => {
     const needsSetup = createdNow || await requiresSetupForUser(user)
     const setup = needsSetup ? '&setup=1' : ''
     try {
-      const bridge = await issueOAuthBridge(session.sessionId, user.id)
-      const isProd = process.env.NODE_ENV === 'production'
-      res.cookie('church_oauth_bridge', bridge, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 5 * 60 * 1000, path: '/' }) // lgtm[js/clear-text-storage-of-sensitive-data]
+      await setOAuthBridgeCookie(res, session.sessionId, user.id)
     } catch (bridgeErr) {
       logger.error({ err: bridgeErr?.message, userId: user.id }, 'OAuth Google bridge error')
     }
@@ -418,9 +416,7 @@ router.post('/apple/callback', async (req, res) => {
     const needsSetup = createdNow || await requiresSetupForUser(user)
     const setup = needsSetup ? '&setup=1' : ''
     try {
-      const bridge = await issueOAuthBridge(session.sessionId, user.id)
-      const isProd = process.env.NODE_ENV === 'production'
-      res.cookie('church_oauth_bridge', bridge, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 5 * 60 * 1000, path: '/' }) // lgtm[js/clear-text-storage-of-sensitive-data]
+      await setOAuthBridgeCookie(res, session.sessionId, user.id)
     } catch (bridgeErr) {
       logger.error({ err: bridgeErr?.message, userId: user.id }, 'OAuth Apple bridge error')
     }

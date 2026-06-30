@@ -293,6 +293,18 @@ export async function issueOAuthBridge(sessionId, userId, ttlMs = OAUTH_BRIDGE_T
   return bridgeToken
 }
 
+export async function setOAuthBridgeCookie(res, sessionId, userId) {
+  const bridgeToken = await issueOAuthBridge(sessionId, userId)
+  const isProd = process.env.NODE_ENV === 'production'
+  res.cookie('church_oauth_bridge', bridgeToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    maxAge: OAUTH_BRIDGE_TTL_MS,
+    path: '/',
+  })
+}
+
 export async function consumeOAuthBridge(bridgeToken, req, res = null) {
   await ensureOAuthBridgeSchema()
   const tokenHash = hash(bridgeToken)
