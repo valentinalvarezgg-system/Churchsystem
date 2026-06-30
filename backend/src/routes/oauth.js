@@ -314,14 +314,13 @@ router.get('/google/callback', async (req, res) => {
     const session = await issueSession(user, req, res)
     const needsSetup = createdNow || await requiresSetupForUser(user)
     const setup = needsSetup ? '&setup=1' : ''
-    let bridge = ''
     try {
-      bridge = await issueOAuthBridge(session.sessionId, user.id)
+      const bridge = await issueOAuthBridge(session.sessionId, user.id)
+      res.cookie('church_oauth_bridge', bridge, { httpOnly: true, sameSite: 'lax', maxAge: 5 * 60 * 1000, path: '/' })
     } catch (bridgeErr) {
       logger.error({ err: bridgeErr?.message, userId: user.id }, 'OAuth Google bridge error')
     }
-    const bridgeQuery = bridge ? `&bridge=${encodeURIComponent(bridge)}` : ''
-    res.redirect(`${front}/app/login?oauth=1${setup}${bridgeQuery}`)
+    res.redirect(`${front}/app/login?oauth=1${setup}`)
 
   } catch(err) {
     logger.error({ err: err?.message }, 'OAuth Google error')
@@ -417,14 +416,13 @@ router.post('/apple/callback', async (req, res) => {
     const session = await issueSession(user, req, res)
     const needsSetup = createdNow || await requiresSetupForUser(user)
     const setup = needsSetup ? '&setup=1' : ''
-    let bridge = ''
     try {
-      bridge = await issueOAuthBridge(session.sessionId, user.id)
+      const bridge = await issueOAuthBridge(session.sessionId, user.id)
+      res.cookie('church_oauth_bridge', bridge, { httpOnly: true, sameSite: 'lax', maxAge: 5 * 60 * 1000, path: '/' })
     } catch (bridgeErr) {
       logger.error({ err: bridgeErr?.message, userId: user.id }, 'OAuth Apple bridge error')
     }
-    const bridgeQuery = bridge ? `&bridge=${encodeURIComponent(bridge)}` : ''
-    res.redirect(`${frontUrl}/app/login?oauth=1${setup}${bridgeQuery}`)
+    res.redirect(`${frontUrl}/app/login?oauth=1${setup}`)
   } catch (err) {
     logger.error({ err: err?.message }, 'OAuth Apple error')
     res.redirect(`${frontUrl}/app/login?error=oauth_failed`)

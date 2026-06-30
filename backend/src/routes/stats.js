@@ -36,7 +36,7 @@ function variation(current, previous) {
 function startOfWeek(date = new Date()) {
   const d = new Date(date)
   d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() - d.getDay())
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
   return d
 }
 

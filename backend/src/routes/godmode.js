@@ -22,7 +22,7 @@ async function ensureGodModeSchema() {
         ip         TEXT,
         creado_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
-    `).catch(() => {})
+    `).catch(err => logger.error({ err: err.message }, 'godmode_audit: fallo al crear tabla (no-fatal)'))
     await pgExec(`CREATE INDEX IF NOT EXISTS idx_godmode_audit_usuario ON godmode_audit(usuario_id)`).catch(() => {})
     // Tabla legacy — backward-compat para migración de tokens en sessions.js
     await pgExec(`

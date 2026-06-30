@@ -55,10 +55,8 @@ export function ensureSessionsSchema() {
     sessionsSchemaPromise = (async () => {
       await pgExec(SESSIONS_SCHEMA_SQL)
       await pgExec(SESSIONS_INDEX_SQL).catch(() => {})
-    })().catch(err => {
-      sessionsSchemaPromise = null
-      throw err
-    })
+    })()
+    sessionsSchemaPromise.catch(() => { sessionsSchemaPromise = null })
   }
   return sessionsSchemaPromise
 }
@@ -69,10 +67,8 @@ export function ensureOAuthBridgeSchema() {
       await ensureSessionsSchema()
       await pgExec(OAUTH_BRIDGE_SCHEMA_SQL)
       await pgExec(OAUTH_BRIDGE_INDEX_SQL).catch(() => {})
-    })().catch(err => {
-      oauthBridgeSchemaPromise = null
-      throw err
-    })
+    })()
+    oauthBridgeSchemaPromise.catch(() => { oauthBridgeSchemaPromise = null })
   }
   return oauthBridgeSchemaPromise
 }
@@ -310,22 +306,25 @@ export async function consumeOAuthBridge(bridgeToken, req, res = null) {
     throw Object.assign(new Error('Bridge OAuth inválido o expirado'), { code: 'OAUTH_BRIDGE_INVALID' })
   }
 
-  await pgExec(
-    'UPDATE oauth_bridge_tokens SET usado_at=NOW() WHERE id=$1 AND usado_at IS NULL',
-    [bridge.id]
-  )
-
-  const { sesion, refreshToken } = await rotateSessionById(bridge.session_id)
+  // Verificar usuario ANTES de consumir el bridge para no quemarlo si el usuario no existe
   const user = await pgOne(
-    `SELECT * FROM "User"
-     WHERE "id"=$1 AND "activo"=true AND "deletedAt" IS NULL
-     LIMIT 1`,
+    `SELECT * FROM "User" WHERE "id"=$1 AND "activo"=true AND "deletedAt" IS NULL LIMIT 1`,
     [bridge.user_id]
   )
   if (!user) {
     throw Object.assign(new Error('Usuario no encontrado'), { code: 'SESION_INVALIDA' })
   }
 
+  // Consumir bridge atómicamente — si rowCount=0 otro request ganó la carrera (TOCTOU)
+  const { rowCount } = await pgExec(
+    'UPDATE oauth_bridge_tokens SET usado_at=NOW() WHERE id=$1 AND usado_at IS NULL',
+    [bridge.id]
+  )
+  if (!rowCount) {
+    throw Object.assign(new Error('Bridge OAuth ya usado'), { code: 'OAUTH_BRIDGE_INVALID' })
+  }
+
+  const { sesion, refreshToken } = await rotateSessionById(bridge.session_id)
   const payload = userPayload(user)
   const accessToken = signAccessToken(payload)
   res?.cookie?.('church_refresh', refreshToken, getCookieOptions())

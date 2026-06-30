@@ -47,7 +47,7 @@ async function getAdminSubscriptionsMap(iglesiaIds = []) {
   const rows = await pgMany(
     `SELECT ps."iglesiaId", ps."endpoint", ps."keys"
        FROM "PushSubscription" ps
-       INNER JOIN "User" u ON u."id" = ps."userId"
+       INNER JOIN "User" u ON u."id" = ps."userId" AND u."iglesiaId" = ps."iglesiaId"
       WHERE ps."iglesiaId" = ANY($1::int[])
         AND u."deletedAt" IS NULL
         AND u."rol" IN ('PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION')`,
