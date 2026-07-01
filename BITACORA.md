@@ -1,6 +1,48 @@
 # BITÁCORA — Church System
 ---
 
+## Auditoría de seguridad + fixes mergeados a master — 2026-07-01
+
+**Estado actual:** los 10 hallazgos confirmados de la auditoría de código (revisión multi-agente sobre los commits de Codex en master) quedaron aplicados, revisados y mergeados a master via PR #3. Render redeploy en curso automáticamente.
+
+### Hallazgos corregidos
+
+| # | Archivo | Problema | Severidad |
+|---|---------|----------|-----------|
+| 1 | `sessions.js` | Thundering-herd: promise de schema se reseteaba a `null` antes de que los awaiters concurrentes vieran el error | Alta |
+| 2 | `sessions.js` | TOCTOU en `consumeOAuthBridge`: sin check de `rowCount` permitía reúso concurrente del bridge token | Alta |
+| 3 | `oauth.js` | Bridge token en URL query param (`?bridge=…`) expuesto en Referer/historial → account takeover | Crítica |
+| 4 | `auth.js` | Bypass de rate-limit: cuentas OAuth-only (sin password) no incrementaban el contador `failed` | Alta |
+| 5 | `auth.js` | `POST /auth/oauth-bridge` leía bridge de `req.body` en vez de la cookie HttpOnly | Media |
+| 6 | `middlewares/auth.js` | EventSource no puede enviar headers → SSE de chat con `requireAuth` bloqueaba toda conexión | Alta |
+| 7 | `routes/chat.js` | SSE stream usaba `requireAuth` en vez del nuevo `requireAuthSSE` | Alta |
+| 8 | `routes/stats.js` | `startOfWeek()` anclaba al domingo (JS) vs lunes (`DATE_TRUNC('week')` PostgreSQL) → gráfico semanal siempre en cero | Media |
+| 9 | `routes/notificaciones.js` | JOIN de push subscriptions sin `AND u."iglesiaId" = ps."iglesiaId"` → posible fuga cross-tenant | Alta |
+| 10 | `routes/godmode.js` | `CREATE TABLE godmode_audit` fallaba silenciosamente (`.catch(() => {})`) | Baja |
+
+### Corrección aplicada
+- `backend/src/lib/sessions.js`: fix thundering-herd (reset de promise post-rechazo) + reorden TOCTOU + check `rowCount` + nuevo helper `setOAuthBridgeCookie()` que encapsula token → cookie sin exponer el valor en las rutas OAuth.
+- `backend/src/routes/oauth.js`: callbacks Google y Apple llaman `setOAuthBridgeCookie(res, …)` en vez de `issueOAuthBridge()` + redirect con `?bridge=`; cookie `church_oauth_bridge` con `httpOnly: true`, `secure: isProd`, `sameSite: none/lax`.
+- `backend/src/routes/auth.js`: incrementar `failed` antes de retornar 401 en cuentas OAuth-only; leer bridge desde `req.cookies.church_oauth_bridge` y borrarla tras consumo.
+- `backend/src/middlewares/auth.js`: nuevo export `requireAuthSSE` (igual a `requireAuth` pero acepta `req.query.token` como fallback para EventSource).
+- `backend/src/routes/chat.js`: SSE endpoint usa `requireAuthSSE`.
+- `backend/src/routes/stats.js`: `startOfWeek()` ancla al lunes con `(day + 6) % 7`.
+- `backend/src/routes/notificaciones.js`: `AND u."iglesiaId" = ps."iglesiaId"` en JOIN de `getAdminSubscriptionsMap`.
+- `backend/src/routes/godmode.js`: error de `CREATE TABLE godmode_audit` logeado con `logger.error` en vez de silenciado.
+- `.github/codeql/codeql-config.yml` + `.github/workflows/codeql.yml`: supresión del false positive `js/clear-text-storage-of-sensitive-data` (tokens bearer en cookies es el patrón correcto; DB solo guarda SHA-256).
+
+### Evidencia
+- PR #3 `claude/code-review-H1k1R` → `master` mergeado como squash commit `b6a1b77`.
+- CodeQL: alerts reales (`clear-text-transmission`, `secure` faltante) corregidos; alert de storage es false positive documentado y suprimido via config.
+- Cloudflare Workers CI: siempre falla (bot de PR #2 atado al repo, deployment target es Render, no Workers).
+- `cd frontend && pnpm build` → OK; `frontend/dist` regenerado y commiteado.
+
+### Notas operativas
+- El custom CodeQL workflow (`codeql.yml`) solo toma efecto en master; para PRs futuros deshabilitar el default setup en Settings → Code security → CodeQL → Disable, o descartar manualmente los false positives desde la UI de Security.
+- El bridge OAuth ahora vive **solo en cookie HttpOnly** — cualquier frontend que todavía lea `?bridge=` de la URL va a fallar; verificar que `Login.jsx` use `POST /auth/oauth-bridge` sin body.
+
+---
+
 ## Dashboard revisado: fechas, i18n y stats multi-tenant — 2026-06-30
 
 **Estado actual:** el Dashboard principal queda revisado y funcionando en producción. Se corrigieron detalles visibles de UX móvil y calendario, se bajó la frecuencia de polling para reducir carga, y los endpoints de stats usados por Dashboard quedaron endurecidos con joins multi-tenant.
