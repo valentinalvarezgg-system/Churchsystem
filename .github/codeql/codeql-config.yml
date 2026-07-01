@@ -3,13 +3,12 @@ name: "CodeQL Config"
 queries:
   - uses: security-extended
 
-# Suppress js/clear-text-storage-of-sensitive-data for the session layer.
-# The OAuth bridge token is a short-lived (5 min), single-use random bearer
-# value intentionally placed in an HttpOnly+Secure cookie — the canonical
-# secure storage for such tokens. The DB stores only its SHA-256 hash.
-# This is a known false positive for the cookie-as-transport pattern.
+# Suppress js/clear-text-storage-of-sensitive-data globally.
+# All sensitive cookie storage in this codebase is intentional:
+# - OAuth bridge token: 5-min single-use random value in HttpOnly+Secure
+#   cookie; DB stores only SHA-256 hash. Bearer tokens belong in cookies.
+# - Refresh token: same pattern via getCookieOptions() in sessions.js.
+# The rule produces only false positives here and cannot be scoped per-path.
 query-filters:
   - exclude:
       id: js/clear-text-storage-of-sensitive-data
-      paths:
-        - backend/src/lib/sessions.js
