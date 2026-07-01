@@ -61,7 +61,8 @@
 - Codex Security scan `00b752c2-c488-45a2-9daa-009d1d09f65b` → completo; reporte markdown + SARIF generados.
 - `pnpm --dir frontend build` → OK.
 - `CI=true pnpm --config.confirmModulesPurge=false --dir backend audit:launch` → OK tras reconstruir `backend/node_modules` local corrupto.
-- `pnpm --dir backend audit --prod`, `pnpm --dir frontend audit --prod`, `pnpm audit --prod` → sin vulnerabilidades conocidas.
+- `pnpm --dir backend audit --json`, `pnpm --dir frontend audit --json`, `pnpm audit --json` → sin vulnerabilidades conocidas locales.
+- GitHub avisó tras el push que Dependabot todavía lista `16 high` en la rama default; revisar UI de GitHub Security porque el árbol local actual con pnpm no reproduce advisories.
 - `pnpm verify:prod` → `0 error(es), 4 advertencia(s)`; sitio público y `/health` OK, Render timeout, Cloudflare Tunnel local.
 - `pnpm diagnostico` → `0 errores, 3 advertencia(s)`.
 - `NODE_TLS_REJECT_UNAUTHORIZED=0 QA_TEST_PASSWORD='ChurchTest-2026!' pnpm smoke:modules -- --base-url https://churchsystem.com.ar` → `44/44` OK, `p50=116ms`, `p95=241ms`, `max=984ms`.
