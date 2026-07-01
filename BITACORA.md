@@ -65,7 +65,7 @@
 - GitHub avisó tras el push que Dependabot todavía lista `16 high` en la rama default; revisar UI de GitHub Security porque el árbol local actual con pnpm no reproduce advisories.
 - `pnpm verify:prod` → `0 error(es), 4 advertencia(s)`; sitio público y `/health` OK, Render timeout, Cloudflare Tunnel local.
 - `pnpm diagnostico` → `0 errores, 3 advertencia(s)`.
-- `NODE_TLS_REJECT_UNAUTHORIZED=0 QA_TEST_PASSWORD='ChurchTest-2026!' pnpm smoke:modules -- --base-url https://churchsystem.com.ar` → `44/44` OK, `p50=116ms`, `p95=241ms`, `max=984ms`.
+- `NODE_TLS_REJECT_UNAUTHORIZED=0 QA_TEST_PASSWORD='ChurchTest-2026!' pnpm smoke:modules -- --base-url https://churchsystem.com.ar` → `44/44` OK, `p50=105ms`, `p95=316ms`, `max=832ms`.
 
 ### Próximo paso recomendado
 1. Corregir primero los **3 HIGH** (`ministerios`, PayPal legacy, Stripe webhook fail-closed).
