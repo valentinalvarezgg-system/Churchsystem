@@ -110,18 +110,14 @@ export default function Login() {
       const oauth = searchParams.get('oauth')
       const error = searchParams.get('error')
       if (oauth === '1') {
-        const bridge = String(searchParams.get('bridge') || '').trim()
         try {
           let res
           try {
             res = await apiFetch('/auth/refresh', { method: 'POST', skipAuthRedirect: true })
-          } catch (refreshErr) {
-            if (!bridge) throw refreshErr
-            res = await apiFetch('/auth/oauth-bridge', {
-              method: 'POST',
-              skipAuthRedirect: true,
-              body: JSON.stringify({ bridge }),
-            })
+          } catch {
+            // Bridge token is in an HttpOnly cookie set by the OAuth callback;
+            // browser sends it automatically — no body needed.
+            res = await apiFetch('/auth/oauth-bridge', { method: 'POST', skipAuthRedirect: true })
           }
           localStorage.setItem('token', res.token)
           localStorage.setItem('user', JSON.stringify(res.user))
@@ -133,10 +129,7 @@ export default function Login() {
           toast.success(copy.ok)
           navigate('/', { replace: true })
         } catch (err) {
-          const oauthFallback = bridge
-            ? (copy.errors?.oauth_session_expired || copy.authError)
-            : copy.authError
-          toast.error(bridge ? (err?.message || oauthFallback) : oauthFallback)
+          toast.error(copy.errors?.oauth_session_expired || copy.authError)
           clearOAuthParams()
         }
       } else if (error) {
