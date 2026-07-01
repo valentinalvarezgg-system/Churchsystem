@@ -36,7 +36,7 @@ export default function UpgradeGate({ modulo, children }) {
       <p style={{fontSize:14,color:'var(--text-muted)',marginBottom:6,maxWidth:360}}>Requiere plan <strong style={{color:'var(--primary)'}}>{LABELS[req]}</strong>.</p>
       <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:28}}>Estás en plan <strong>{currentLabel}</strong>.</p>
       <button
-        onClick={() => navigate('/planes')}
+        onClick={() => navigate('/billing')}
         style={{padding:'12px 28px',borderRadius:12,fontSize:14,fontWeight:700,background:'linear-gradient(135deg,#6B5CFF,#4845D2)',color:'#fff',border:'none',cursor:'pointer'}}>
         Ver planes y precios →
       </button>

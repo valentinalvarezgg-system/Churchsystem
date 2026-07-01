@@ -31,7 +31,7 @@ export default function BannerTrial() {
         <span style={{ fontSize: 13, color: 'var(--text)', flex: 1 }}>
           Tu período de prueba terminó. Suscribite para retomar el acceso completo.
         </span>
-        <button className="btn btn-primary btn-sm" onClick={() => navigate('/app/billing')}>Ver planes</button>
+        <button className="btn btn-primary btn-sm" onClick={() => navigate('/billing')}>Ver planes</button>
       </div>
     )
   }
@@ -48,7 +48,7 @@ export default function BannerTrial() {
           Problema con tu pago — {diasGracia} día{diasGracia !== 1 ? 's' : ''} de gracia restantes
         </span>
         <button className="btn btn-sm" style={{ background: 'var(--c-danger)', color: '#fff', border: 'none' }}
-          onClick={() => navigate('/app/billing')}>
+          onClick={() => navigate('/billing')}>
           Actualizar pago
         </button>
       </div>
@@ -70,7 +70,7 @@ export default function BannerTrial() {
           Trial PRO activo · <strong style={{ color }}>{diasTrial} día{diasTrial !== 1 ? 's' : ''}</strong> restantes
           {trialFin ? ` (hasta ${trialFin})` : ''}
         </span>
-        <button className="btn btn-ghost btn-sm" onClick={() => navigate('/app/billing')}>Ver planes</button>
+        <button className="btn btn-ghost btn-sm" onClick={() => navigate('/billing')}>Ver planes</button>
         <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', lineHeight: 1, padding: 4 }}
           onClick={() => setDismissed(true)} aria-label="Cerrar">
           <Icons.X size={14} />

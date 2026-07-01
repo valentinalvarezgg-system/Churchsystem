@@ -199,6 +199,7 @@ export default function App() {
           <Route path="/analytics"    element={<ProtectedRoute roles={ALL}   element={<Analytics />} />} />
           <Route path="/planes"       element={<ProtectedRoute roles={ALL}   element={<Planes />} />} />
           <Route path="/billing"      element={<ProtectedRoute roles={ADMIN} element={<Billing />} />} />
+          <Route path="/app/billing"  element={<Navigate to="/billing" replace />} />
           <Route path="*"              element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

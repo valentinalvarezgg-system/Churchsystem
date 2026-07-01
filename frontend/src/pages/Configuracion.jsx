@@ -267,7 +267,7 @@ function SuscripcionTab() {
               </div>
               <button className="btn btn-primary btn-sm" style={{ width:'100%' }}
                 onClick={() => pagar(p.id)} disabled={loading}>
-                {loading ? '…' : metodo === 'transferencia' ? ' Solicitar' : 'Pago Suscribirse'}
+                {loading ? '…' : metodo === 'transferencia' ? 'Solicitar' : 'Suscribirse'}
               </button>
             </div>
           ))}
