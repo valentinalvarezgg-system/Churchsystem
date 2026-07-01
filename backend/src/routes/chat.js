@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { pgExec, pgMany, pgOne } from '../lib/pg.js'
-import { requireAuth } from '../middlewares/auth.js'
+import { requireAuth, requireAuthSSE } from '../middlewares/auth.js'
 
 const router = Router()
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
@@ -84,7 +84,7 @@ router.post('/:grupoId/mensajes', requireAuth, wrap(async (req, res) => {
 }))
 
 // GET /chat/:grupoId/stream — SSE real-time
-router.get('/:grupoId/stream', requireAuth, (req, res) => {
+router.get('/:grupoId/stream', requireAuthSSE, (req, res) => {
   const grupoId = String(req.params.grupoId)
 
   res.setHeader('Content-Type', 'text/event-stream')

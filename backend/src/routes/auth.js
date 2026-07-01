@@ -139,6 +139,7 @@ router.post('/login', async (req, res) => {
         : user.oauth_provider === 'apple'
           ? 'Apple'
           : null
+      failed.set(key, { n: (entry.n || 0) + 1, t: Date.now() })
       return res.status(401).json({
         code: providerLabel
           ? providerLabel === 'Google'
@@ -223,13 +224,14 @@ router.post('/refresh', async (req, res) => {
 
 // ── POST /auth/oauth-bridge ──────────────────────────────────────────────────
 router.post('/oauth-bridge', async (req, res) => {
-  const bridge = String(req.body?.bridge || '').trim()
+  const bridge = String(req.cookies?.church_oauth_bridge || '').trim()
   if (!bridge) {
     return res.status(400).json({ code: 'AUTH_OAUTH_BRIDGE_REQUIRED', error: 'Bridge OAuth requerido' })
   }
 
   try {
     const session = await consumeOAuthBridge(bridge, req, res)
+    res.clearCookie('church_oauth_bridge', { path: '/' })
     return res.json({
       token: session.accessToken,
       refreshToken: session.refreshToken,
