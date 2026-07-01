@@ -43,6 +43,34 @@
 
 ---
 
+## Auditoría repo-wide tras cambios Claude Code — 2026-07-01
+
+**Estado actual:** se ejecutó un scan estándar de seguridad sobre el repo completo (`364` archivos fuente inventariados) y se generó reporte en `/private/var/folders/jf/5y46_kh91zq7757ycnz9h5p80000gn/T/codex-security-scans-52cefr/church-system-alpha/b54cbd96f48445e10f8c78bc5fb50aa32d312993_20260701T112951Z_smoscqdc/report.md`. Resultado: **4 hallazgos reportables** (`3 high`, `1 medium`) y **2 problemas funcionales/operativos**.
+
+### Hallazgos reportables
+- **HIGH — Ministerio IDOR / aislamiento tenant:** varias subrutas de `backend/src/routes/ministerios.js` mutan hijos por IDs numéricos sin validar que pertenecen al ministerio/tenant del usuario (`miembros`, `tareas`, `checklists`, `canciones`, `equipos`, `checkin-ninos`). Implementar `checkAcceso()` + `WHERE`/joins por `ministerioId` e `iglesiaId` en cada mutación.
+- **HIGH — PayPal legacy callback:** `backend/src/routes/paypal.js` captura pago y luego confía en `plan`/`iglesiaId` del querystring. Implementar reconciliación contra `checkout_reference`/metadata real del order, o retirar esta ruta legacy y usar webhooks firmados.
+- **HIGH — Stripe webhook fail-open:** `backend/src/routes/stripe.js` procesa `req.body` sin firma si falta `STRIPE_WEBHOOK_SECRET`. Cambiar a fail-closed: si Stripe está configurado y no hay webhook secret, no procesar eventos.
+- **MEDIUM — RSVP público:** `backend/src/routes/eventos.js` permite RSVP anónimo con `iglesiaId`/`personaId` o `token` arbitrario. Implementar tokens firmados/expirables con `eventoId + iglesiaId + personaId`, y exigir auth cuando no haya token válido.
+
+### Fallas funcionales / operativas
+- **Documentos:** `backend/src/routes/documentos.js` guarda `archivo=/uploads/documentos/...` pero descarga con `path.join(..., doc.archivo)`, lo que resuelve hacia `/uploads/...`; los adjuntos pueden quedar no descargables. Usar `UPLOAD_DIR + basename` y validar contención.
+- **Infra:** producción responde OK por Cloudflare Tunnel local, pero Render candidato sigue en timeout. No se usó ni guardó el token Render pegado en chat; conviene rotarlo antes de usarlo en entorno local seguro.
+
+### Evidencia
+- Codex Security scan `00b752c2-c488-45a2-9daa-009d1d09f65b` → completo; reporte markdown + SARIF generados.
+- `pnpm --dir frontend build` → OK.
+- `CI=true pnpm --config.confirmModulesPurge=false --dir backend audit:launch` → OK tras reconstruir `backend/node_modules` local corrupto.
+- `pnpm --dir backend audit --prod`, `pnpm --dir frontend audit --prod`, `pnpm audit --prod` → sin vulnerabilidades conocidas.
+- `pnpm verify:prod` → `0 error(es), 4 advertencia(s)`; sitio público y `/health` OK, Render timeout, Cloudflare Tunnel local.
+- `pnpm diagnostico` → `0 errores, 3 advertencia(s)`.
+- `NODE_TLS_REJECT_UNAUTHORIZED=0 QA_TEST_PASSWORD='ChurchTest-2026!' pnpm smoke:modules -- --base-url https://churchsystem.com.ar` → `44/44` OK, `p50=116ms`, `p95=241ms`, `max=984ms`.
+
+### Próximo paso recomendado
+1. Corregir primero los **3 HIGH** (`ministerios`, PayPal legacy, Stripe webhook fail-closed).
+2. Luego corregir RSVP público y descarga de documentos.
+3. Rotar el token Render expuesto en chat y recién después usar `RENDER_API_KEY` local para inspeccionar dashboard/logs/deploys sin pegar secretos en bitácora ni commits.
+
 ## Dashboard revisado: fechas, i18n y stats multi-tenant — 2026-06-30
 
 **Estado actual:** el Dashboard principal queda revisado y funcionando en producción. Se corrigieron detalles visibles de UX móvil y calendario, se bajó la frecuencia de polling para reducir carga, y los endpoints de stats usados por Dashboard quedaron endurecidos con joins multi-tenant.
