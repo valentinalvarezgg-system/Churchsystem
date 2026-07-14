@@ -1,6 +1,17 @@
 # BITÁCORA — Church System
 ---
 
+## Accesos temporales de prueba reactivados — 2026-07-13
+
+**Estado actual:** se resembraron las cuentas QA con una contraseña temporal entregada únicamente en la conversación. Quedaron validados el acceso general `max@test.com` (`PASTOR_GENERAL/MAX`) y el acceso dueño `godmode@test.com` (`GODMODE` + `es_superadmin=true`).
+
+### Evidencia
+- Login local con `max@test.com` → OK; payload `PASTOR_GENERAL/MAX`.
+- `GET /inventario` con token de la cuenta de página → HTTP `200`.
+- Login local con `godmode@test.com` → OK; payload `GODMODE` + superadmin.
+- `GET /godmode/overview` con token GodMode → HTTP `200`.
+- La contraseña temporal no se registró en Git ni en esta bitácora.
+
 ## Módulo de inventario físico por secciones — 2026-07-13
 
 **Estado actual:** se agregó un módulo completo de inventario físico, multi-tenant y mobile-first. Permite organizar los bienes de cada iglesia en secciones tipo pestaña/carpeta, crear y renombrar esas secciones, y gestionar los artículos con existencias, stock mínimo, estado, ubicación y responsable.
