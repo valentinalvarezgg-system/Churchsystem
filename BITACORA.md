@@ -1,6 +1,28 @@
 # BITÁCORA — Church System
 ---
 
+## Orden visual: menú compacto y Dashboard enfocado — 2026-07-13
+
+**Estado actual:** la navegación principal y el Dashboard quedaron visualmente más livianos sin eliminar rutas ni funciones. El menú muestra sus categorías cerradas salvo la que contiene la pantalla actual, y el inicio prioriza información pastoral accionable sobre datos técnicos.
+
+### Cambios aplicados
+- `frontend/src/components/Menu.jsx`: categorías por tier convertidas en grupos desplegables con estado accesible `aria-expanded`; sólo se abre automáticamente el grupo de la ruta activa.
+- Los encabezados ahora explican mejor su contenido: `Personas y actividades`, `Comunicación`, `Informes y herramientas` y `Administración`, con equivalentes pt/en.
+- `frontend/src/pages/Dashboard.jsx`: indicadores principales reducidos de seis a cuatro (`personas`, `visitantes`, `grupos`, `asistencia`).
+- `Dashboard.jsx`: accesos rápidos reducidos de siete a tres acciones operativas (`Nueva persona`, `Registrar culto`, `Check-in QR`).
+- `Dashboard.jsx`: actividad técnica reciente retirada del inicio; continúa disponible en `Historial`.
+- El checklist de onboarding se muestra expandido la primera vez y se recuerda colapsado en visitas posteriores mediante `church_onboarding_seen`.
+- `frontend/src/components/BugReporter.jsx`: botón flotante reducido y acercado al borde seguro para disminuir superposiciones con tarjetas/acciones.
+- `frontend/src/version.js`: versión visible corregida de `2.9.1` a `3.1.2`, alineada con los package.json.
+- `frontend/dist/`: regenerado para publicación inmediata.
+
+### Evidencia
+- `cd frontend && pnpm build` → OK con Vite `6.4.3`.
+- Chunk Dashboard reducido de `24.92 kB` a `22.44 kB`.
+- Verificación estructural: menú colapsable presente, tres accesos rápidos presentes y actividad reciente ausente del Dashboard → OK.
+- `CI=true pnpm --config.confirmModulesPurge=false --dir backend audit:launch` → OK, sin rutas candidatas desprotegidas.
+- `git diff --check` → OK.
+
 ## Navegación, permisos y modales sintetizados — 2026-07-13
 
 **Estado actual:** se redujo la duplicación interna del frontend sin cambiar rutas, roles ni capacidades visibles. La navegación por tier ahora se genera desde un catálogo declarativo, los grupos de acceso tienen una única fuente frontend y el inventario reutiliza el modal estándar de la aplicación.

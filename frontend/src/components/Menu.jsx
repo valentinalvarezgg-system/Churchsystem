@@ -114,7 +114,7 @@ const I18N = {
     smart:'Gestión Pastoral Inteligente', openMenu:'Abrir menú', search:'Buscar', notifications:'Notificaciones',
     activeNotifications:'Notificaciones activas', enableNotifications:'Activar notificaciones',
     lightMode:'Modo claro', darkMode:'Modo oscuro', searchPlaceholder:'Buscar...', logout:'Cerrar sesión',
-    principal:'Principal', congregation:'Congregación', management:'Gestión', tools:'Herramientas', admin:'Admin',
+    principal:'Principal', congregation:'Personas y actividades', management:'Comunicación', tools:'Informes y herramientas', admin:'Administración',
     home:'Inicio', dashboard:'Dashboard', executive:'Vista Ejecutiva', communications:'Comunicados',
     people:'Personas', groups:'Grupos', attendance:'Asistencia', checkin:'Check-in QR', calendar:'Calendario',
     discipleship:'Discipulado', consolidation:'Consolidación', messages:'Mensajería', alerts:'Alertas',
@@ -127,7 +127,7 @@ const I18N = {
     smart:'Gestão Pastoral Inteligente', openMenu:'Abrir menu', search:'Buscar', notifications:'Notificações',
     activeNotifications:'Notificações ativas', enableNotifications:'Ativar notificações',
     lightMode:'Modo claro', darkMode:'Modo escuro', searchPlaceholder:'Buscar...', logout:'Sair',
-    principal:'Principal', congregation:'Congregação', management:'Gestão', tools:'Ferramentas', admin:'Admin',
+    principal:'Principal', congregation:'Pessoas e atividades', management:'Comunicação', tools:'Relatórios e ferramentas', admin:'Administração',
     home:'Início', dashboard:'Dashboard', executive:'Visão Executiva', communications:'Comunicados',
     people:'Pessoas', groups:'Grupos', attendance:'Presença', checkin:'Check-in QR', calendar:'Calendário',
     discipleship:'Discipulado', consolidation:'Consolidação', messages:'Mensagens', alerts:'Alertas',
@@ -140,7 +140,7 @@ const I18N = {
     smart:'Smart Pastoral Management', openMenu:'Open menu', search:'Search', notifications:'Notifications',
     activeNotifications:'Notifications active', enableNotifications:'Enable notifications',
     lightMode:'Light mode', darkMode:'Dark mode', searchPlaceholder:'Search...', logout:'Sign out',
-    principal:'Main', congregation:'Congregation', management:'Management', tools:'Tools', admin:'Admin',
+    principal:'Main', congregation:'People and activities', management:'Communication', tools:'Reports and tools', admin:'Administration',
     home:'Home', dashboard:'Dashboard', executive:'Executive View', communications:'Announcements',
     people:'People', groups:'Groups', attendance:'Attendance', checkin:'QR Check-in', calendar:'Calendar',
     discipleship:'Discipleship', consolidation:'Follow-up', messages:'Messaging', alerts:'Alerts',
@@ -161,6 +161,7 @@ export default function Menu() {
   const { suscrito, suscribir, permiso, soportado } = useNotificaciones()
   const [alertCount, setAlertCount] = useState(0)
   const [dark, setDark]           = useState(() => localStorage.getItem('theme') === 'dark')
+  const [expandedSections, setExpandedSections] = useState({})
   const [ctx, setCtx] = useState(getStoredContext())
   const lang = (ctx.lang || localStorage.getItem('church_lang') || user?.idioma || 'es').slice(0, 2)
   const tt = key => I18N[lang]?.[key] || I18N.es[key] || key
@@ -238,6 +239,12 @@ export default function Menu() {
   const isLider = navTier === 'STARTER'
   const bottomLinks = isLider ? BOTTOM_LINKS_BY_ROLE.LIDER : BOTTOM_LINKS_BY_ROLE.DEFAULT
   const railLinks = isLider ? RAIL_LINKS_BY_ROLE.LIDER : RAIL_LINKS_BY_ROLE.DEFAULT
+  const isSectionExpanded = section => expandedSections[section.titleKey]
+    ?? section.links.some(link => location.pathname === link.to || location.pathname.startsWith(`${link.to}/`))
+
+  function toggleSection(titleKey, currentlyExpanded) {
+    setExpandedSections(current => ({ ...current, [titleKey]: !currentlyExpanded }))
+  }
 
   // Nombre de la página actual para el header mobile
   const PAGE_NAMES = {
@@ -315,12 +322,20 @@ export default function Menu() {
           {lnk('/planes', <Icons.Premium />, 'Planes')}
           {NAV_SECTIONS_BY_TIER[navTier].map(section => (
             <div key={section.titleKey}>
-              <div className="nav-section">{tt(section.titleKey)}</div>
-              {section.links.map(link => {
-                const Icon = Icons[link.icon]
-                const badge = link.badgeKey === 'alerts' ? alertCount : 0
-                return lnk(link.to, <Icon />, link.label || tt(link.labelKey), false, badge)
-              })}
+              {(() => {
+                const expanded = isSectionExpanded(section)
+                return <>
+                  <button className="nav-section nav-section-toggle" onClick={() => toggleSection(section.titleKey, expanded)} aria-expanded={expanded}>
+                    <span>{tt(section.titleKey)}</span>
+                    <Icons.ChevronDown style={{ transform: expanded ? 'none' : 'rotate(-90deg)' }} />
+                  </button>
+                  {expanded && section.links.map(link => {
+                    const Icon = Icons[link.icon]
+                    const badge = link.badgeKey === 'alerts' ? alertCount : 0
+                    return lnk(link.to, <Icon />, link.label || tt(link.labelKey), false, badge)
+                  })}
+                </>
+              })()}
             </div>
           ))}
         </nav>

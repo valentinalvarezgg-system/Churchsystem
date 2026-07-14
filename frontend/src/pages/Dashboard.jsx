@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Icons from '../components/Icons.jsx'
 import { useNavigate } from 'react-router-dom'
 import Menu from '../components/Menu.jsx'
@@ -24,10 +24,6 @@ const DASH_I18N = {
       ['Nueva persona', 'Registrar miembro o visitante'],
       ['Registrar culto', 'Tomar asistencia del servicio'],
       ['Check-in QR', 'Generar código QR para entrada'],
-      ['Enviar mensaje', 'Contactar persona o grupo'],
-      ['Asistente IA', 'Consultar datos con inteligencia artificial'],
-      ['Comunicados', 'Novedades internas para la iglesia'],
-      ['Reportes', 'Estadísticas y métricas de la iglesia'],
     ],
   },
   pt: {
@@ -47,10 +43,6 @@ const DASH_I18N = {
       ['Nova pessoa', 'Registrar membro ou visitante'],
       ['Registrar culto', 'Registrar presença do culto'],
       ['Check-in QR', 'Gerar código QR para entrada'],
-      ['Enviar mensagem', 'Contatar pessoa ou grupo'],
-      ['Assistente IA', 'Consultar dados com inteligência artificial'],
-      ['Comunicados', 'Novidades internas para a igreja'],
-      ['Relatórios', 'Estatísticas e métricas da igreja'],
     ],
   },
   en: {
@@ -70,10 +62,6 @@ const DASH_I18N = {
       ['New person', 'Register member or visitor'],
       ['Register service', 'Take service attendance'],
       ['QR check-in', 'Generate entry QR code'],
-      ['Send message', 'Contact person or group'],
-      ['AI assistant', 'Ask questions about church data'],
-      ['Announcements', 'Internal news for the church'],
-      ['Reports', 'Church statistics and metrics'],
     ],
   },
 }
@@ -135,7 +123,9 @@ function formatBirthday(person, locale) {
 }
 
 function OnboardingChecklist({ navigate, prog, billingEstado, copy, txt }) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('church_onboarding_seen') === '1')
+
+  useEffect(() => { localStorage.setItem('church_onboarding_seen', '1') }, [])
 
   if (!billingEstado?.enTrial) return null
   if (!prog) return null
@@ -279,10 +269,8 @@ export default function Dashboard() {
         <div style={{ display:'grid', gridTemplateColumns:`repeat(${ori.colsStats},1fr)`, gap: ori.isPhone ? 8 : 12, marginBottom: 20 }}>
           {[
             { val: t.personas || 0,  lbl: txt('total'),      Ic: Icons.Users,       color:'#6366F1', path:'/personas' },
-            { val: t.activos  || 0,  lbl: txt('active'),     Ic: Icons.CheckCircle, color:'#16A34A', path:'/personas' },
             { val: t.visitantes||0,  lbl: txt('visitors'),   Ic: Icons.UserPlus,    color:'#D97706', path:'/personas' },
             { val: t.grupos   || 0,  lbl: txt('groups'),     Ic: Icons.Groups,      color:'#0891B2', path:'/grupos' },
-            { val: t.cultos   || 0,  lbl: txt('services'),   Ic: Icons.Attendance,  color:'#7C3AED', path:'/asistencia' },
             { val: pct+'%',          lbl: txt('attendance'), Ic: Icons.Reports,     color: pctColor, path:'/asistencia' },
           ].map(s => (
             <div key={s.lbl} onClick={() => navigate(s.path)}
@@ -434,10 +422,6 @@ export default function Dashboard() {
                 { Ic: Icons.UserPlus,   label:copy.actions[0][0], desc:copy.actions[0][1], path:'/personas',     color:'#2563EB' },
                 { Ic: Icons.Attendance, label:copy.actions[1][0], desc:copy.actions[1][1], path:'/asistencia',   color:'#16A34A' },
                 { Ic: Icons.QrCode,     label:copy.actions[2][0], desc:copy.actions[2][1], path:'/checkin',      color:'#0891B2' },
-                { Ic: Icons.Messages,   label:copy.actions[3][0], desc:copy.actions[3][1], path:'/mensajes',     color:'#D97706' },
-                { Ic: Icons.AI,         label:copy.actions[4][0], desc:copy.actions[4][1], path:'/asistente-ia', color:'#7C3AED' },
-                { Ic: Icons.Comunicados,label:copy.actions[5][0], desc:copy.actions[5][1], path:'/comunicados',  color:'#DC2626' },
-                { Ic: Icons.Reports,    label:copy.actions[6][0], desc:copy.actions[6][1], path:'/reportes',     color:'#9333EA' },
               ].map(a => (
                 <button key={a.path} onClick={() => navigate(a.path)}
                   style={{
@@ -532,31 +516,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-
-        {/* ── Actividad reciente ─────────────────────────────────────── */}
-        {(overview?.actividadReciente || []).length > 0 && (
-          <div className="card">
-            <h3 style={{ fontSize:13, fontWeight:700, marginBottom:14, display:'flex', alignItems:'center', gap:6 }}><Icons.History size={14} />{txt('recentActivity')}</h3>
-            <div className="dashboard-activity-grid" style={{ display:'grid', gridTemplateColumns:`repeat(${ori.cols2},1fr)`, gap:0 }}>
-              {(overview?.actividadReciente || []).slice(0, 8).map((a, i) => {
-                const iconMap = { CREAR:<Icons.Plus size={13} />, ACTUALIZAR:<Icons.Edit size={13} />, ELIMINAR:<Icons.Delete size={13} />, MENSAJE:<Icons.Messages size={13} />, MASIVO:<Icons.Send size={13} />, IMPORTAR_EXCEL:<Icons.Excel size={13} />, BACKUP:<Icons.Archive size={13} />, LOGIN:<Icons.Profile size={13} /> }
-                const ico = iconMap[a.accion] || <Icons.Mail size={13} />
-                const time = a.createdAt ? new Date(a.createdAt).toLocaleTimeString(txt('locale'),{hour:'2-digit',minute:'2-digit'}) : ''
-                return (
-                  <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 0', borderBottom: i < 6 ? '1px solid var(--border)' : 'none' }}>
-                    <span style={{ flexShrink:0, color:'var(--text-muted)' }}>{ico}</span>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:11, fontWeight:600, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                        {a.detalle || `${a.accion} ${a.entidad}`}
-                      </div>
-                      <div style={{ fontSize:10, color:'var(--text-muted)' }}>{a.usuario} · {time}</div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
 
       </main>
     </div>

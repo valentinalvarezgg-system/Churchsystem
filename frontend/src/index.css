@@ -347,6 +347,18 @@ body {
   padding: 14px 8px 4px;
   font-family: var(--font);
 }
+.nav-section-toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+}
+.nav-section-toggle svg { width: 13px; height: 13px; transition: transform .18s ease; }
+.nav-section-toggle:hover { color: var(--text-muted); }
 .nav-item {
   display: flex; align-items: center; gap: 9px;
   padding: 8px 10px;

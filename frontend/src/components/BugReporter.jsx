@@ -69,7 +69,7 @@ export default function BugReporter() {
         </div>
         <p style={{fontSize:13,color:'var(--text-muted)',margin:'12px 0 0'}}>{t('note')}</p>
       </Modal>
-      <style>{`.bug-reporter-btn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:24px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-lg);transition:var(--t);z-index:500;display:flex;align-items:center;justify-content:center}.bug-reporter-btn:hover{transform:scale(1.08);box-shadow:0 12px 32px rgba(109,93,251,.35)}.bug-reporter-btn:active{transform:scale(.98)}@media(max-width:640px){.bug-reporter-btn{bottom:80px;right:16px;width:48px;height:48px}}`}</style>
+      <style>{`.bug-reporter-btn{position:fixed;bottom:14px;right:14px;width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;border:2px solid var(--surface);font-size:18px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-lg);transition:var(--t);z-index:500;display:flex;align-items:center;justify-content:center}.bug-reporter-btn:hover{transform:scale(1.06);box-shadow:0 10px 26px rgba(109,93,251,.3)}.bug-reporter-btn:active{transform:scale(.98)}@media(max-width:640px){.bug-reporter-btn{bottom:78px;right:12px;width:40px;height:40px}}`}</style>
     </>
   )
 }
