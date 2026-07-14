@@ -1,6 +1,30 @@
 # BITÁCORA — Church System
 ---
 
+## Módulo de inventario físico por secciones — 2026-07-13
+
+**Estado actual:** se agregó un módulo completo de inventario físico, multi-tenant y mobile-first. Permite organizar los bienes de cada iglesia en secciones tipo pestaña/carpeta, crear y renombrar esas secciones, y gestionar los artículos con existencias, stock mínimo, estado, ubicación y responsable.
+
+### Implementación
+- `backend/src/routes/inventario.js`: API autenticada para listar el inventario y su resumen, crear/renombrar/eliminar secciones y crear/editar/mover/eliminar artículos.
+- El backend filtra todas las lecturas y escrituras por `iglesiaId`; las escrituras exigen rol `PASTOR_GENERAL`, `PASTOR_CULTO` o `STAFF`, mientras los demás roles habilitados conservan acceso de lectura.
+- Las secciones no pueden eliminarse mientras tengan artículos activos; tanto secciones como artículos usan soft-delete.
+- Los códigos de artículo y nombres de sección son únicos dentro de cada iglesia, no globalmente.
+- `backend/prisma/migrations/20260713090000_inventario_fisico/migration.sql`: migración formal de `InventarioSeccion`, `InventarioItem` e índices tenant/soft-delete; la ruta también mantiene bootstrap idempotente para despliegues actuales.
+- `frontend/src/pages/Inventario.jsx` + `Inventario.css`: nueva pantalla con resumen de artículos/unidades/stock bajo/estado, pestañas horizontales renombrables, búsqueda, cards adaptables y modales bottom-sheet en móvil.
+- `frontend/src/App.jsx`, `components/Menu.jsx` e `Icons.jsx`: ruta protegida `/inventario`, navegación para todos los tiers y roles de la app, nombre localizado del módulo en es/pt/en e iconografía SVG sin emojis.
+- `frontend/dist/`: regenerado para publicar el módulo en el deploy que sirve assets versionados.
+
+### Evidencia
+- `node --check backend/src/server.js backend/src/routes/inventario.js` → OK.
+- `CI=true pnpm --config.confirmModulesPurge=false --dir backend audit:launch` → OK, sin rutas candidatas desprotegidas.
+- `cd frontend && pnpm build` → OK con Vite `6.4.3`; chunk lazy `Inventario` generado.
+- `pnpm audit` → sin vulnerabilidades conocidas.
+- `git diff --check` → OK.
+
+### Próxima mejora opcional
+- Incorporar historial de movimientos (entradas, salidas, préstamos y devoluciones) si se necesita trazabilidad contable/operativa además del stock actual.
+
 ## Auditoría de seguridad + fixes mergeados a master — 2026-07-01
 
 **Estado actual:** los 10 hallazgos confirmados de la auditoría de código (revisión multi-agente sobre los commits de Codex en master) quedaron aplicados, revisados y mergeados a master via PR #3. Render redeploy en curso automáticamente.

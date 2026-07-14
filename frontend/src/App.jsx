@@ -53,6 +53,7 @@ const RecuperarPassword = lazy(() => import('./pages/RecuperarPassword.jsx'))
 const Ministerios       = lazy(() => import('./pages/Ministerios.jsx'))
 const MinisterioDetalle = lazy(() => import('./pages/MinisterioDetalle.jsx'))
 const ConfiguracionOrganizacion = lazy(() => import('./pages/ConfiguracionOrganizacion.jsx'))
+const Inventario       = lazy(() => import('./pages/Inventario.jsx'))
 
 const ALL   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF','LIDER']
 const MID   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF']
@@ -191,6 +192,7 @@ export default function App() {
           <Route path="/godmode"       element={<ProtectedRoute roles={['GODMODE']} element={<GodMode />} />} />
           <Route path="/historial"     element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="historial"><Historial /></UpgradeGate>} />} />
           <Route path="/documentos"    element={<ProtectedRoute roles={AUDIT} element={<Documentos />} />} />
+          <Route path="/inventario"    element={<ProtectedRoute roles={ALL} element={<Inventario />} />} />
           <Route path="/liderazgo"     element={<ProtectedRoute roles={AUDIT} element={<Liderazgo />} />} />
           <Route path="/mapa-grupos"   element={<ProtectedRoute roles={MID}   element={<MapaGrupos />} />} />
           {/* Portal del miembro — ruta pública con auth propia */}

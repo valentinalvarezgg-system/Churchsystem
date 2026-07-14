@@ -64,6 +64,7 @@ import subscriptionsRouter from './routes/subscriptions.js'
 import whatsappRouter from './routes/whatsapp.js'
 import invitacionesRouter from './routes/invitaciones.js'
 import sesionesRouter from './routes/sesiones.js'
+import inventarioRouter from './routes/inventario.js'
 import { createRequire } from 'node:module'
 
 // Parche Express 4: propaga errores async a next() automáticamente.
@@ -213,6 +214,7 @@ app.use('/whatsapp', whatsappRouter)
 app.use('/api/whatsapp', whatsappRouter)
 app.use('/invitaciones', invitacionesRouter)
 app.use('/sesiones', sesionesRouter)
+app.use('/inventario', inventarioRouter)
 app.use('/verificacion', verificacionRouter)
 app.use('/plan', planRouter)
 app.use('/iglesia', iglesiaRouter)

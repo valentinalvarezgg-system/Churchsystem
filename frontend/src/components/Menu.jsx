@@ -53,7 +53,7 @@ const I18N = {
     reports:'Reportes', finances:'Finanzas', excel:'Excel + IA', assistant:'Asistente IA', users:'Usuarios',
     promo:'Promo Codes', permissions:'Permisos', history:'Historial', settings:'Configuración',
     prayer:'Oración', events:'Eventos', profile:'Mi perfil', pageProfile:'Perfil', menu:'Menú',
-    ministries:'Ministerios', areas:'Áreas',
+    ministries:'Ministerios', areas:'Áreas', inventory:'Inventario',
   },
   pt: {
     smart:'Gestão Pastoral Inteligente', openMenu:'Abrir menu', search:'Buscar', notifications:'Notificações',
@@ -66,7 +66,7 @@ const I18N = {
     reports:'Relatórios', finances:'Finanças', excel:'Excel + IA', assistant:'Assistente IA', users:'Usuários',
     promo:'Promo Codes', permissions:'Permissões', history:'Histórico', settings:'Configuração',
     prayer:'Oração', events:'Eventos', profile:'Meu perfil', pageProfile:'Perfil', menu:'Menu',
-    ministries:'Ministérios', areas:'Áreas',
+    ministries:'Ministérios', areas:'Áreas', inventory:'Inventário',
   },
   en: {
     smart:'Smart Pastoral Management', openMenu:'Open menu', search:'Search', notifications:'Notifications',
@@ -79,7 +79,7 @@ const I18N = {
     reports:'Reports', finances:'Finances', excel:'Excel + AI', assistant:'AI Assistant', users:'Users',
     promo:'Promo Codes', permissions:'Permissions', history:'History', settings:'Settings',
     prayer:'Prayer', events:'Events', profile:'My profile', pageProfile:'Profile', menu:'Menu',
-    ministries:'Ministries', areas:'Areas',
+    ministries:'Ministries', areas:'Areas', inventory:'Inventory',
   },
 }
 
@@ -190,6 +190,7 @@ export default function Menu() {
     '/historial': tt('history'),
     '/comunicados': tt('communications'), '/mi-perfil': tt('profile'),
     '/eventos': tt('events'),
+    '/inventario': tt('inventory'),
   }
   const currentPage = PAGE_NAMES[location.pathname] ||
     (location.pathname.startsWith('/personas/') ? tt('pageProfile') : 'Church System')
@@ -260,6 +261,7 @@ export default function Menu() {
             {lnk('/checkin',       <Icons.CheckIn />,    tt('checkin'))}
             <div className="nav-section">{tt('areas')}</div>
             {lnk('/ministerios', <Icons.Building />, tt('ministries'))}
+            {lnk('/inventario', <Icons.Inventory />, tt('inventory'))}
           </>}
 
           {/* PRO — ver, modificar y auditar cultos asignados */}
@@ -274,6 +276,7 @@ export default function Menu() {
             {lnk('/consolidacion', <Icons.Users />,      tt('consolidation'))}
             <div className="nav-section">{tt('areas')}</div>
             {lnk('/ministerios', <Icons.Building />, tt('ministries'))}
+            {lnk('/inventario', <Icons.Inventory />, tt('inventory'))}
             <div className="nav-section">{tt('management')}</div>
             {lnk('/mensajes',      <Icons.Messages />,   tt('messages'))}
             {lnk('/alertas',       <Icons.Comunicados />, tt('alerts'), false, alertCount)}
@@ -295,6 +298,7 @@ export default function Menu() {
             {lnk('/consolidacion', <Icons.Users />,      tt('consolidation'))}
             <div className="nav-section">{tt('areas')}</div>
             {lnk('/ministerios', <Icons.Building />, tt('ministries'))}
+            {lnk('/inventario', <Icons.Inventory />, tt('inventory'))}
             <div className="nav-section">{tt('management')}</div>
             {lnk('/mensajes',      <Icons.Messages />,   tt('messages'))}
             {lnk('/alertas',       <Icons.Comunicados />, tt('alerts'), false, alertCount)}

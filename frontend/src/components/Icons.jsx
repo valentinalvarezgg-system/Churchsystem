@@ -11,7 +11,7 @@ import {
   Upload, Eye, EyeOff, Copy, ExternalLink,
   ArrowLeft, ArrowRight, TrendingUp, TrendingDown,
   Building2, UserPlus, QrCode, Zap, Crown,
-  FileText, Send, Archive, ChevronLeft
+  FileText, Send, Archive, ChevronLeft, Package, Folder, FolderPlus, Wrench
 } from 'lucide-react'
 
 const size = { width: 18, height: 18, strokeWidth: 1.8 }
@@ -37,6 +37,7 @@ export const Icons = {
   Prayer:       (p) => <HandHeart         {...size} {...p} />,
   Discipleship: (p) => <BookOpen          {...size} {...p} />,
   Profile:      (p) => <User              {...size} {...p} />,
+  User:         (p) => <User              {...size} {...p} />,
   Search:       (p) => <Search            {...size} {...p} />,
   Plus:         (p) => <Plus              {...size} {...p} />,
   Download:     (p) => <Download          {...size} {...p} />,
@@ -75,6 +76,11 @@ export const Icons = {
   FileText:     (p) => <FileText          {...size} {...p} />,
   Send:         (p) => <Send              {...size} {...p} />,
   Archive:      (p) => <Archive           {...size} {...p} />,
+  Inventory:    (p) => <Package           {...size} {...p} />,
+  Package:      (p) => <Package           {...size} {...p} />,
+  Folder:       (p) => <Folder            {...size} {...p} />,
+  FolderPlus:   (p) => <FolderPlus        {...size} {...p} />,
+  Tools:        (p) => <Wrench            {...size} {...p} />,
   MapPin:       (p) => <MapPin            {...size} {...p} />,
 }
 
