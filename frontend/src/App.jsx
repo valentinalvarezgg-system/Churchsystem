@@ -12,6 +12,7 @@ import BugReporter from './components/BugReporter.jsx'
 import { OfflineBadge } from './components/OfflineBadge.jsx'
 import { useDevice } from './hooks/useDevice.js'
 import { normalizeCommercialPlan } from './lib/commercialPlans.js'
+import { ADMIN_ROLES, APP_ROLES, AUDIT_ROLES, MANAGEMENT_ROLES } from './lib/access.js'
 
 // Lazy-loaded pages — cada página se descarga solo cuando el usuario navega a ella
 const Login            = lazy(() => import('./pages/Login.jsx'))
@@ -54,11 +55,6 @@ const Ministerios       = lazy(() => import('./pages/Ministerios.jsx'))
 const MinisterioDetalle = lazy(() => import('./pages/MinisterioDetalle.jsx'))
 const ConfiguracionOrganizacion = lazy(() => import('./pages/ConfiguracionOrganizacion.jsx'))
 const Inventario       = lazy(() => import('./pages/Inventario.jsx'))
-
-const ALL   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF','LIDER']
-const MID   = ['PASTOR_GENERAL','PASTOR_CULTO','CONSOLIDACION','STAFF']
-const ADMIN = ['PASTOR_GENERAL']
-const AUDIT = ['PASTOR_GENERAL','CONSOLIDACION']
 
 function PageSpinner() {
   return (
@@ -160,47 +156,47 @@ export default function App() {
           <Route path="/app/godmode/login" element={<GodModeLogin />} />
 
           {/* App — rutas protegidas */}
-          <Route path="/"              element={<ProtectedRoute roles={ALL}   element={<Dashboard />} />} />
-          <Route path="/premium"       element={<ProtectedRoute roles={ADMIN} element={<DashboardPremium />} />} />
-          <Route path="/personas"      element={<ProtectedRoute roles={MID}   element={<Personas />} />} />
-          <Route path="/personas/:id"  element={<ProtectedRoute roles={MID}   element={<Perfil />} />} />
-          <Route path="/grupos"            element={<ProtectedRoute roles={MID}   element={<Grupos />} />} />
-          <Route path="/ministerios"       element={<ProtectedRoute roles={ALL}   element={<Ministerios />} />} />
-          <Route path="/ministerios/:id"   element={<ProtectedRoute roles={ALL}   element={<MinisterioDetalle />} />} />
+          <Route path="/"              element={<ProtectedRoute roles={APP_ROLES}   element={<Dashboard />} />} />
+          <Route path="/premium"       element={<ProtectedRoute roles={ADMIN_ROLES} element={<DashboardPremium />} />} />
+          <Route path="/personas"      element={<ProtectedRoute roles={MANAGEMENT_ROLES}   element={<Personas />} />} />
+          <Route path="/personas/:id"  element={<ProtectedRoute roles={MANAGEMENT_ROLES}   element={<Perfil />} />} />
+          <Route path="/grupos"            element={<ProtectedRoute roles={MANAGEMENT_ROLES}   element={<Grupos />} />} />
+          <Route path="/ministerios"       element={<ProtectedRoute roles={APP_ROLES}   element={<Ministerios />} />} />
+          <Route path="/ministerios/:id"   element={<ProtectedRoute roles={APP_ROLES}   element={<MinisterioDetalle />} />} />
 
-          <Route path="/asistencia"    element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="asistencia"><Asistencia /></UpgradeGate>} />} />
-          <Route path="/calendario"    element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="calendario"><Calendario /></UpgradeGate>} />} />
-          <Route path="/eventos"       element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="calendario"><Eventos /></UpgradeGate>} />} />
-          <Route path="/mensajes"      element={<ProtectedRoute roles={MID}   element={<UpgradeGate modulo="mensajes"><Mensajes /></UpgradeGate>} />} />
-          <Route path="/alertas"       element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="alertas"><Alertas /></UpgradeGate>} />} />
-          <Route path="/reportes"      element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="reportes"><Reportes /></UpgradeGate>} />} />
-          <Route path="/discipulado"   element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="consolidacion"><Consolidacion title="Discipulado" /></UpgradeGate>} />} />
-          <Route path="/consolidacion" element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="consolidacion"><Consolidacion title="Consolidación" /></UpgradeGate>} />} />
+          <Route path="/asistencia"    element={<ProtectedRoute roles={MANAGEMENT_ROLES}   element={<UpgradeGate modulo="asistencia"><Asistencia /></UpgradeGate>} />} />
+          <Route path="/calendario"    element={<ProtectedRoute roles={MANAGEMENT_ROLES}   element={<UpgradeGate modulo="calendario"><Calendario /></UpgradeGate>} />} />
+          <Route path="/eventos"       element={<ProtectedRoute roles={MANAGEMENT_ROLES}   element={<UpgradeGate modulo="calendario"><Eventos /></UpgradeGate>} />} />
+          <Route path="/mensajes"      element={<ProtectedRoute roles={MANAGEMENT_ROLES}   element={<UpgradeGate modulo="mensajes"><Mensajes /></UpgradeGate>} />} />
+          <Route path="/alertas"       element={<ProtectedRoute roles={AUDIT_ROLES} element={<UpgradeGate modulo="alertas"><Alertas /></UpgradeGate>} />} />
+          <Route path="/reportes"      element={<ProtectedRoute roles={AUDIT_ROLES} element={<UpgradeGate modulo="reportes"><Reportes /></UpgradeGate>} />} />
+          <Route path="/discipulado"   element={<ProtectedRoute roles={AUDIT_ROLES} element={<UpgradeGate modulo="consolidacion"><Consolidacion title="Discipulado" /></UpgradeGate>} />} />
+          <Route path="/consolidacion" element={<ProtectedRoute roles={AUDIT_ROLES} element={<UpgradeGate modulo="consolidacion"><Consolidacion title="Consolidación" /></UpgradeGate>} />} />
           <Route path="/finanzas"      element={<Navigate to="/" replace />} />
           <Route path="/oracion"       element={<Navigate to="/" replace />} />
-          <Route path="/comunicados"   element={<ProtectedRoute roles={MID}   element={<Comunicados />} />} />
-          <Route path="/checkin"       element={<ProtectedRoute roles={MID}   element={<CheckInAdmin />} />} />
-          <Route path="/excel-ia"      element={<ProtectedRoute roles={MID}   element={<ExcelIA />} />} />
-          <Route path="/mi-perfil"     element={<ProtectedRoute roles={ALL}   element={<MiPerfil />} />} />
-          <Route path="/asistente-ia"  element={<ProtectedRoute roles={AUDIT} element={<AsistenteIA />} />} />
-          <Route path="/configuracion" element={<ProtectedRoute roles={ADMIN} element={<Configuracion />} />} />
-          <Route path="/permisos"      element={<ProtectedRoute roles={ADMIN} element={<GestionPermisos />} />} />
+          <Route path="/comunicados"   element={<ProtectedRoute roles={MANAGEMENT_ROLES}   element={<Comunicados />} />} />
+          <Route path="/checkin"       element={<ProtectedRoute roles={MANAGEMENT_ROLES}   element={<CheckInAdmin />} />} />
+          <Route path="/excel-ia"      element={<ProtectedRoute roles={MANAGEMENT_ROLES}   element={<ExcelIA />} />} />
+          <Route path="/mi-perfil"     element={<ProtectedRoute roles={APP_ROLES}   element={<MiPerfil />} />} />
+          <Route path="/asistente-ia"  element={<ProtectedRoute roles={AUDIT_ROLES} element={<AsistenteIA />} />} />
+          <Route path="/configuracion" element={<ProtectedRoute roles={ADMIN_ROLES} element={<Configuracion />} />} />
+          <Route path="/permisos"      element={<ProtectedRoute roles={ADMIN_ROLES} element={<GestionPermisos />} />} />
           <Route path="/organizacion"  element={<ProtectedRoute roles={['PASTOR_GENERAL','PASTOR_CULTO']} element={<ConfiguracionOrganizacion />} />} />
-          <Route path="/users"         element={<ProtectedRoute roles={ADMIN} element={<Users />} />} />
+          <Route path="/users"         element={<ProtectedRoute roles={ADMIN_ROLES} element={<Users />} />} />
           <Route path="/promo-codes"   element={<ProtectedRoute roles={['GODMODE']} element={<PromoCodes />} />} />
           <Route path="/vault"         element={<ProtectedRoute roles={['GODMODE']} element={<GodMode />} />} />
           <Route path="/godmode"       element={<ProtectedRoute roles={['GODMODE']} element={<GodMode />} />} />
-          <Route path="/historial"     element={<ProtectedRoute roles={AUDIT} element={<UpgradeGate modulo="historial"><Historial /></UpgradeGate>} />} />
-          <Route path="/documentos"    element={<ProtectedRoute roles={AUDIT} element={<Documentos />} />} />
-          <Route path="/inventario"    element={<ProtectedRoute roles={ALL} element={<Inventario />} />} />
-          <Route path="/liderazgo"     element={<ProtectedRoute roles={AUDIT} element={<Liderazgo />} />} />
-          <Route path="/mapa-grupos"   element={<ProtectedRoute roles={MID}   element={<MapaGrupos />} />} />
+          <Route path="/historial"     element={<ProtectedRoute roles={AUDIT_ROLES} element={<UpgradeGate modulo="historial"><Historial /></UpgradeGate>} />} />
+          <Route path="/documentos"    element={<ProtectedRoute roles={AUDIT_ROLES} element={<Documentos />} />} />
+          <Route path="/inventario"    element={<ProtectedRoute roles={APP_ROLES} element={<Inventario />} />} />
+          <Route path="/liderazgo"     element={<ProtectedRoute roles={AUDIT_ROLES} element={<Liderazgo />} />} />
+          <Route path="/mapa-grupos"   element={<ProtectedRoute roles={MANAGEMENT_ROLES}   element={<MapaGrupos />} />} />
           {/* Portal del miembro — ruta pública con auth propia */}
           <Route path="/portal"        element={<PortalMiembro />} />
           <Route path="/portal/*"      element={<PortalMiembro />} />
-          <Route path="/analytics"    element={<ProtectedRoute roles={ALL}   element={<Analytics />} />} />
-          <Route path="/planes"       element={<ProtectedRoute roles={ALL}   element={<Planes />} />} />
-          <Route path="/billing"      element={<ProtectedRoute roles={ADMIN} element={<Billing />} />} />
+          <Route path="/analytics"    element={<ProtectedRoute roles={APP_ROLES}   element={<Analytics />} />} />
+          <Route path="/planes"       element={<ProtectedRoute roles={APP_ROLES}   element={<Planes />} />} />
+          <Route path="/billing"      element={<ProtectedRoute roles={ADMIN_ROLES} element={<Billing />} />} />
           <Route path="/app/billing"  element={<Navigate to="/billing" replace />} />
           <Route path="*"              element={<Navigate to="/" replace />} />
         </Routes>

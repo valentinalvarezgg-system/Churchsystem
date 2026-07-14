@@ -41,6 +41,74 @@ const RAIL_LINKS_BY_ROLE = {
   ],
 }
 
+const AREAS_LINKS = [
+  { to:'/ministerios', icon:'Building', labelKey:'ministries' },
+  { to:'/inventario', icon:'Inventory', labelKey:'inventory' },
+]
+
+const NAV_SECTIONS_BY_TIER = {
+  STARTER: [
+    { titleKey:'congregation', links:[
+      { to:'/personas', icon:'Users', labelKey:'people' },
+      { to:'/grupos', icon:'Groups', labelKey:'groups' },
+      { to:'/comunicados', icon:'Comunicados', labelKey:'communications' },
+      { to:'/checkin', icon:'CheckIn', labelKey:'checkin' },
+    ] },
+    { titleKey:'areas', links:AREAS_LINKS },
+  ],
+  PRO: [
+    { titleKey:'congregation', links:[
+      { to:'/personas', icon:'Users', labelKey:'people' },
+      { to:'/grupos', icon:'Groups', labelKey:'groups' },
+      { to:'/asistencia', icon:'Attendance', labelKey:'attendance' },
+      { to:'/checkin', icon:'CheckIn', labelKey:'checkin' },
+      { to:'/calendario', icon:'Calendar', labelKey:'calendar' },
+      { to:'/eventos', icon:'Calendar', labelKey:'events' },
+      { to:'/consolidacion', icon:'Users', labelKey:'consolidation' },
+    ] },
+    { titleKey:'areas', links:AREAS_LINKS },
+    { titleKey:'management', links:[
+      { to:'/mensajes', icon:'Messages', labelKey:'messages' },
+      { to:'/alertas', icon:'Comunicados', labelKey:'alerts', badgeKey:'alerts' },
+      { to:'/reportes', icon:'Reports', labelKey:'reports' },
+      { to:'/comunicados', icon:'Comunicados', labelKey:'communications' },
+    ] },
+    { titleKey:'tools', links:[{ to:'/configuracion', icon:'Settings', labelKey:'settings' }] },
+  ],
+  MAX: [
+    { titleKey:'congregation', links:[
+      { to:'/personas', icon:'Users', labelKey:'people' },
+      { to:'/grupos', icon:'Groups', labelKey:'groups' },
+      { to:'/asistencia', icon:'Attendance', labelKey:'attendance' },
+      { to:'/checkin', icon:'CheckIn', labelKey:'checkin' },
+      { to:'/calendario', icon:'Calendar', labelKey:'calendar' },
+      { to:'/eventos', icon:'Calendar', labelKey:'events' },
+      { to:'/consolidacion', icon:'Users', labelKey:'consolidation' },
+    ] },
+    { titleKey:'areas', links:AREAS_LINKS },
+    { titleKey:'management', links:[
+      { to:'/mensajes', icon:'Messages', labelKey:'messages' },
+      { to:'/alertas', icon:'Comunicados', labelKey:'alerts', badgeKey:'alerts' },
+      { to:'/reportes', icon:'Reports', labelKey:'reports' },
+      { to:'/comunicados', icon:'Comunicados', labelKey:'communications' },
+    ] },
+    { titleKey:'tools', links:[
+      { to:'/excel-ia', icon:'Excel', labelKey:'excel' },
+      { to:'/asistente-ia', icon:'AI', labelKey:'assistant' },
+    ] },
+    { titleKey:'admin', links:[
+      { to:'/organizacion', icon:'Shield', label:'Organización' },
+      { to:'/users', icon:'Profile', labelKey:'users' },
+      { to:'/permisos', icon:'Shield', labelKey:'permissions' },
+      { to:'/historial', icon:'History', labelKey:'history' },
+      { to:'/documentos', icon:'FileText', label:'Documentos' },
+      { to:'/liderazgo', icon:'TrendingUp', label:'Liderazgo' },
+      { to:'/mapa-grupos', icon:'MapPin', label:'Mapa de grupos' },
+      { to:'/configuracion', icon:'Settings', labelKey:'settings' },
+    ] },
+  ],
+}
+
 const I18N = {
   es: {
     smart:'Gestión Pastoral Inteligente', openMenu:'Abrir menú', search:'Buscar', notifications:'Notificaciones',
@@ -164,16 +232,10 @@ export default function Menu() {
   // Navigation keeps using access tiers even if the commercial catalog grows.
   const planKey = resolveAccessTier(user?.plan || 'STARTER')
 
-  const isStarter = planKey === 'STARTER'
-  const isPro     = planKey === 'PRO' || planKey === 'MAX'
-  const isMax     = planKey === 'MAX' || rol === 'PASTOR_GENERAL' || rol === 'GODMODE'
-
-  // Compatibilidad con lógica antigua de roles
-  const isAdmin = isMax
-  const isMid   = isPro || isMax
-  const isAudit = isPro || isMax
+  const isMax = planKey === 'MAX' || rol === 'PASTOR_GENERAL' || rol === 'GODMODE'
+  const navTier = isMax ? 'MAX' : planKey === 'PRO' ? 'PRO' : 'STARTER'
   const initials = (user?.nombre || user?.email || '?').slice(0,1).toUpperCase()
-  const isLider = isStarter && !isPro && !isMax
+  const isLider = navTier === 'STARTER'
   const bottomLinks = isLider ? BOTTOM_LINKS_BY_ROLE.LIDER : BOTTOM_LINKS_BY_ROLE.DEFAULT
   const railLinks = isLider ? RAIL_LINKS_BY_ROLE.LIDER : RAIL_LINKS_BY_ROLE.DEFAULT
 
@@ -249,74 +311,18 @@ export default function Menu() {
           <div className="nav-section">{tt('principal')}</div>
           {lnk('/', <Icons.Dashboard />, tt('dashboard'), true)}
           {lnk('/analytics', <Icons.Reports />, 'Analytics')}
-          {isAdmin && lnk('/premium', <Icons.Premium />, tt('executive'))}
+          {isMax && lnk('/premium', <Icons.Premium />, tt('executive'))}
           {lnk('/planes', <Icons.Premium />, 'Planes')}
-
-          {/* STARTER — congregación básica + seguimiento y discipulado */}
-          {isStarter && !isPro && <>
-            <div className="nav-section">{tt('congregation')}</div>
-            {lnk('/personas',      <Icons.Users />,      tt('people'))}
-            {lnk('/grupos',        <Icons.Groups />,     tt('groups'))}
-            {lnk('/comunicados',   <Icons.Comunicados />, tt('communications'))}
-            {lnk('/checkin',       <Icons.CheckIn />,    tt('checkin'))}
-            <div className="nav-section">{tt('areas')}</div>
-            {lnk('/ministerios', <Icons.Building />, tt('ministries'))}
-            {lnk('/inventario', <Icons.Inventory />, tt('inventory'))}
-          </>}
-
-          {/* PRO — ver, modificar y auditar cultos asignados */}
-          {isPro && !isMax && <>
-            <div className="nav-section">{tt('congregation')}</div>
-            {lnk('/personas',      <Icons.Users />,      tt('people'))}
-            {lnk('/grupos',        <Icons.Groups />,     tt('groups'))}
-            {lnk('/asistencia',    <Icons.Attendance />, tt('attendance'))}
-            {lnk('/checkin',       <Icons.CheckIn />,    tt('checkin'))}
-            {lnk('/calendario',    <Icons.Calendar />,   tt('calendar'))}
-            {lnk('/eventos',       <Icons.Calendar />,   tt('events'))}
-            {lnk('/consolidacion', <Icons.Users />,      tt('consolidation'))}
-            <div className="nav-section">{tt('areas')}</div>
-            {lnk('/ministerios', <Icons.Building />, tt('ministries'))}
-            {lnk('/inventario', <Icons.Inventory />, tt('inventory'))}
-            <div className="nav-section">{tt('management')}</div>
-            {lnk('/mensajes',      <Icons.Messages />,   tt('messages'))}
-            {lnk('/alertas',       <Icons.Comunicados />, tt('alerts'), false, alertCount)}
-            {lnk('/reportes',      <Icons.Reports />,    tt('reports'))}
-            {lnk('/comunicados',   <Icons.Comunicados />, tt('communications'))}
-            <div className="nav-section">{tt('tools')}</div>
-            {lnk('/configuracion', <Icons.Settings />,   tt('settings'))}
-          </>}
-
-          {/* MAX — todo sin restricciones */}
-          {isMax && <>
-            <div className="nav-section">{tt('congregation')}</div>
-            {lnk('/personas',      <Icons.Users />,      tt('people'))}
-            {lnk('/grupos',        <Icons.Groups />,     tt('groups'))}
-            {lnk('/asistencia',    <Icons.Attendance />, tt('attendance'))}
-            {lnk('/checkin',       <Icons.CheckIn />,    tt('checkin'))}
-            {lnk('/calendario',    <Icons.Calendar />,   tt('calendar'))}
-            {lnk('/eventos',       <Icons.Calendar />,   tt('events'))}
-            {lnk('/consolidacion', <Icons.Users />,      tt('consolidation'))}
-            <div className="nav-section">{tt('areas')}</div>
-            {lnk('/ministerios', <Icons.Building />, tt('ministries'))}
-            {lnk('/inventario', <Icons.Inventory />, tt('inventory'))}
-            <div className="nav-section">{tt('management')}</div>
-            {lnk('/mensajes',      <Icons.Messages />,   tt('messages'))}
-            {lnk('/alertas',       <Icons.Comunicados />, tt('alerts'), false, alertCount)}
-            {lnk('/reportes',      <Icons.Reports />,    tt('reports'))}
-            {lnk('/comunicados',   <Icons.Comunicados />, tt('communications'))}
-            <div className="nav-section">{tt('tools')}</div>
-            {lnk('/excel-ia',      <Icons.Excel />,      tt('excel'))}
-            {lnk('/asistente-ia',  <Icons.AI />,         tt('assistant'))}
-            <div className="nav-section">{tt('admin')}</div>
-            {lnk('/organizacion',  <Icons.Shield />,     'Organización')}
-            {lnk('/users',         <Icons.Profile />,    tt('users'))}
-            {lnk('/permisos',      <Icons.Shield />,     tt('permissions'))}
-            {lnk('/historial',     <Icons.History />,    tt('history'))}
-            {lnk('/documentos',    <Icons.FileText />, 'Documentos')}
-            {lnk('/liderazgo',     <Icons.TrendingUp />, 'Liderazgo')}
-            {lnk('/mapa-grupos',   <Icons.MapPin />, 'Mapa de grupos')}
-            {lnk('/configuracion', <Icons.Settings />,   tt('settings'))}
-          </>}
+          {NAV_SECTIONS_BY_TIER[navTier].map(section => (
+            <div key={section.titleKey}>
+              <div className="nav-section">{tt(section.titleKey)}</div>
+              {section.links.map(link => {
+                const Icon = Icons[link.icon]
+                const badge = link.badgeKey === 'alerts' ? alertCount : 0
+                return lnk(link.to, <Icon />, link.label || tt(link.labelKey), false, badge)
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="sidebar-footer">

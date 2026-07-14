@@ -1,0 +1,9 @@
+export const APP_ROLES = ['PASTOR_GENERAL', 'PASTOR_CULTO', 'CONSOLIDACION', 'STAFF', 'LIDER']
+export const MANAGEMENT_ROLES = ['PASTOR_GENERAL', 'PASTOR_CULTO', 'CONSOLIDACION', 'STAFF']
+export const ADMIN_ROLES = ['PASTOR_GENERAL']
+export const AUDIT_ROLES = ['PASTOR_GENERAL', 'CONSOLIDACION']
+export const INVENTORY_MANAGER_ROLES = ['PASTOR_GENERAL', 'PASTOR_CULTO', 'STAFF']
+
+export function canManageInventory(role) {
+  return INVENTORY_MANAGER_ROLES.includes(role)
+}

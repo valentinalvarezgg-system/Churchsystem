@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Layout from '../components/Layout.jsx'
 import Icons from '../components/Icons.jsx'
-import { ConfirmModal } from '../components/Modal.jsx'
+import Modal, { ConfirmModal } from '../components/Modal.jsx'
 import { toast } from '../components/Toast.jsx'
 import { apiFetch, getUser } from '../services/api.js'
+import { canManageInventory } from '../lib/access.js'
 import './Inventario.css'
 
 const EMPTY_ITEM = {
@@ -15,7 +16,7 @@ const STATES = ['NUEVO', 'BUENO', 'REGULAR', 'REPARACION', 'BAJA']
 const STATE_LABELS = { NUEVO:'Nuevo', BUENO:'Bueno', REGULAR:'Regular', REPARACION:'En reparación', BAJA:'De baja' }
 
 export default function Inventario() {
-  const canManage = ['PASTOR_GENERAL', 'PASTOR_CULTO', 'STAFF'].includes(getUser()?.rol)
+  const canManage = canManageInventory(getUser()?.rol)
   const [data, setData] = useState({ secciones: [], items: [], resumen: {} })
   const [active, setActive] = useState('all')
   const [search, setSearch] = useState('')
@@ -144,31 +145,33 @@ export default function Inventario() {
           const low = item.cantidad <= item.stockMinimo
           const section = data.secciones.find(s => s.id === item.seccionId)
           return <article className="inventory-card" key={item.id}>
-            <div className="inventory-card-head"><div className="inventory-card-icon"><Icons.Package /></div><div><h3>{item.nombre}</h3><p>{item.codigo || 'Sin código'} · {section?.nombre}</p></div>{canManage && <div className="inventory-card-actions"><button onClick={() => openItem(item)} aria-label={`Editar ${item.nombre}`}><Icons.Edit /></button><button onClick={() => setConfirm({ type:'item', value:item })} aria-label={`Eliminar ${item.nombre}`}><Icons.Delete /></button></div>}</div>
+            <div className="inventory-card-head"><div className="inventory-card-icon"><Icons.Inventory /></div><div><h3>{item.nombre}</h3><p>{item.codigo || 'Sin código'} · {section?.nombre}</p></div>{canManage && <div className="inventory-card-actions"><button onClick={() => openItem(item)} aria-label={`Editar ${item.nombre}`}><Icons.Edit /></button><button onClick={() => setConfirm({ type:'item', value:item })} aria-label={`Eliminar ${item.nombre}`}><Icons.Delete /></button></div>}</div>
             <div className="inventory-quantity"><strong>{item.cantidad}</strong><span>unidades</span>{low && <em>Stock bajo</em>}</div>
-            <div className="inventory-meta"><span><Icons.CheckCircle /> {STATE_LABELS[item.estado] || item.estado}</span>{item.ubicacion && <span><Icons.MapPin /> {item.ubicacion}</span>}{item.responsable && <span><Icons.User /> {item.responsable}</span>}</div>
+            <div className="inventory-meta"><span><Icons.CheckCircle /> {STATE_LABELS[item.estado] || item.estado}</span>{item.ubicacion && <span><Icons.MapPin /> {item.ubicacion}</span>}{item.responsable && <span><Icons.Profile /> {item.responsable}</span>}</div>
             {item.observaciones && <p className="inventory-notes">{item.observaciones}</p>}
           </article>
         })}</div>}
       </section>
 
-      {itemModal && <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setItemModal(false)}><form className="modal inventory-modal" onSubmit={saveItem}>
-        <div className="modal-header"><h3 className="modal-title">{editingItem ? 'Editar artículo' : 'Nuevo artículo'}</h3><button type="button" className="btn btn-ghost btn-sm" onClick={() => setItemModal(false)}><Icons.X /></button></div>
-        <div className="modal-body inventory-form">
+      <Modal open={itemModal} onClose={() => setItemModal(false)} title={editingItem ? 'Editar artículo' : 'Nuevo artículo'} size="md"
+        footer={<><button type="button" className="btn btn-ghost" onClick={() => setItemModal(false)}>Cancelar</button><button type="submit" form="inventory-item-form" className="btn btn-primary" disabled={saving}>{saving ? 'Guardando...' : 'Guardar artículo'}</button></>}>
+        <form id="inventory-item-form" className="inventory-form" onSubmit={saveItem}>
           <label className="form-group"><span>Nombre *</span><input autoFocus className="form-input" value={itemForm.nombre} onChange={e => setItemForm(f => ({...f,nombre:e.target.value}))} /></label>
           <div className="inventory-form-row"><label className="form-group"><span>Sección *</span><select className="form-input" value={itemForm.seccionId} onChange={e => setItemForm(f => ({...f,seccionId:e.target.value}))}>{data.secciones.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}</select></label><label className="form-group"><span>Código interno</span><input className="form-input" value={itemForm.codigo} onChange={e => setItemForm(f => ({...f,codigo:e.target.value}))} /></label></div>
           <div className="inventory-form-row"><label className="form-group"><span>Cantidad</span><input type="number" min="0" className="form-input" value={itemForm.cantidad} onChange={e => setItemForm(f => ({...f,cantidad:e.target.value}))} /></label><label className="form-group"><span>Stock mínimo</span><input type="number" min="0" className="form-input" value={itemForm.stockMinimo} onChange={e => setItemForm(f => ({...f,stockMinimo:e.target.value}))} /></label></div>
           <div className="inventory-form-row"><label className="form-group"><span>Estado</span><select className="form-input" value={itemForm.estado} onChange={e => setItemForm(f => ({...f,estado:e.target.value}))}>{STATES.map(state => <option key={state} value={state}>{STATE_LABELS[state]}</option>)}</select></label><label className="form-group"><span>Ubicación</span><input className="form-input" placeholder="Ej. Depósito 1" value={itemForm.ubicacion} onChange={e => setItemForm(f => ({...f,ubicacion:e.target.value}))} /></label></div>
           <label className="form-group"><span>Responsable</span><input className="form-input" value={itemForm.responsable} onChange={e => setItemForm(f => ({...f,responsable:e.target.value}))} /></label>
           <label className="form-group"><span>Observaciones</span><textarea className="form-input" rows="3" value={itemForm.observaciones} onChange={e => setItemForm(f => ({...f,observaciones:e.target.value}))} /></label>
-        </div><div className="modal-footer"><button type="button" className="btn btn-ghost" onClick={() => setItemModal(false)}>Cancelar</button><button className="btn btn-primary" disabled={saving}>{saving ? 'Guardando...' : 'Guardar artículo'}</button></div>
-      </form></div>}
+        </form>
+      </Modal>
 
-      {sectionModal && <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setSectionModal(false)}><form className="modal inventory-section-modal" onSubmit={saveSection}>
-        <div className="modal-header"><h3 className="modal-title">{editingSection ? 'Editar sección' : 'Nueva sección'}</h3><button type="button" className="btn btn-ghost btn-sm" onClick={() => setSectionModal(false)}><Icons.X /></button></div>
-        <div className="modal-body inventory-form"><label className="form-group"><span>Nombre *</span><input autoFocus className="form-input" value={sectionForm.nombre} onChange={e => setSectionForm(f => ({...f,nombre:e.target.value}))} placeholder="Ej. Sonido" /></label><label className="form-group"><span>Descripción</span><textarea className="form-input" rows="3" value={sectionForm.descripcion} onChange={e => setSectionForm(f => ({...f,descripcion:e.target.value}))} /></label></div>
-        <div className="modal-footer"><button type="button" className="btn btn-ghost" onClick={() => setSectionModal(false)}>Cancelar</button><button className="btn btn-primary" disabled={saving}>{saving ? 'Guardando...' : editingSection ? 'Guardar cambios' : 'Crear sección'}</button></div>
-      </form></div>}
+      <Modal open={sectionModal} onClose={() => setSectionModal(false)} title={editingSection ? 'Editar sección' : 'Nueva sección'} size="sm"
+        footer={<><button type="button" className="btn btn-ghost" onClick={() => setSectionModal(false)}>Cancelar</button><button type="submit" form="inventory-section-form" className="btn btn-primary" disabled={saving}>{saving ? 'Guardando...' : editingSection ? 'Guardar cambios' : 'Crear sección'}</button></>}>
+        <form id="inventory-section-form" className="inventory-form" onSubmit={saveSection}>
+          <label className="form-group"><span>Nombre *</span><input autoFocus className="form-input" value={sectionForm.nombre} onChange={e => setSectionForm(f => ({...f,nombre:e.target.value}))} placeholder="Ej. Sonido" /></label>
+          <label className="form-group"><span>Descripción</span><textarea className="form-input" rows="3" value={sectionForm.descripcion} onChange={e => setSectionForm(f => ({...f,descripcion:e.target.value}))} /></label>
+        </form>
+      </Modal>
 
       <ConfirmModal open={!!confirm} title={confirm?.type === 'item' ? 'Eliminar artículo' : 'Eliminar sección'} message={confirm?.type === 'item' ? `¿Eliminar “${confirm?.value?.nombre}” del inventario?` : `¿Eliminar la sección “${confirm?.value?.nombre}”? Solo se puede eliminar si está vacía.`} confirmLabel="Eliminar" danger onConfirm={removeConfirmed} onClose={() => setConfirm(null)} />
     </Layout>

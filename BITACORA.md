@@ -1,6 +1,24 @@
 # BITÁCORA — Church System
 ---
 
+## Navegación, permisos y modales sintetizados — 2026-07-13
+
+**Estado actual:** se redujo la duplicación interna del frontend sin cambiar rutas, roles ni capacidades visibles. La navegación por tier ahora se genera desde un catálogo declarativo, los grupos de acceso tienen una única fuente frontend y el inventario reutiliza el modal estándar de la aplicación.
+
+### Simplificación aplicada
+- `frontend/src/components/Menu.jsx`: los tres bloques repetidos de navegación `STARTER/PRO/MAX` se reemplazaron por `NAV_SECTIONS_BY_TIER`; áreas comunes como Ministerios e Inventario se definen una sola vez.
+- `frontend/src/lib/access.js`: nueva fuente única para roles generales, gestión, auditoría, administración y edición de inventario.
+- `frontend/src/App.jsx`: todas las rutas protegidas consumen las constantes centralizadas, conservando exactamente la matriz anterior.
+- `frontend/src/pages/Inventario.jsx`: creación/edición de artículos y secciones ahora usan `components/Modal.jsx`; se eliminaron overlays, headers y footers duplicados.
+- `frontend/src/components/Icons.jsx`: eliminados aliases redundantes `Package`/`Inventory` y `User`/`Profile`; Inventario usa los nombres canónicos.
+- `frontend/src/pages/Inventario.css`: estilos reordenados y reglas específicas de los modales duplicados eliminadas.
+
+### Evidencia
+- Validación programática de matrices `APP_ROLES`, `MANAGEMENT_ROLES`, `ADMIN_ROLES`, `AUDIT_ROLES` e `INVENTORY_MANAGER_ROLES` → OK, valores preservados.
+- `cd frontend && pnpm build` → OK con Vite `6.4.3`; chunk Inventario reducido de `12.04 kB` a `11.49 kB`.
+- `CI=true pnpm --config.confirmModulesPurge=false --dir backend audit:launch` → OK, sin rutas candidatas desprotegidas.
+- `git diff --check` → OK.
+
 ## Accesos temporales de prueba reactivados — 2026-07-13
 
 **Estado actual:** se resembraron las cuentas QA con una contraseña temporal entregada únicamente en la conversación. Quedaron validados el acceso general `max@test.com` (`PASTOR_GENERAL/MAX`) y el acceso dueño `godmode@test.com` (`GODMODE` + `es_superadmin=true`).
