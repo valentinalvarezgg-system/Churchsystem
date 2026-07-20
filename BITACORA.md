@@ -1,6 +1,19 @@
 # BITÁCORA — Church System
 ---
 
+## Incidente Neon: cuota de cómputo agotada — 2026-07-19
+
+**Estado actual:** `churchsystem.com.ar` devolvía `502` porque Neon rechaza toda consulta con `Your account or project has exceeded the compute time quota`. El backend llegaba a iniciar, `/health` respondía `503` por la base y el watchdog lo reiniciaba repetidamente. No existe una segunda `DATABASE_URL` configurada en este entorno.
+
+### Mitigación aplicada
+- `backend/watchdog.mjs`: un backend que responde HTTP (por ejemplo `503` por dependencia externa) ya no se reinicia como si el proceso estuviera caído.
+- El watchdog sólo reinicia el backend cuando realmente no acepta conexiones (`status=0`); para estados degradados mantiene el proceso vivo y envía alerta con cooldown.
+- Esto evita que el frontend y la pantalla de login alternen entre disponibilidad y `502`, aunque las funciones que consultan PostgreSQL continuarán bloqueadas hasta recuperar la cuota Neon.
+
+### Bloqueo externo
+- Para restablecer login y datos es necesario reactivar el compute del proyecto Neon: esperar el reinicio de cuota o ampliar/cambiar el plan desde Neon.
+- No se migró ni reemplazó la base automáticamente para evitar pérdida o divergencia de datos productivos.
+
 ## Orden visual: menú compacto y Dashboard enfocado — 2026-07-13
 
 **Estado actual:** la navegación principal y el Dashboard quedaron visualmente más livianos sin eliminar rutas ni funciones. El menú muestra sus categorías cerradas salvo la que contiene la pantalla actual, y el inicio prioriza información pastoral accionable sobre datos técnicos.

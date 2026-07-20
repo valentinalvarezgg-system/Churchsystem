@@ -171,7 +171,15 @@ async function tick() {
   if (!cloudflaredUp) log('cloudflared no está corriendo')
 
   if (localFailures >= MAX_FAILURES) {
-    await restart(BACKEND_LABEL, `${LOCAL_HEALTH_URL} falló ${localFailures} veces`)
+    if (local.status === 0) {
+      await restart(BACKEND_LABEL, `${LOCAL_HEALTH_URL} no acepta conexiones tras ${localFailures} intentos`)
+    } else {
+      log(`backend responde HTTP ${local.status}; no se reinicia porque la falla es de una dependencia`)
+      await sendAlert(
+        'Church System: backend degradado',
+        `El backend responde HTTP ${local.status}, pero una dependencia impide el healthcheck. No se reinicia para evitar un ciclo.\nHora: ${ts()}\nDetalle: ${local.error}`
+      )
+    }
     localFailures = 0
     return
   }
@@ -183,7 +191,11 @@ async function tick() {
   }
 
   if (publicFailures >= MAX_FAILURES) {
-    await restart(BACKEND_LABEL, `${PUBLIC_HEALTH_URL} falló ${publicFailures} veces y backend local no confirmó OK`)
+    if (local.status === 0) {
+      await restart(BACKEND_LABEL, `${PUBLIC_HEALTH_URL} falló ${publicFailures} veces y el backend local no acepta conexiones`)
+    } else {
+      log(`salud pública degradada con backend HTTP ${local.status}; reinicio omitido`)
+    }
     publicFailures = 0
   }
 }
