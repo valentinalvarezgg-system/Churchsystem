@@ -1,6 +1,15 @@
 # BITÁCORA — Church System
 ---
 
+## CodeQL: configuración duplicada resuelta — 2026-07-19
+
+**Estado actual:** el workflow de CodeQL fallaba al subir el resultado porque GitHub Code Scanning ya tiene habilitada la configuración predeterminada y no acepta simultáneamente un análisis avanzado desde `.github/workflows/codeql.yml`.
+
+### Corrección aplicada
+- Se retiraron el workflow avanzado y su configuración (`.github/workflows/codeql.yml` y `.github/codeql/codeql-config.yml`).
+- GitHub continuará ejecutando CodeQL mediante su configuración predeterminada, sin duplicar análisis ni generar el error de SARIF.
+- Las seis anotaciones del run fallido eran una combinación del conflicto de configuración, advertencias de versiones de Actions y errores transitorios de carga; no representaban seis vulnerabilidades nuevas del código.
+
 ## Incidente Neon: cuota de cómputo agotada — 2026-07-19
 
 **Estado actual:** `churchsystem.com.ar` devolvía `502` porque Neon rechaza toda consulta con `Your account or project has exceeded the compute time quota`. El backend llegaba a iniciar, `/health` respondía `503` por la base y el watchdog lo reiniciaba repetidamente. No existe una segunda `DATABASE_URL` configurada en este entorno.
