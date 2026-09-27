@@ -1,6 +1,26 @@
 # BITÁCORA — Church System
 ---
 
+## i18n en Configuracion: traducción completa es/pt/en — 2026-09-27
+
+**Estado actual:** `frontend/src/pages/Configuracion.jsx` ya no tiene texto hardcodeado en español. Todas las cadenas visibles al usuario pasan por `makeI18n` con soporte completo es/pt/en.
+
+### Cambios aplicados
+
+- `frontend/src/pages/Configuracion.jsx`: import `makeI18n` desde `../lib/i18n.js`.
+- Objeto `I18N` con 200+ keys por idioma (es/pt/en) cubriendo: categorías, secciones, descripciones, medios de pago, suscripción, campos de formulario, WhatsApp, Google Drive, IA, Email, Alertas, Seguimiento, Seguridad, Backup, footer y documentos legales.
+- `CATEGORIAS` convertido a función `getCategorias(t)` para traducir labels y descripciones.
+- `METODOS_PAGO` convertido a función `getMetodosPago(t)` para traducir labels y descripciones.
+- `const t = makeI18n(I18N)` dentro de ambos componentes: `SuscripcionTab` y `Configuracion`.
+- Todas las cadenas visibles reemplazadas con `t('key')`.
+- Strings con variables usan `.replace('{var}', valor)` para interpolación.
+
+### Evidencia
+
+- `cd frontend && pnpm build` → OK con Vite `6.4.3`.
+
+---
+
 ## i18n en Discipulado: traducción completa es/pt/en — 2026-09-27
 
 **Estado actual:** `frontend/src/pages/Discipulado.jsx` ya no tiene texto hardcodeado en español. Todas las cadenas visibles al usuario pasan por `makeI18n` con soporte completo es/pt/en.
@@ -42,7 +62,6 @@
 
 ### Pendiente
 
-- i18n en Configuracion.jsx (subagente en progreso).
 - La migración a Render sigue pendiente.
 
 ---
