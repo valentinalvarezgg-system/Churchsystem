@@ -5,6 +5,39 @@ import { registrar } from '../utils/auditoria.js'
 
 const router = Router()
 
+// ── Recurrencias ────────────────────────────────────────────────
+// Tipos: NONE, DAILY, WEEKLY, MONTHLY, YEARLY
+const RECURRENCIA_LABELS = { NONE:'', DAILY:'Diario', WEEKLY:'Semanal', MONTHLY:'Mensual', YEARLY:'Anual' }
+
+function expandirRecurrente(ev, desde, hasta) {
+  if (!ev.recurrencia || ev.recurrencia === 'NONE') return [ev]
+  const inicio = new Date(ev.fecha + 'T00:00:00')
+  const fin = ev.recurrenciaFin ? new Date(ev.recurrenciaFin + 'T00:00:00') : null
+  const limite = fin && fin < new Date(hasta + 'T00:00:00') ? fin : new Date(hasta + 'T00:00:00')
+  const resultados = []
+  const actual = new Date(inicio)
+  while (actual <= limite) {
+    const fechaStr = actual.toISOString().slice(0, 10)
+    if (fechaStr >= desde) {
+      resultados.push({ ...ev, fecha: fechaStr, esRecurrencia: true })
+    }
+    switch (ev.recurrencia) {
+      case 'DAILY':   actual.setDate(actual.getDate() + 1); break
+      case 'WEEKLY':  actual.setDate(actual.getDate() + 7); break
+      case 'MONTHLY': actual.setMonth(actual.getMonth() + 1); break
+      case 'YEARLY':  actual.setFullYear(actual.getFullYear() + 1); break
+      default: return resultados
+    }
+  }
+  return resultados
+}
+
+// Asegurar columnas de recurrencia
+const initRecurrencia = async () => {
+  await pgExec(`ALTER TABLE "Evento" ADD COLUMN IF NOT EXISTS "recurrencia" TEXT NOT NULL DEFAULT 'NONE'`)
+  await pgExec(`ALTER TABLE "Evento" ADD COLUMN IF NOT EXISTS "recurrenciaFin" DATE`)
+}
+
 router.get('/', requireAuth, async (req, res) => {
   const iglesiaId = Number(req.user.iglesiaId || 0)
   if (!iglesiaId) return res.status(400).json({ error: 'Tenant inválido' })
@@ -13,15 +46,24 @@ router.get('/', requireAuth, async (req, res) => {
   const desde = req.query.desde || hoy
   const hasta = req.query.hasta || new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10)
 
+  await initRecurrencia()
+
   const data = await pgMany(
     `SELECT e.*,u."nombre" as "autorNombre"
      FROM "Evento" e
      LEFT JOIN "User" u ON e."userId"=u."id"
-     WHERE e."iglesiaId"=$1 AND e."fecha" BETWEEN $2 AND $3 AND e."deletedAt" IS NULL
+     WHERE e."iglesiaId"=$1 AND e."fecha" <= $3 AND e."deletedAt" IS NULL
      ORDER BY e."fecha" ASC, e."hora" ASC`,
     [iglesiaId, desde, hasta]
   )
-  res.json(data)
+
+  // Expandir eventos recurrentes
+  const expandidos = []
+  for (const ev of data) {
+    expandidos.push(...expandirRecurrente(ev, desde, hasta))
+  }
+  expandidos.sort((a, b) => a.fecha.localeCompare(b.fecha) || (a.hora || '').localeCompare(b.hora || ''))
+  res.json(expandidos)
 })
 
 router.get('/proximos', requireAuth, async (req, res) => {

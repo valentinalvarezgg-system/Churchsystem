@@ -173,7 +173,7 @@ export default function Eventos() {
   const [error, setError]       = useState(null)
   const [modal, setModal]       = useState(false)
   const [editando, setEditando] = useState(null)
-  const [form, setForm]         = useState({ titulo:'', tipo:'EVENTO', fecha:hoy, hora:'', lugar:'', descripcion:'', todoElDia:false })
+  const [form, setForm]         = useState({ titulo:'', tipo:'EVENTO', fecha:hoy, hora:'', lugar:'', descripcion:'', todoElDia:false, recurrencia:'NONE', recurrenciaFin:'' })
   const [filtro, setFiltro]     = useState('proximos')
   const [msg, setMsg]           = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
@@ -195,14 +195,14 @@ export default function Eventos() {
 
   function openNew() {
     setEditando(null)
-    setForm({ titulo:'', tipo:'EVENTO', fecha:hoy, hora:'', lugar:'', descripcion:'', todoElDia:false })
+    setForm({ titulo:'', tipo:'EVENTO', fecha:hoy, hora:'', lugar:'', descripcion:'', todoElDia:false, recurrencia:'NONE', recurrenciaFin:'' })
     setMsg(null)
     setModal(true)
   }
 
   function openEdit(ev) {
     setEditando(ev)
-    setForm({ titulo:ev.titulo, tipo:ev.tipo, fecha:ev.fecha, hora:ev.hora||'', lugar:ev.lugar||'', descripcion:ev.descripcion||'', todoElDia:!!ev.todoElDia })
+    setForm({ titulo:ev.titulo, tipo:ev.tipo, fecha:ev.fecha, hora:ev.hora||'', lugar:ev.lugar||'', descripcion:ev.descripcion||'', todoElDia:!!ev.todoElDia, recurrencia:ev.recurrencia||'NONE', recurrenciaFin:ev.recurrenciaFin||'' })
     setMsg(null)
     setModal(true)
   }
@@ -291,6 +291,11 @@ export default function Eventos() {
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginBottom:4}}>
                               <span style={{padding:'2px 8px',borderRadius:3,fontSize:11,fontWeight:600,background:TBG[ev.tipo],color:TCOLOR[ev.tipo]}}>{ev.tipo}</span>
+                              {ev.recurrencia && ev.recurrencia !== 'NONE' && (
+                                <span style={{padding:'2px 8px',borderRadius:3,fontSize:11,fontWeight:600,background:'var(--c-purple-bg)',color:'var(--c-purple)'}}>
+                                  {ev.recurrencia === 'DAILY' ? 'Diario' : ev.recurrencia === 'WEEKLY' ? 'Semanal' : ev.recurrencia === 'MONTHLY' ? 'Mensual' : 'Anual'}
+                                </span>
+                              )}
                               <span style={{fontSize:11,fontWeight:600,color:restantes.color}}>{restantes.label}</span>
                             </div>
                             <h3 style={{fontSize:15,fontWeight:700,margin:'0 0 4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{ev.titulo}</h3>
@@ -368,6 +373,22 @@ export default function Eventos() {
                         {t('allDay')}
                       </label>
                     </div>
+                    <div className="form-group">
+                      <label>Recurrencia</label>
+                      <select className="form-input" value={form.recurrencia} onChange={e=>setForm(f=>({...f,recurrencia:e.target.value}))}>
+                        <option value="NONE">No se repite</option>
+                        <option value="DAILY">Diario</option>
+                        <option value="WEEKLY">Semanal</option>
+                        <option value="MONTHLY">Mensual</option>
+                        <option value="YEARLY">Anual</option>
+                      </select>
+                    </div>
+                    {form.recurrencia !== 'NONE' && (
+                      <div className="form-group">
+                        <label>Fin de recurrencia (opcional)</label>
+                        <input className="form-input" type="date" value={form.recurrenciaFin} onChange={e=>setForm(f=>({...f,recurrenciaFin:e.target.value}))} min={form.fecha} />
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="modal-footer">

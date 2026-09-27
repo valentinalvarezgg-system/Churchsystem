@@ -1,6 +1,50 @@
 # BITÁCORA — Church System
 ---
 
+## Fase 4 — Pulido pre-lanzamiento: PDF con logo, recurrencias, tests — 2026-09-27
+
+**Estado actual:** se completaron 3 tareas de pulido pre-lanzamiento: PDF con logo en Reportes, recurrencias en Eventos (backend + frontend), y tests de seguridad con `node:test`.
+
+### Cambios aplicados
+
+- `frontend/src/pages/Reportes.jsx`: `imprimirReporte()` ahora incluye header con logo de Church System, fecha de generación y footer "Uso interno". El logo se carga desde `https://churchsystem.com.ar/logo.png` con fallback `onerror`.
+- `backend/src/routes/eventos.js`: soporte de recurrencias DAILY/WEEKLY/MONTHLY/YEARLY con `expandirRecurrente()` que genera instancias en el rango de fechas consultado. Columnas `recurrencia` y `recurrenciaFin` agregadas con `ALTER TABLE IF NOT EXISTS`.
+- `frontend/src/pages/Eventos.jsx`: selector de recurrencia en el modal de creación/edición, badge de "Diario/Semanal/Mensual/Anual" en los eventos recurrentes, y campo de fecha de fin de recurrencia.
+- `backend/tests/security.test.js`: 11 tests de seguridad que verifican los fixes de 2026-09-27 (IDOR, PayPal, Stripe, RSVP, documentos, recurrencias, PDF con logo).
+
+### Evidencia
+
+- `node --test backend/tests/security.test.js` → 11/11 OK.
+- `cd frontend && pnpm build` → OK con Vite `6.4.3`.
+- `git diff --check` → OK.
+
+### Pendiente
+
+- i18n en Configuracion.jsx y Discipulado.jsx (subagentes en progreso).
+- La migración a Render sigue pendiente.
+
+---
+
+## i18n en Reportes: traducción completa es/pt/en — 2026-09-27
+
+**Estado actual:** `frontend/src/pages/Reportes.jsx` ya no tiene texto hardcodeado en español. Todas las cadenas visibles al usuario pasan por `makeI18n` con soporte completo es/pt/en.
+
+### Cambios aplicados
+
+- `frontend/src/pages/Reportes.jsx`: import `makeI18n` desde `../lib/i18n.js`.
+- Objeto `REP_I18N` con 38 keys por idioma (es/pt/en) cubriendo: título, tipos de reporte, estados de vacío, labels de stats, títulos de sección, botones, tooltips, etiquetas de período y textos del print.
+- `PERIODOS` ahora usa i18n keys en vez de labels hardcodeados.
+- `const t = makeI18n(REP_I18N)` dentro del componente.
+- Todas las cadenas visibles reemplazadas con `t('key')`.
+- `t('retry')` reutilizado de COMMON para el botón de reintento.
+- Print window: título, fecha, brand alt y footer ahora traducidos.
+
+### Evidencia
+
+- `cd frontend && pnpm build` → OK con Vite `6.4.3`.
+
+---
+
 ## Cierre de 3 HIGH de seguridad: Ministerios IDOR, PayPal legacy, Stripe fail-open — 2026-09-27
 
 **Estado actual:** los 3 hallazgos HIGH de la auditoría de 2026-07-01 quedaron corregidos. El aislamiento multi-tenant en ministerios ahora verifica `iglesiaId` en todas las mutaciones, PayPal reconcilia contra el `paypal_order_id` guardado en DB, y Stripe webhook es fail-closed sin `STRIPE_WEBHOOK_SECRET`.
