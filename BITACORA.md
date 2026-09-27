@@ -1,6 +1,29 @@
 # BITÁCORA — Church System
 ---
 
+## Cierre de 3 HIGH de seguridad: Ministerios IDOR, PayPal legacy, Stripe fail-open — 2026-09-27
+
+**Estado actual:** los 3 hallazgos HIGH de la auditoría de 2026-07-01 quedaron corregidos. El aislamiento multi-tenant en ministerios ahora verifica `iglesiaId` en todas las mutaciones, PayPal reconcilia contra el `paypal_order_id` guardado en DB, y Stripe webhook es fail-closed sin `STRIPE_WEBHOOK_SECRET`.
+
+### Cambios aplicados
+
+- `backend/src/routes/ministerios.js`: 7 subrutas con IDOR cerrado — `DELETE /miembros/:miembroId`, `PUT/DELETE /tareas/:tareaId`, `PUT /checklists/:clId/items/:itemId`, `PUT /canciones/:cancionId`, `PUT /equipos/:equipoId`, `PUT /checkin-ninos/:checkinId/salida`. Todas ahora exigen `checkAcceso()` y filtran por `ministerioId` en el WHERE.
+- `backend/src/routes/paypal.js`: `GET /paypal/capturar` ya no confía en `plan`/`iglesiaId` del querystring. Ahora solo usa `ref` (checkout_reference), extrae `iglesiaId`/`planKey` de él, y verifica que el `orderId` coincida con el `paypal_order_id` guardado en `Configuracion` antes de activar el plan.
+- `backend/src/routes/stripe.js`: `POST /stripe/webhook` ahora es fail-closed — si `STRIPE_WEBHOOK_SECRET` no está configurado, responde `400` y no procesa el evento. Eliminado el fallback `event = req.body`.
+
+### Evidencia
+
+- `node --check backend/src/routes/ministerios.js backend/src/routes/paypal.js backend/src/routes/stripe.js` → OK.
+- `cd frontend && pnpm build` → OK con Vite `6.4.3`.
+- `git diff --check` → OK.
+
+### Pendiente
+
+- Los 2 MEDIUM de la auditoría (RSVP público con tokens arbitrarios, path traversal en documentos) siguen abiertos.
+- La migración a Render sigue pendiente.
+
+---
+
 ## CodeQL: configuración duplicada resuelta — 2026-07-19
 
 **Estado actual:** el workflow de CodeQL fallaba al subir el resultado porque GitHub Code Scanning ya tiene habilitada la configuración predeterminada y no acepta simultáneamente un análisis avanzado desde `.github/workflows/codeql.yml`.

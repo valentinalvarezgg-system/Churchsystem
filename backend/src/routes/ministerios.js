@@ -270,10 +270,13 @@ router.post('/:id/miembros', requireAuth, wrap(async (req, res) => {
 }))
 
 router.delete('/:id/miembros/:miembroId', requireAuth, wrap(async (req, res) => {
-  await pgExec(
-    'UPDATE "MinisterioMiembro" SET activo=false,"updatedAt"=CURRENT_TIMESTAMP WHERE id=$1',
-    [req.params.miembroId]
+  if (!await checkAcceso(req.params.id, iglesiaId(req)))
+    return res.status(404).json({ error: 'No encontrado' })
+  const result = await pgExec(
+    'UPDATE "MinisterioMiembro" SET activo=false,"updatedAt"=CURRENT_TIMESTAMP WHERE id=$1 AND "ministerioId"=$2',
+    [req.params.miembroId, req.params.id]
   )
+  if (!result.rowCount) return res.status(404).json({ error: 'No encontrado' })
   return res.json({ ok: true })
 }))
 
@@ -312,6 +315,8 @@ router.post('/:id/tareas', requireAuth, wrap(async (req, res) => {
 }))
 
 router.put('/:id/tareas/:tareaId', requireAuth, wrap(async (req, res) => {
+  if (!await checkAcceso(req.params.id, iglesiaId(req)))
+    return res.status(404).json({ error: 'No encontrado' })
   const { titulo, estado, prioridad, asignadoA, fechaVence, descripcion } = req.body || {}
   const updates = []
   const params = []
@@ -325,15 +330,23 @@ router.put('/:id/tareas/:tareaId', requireAuth, wrap(async (req, res) => {
   if (descripcion !== undefined) { params.push(descripcion); updates.push(`"descripcion"=$${params.length}`) }
   if (!updates.length) return res.status(400).json({ error: 'Nada para actualizar' })
   params.push(req.params.tareaId)
+  params.push(req.params.id)
   const t = await pgOne(
-    `UPDATE "MinisterioTarea" SET ${updates.join(',')}, "updatedAt"=CURRENT_TIMESTAMP WHERE id=$${params.length} RETURNING *`,
+    `UPDATE "MinisterioTarea" SET ${updates.join(',')}, "updatedAt"=CURRENT_TIMESTAMP WHERE id=$${params.length-1} AND "ministerioId"=$${params.length} RETURNING *`,
     params
   )
+  if (!t) return res.status(404).json({ error: 'No encontrado' })
   return res.json(t)
 }))
 
 router.delete('/:id/tareas/:tareaId', requireAuth, wrap(async (req, res) => {
-  await pgExec('UPDATE "MinisterioTarea" SET "deletedAt"=CURRENT_TIMESTAMP WHERE id=$1', [req.params.tareaId])
+  if (!await checkAcceso(req.params.id, iglesiaId(req)))
+    return res.status(404).json({ error: 'No encontrado' })
+  const result = await pgExec(
+    'UPDATE "MinisterioTarea" SET "deletedAt"=CURRENT_TIMESTAMP WHERE id=$1 AND "ministerioId"=$2',
+    [req.params.tareaId, req.params.id]
+  )
+  if (!result.rowCount) return res.status(404).json({ error: 'No encontrado' })
   return res.json({ ok: true })
 }))
 
@@ -371,13 +384,16 @@ router.post('/:id/checklists', requireAuth, wrap(async (req, res) => {
 }))
 
 router.put('/:id/checklists/:clId/items/:itemId', requireAuth, wrap(async (req, res) => {
+  if (!await checkAcceso(req.params.id, iglesiaId(req)))
+    return res.status(404).json({ error: 'No encontrado' })
   const { completado } = req.body || {}
-  await pgExec(
-    'UPDATE "MinisterioChecklistItem" SET completado=$1,"updatedAt"=CURRENT_TIMESTAMP WHERE id=$2',
-    [!!completado, req.params.itemId]
+  const result = await pgExec(
+    'UPDATE "MinisterioChecklistItem" SET completado=$1,"updatedAt"=CURRENT_TIMESTAMP WHERE id=$2 AND "checklistId"=$3',
+    [!!completado, req.params.itemId, req.params.clId]
   )
+  if (!result.rowCount) return res.status(404).json({ error: 'No encontrado' })
   // Si todos los items están completos, marcar el checklist como completado
-  const cl = await pgOne('SELECT id FROM "MinisterioChecklist" WHERE id=$1', [req.params.clId])
+  const cl = await pgOne('SELECT id FROM "MinisterioChecklist" WHERE id=$1 AND "ministerioId"=$2', [req.params.clId, req.params.id])
   if (cl) {
     const total = await pgOne('SELECT COUNT(*) AS c FROM "MinisterioChecklistItem" WHERE "checklistId"=$1', [req.params.clId])
     const done  = await pgOne('SELECT COUNT(*) AS c FROM "MinisterioChecklistItem" WHERE "checklistId"=$1 AND completado=true', [req.params.clId])
@@ -416,6 +432,8 @@ router.post('/:id/canciones', requireAuth, wrap(async (req, res) => {
 }))
 
 router.put('/:id/canciones/:cancionId', requireAuth, wrap(async (req, res) => {
+  if (!await checkAcceso(req.params.id, iglesiaId(req)))
+    return res.status(404).json({ error: 'No encontrado' })
   const { titulo, artista, tonalidad, bpm, duracionSeg, letra, notas } = req.body || {}
   const c = await pgOne(`
     UPDATE "MinisterioCancion" SET
@@ -423,8 +441,9 @@ router.put('/:id/canciones/:cancionId', requireAuth, wrap(async (req, res) => {
       "tonalidad"=COALESCE($3,"tonalidad"), "bpm"=COALESCE($4,"bpm"),
       "duracionSeg"=COALESCE($5,"duracionSeg"), "letra"=COALESCE($6,"letra"),
       "notas"=COALESCE($7,"notas"), "updatedAt"=CURRENT_TIMESTAMP
-    WHERE id=$8 RETURNING *
-  `, [titulo||null, artista||null, tonalidad||null, bpm||null, duracionSeg||null, letra||null, notas||null, req.params.cancionId])
+    WHERE id=$8 AND "ministerioId"=$9 RETURNING *
+  `, [titulo||null, artista||null, tonalidad||null, bpm||null, duracionSeg||null, letra||null, notas||null, req.params.cancionId, req.params.id])
+  if (!c) return res.status(404).json({ error: 'No encontrado' })
   return res.json(c)
 }))
 
@@ -488,6 +507,8 @@ router.post('/:id/equipos', requireAuth, wrap(async (req, res) => {
 }))
 
 router.put('/:id/equipos/:equipoId', requireAuth, wrap(async (req, res) => {
+  if (!await checkAcceso(req.params.id, iglesiaId(req)))
+    return res.status(404).json({ error: 'No encontrado' })
   const { nombre, tipo, marca, modelo, serial, estado, ubicacion, notas } = req.body || {}
   const e = await pgOne(`
     UPDATE "MinisterioEquipo" SET
@@ -495,8 +516,9 @@ router.put('/:id/equipos/:equipoId', requireAuth, wrap(async (req, res) => {
       "marca"=COALESCE($3,"marca"), "estado"=COALESCE($4,"estado"),
       "ubicacion"=COALESCE($5,"ubicacion"), "notas"=COALESCE($6,"notas"),
       "updatedAt"=CURRENT_TIMESTAMP
-    WHERE id=$7 RETURNING *
-  `, [nombre||null, tipo||null, marca||null, estado||null, ubicacion||null, notas||null, req.params.equipoId])
+    WHERE id=$7 AND "ministerioId"=$8 RETURNING *
+  `, [nombre||null, tipo||null, marca||null, estado||null, ubicacion||null, notas||null, req.params.equipoId, req.params.id])
+  if (!e) return res.status(404).json({ error: 'No encontrado' })
   return res.json(e)
 }))
 
@@ -525,10 +547,13 @@ router.post('/:id/checkin-ninos', requireAuth, wrap(async (req, res) => {
 }))
 
 router.put('/:id/checkin-ninos/:checkinId/salida', requireAuth, wrap(async (req, res) => {
+  if (!await checkAcceso(req.params.id, iglesiaId(req)))
+    return res.status(404).json({ error: 'No encontrado' })
   const c = await pgOne(
-    'UPDATE "MinisterioCheckInNino" SET "horaSalida"=CURRENT_TIMESTAMP WHERE id=$1 RETURNING *',
-    [req.params.checkinId]
+    'UPDATE "MinisterioCheckInNino" SET "horaSalida"=CURRENT_TIMESTAMP WHERE id=$1 AND "ministerioId"=$2 RETURNING *',
+    [req.params.checkinId, req.params.id]
   )
+  if (!c) return res.status(404).json({ error: 'No encontrado' })
   return res.json(c)
 }))
 

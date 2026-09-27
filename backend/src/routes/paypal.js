@@ -182,10 +182,10 @@ router.post('/crear-orden', requireAuth, requireRol('PASTOR_GENERAL'), async (re
 // ── GET /paypal/capturar ─────────────────────────────────────────
 // PayPal redirige aquí luego de que el usuario aprueba el pago
 router.get('/capturar', async (req, res) => {
-  const { token: orderId, plan, iglesiaId, ref } = req.query
+  const { token: orderId, ref } = req.query
   const base = safePublicUrl() || ''
 
-  if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET || !orderId || !iglesiaId) {
+  if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET || !orderId || !ref) {
     return res.redirect(`${base}/app/configuracion?pago=error`)
   }
 
@@ -194,7 +194,30 @@ router.get('/capturar', async (req, res) => {
     const capture = await ppRequest('POST', `/v2/checkout/orders/${orderId}/capture`, {}, accessToken)
 
     if (capture.status === 'COMPLETED') {
-      const planKey = normalizePlan(plan)
+      // Reconciliar contra el checkout_reference guardado en Configuracion
+      // El ref tiene formato: userId|iglesiaId|planKey|promo|timestamp
+      const refParts = String(ref).split('|')
+      if (refParts.length < 3) {
+        logger.error({ ref, orderId }, 'PayPal capture: ref inválido')
+        return res.redirect(`${base}/app/configuracion?pago=error`)
+      }
+      const [, igId, planKey] = refParts
+      const churchId = Number(igId)
+      if (!churchId || !PLANES[planKey]) {
+        logger.error({ ref, orderId }, 'PayPal capture: iglesiaId o plan inválido en ref')
+        return res.redirect(`${base}/app/configuracion?pago=error`)
+      }
+
+      // Verificar que el orderId coincide con el guardado en Configuracion
+      const cfg = await pgOne(
+        'SELECT "valor" FROM "Configuracion" WHERE "iglesiaId"=$1 AND "clave"=$2',
+        [churchId, 'paypal_order_id']
+      )
+      if (!cfg || cfg.valor !== orderId) {
+        logger.error({ orderId, expected: cfg?.valor, churchId }, 'PayPal capture: orderId no coincide con checkout_reference')
+        return res.redirect(`${base}/app/configuracion?pago=error`)
+      }
+
       const planInfo = PLANES[planKey]
       const vence = new Date()
       vence.setMonth(vence.getMonth() + 1)
@@ -216,11 +239,11 @@ router.get('/capturar', async (req, res) => {
           `INSERT INTO "Configuracion" ("iglesiaId","clave","valor","createdAt","updatedAt")
            VALUES ($1,$2,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
            ON CONFLICT ("iglesiaId","clave") DO UPDATE SET "valor"=EXCLUDED."valor","updatedAt"=CURRENT_TIMESTAMP`,
-          [Number(iglesiaId), k, v]
+          [churchId, k, v]
         )
       }
 
-      logger.info({ plan: planKey, iglesiaId, orderId }, 'PayPal pago capturado')
+      logger.info({ plan: planKey, churchId, orderId }, 'PayPal pago capturado')
       return res.redirect(`${base}/app/configuracion?pago=ok&metodo=paypal`)
     }
 

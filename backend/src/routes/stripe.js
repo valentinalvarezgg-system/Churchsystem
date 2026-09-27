@@ -133,6 +133,12 @@ router.post('/crear-sesion', requireAuth, requireRol('PASTOR_GENERAL'), async (r
 // ── POST /stripe/webhook ──────────────────────────────────────────
 // Stripe llama este endpoint cuando el pago se completa
 router.post('/webhook', async (req, res) => {
+  // Fail-closed: si no hay webhook secret, no procesar eventos
+  if (!STRIPE_WHK) {
+    logger.warn('Stripe webhook recibido sin STRIPE_WEBHOOK_SECRET — ignorando')
+    return res.status(400).json({ error: 'Webhook no configurado' })
+  }
+
   res.sendStatus(200)
 
   if (!STRIPE_SK) return
@@ -140,12 +146,8 @@ router.post('/webhook', async (req, res) => {
 
   let event
   try {
-    if (STRIPE_WHK) {
-      const sig = req.headers['stripe-signature']
-      event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WHK)
-    } else {
-      event = req.body
-    }
+    const sig = req.headers['stripe-signature']
+    event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WHK)
   } catch (err) {
     logger.warn({ err: err.message }, 'Stripe webhook signature error')
     return
