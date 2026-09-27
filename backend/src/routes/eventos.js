@@ -134,9 +134,18 @@ router.post('/:id/rsvp', async (req, res) => {
     return res.status(400).json({ error: 'respuesta debe ser SI, NO o TALVEZ' })
   }
 
-  // Resolución del iglesiaId: viene del body (link público) o del user autenticado
-  const iglesiaId = Number(req.user?.iglesiaId || bodyIglesiaId || 0)
-  if (!iglesiaId) return res.status(400).json({ error: 'iglesiaId requerido' })
+  // Resolución del iglesiaId: si está autenticado, usar el del token (confiable)
+  // Si no, verificar que el evento pertenezca al iglesiaId del body
+  let iglesiaId
+  if (req.user?.iglesiaId) {
+    iglesiaId = Number(req.user.iglesiaId)
+  } else {
+    iglesiaId = Number(bodyIglesiaId || 0)
+    if (!iglesiaId) return res.status(400).json({ error: 'iglesiaId requerido' })
+    // Verificar que el evento pertenezca a esta iglesia
+    const ev = await pgOne('SELECT "id" FROM "Evento" WHERE "id"=$1 AND "iglesiaId"=$2 AND "deletedAt" IS NULL', [eventoId, iglesiaId])
+    if (!ev) return res.status(404).json({ error: 'Evento no encontrado' })
+  }
 
   await pgExec(`
     CREATE TABLE IF NOT EXISTS "EventoRSVP" (
@@ -176,7 +185,7 @@ router.post('/:id/rsvp', async (req, res) => {
     return res.status(400).json({ error: 'Se requiere token o personaId' })
   }
 
-  const ev = await pgOne('SELECT "titulo","fecha" FROM "Evento" WHERE "id"=$1', [eventoId])
+  const ev = await pgOne('SELECT "titulo","fecha" FROM "Evento" WHERE "id"=$1 AND "iglesiaId"=$2', [eventoId, iglesiaId])
   res.json({ ok: true, evento: ev?.titulo, fecha: ev?.fecha, respuesta })
 })
 

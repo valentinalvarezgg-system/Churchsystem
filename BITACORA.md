@@ -19,7 +19,27 @@
 
 ### Pendiente
 
-- Los 2 MEDIUM de la auditoría (RSVP público con tokens arbitrarios, path traversal en documentos) siguen abiertos.
+- La migración a Render sigue pendiente.
+
+---
+
+## Cierre de 2 MEDIUM de seguridad: RSVP público, path traversal en documentos — 2026-09-27
+
+**Estado actual:** los 2 hallazgos MEDIUM de la auditoría de 2026-07-01 quedaron corregidos. El RSVP público ahora verifica que el evento pertenezca al `iglesiaId` del body cuando no hay sesión, y la descarga de documentos usa `path.basename()` + validación de contención dentro de `UPLOAD_DIR`.
+
+### Cambios aplicados
+
+- `backend/src/routes/eventos.js`: `POST /eventos/:id/rsvp` — si el usuario no está autenticado, verifica que el evento pertenezca al `iglesiaId` del body antes de permitir el RSVP. Si está autenticado, usa `req.user.iglesiaId` directamente.
+- `backend/src/routes/documentos.js`: `GET /documentos/:id/descargar` — usa `path.basename(doc.archivo)` para eliminar cualquier `../` en la ruta, y verifica que la ruta resuelta esté dentro de `UPLOAD_DIR` antes de servir el archivo.
+
+### Evidencia
+
+- `node --check backend/src/routes/eventos.js backend/src/routes/documentos.js` → OK.
+- `cd frontend && pnpm build` → OK con Vite `6.4.3`.
+- `git diff --check` → OK.
+
+### Pendiente
+
 - La migración a Render sigue pendiente.
 
 ---

@@ -129,9 +129,15 @@ router.get('/:id/descargar', requireAuth, wrap(async (req, res) => {
   const iglesiaId = Number(req.user.iglesiaId)
   const doc = await pgOne('SELECT * FROM "Documento" WHERE "id"=$1 AND "iglesiaId"=$2 AND "deletedAt" IS NULL', [Number(req.params.id), iglesiaId])
   if (!doc || !doc.archivo) return res.status(404).json({ error: 'Archivo no encontrado' })
-  const fullPath = path.join(__dirname, '../../../../', doc.archivo)
-  if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'Archivo no existe en disco' })
-  res.download(fullPath, doc.nombre + path.extname(doc.archivo))
+  // Prevenir path traversal: usar solo el basename y verificar que esté dentro de UPLOAD_DIR
+  const safePath = path.join(UPLOAD_DIR, path.basename(doc.archivo))
+  const resolvedPath = path.resolve(safePath)
+  const resolvedUploadDir = path.resolve(UPLOAD_DIR)
+  if (!resolvedPath.startsWith(resolvedUploadDir + path.sep) && resolvedPath !== resolvedUploadDir) {
+    return res.status(403).json({ error: 'Acceso denegado' })
+  }
+  if (!fs.existsSync(resolvedPath)) return res.status(404).json({ error: 'Archivo no existe en disco' })
+  res.download(resolvedPath, doc.nombre + path.extname(doc.archivo))
 }))
 
 export default router
