@@ -1,6 +1,28 @@
 # BITÁCORA — Church System
 ---
 
+## i18n en Discipulado: traducción completa es/pt/en — 2026-09-27
+
+**Estado actual:** `frontend/src/pages/Discipulado.jsx` ya no tiene texto hardcodeado en español. Todas las cadenas visibles al usuario pasan por `makeI18n` con soporte completo es/pt/en.
+
+### Cambios aplicados
+
+- `frontend/src/pages/Discipulado.jsx`: import `makeI18n` desde `../lib/i18n.js`.
+- Objeto `I18N` con 60+ keys por idioma (es/pt/en) cubriendo: título, tabs, etapas, materiales, stats, búsqueda, paginación, árbol, modal de relación, panel de nodo, toasts y confirmaciones.
+- `stageLabel(t, code)` helper para traducir etapas (NUEVO_CREYENTE → "Nuevo creyente").
+- `matLabel(t, code)` helper para traducir materiales (BIBLIA_BASICA → "Biblia básica").
+- `const t = makeI18n(I18N)` dentro del componente principal.
+- `t` propagado a todos los sub-componentes: `ArbolDiscipulado`, `NodoPanel`, `ModalAgregarRelacion`, `DiscipuladoListaPhone`, `DiscipuladoListaDesktop`.
+- `MAT_LABEL` constante hardcodeada reemplazada por `matLabel(t, code)`.
+- Toasts de error/éxito traducidos.
+- ConfirmModal con título y mensaje traducidos.
+
+### Evidencia
+
+- `cd frontend && pnpm build` → OK con Vite `6.4.3`.
+
+---
+
 ## Fase 4 — Pulido pre-lanzamiento: PDF con logo, recurrencias, tests — 2026-09-27
 
 **Estado actual:** se completaron 3 tareas de pulido pre-lanzamiento: PDF con logo en Reportes, recurrencias en Eventos (backend + frontend), y tests de seguridad con `node:test`.
@@ -20,7 +42,7 @@
 
 ### Pendiente
 
-- i18n en Configuracion.jsx y Discipulado.jsx (subagentes en progreso).
+- i18n en Configuracion.jsx (subagente en progreso).
 - La migración a Render sigue pendiente.
 
 ---

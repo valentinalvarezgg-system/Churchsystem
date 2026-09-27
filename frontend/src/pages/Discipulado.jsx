@@ -6,12 +6,242 @@ import { apiFetch } from '../services/api.js'
 import { toast } from '../components/Toast.jsx'
 import { ConfirmModal } from '../components/Modal.jsx'
 import { useOrientation } from '../hooks/useOrientation.js'
+import { makeI18n } from '../lib/i18n.js'
+
+const I18N = {
+  es: {
+    title: 'Discipulado',
+    list: 'Lista',
+    tree: 'Árbol',
+    searchPlaceholder: 'Buscar...',
+    clear: 'Limpiar',
+    loading: 'Cargando...',
+    loadingTree: 'Cargando árbol...',
+    noResults: 'Sin resultados',
+    noPeople: 'No hay personas registradas',
+    addPerson: 'Agregar persona',
+    addRelation: '+ Agregar relación',
+    addRelationTitle: 'Agregar relación de discipulado',
+    refresh: 'Actualizar',
+    indicators: 'Indicadores',
+    baptizedWater: 'Bautizado agua',
+    baptizedSpirit: 'Bautizado espíritu',
+    discipleshipComplete: 'Discipulado completo',
+    discipledBy: 'Fue discipulado por',
+    discipling: 'Discipula a',
+    remove: '× Quitar',
+    removeRelation: '× Eliminar relación',
+    searchPerson: 'Buscar persona',
+    filterByName: 'Filtrar por nombre...',
+    discipler: 'Discipulador (quien discipula)',
+    discipled: 'Discipulado (quien es discipulado)',
+    selectPlaceholder: '— Seleccionar —',
+    startDate: 'Fecha de inicio',
+    notes: 'Notas',
+    optional: 'Opcional...',
+    cancel: 'Cancelar',
+    saving: 'Guardando...',
+    saveRelation: 'Guardar relación',
+    relationSaved: 'Relación registrada',
+    relationDeleted: 'Relación eliminada',
+    selectBoth: 'Seleccioná discipulador y discipulado',
+    samePerson: 'No puede ser la misma persona',
+    completed: 'Completado',
+    viewProgress: 'Ver progreso',
+    treeEmpty: 'El árbol está vacío',
+    treeEmptyHint: 'Usá el botón + Agregar relación para registrar quién discipuló a quién y el árbol se va a construir solo.',
+    treeHint: 'Hacé scroll con la rueda para hacer zoom · Arrastrá para mover · Clic en un nodo para ver detalles',
+    confirmDeleteTitle: '¿Eliminar relación de discipulado?',
+    confirmDeleteMsg: 'Esta acción no se puede deshacer.',
+    colPerson: 'Persona',
+    colStage: 'Etapa',
+    colBaptisms: 'Bautismos',
+    colMaterials: 'Materiales',
+    colActions: 'Acciones',
+    statsBaptizedWater: 'Bautizados agua',
+    statsBaptizedSpirit: 'Bautizados espíritu',
+    statsDiscipleshipComplete: 'Discipulado completo',
+    materialsCount: 'materiales',
+    peopleCount: 'personas',
+    activeRelations: 'relaciones activas',
+    pageOf: 'Pág',
+    stageNuevoCreyente: 'Nuevo creyente',
+    stageConsolidado: 'Consolidado',
+    stageDiscipulo: 'Discípulo',
+    stageLider: 'Líder',
+    stageMinistro: 'Ministro',
+    matBibliaBasica: 'Biblia básica',
+    matConsolidacion1: 'Consolidación 1',
+    matConsolidacion2: 'Consolidación 2',
+    matDiscipulado1: 'Discipulado 1',
+    matDiscipulado2: 'Discipulado 2',
+    matMinisterio: 'Plan Ministerio',
+  },
+  pt: {
+    title: 'Discipulado',
+    list: 'Lista',
+    tree: 'Árvore',
+    searchPlaceholder: 'Buscar...',
+    clear: 'Limpar',
+    loading: 'Carregando...',
+    loadingTree: 'Carregando árvore...',
+    noResults: 'Sem resultados',
+    noPeople: 'Não há pessoas registradas',
+    addPerson: 'Adicionar pessoa',
+    addRelation: '+ Adicionar relação',
+    addRelationTitle: 'Adicionar relação de discipulado',
+    refresh: 'Atualizar',
+    indicators: 'Indicadores',
+    baptizedWater: 'Batizado água',
+    baptizedSpirit: 'Batizado espírito',
+    discipleshipComplete: 'Discipulado completo',
+    discipledBy: 'Foi discipulado por',
+    discipling: 'Discipula a',
+    remove: '× Remover',
+    removeRelation: '× Remover relação',
+    searchPerson: 'Buscar pessoa',
+    filterByName: 'Filtrar por nome...',
+    discipler: 'Discipulador (quem discipula)',
+    discipled: 'Discipulado (quem é discipulado)',
+    selectPlaceholder: '— Selecionar —',
+    startDate: 'Data de início',
+    notes: 'Notas',
+    optional: 'Opcional...',
+    cancel: 'Cancelar',
+    saving: 'Salvando...',
+    saveRelation: 'Salvar relação',
+    relationSaved: 'Relação registrada',
+    relationDeleted: 'Relação excluída',
+    selectBoth: 'Selecione discipulador e discipulado',
+    samePerson: 'Não pode ser a mesma pessoa',
+    completed: 'Concluído',
+    viewProgress: 'Ver progresso',
+    treeEmpty: 'A árvore está vazia',
+    treeEmptyHint: 'Use o botão + Adicionar relação para registrar quem discipulou quem e a árvore será construída automaticamente.',
+    treeHint: 'Role a página com a roda para dar zoom · Arraste para mover · Clique em um nó para ver detalhes',
+    confirmDeleteTitle: 'Excluir relação de discipulado?',
+    confirmDeleteMsg: 'Esta ação não pode ser desfeita.',
+    colPerson: 'Pessoa',
+    colStage: 'Etapa',
+    colBaptisms: 'Batismos',
+    colMaterials: 'Materiais',
+    colActions: 'Ações',
+    statsBaptizedWater: 'Batizados água',
+    statsBaptizedSpirit: 'Batizados espírito',
+    statsDiscipleshipComplete: 'Discipulado completo',
+    materialsCount: 'materiais',
+    peopleCount: 'pessoas',
+    activeRelations: 'relações ativas',
+    pageOf: 'Pág',
+    stageNuevoCreyente: 'Novo crente',
+    stageConsolidado: 'Consolidado',
+    stageDiscipulo: 'Discípulo',
+    stageLider: 'Líder',
+    stageMinistro: 'Ministro',
+    matBibliaBasica: 'Bíblia básica',
+    matConsolidacion1: 'Consolidação 1',
+    matConsolidacion2: 'Consolidação 2',
+    matDiscipulado1: 'Discipulado 1',
+    matDiscipulado2: 'Discipulado 2',
+    matMinisterio: 'Plano Ministério',
+  },
+  en: {
+    title: 'Discipleship',
+    list: 'List',
+    tree: 'Tree',
+    searchPlaceholder: 'Search...',
+    clear: 'Clear',
+    loading: 'Loading...',
+    loadingTree: 'Loading tree...',
+    noResults: 'No results',
+    noPeople: 'No people registered',
+    addPerson: 'Add person',
+    addRelation: '+ Add relationship',
+    addRelationTitle: 'Add discipleship relationship',
+    refresh: 'Refresh',
+    indicators: 'Indicators',
+    baptizedWater: 'Baptized water',
+    baptizedSpirit: 'Baptized spirit',
+    discipleshipComplete: 'Discipleship complete',
+    discipledBy: 'Was discipled by',
+    discipling: 'Discipling',
+    remove: '× Remove',
+    removeRelation: '× Remove relationship',
+    searchPerson: 'Search person',
+    filterByName: 'Filter by name...',
+    discipler: 'Discipler (who disciples)',
+    discipled: 'Discipled (who is discipled)',
+    selectPlaceholder: '— Select —',
+    startDate: 'Start date',
+    notes: 'Notes',
+    optional: 'Optional...',
+    cancel: 'Cancel',
+    saving: 'Saving...',
+    saveRelation: 'Save relationship',
+    relationSaved: 'Relationship registered',
+    relationDeleted: 'Relationship deleted',
+    selectBoth: 'Select discipler and discipled',
+    samePerson: 'Cannot be the same person',
+    completed: 'Completed',
+    viewProgress: 'View progress',
+    treeEmpty: 'The tree is empty',
+    treeEmptyHint: 'Use the + Add relationship button to record who discipled whom and the tree will build itself.',
+    treeHint: 'Scroll with the wheel to zoom · Drag to move · Click a node to see details',
+    confirmDeleteTitle: 'Delete discipleship relationship?',
+    confirmDeleteMsg: 'This action cannot be undone.',
+    colPerson: 'Person',
+    colStage: 'Stage',
+    colBaptisms: 'Baptisms',
+    colMaterials: 'Materials',
+    colActions: 'Actions',
+    statsBaptizedWater: 'Baptized water',
+    statsBaptizedSpirit: 'Baptized spirit',
+    statsDiscipleshipComplete: 'Discipleship complete',
+    materialsCount: 'materials',
+    peopleCount: 'people',
+    activeRelations: 'active relationships',
+    pageOf: 'Page',
+    stageNuevoCreyente: 'New believer',
+    stageConsolidado: 'Consolidated',
+    stageDiscipulo: 'Disciple',
+    stageLider: 'Leader',
+    stageMinistro: 'Minister',
+    matBibliaBasica: 'Basic Bible',
+    matConsolidacion1: 'Consolidation 1',
+    matConsolidacion2: 'Consolidation 2',
+    matDiscipulado1: 'Discipleship 1',
+    matDiscipulado2: 'Discipleship 2',
+    matMinisterio: 'Ministry Plan',
+  },
+}
 
 const ETAPAS     = ['NUEVO_CREYENTE','CONSOLIDADO','DISCIPULO','LIDER','MINISTRO']
 const MATERIALES = ['BIBLIA_BASICA','CONSOLIDACION_1','CONSOLIDACION_2','DISCIPULADO_1','DISCIPULADO_2','MINISTERIO']
 const ETAPA_COLOR = { NUEVO_CREYENTE:'var(--c-info)',CONSOLIDADO:'var(--c-warning)',DISCIPULO:'var(--c-success)',LIDER:'var(--c-purple)',MINISTRO:'var(--c-danger)' }
 const ETAPA_BG    = { NUEVO_CREYENTE:'var(--c-info-bg)',CONSOLIDADO:'var(--c-warning-bg)',DISCIPULO:'var(--c-success-bg)',LIDER:'var(--c-purple-bg)',MINISTRO:'var(--c-danger-bg)' }
-const MAT_LABEL   = { BIBLIA_BASICA:'Biblia básica',CONSOLIDACION_1:'Consolidación 1',CONSOLIDACION_2:'Consolidación 2',DISCIPULADO_1:'Discipulado 1',DISCIPULADO_2:'Discipulado 2',MINISTERIO:'Plan Ministerio' }
+
+function stageLabel(t, code) {
+  const map = {
+    NUEVO_CREYENTE: t('stageNuevoCreyente'),
+    CONSOLIDADO: t('stageConsolidado'),
+    DISCIPULO: t('stageDiscipulo'),
+    LIDER: t('stageLider'),
+    MINISTRO: t('stageMinistro'),
+  }
+  return map[code] || code
+}
+
+function matLabel(t, code) {
+  const map = {
+    BIBLIA_BASICA: t('matBibliaBasica'),
+    CONSOLIDACION_1: t('matConsolidacion1'),
+    CONSOLIDACION_2: t('matConsolidacion2'),
+    DISCIPULADO_1: t('matDiscipulado1'),
+    DISCIPULADO_2: t('matDiscipulado2'),
+    MINISTERIO: t('matMinisterio'),
+  }
+  return map[code] || code
+}
 
 // ── Colores del árbol por etapa ──────────────────────────────
 const TREE_COLORS = {
@@ -24,7 +254,7 @@ const TREE_COLORS = {
 }
 
 // ── Árbol visual con D3 (carga dinámica) ────────────────────
-function ArbolDiscipulado({ nodos, links, raices, onSelectNodo, selectedId }) {
+function ArbolDiscipulado({ nodos, links, raices, onSelectNodo, selectedId, t }) {
   const svgRef = useRef(null)
   const [d3Loaded, setD3Loaded] = useState(false)
 
@@ -143,7 +373,7 @@ function ArbolDiscipulado({ nodos, links, raices, onSelectNodo, selectedId }) {
         const c = TREE_COLORS[d.data.estadoEspiritual] || TREE_COLORS.DEFAULT
         return d.data.id === selectedId ? 'rgba(255,255,255,.8)' : c.stroke
       })
-      .text(d => (d.data.estadoEspiritual || '').replace(/_/g, ' '))
+      .text(d => stageLabel(t, d.data.estadoEspiritual || ''))
 
     // Número de discípulos
     node.filter(d => d.children?.length > 0)
@@ -163,14 +393,14 @@ function ArbolDiscipulado({ nodos, links, raices, onSelectNodo, selectedId }) {
       .attr('fill', '#fff')
       .text(d => d.children.length)
 
-  }, [d3Loaded, nodos, links, raices, selectedId, onSelectNodo])
+  }, [d3Loaded, nodos, links, raices, selectedId, onSelectNodo, t])
 
   if (nodos.length === 0) {
     return (
       <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'60px 20px',gap:12,color:'var(--text-muted)',textAlign:'center'}}>
         <svg width="64" height="64" fill="none" viewBox="0 0 64 64"><circle cx="32" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="48" r="10" stroke="currentColor" strokeWidth="2"/><circle cx="52" cy="48" r="10" stroke="currentColor" strokeWidth="2"/><line x1="32" y1="22" x2="12" y2="38" stroke="currentColor" strokeWidth="2"/><line x1="32" y1="22" x2="52" y2="38" stroke="currentColor" strokeWidth="2"/></svg>
-        <p style={{fontSize:15,fontWeight:600,color:'var(--text)'}}>El árbol está vacío</p>
-        <p style={{fontSize:13,maxWidth:320}}>Usá el botón <strong>+ Agregar relación</strong> para registrar quién discipuló a quién y el árbol se va a construir solo.</p>
+        <p style={{fontSize:15,fontWeight:600,color:'var(--text)'}}>{t('treeEmpty')}</p>
+        <p style={{fontSize:13,maxWidth:320}}>{t('treeEmptyHint')}</p>
       </div>
     )
   }
@@ -183,7 +413,7 @@ function ArbolDiscipulado({ nodos, links, raices, onSelectNodo, selectedId }) {
 }
 
 // ── Panel lateral de nodo seleccionado ──────────────────────
-function NodoPanel({ nodo, links, onClose, onEliminarLink }) {
+function NodoPanel({ nodo, links, onClose, onEliminarLink, t }) {
   if (!nodo) return null
   const discipulos = links.filter(l => l.activo && l.discipuladorId === nodo.id)
   const mentor = links.find(l => l.activo && l.discipuladoId === nodo.id)
@@ -195,34 +425,34 @@ function NodoPanel({ nodo, links, onClose, onEliminarLink }) {
         <div>
           <div style={{fontSize:15,fontWeight:700,color:'var(--text)'}}>{nodo.nombre} {nodo.apellido}</div>
           <span style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:cols.fill,color:cols.text,border:`1px solid ${cols.stroke}`,fontWeight:600}}>
-            {(nodo.estadoEspiritual||'').replace(/_/g,' ')}
+            {stageLabel(t, nodo.estadoEspiritual || '')}
           </span>
         </div>
         <button style={{background:'none',border:'none',cursor:'pointer',fontSize:18,color:'var(--text-muted)',padding:0}} onClick={onClose}>×</button>
       </div>
 
-      <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Indicadores</div>
+      <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>{t('indicators')}</div>
       <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
-        {nodo.bautizadoAgua && <span style={{fontSize:11,background:'var(--c-info-bg)',color:'var(--c-info)',padding:'2px 7px',borderRadius:20}}>Bautizado agua</span>}
-        {nodo.bautizadoEspiritu && <span style={{fontSize:11,background:'var(--c-purple-bg)',color:'var(--c-purple)',padding:'2px 7px',borderRadius:20}}>Bautizado espíritu</span>}
-        {nodo.discipuladoCompletado && <span style={{fontSize:11,background:'var(--c-success-bg)',color:'var(--c-success)',padding:'2px 7px',borderRadius:20}}>Discipulado completo</span>}
+        {nodo.bautizadoAgua && <span style={{fontSize:11,background:'var(--c-info-bg)',color:'var(--c-info)',padding:'2px 7px',borderRadius:20}}>{t('baptizedWater')}</span>}
+        {nodo.bautizadoEspiritu && <span style={{fontSize:11,background:'var(--c-purple-bg)',color:'var(--c-purple)',padding:'2px 7px',borderRadius:20}}>{t('baptizedSpirit')}</span>}
+        {nodo.discipuladoCompletado && <span style={{fontSize:11,background:'var(--c-success-bg)',color:'var(--c-success)',padding:'2px 7px',borderRadius:20}}>{t('discipleshipComplete')}</span>}
       </div>
 
       {mentor && (
         <div style={{marginBottom:12}}>
-          <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Fue discipulado por</div>
+          <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>{t('discipledBy')}</div>
           <div style={{fontSize:13,fontWeight:500,color:'var(--text)'}}>ID #{mentor.discipuladorId}</div>
-          <div style={{marginTop:4,fontSize:11,color:'var(--c-danger)',cursor:'pointer'}} onClick={() => onEliminarLink(mentor.id)}>× Eliminar relación</div>
+          <div style={{marginTop:4,fontSize:11,color:'var(--c-danger)',cursor:'pointer'}} onClick={() => onEliminarLink(mentor.id)}>{t('removeRelation')}</div>
         </div>
       )}
 
       {discipulos.length > 0 && (
         <div>
-          <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>Discipula a ({discipulos.length})</div>
+          <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>{t('discipling')} ({discipulos.length})</div>
           {discipulos.map(l => (
             <div key={l.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 0',borderBottom:'1px solid var(--border)',fontSize:12}}>
               <span>ID #{l.discipuladoId}</span>
-              <span style={{color:'var(--c-danger)',cursor:'pointer',fontSize:11}} onClick={() => onEliminarLink(l.id)}>× Quitar</span>
+              <span style={{color:'var(--c-danger)',cursor:'pointer',fontSize:11}} onClick={() => onEliminarLink(l.id)}>{t('remove')}</span>
             </div>
           ))}
         </div>
@@ -232,7 +462,7 @@ function NodoPanel({ nodo, links, onClose, onEliminarLink }) {
 }
 
 // ── Modal agregar relación ───────────────────────────────────
-function ModalAgregarRelacion({ onClose, onGuardar }) {
+function ModalAgregarRelacion({ onClose, onGuardar, t }) {
   const [personas, setPersonas] = useState([])
   const [discipulador, setDiscipulador] = useState('')
   const [discipulado, setDiscipulado]   = useState('')
@@ -247,12 +477,12 @@ function ModalAgregarRelacion({ onClose, onGuardar }) {
   }, [search])
 
   async function guardar() {
-    if (!discipulador || !discipulado) return toast.error('Seleccioná discipulador y discipulado')
-    if (discipulador === discipulado) return toast.error('No puede ser la misma persona')
+    if (!discipulador || !discipulado) return toast.error(t('selectBoth'))
+    if (discipulador === discipulado) return toast.error(t('samePerson'))
     setLoading(true)
     try {
       await apiFetch('/discipulado/arbol', { method:'POST', body: JSON.stringify({ discipuladorId: Number(discipulador), discipuladoId: Number(discipulado), fechaInicio: fechaInicio || undefined, notas: notas || undefined }) })
-      toast.success('Relación registrada')
+      toast.success(t('relationSaved'))
       onGuardar()
     } catch(e) { toast.error(e.message) }
     setLoading(false)
@@ -264,42 +494,42 @@ function ModalAgregarRelacion({ onClose, onGuardar }) {
     <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <h3 className="modal-title">Agregar relación de discipulado</h3>
+          <h3 className="modal-title">{t('addRelationTitle')}</h3>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>×</button>
         </div>
         <div className="modal-body" style={{display:'flex',flexDirection:'column',gap:14}}>
           <div>
-            <label style={{fontSize:12,color:'var(--text-muted)',marginBottom:4,display:'block'}}>Buscar persona</label>
-            <input className="input" placeholder="Filtrar por nombre..." value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:10}}/>
+            <label style={{fontSize:12,color:'var(--text-muted)',marginBottom:4,display:'block'}}>{t('searchPerson')}</label>
+            <input className="input" placeholder={t('filterByName')} value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:10}}/>
           </div>
           <div>
-            <label style={{fontSize:12,color:'var(--text-muted)',marginBottom:4,display:'block'}}>Discipulador (quien discipula)</label>
+            <label style={{fontSize:12,color:'var(--text-muted)',marginBottom:4,display:'block'}}>{t('discipler')}</label>
             <select style={pSelect} value={discipulador} onChange={e=>setDiscipulador(e.target.value)}>
-              <option value="">— Seleccionar —</option>
-              {personas.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido} — {(p.estadoEspiritual||'').replace(/_/g,' ')}</option>)}
+              <option value="">{t('selectPlaceholder')}</option>
+              {personas.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido} — {stageLabel(t, p.estadoEspiritual || '')}</option>)}
             </select>
           </div>
           <div>
-            <label style={{fontSize:12,color:'var(--text-muted)',marginBottom:4,display:'block'}}>Discipulado (quien es discipulado)</label>
+            <label style={{fontSize:12,color:'var(--text-muted)',marginBottom:4,display:'block'}}>{t('discipled')}</label>
             <select style={pSelect} value={discipulado} onChange={e=>setDiscipulado(e.target.value)}>
-              <option value="">— Seleccionar —</option>
-              {personas.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido} — {(p.estadoEspiritual||'').replace(/_/g,' ')}</option>)}
+              <option value="">{t('selectPlaceholder')}</option>
+              {personas.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido} — {stageLabel(t, p.estadoEspiritual || '')}</option>)}
             </select>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
             <div>
-              <label style={{fontSize:12,color:'var(--text-muted)',marginBottom:4,display:'block'}}>Fecha de inicio</label>
+              <label style={{fontSize:12,color:'var(--text-muted)',marginBottom:4,display:'block'}}>{t('startDate')}</label>
               <input type="date" className="input" value={fechaInicio} onChange={e=>setFechaInicio(e.target.value)}/>
             </div>
             <div>
-              <label style={{fontSize:12,color:'var(--text-muted)',marginBottom:4,display:'block'}}>Notas</label>
-              <input className="input" placeholder="Opcional..." value={notas} onChange={e=>setNotas(e.target.value)}/>
+              <label style={{fontSize:12,color:'var(--text-muted)',marginBottom:4,display:'block'}}>{t('notes')}</label>
+              <input className="input" placeholder={t('optional')} value={notas} onChange={e=>setNotas(e.target.value)}/>
             </div>
           </div>
         </div>
         <div className="modal-footer" style={{display:'flex',justifyContent:'flex-end',gap:8,padding:'12px 20px'}}>
-          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={guardar} disabled={loading}>{loading ? 'Guardando...' : 'Guardar relación'}</button>
+          <button className="btn btn-ghost" onClick={onClose}>{t('cancel')}</button>
+          <button className="btn btn-primary" onClick={guardar} disabled={loading}>{loading ? t('saving') : t('saveRelation')}</button>
         </div>
       </div>
     </div>
@@ -307,7 +537,8 @@ function ModalAgregarRelacion({ onClose, onGuardar }) {
 }
 
 // ── Componente principal ─────────────────────────────────────
-export default function Discipulado({ title = 'Discipulado' }) {
+export default function Discipulado({ title }) {
+  const t = makeI18n(I18N)
   const navigate = useNavigate()
   const { isPhone } = useOrientation()
   const [tab, setTab]           = useState('lista')      // 'lista' | 'arbol'
@@ -374,7 +605,7 @@ export default function Discipulado({ title = 'Discipulado' }) {
   async function doEliminarLink() {
     const id = confirmLinkId
     setConfirmLinkId(null)
-    try { await apiFetch(`/discipulado/arbol/${id}`,{method:'DELETE'}); toast.success('Relación eliminada'); loadArbol(); setSelectedNodo(null) } catch(e){toast.error(e.message)}
+    try { await apiFetch(`/discipulado/arbol/${id}`,{method:'DELETE'}); toast.success(t('relationDeleted')); loadArbol(); setSelectedNodo(null) } catch(e){toast.error(e.message)}
   }
 
   const TAB_STYLE = (active) => ({
@@ -389,10 +620,10 @@ export default function Discipulado({ title = 'Discipulado' }) {
       <Menu />
       <main className="main">
         <div className="page-header">
-          <h1 className="page-title">{title}</h1>
+          <h1 className="page-title">{title || t('title')}</h1>
           <div style={{display:'flex',gap:4,background:'var(--bg-2)',borderRadius:10,padding:3}}>
-            <button style={TAB_STYLE(tab==='lista')} onClick={()=>setTab('lista')}>Lista</button>
-            <button style={TAB_STYLE(tab==='arbol')} onClick={()=>setTab('arbol')}>Árbol</button>
+            <button style={TAB_STYLE(tab==='lista')} onClick={()=>setTab('lista')}>{t('list')}</button>
+            <button style={TAB_STYLE(tab==='arbol')} onClick={()=>setTab('arbol')}>{t('tree')}</button>
           </div>
         </div>
 
@@ -403,13 +634,13 @@ export default function Discipulado({ title = 'Discipulado' }) {
               <div key={e} onClick={()=>setFiltroEtapa(filtroEtapa===e?'':e)}
                 style={{padding:'14px 12px',borderRadius:10,border:filtroEtapa===e?`2px solid ${ETAPA_COLOR[e]}`:'1px solid var(--border)',background:filtroEtapa===e?ETAPA_BG[e]:'var(--surface)',cursor:'pointer',textAlign:'center',transition:'all .2s',minWidth:100}}>
                 <div style={{fontSize:28,fontWeight:800,color:ETAPA_COLOR[e]}}>{totalPorEtapa[e]||0}</div>
-                <div style={{fontSize:10,fontWeight:600,color:ETAPA_COLOR[e],textTransform:'uppercase',letterSpacing:.4,marginTop:2}}>{e.replace(/_/g,' ')}</div>
+                <div style={{fontSize:10,fontWeight:600,color:ETAPA_COLOR[e],textTransform:'uppercase',letterSpacing:.4,marginTop:2}}>{stageLabel(t, e)}</div>
               </div>
             ))}
           </div>
           {stats?.bautizados&&(
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:10,marginBottom:16}}>
-              {[['',stats.bautizados.agua||0,'Bautizados agua'],['',stats.bautizados.espiritu||0,'Bautizados espíritu'],['',stats.bautizados.discipulado||0,'Discipulado completo']].map(([ic,v,l])=>(
+              {[['',stats.bautizados.agua||0,t('statsBaptizedWater')],['',stats.bautizados.espiritu||0,t('statsBaptizedSpirit')],['',stats.bautizados.discipulado||0,t('statsDiscipleshipComplete')]].map(([ic,v,l])=>(
                 <div key={l} className="card" style={{display:'flex',gap:12,alignItems:'center',padding:'12px 16px'}}>
                   <span style={{fontSize:28}}>{ic}</span>
                   <div><div style={{fontSize:24,fontWeight:800,color:'var(--primary)'}}>{v}</div><div style={{fontSize:11,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.3}}>{l}</div></div>
@@ -418,20 +649,20 @@ export default function Discipulado({ title = 'Discipulado' }) {
             </div>
           )}
           <div className="toolbar">
-            <input name="h" className="input input-search" placeholder="Buscar..." value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}}/>
-            <button className="btn btn-ghost" onClick={()=>{setFiltroEtapa('');setSearch('');setPage(1)}}>Limpiar</button>
+            <input name="h" className="input input-search" placeholder={t('searchPlaceholder')} value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}}/>
+            <button className="btn btn-ghost" onClick={()=>{setFiltroEtapa('');setSearch('');setPage(1)}}>{t('clear')}</button>
           </div>
           <div className="card" style={{padding:0}}>
-            {loading ? <div className="empty"><p>Cargando...</p></div>
+            {loading ? <div className="empty"><p>{t('loading')}</p></div>
             : error ? <div className="alert alert-error" style={{margin:16}}>{error}</div>
-            : data.length===0 ? <div className="empty"><div className="empty-icon"><Icons.Discipleship /></div><p>Sin resultados</p></div>
+            : data.length===0 ? <div className="empty"><div className="empty-icon"><Icons.Discipleship /></div><p>{t('noResults')}</p></div>
             : isPhone
-              ? <DiscipuladoListaPhone data={data} navigate={navigate} abrirModal={abrirModal} />
+              ? <DiscipuladoListaPhone data={data} navigate={navigate} abrirModal={abrirModal} t={t} />
               : <DiscipuladoListaDesktop data={data} navigate={navigate} abrirModal={abrirModal}
-                  cambiarEtapa={cambiarEtapa} toggleCheck={toggleCheck} />
+                  cambiarEtapa={cambiarEtapa} toggleCheck={toggleCheck} t={t} />
             }
           </div>
-          {pages>1&&<div className="pagination"><span className="pag-info">Pág {page}/{pages} · {total}</span><button className="pag-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}>←</button><button className="pag-btn" disabled={page===pages} onClick={()=>setPage(p=>p+1)}>→</button></div>}
+          {pages>1&&<div className="pagination"><span className="pag-info">{t('pageOf')} {page}/{pages} · {total}</span><button className="pag-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}>←</button><button className="pag-btn" disabled={page===pages} onClick={()=>setPage(p=>p+1)}>→</button></div>}
         </>}
 
         {/* ── TAB ÁRBOL ── */}
@@ -439,11 +670,11 @@ export default function Discipulado({ title = 'Discipulado' }) {
           <div>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:8}}>
               <div style={{fontSize:13,color:'var(--text-muted)'}}>
-                {arbolData.nodos.length} personas · {arbolData.links.filter(l=>l.activo).length} relaciones activas
+                {arbolData.nodos.length} {t('peopleCount')} · {arbolData.links.filter(l=>l.activo).length} {t('activeRelations')}
               </div>
               <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                <button className="btn btn-ghost btn-sm" onClick={loadArbol}>Actualizar</button>
-                <button className="btn btn-primary btn-sm" onClick={()=>setModalRelacion(true)}>+ Agregar relación</button>
+                <button className="btn btn-ghost btn-sm" onClick={loadArbol}>{t('refresh')}</button>
+                <button className="btn btn-primary btn-sm" onClick={()=>setModalRelacion(true)}>{t('addRelation')}</button>
               </div>
             </div>
 
@@ -453,14 +684,14 @@ export default function Discipulado({ title = 'Discipulado' }) {
                 const c = TREE_COLORS[e]
                 return (
                   <span key={e} style={{fontSize:11,padding:'3px 10px',borderRadius:20,background:c.fill,color:c.text,border:`1px solid ${c.stroke}`,fontWeight:500}}>
-                    {e.replace(/_/g,' ')}
+                    {stageLabel(t, e)}
                   </span>
                 )
               })}
             </div>
 
             {arbolLoading ? (
-              <div className="empty"><p>Cargando árbol...</p></div>
+              <div className="empty"><p>{t('loadingTree')}</p></div>
             ) : arbolError ? (
               <div className="alert alert-error">{arbolError}</div>
             ) : (
@@ -472,9 +703,10 @@ export default function Discipulado({ title = 'Discipulado' }) {
                     raices={arbolData.raices}
                     selectedId={selectedNodo?.id}
                     onSelectNodo={setSelectedNodo}
+                    t={t}
                   />
                   <p style={{fontSize:11,color:'var(--text-muted)',marginTop:8,textAlign:'center'}}>
-                    Hacé scroll con la rueda para hacer zoom · Arrastrá para mover · Clic en un nodo para ver detalles
+                    {t('treeHint')}
                   </p>
                 </div>
                 {selectedNodo && (
@@ -483,6 +715,7 @@ export default function Discipulado({ title = 'Discipulado' }) {
                     links={arbolData.links}
                     onClose={()=>setSelectedNodo(null)}
                     onEliminarLink={eliminarLink}
+                    t={t}
                   />
                 )}
               </div>
@@ -501,11 +734,11 @@ export default function Discipulado({ title = 'Discipulado' }) {
                     <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
                       <input name="completado" type="checkbox" checked={!!m.completado} onChange={()=>toggleMaterial(m.material,m.completado)} style={{width:18,height:18,accentColor:'var(--c-success)',cursor:'pointer'}}/>
                       <div>
-                        <div style={{fontSize:14,fontWeight:m.completado?600:400}}>{MAT_LABEL[m.material]||m.material}</div>
+                        <div style={{fontSize:14,fontWeight:m.completado?600:400}}>{matLabel(t, m.material)}</div>
                         {m.fecha&&<div style={{fontSize:11,color:'var(--c-success)'}}>{m.fecha}</div>}
                       </div>
                     </div>
-                    {!!m.completado&&<span className="badge badge-activo">Completado</span>}
+                    {!!m.completado&&<span className="badge badge-activo">{t('completed')}</span>}
                   </div>
                 ))}
               </div>
@@ -518,14 +751,15 @@ export default function Discipulado({ title = 'Discipulado' }) {
           <ModalAgregarRelacion
             onClose={() => setModalRelacion(false)}
             onGuardar={() => { setModalRelacion(false); loadArbol() }}
+            t={t}
           />
         )}
         <ConfirmModal
           open={confirmLinkId !== null}
           onClose={() => setConfirmLinkId(null)}
           onConfirm={doEliminarLink}
-          title="¿Eliminar relación de discipulado?"
-          message="Esta acción no se puede deshacer."
+          title={t('confirmDeleteTitle')}
+          message={t('confirmDeleteMsg')}
           danger
         />
       </main>
@@ -533,38 +767,38 @@ export default function Discipulado({ title = 'Discipulado' }) {
   )
 }
 
-function DiscipuladoListaPhone({ data, navigate, abrirModal }) {
+function DiscipuladoListaPhone({ data, navigate, abrirModal, t }) {
   return (
     <div className="mobile-list">
       {data.map(p=>(
         <div key={p.id} className="mobile-person-card">
           <div className="mobile-person-main">
             <strong className="persona-link" onClick={()=>navigate(`/personas/${p.id}`)}>{p.nombre} {p.apellido}</strong>
-            <span style={{padding:'2px 8px',borderRadius:10,fontSize:11,fontWeight:700,background:ETAPA_BG[p.estadoEspiritual]||'var(--c-info-bg)',color:ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}}>{(p.estadoEspiritual||'NUEVO_CREYENTE').replace(/_/g,' ')}</span>
+            <span style={{padding:'2px 8px',borderRadius:10,fontSize:11,fontWeight:700,background:ETAPA_BG[p.estadoEspiritual]||'var(--c-info-bg)',color:ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}}>{stageLabel(t, p.estadoEspiritual || 'NUEVO_CREYENTE')}</span>
           </div>
           <div className="mobile-person-meta">
             {p.liderNombre && <span style={{fontSize:11,color:'var(--text-muted)'}}><Icons.Profile /> {p.liderNombre}</span>}
-            <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.materialesCompletados||0}/{MATERIALES.length} materiales</span>
+            <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.materialesCompletados||0}/{MATERIALES.length} {t('materialsCount')}</span>
           </div>
-          <button className="btn btn-ghost btn-sm" style={{marginTop:6,width:'100%'}} onClick={()=>abrirModal(p)}>Ver progreso</button>
+          <button className="btn btn-ghost btn-sm" style={{marginTop:6,width:'100%'}} onClick={()=>abrirModal(p)}>{t('viewProgress')}</button>
         </div>
       ))}
     </div>
   )
 }
 
-function DiscipuladoListaDesktop({ data, navigate, abrirModal, cambiarEtapa, toggleCheck }) {
+function DiscipuladoListaDesktop({ data, navigate, abrirModal, cambiarEtapa, toggleCheck, t }) {
   return (
     <div className="table-responsive">
       <table style={{minWidth:500}}>
-        <thead><tr><th>Persona</th><th>Etapa</th><th>Bautismos</th><th>Materiales</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>{t('colPerson')}</th><th>{t('colStage')}</th><th>{t('colBaptisms')}</th><th>{t('colMaterials')}</th><th>{t('colActions')}</th></tr></thead>
         <tbody>{data.map(p=>(
           <tr key={p.id}>
             <td><strong className="persona-link" onClick={()=>navigate(`/personas/${p.id}`)}>{p.nombre} {p.apellido}</strong>{p.liderNombre&&<div style={{fontSize:11,color:'var(--text-muted)'}}>{p.liderNombre}</div>}</td>
             <td>
               <select name="estadoEspiritual" value={p.estadoEspiritual||'NUEVO_CREYENTE'} onChange={e=>cambiarEtapa(p.id,e.target.value)}
                 style={{padding:'3px 8px',border:`1.5px solid ${ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}`,borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer',outline:'none',background:ETAPA_BG[p.estadoEspiritual]||'var(--c-info-bg)',color:ETAPA_COLOR[p.estadoEspiritual]||'var(--c-info)'}}>
-                {ETAPAS.map(e=><option key={e} value={e}>{e.replace(/_/g,' ')}</option>)}
+                {ETAPAS.map(e=><option key={e} value={e}>{stageLabel(t, e)}</option>)}
               </select>
             </td>
             <td>
@@ -583,7 +817,7 @@ function DiscipuladoListaDesktop({ data, navigate, abrirModal, cambiarEtapa, tog
                 <span style={{fontSize:11,color:'var(--text-muted)'}}>{p.materialesCompletados||0}/{MATERIALES.length}</span>
               </div>
             </td>
-            <td><button className="btn btn-ghost btn-sm" onClick={()=>abrirModal(p)}>Ver progreso</button></td>
+            <td><button className="btn btn-ghost btn-sm" onClick={()=>abrirModal(p)}>{t('viewProgress')}</button></td>
           </tr>
         ))}</tbody>
       </table>
