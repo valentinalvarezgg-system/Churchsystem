@@ -5,7 +5,7 @@ services:
     region: ohio
     plan: starter
     rootDir: backend
-    buildCommand: npm install -g pnpm@9.15.5 && (pnpm store prune || true) && cd ../frontend && pnpm install --force --frozen-lockfile && pnpm build && cd ../backend && pnpm install --force --frozen-lockfile
+    buildCommand: npm install -g pnpm@9.15.5 && (pnpm store prune || true) && cd ../frontend && pnpm install --force --frozen-lockfile --prod=false && pnpm build && cd ../backend && pnpm install --force --frozen-lockfile --prod=false
     startCommand: node src/server.js
     healthCheckPath: /health
     autoDeployTrigger: commit
